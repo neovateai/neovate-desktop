@@ -23,18 +23,18 @@ Main
 
 ## Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Desktop | Electron ~40, electron-vite 5, electron-builder |
-| Frontend | React 19, TypeScript 5, Vite 7 |
-| IPC | oRPC |
-| Agent | ACP (`@agentclientprotocol/sdk`) |
-| State | zustand 5 (multi-slice) |
-| Style | Tailwind CSS 4, @base-ui/react |
-| Terminal | XTerm.js 6 + node-pty |
-| Lint | Biome |
-| Test | Vitest + @testing-library/react |
-| Package | pnpm |
+| Layer    | Choice                                          |
+| -------- | ----------------------------------------------- |
+| Desktop  | Electron ~40, electron-vite 5, electron-builder |
+| Frontend | React 19, TypeScript 5, Vite 7                  |
+| IPC      | oRPC                                            |
+| Agent    | ACP (`@agentclientprotocol/sdk`)                |
+| State    | zustand 5 (multi-slice)                         |
+| Style    | Tailwind CSS 4, @base-ui/react                  |
+| Terminal | XTerm.js 6 + node-pty                           |
+| Lint     | Biome                                           |
+| Test     | Vitest + @testing-library/react                 |
+| Package  | pnpm                                            |
 
 ## Modules
 
@@ -50,13 +50,13 @@ Main
 
 ## Roadmap
 
-| Milestone | Scope | Timeline |
-|-----------|-------|----------|
-| **MVP** | ACP round-trip, basic chat, permission approval | W1 early |
-| **M1** | Layout framework, state persistence | W1 late |
-| **M2** | Session/project management, all message types | W2 |
-| **M3** | Diff viewer, terminal, sidebar, settings, i18n | W2-W3 |
-| **M4** | Editor, browser, review, plugins, auto-update | W3+ |
+| Milestone | Scope                                           | Timeline |
+| --------- | ----------------------------------------------- | -------- |
+| **MVP**   | ACP round-trip, basic chat, permission approval | W1 early |
+| **M1**    | Layout framework, state persistence             | W1 late  |
+| **M2**    | Session/project management, all message types   | W2       |
+| **M3**    | Diff viewer, terminal, sidebar, settings, i18n  | W2-W3    |
+| **M4**    | Editor, browser, review, plugins, auto-update   | W3+      |
 
 ## References
 
