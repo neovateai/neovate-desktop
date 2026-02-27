@@ -21,7 +21,9 @@
     "build:mac": "bun run build && electron-builder --mac --config configs/electron-builder.mjs",
     "build:mac:dev": "bun run build && BUILD_ENV=dev electron-builder --mac --config configs/electron-builder.mjs",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:e2e": "bun run build && playwright test",
+    "test:e2e:no-build": "playwright test"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.14.1",
@@ -60,6 +62,7 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
+    "@playwright/test": "^1.52.0",
     "vitest": "^4.0.18"
   }
 }

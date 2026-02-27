@@ -7,3 +7,5 @@ release
 .cache
 *.log*
 *.tsbuildinfo
+test-results/
+playwright-report/
