@@ -1,0 +1,68 @@
+{
+  "name": "neovate-desktop",
+  "version": "0.0.0",
+  "description": "An Electron application with React and TypeScript",
+  "homepage": "https://neovateai.dev",
+  "bugs": {
+    "url": "https://github.com/neovateai/neovate-desktop/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neovateai/neovate-desktop/"
+  },
+  "main": "./dist/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "electron-vite build",
+    "typecheck": "tsgo --noEmit -p tsconfig.node.json && tsgo --noEmit -p tsconfig.web.json",
+    "postinstall": "electron-builder install-app-deps",
+    "build:unpack": "bun run build && electron-builder --dir --config configs/electron-builder.mjs",
+    "build:mac": "bun run build && electron-builder --mac --config configs/electron-builder.mjs",
+    "build:mac:dev": "bun run build && BUILD_ENV=dev electron-builder --mac --config configs/electron-builder.mjs",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:e2e": "bun run build && playwright test",
+    "test:e2e:no-build": "playwright test"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.14.1",
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
+    "@orpc/contract": "^1.13.5",
+    "@orpc/server": "^1.13.5",
+    "electron-updater": "^6.3.9",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@base-ui/react": "^1.2.0",
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@hugeicons/core-free-icons": "^3.3.0",
+    "@hugeicons/react": "^1.1.5",
+    "@orpc/client": "^1.13.5",
+    "@playwright/test": "^1.52.0",
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^22.19.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260227.1",
+    "@vitejs/plugin-react": "^5.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron": "~40.1.0",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^5.0.0",
+    "lucide-react": "^0.575.0",
+    "react": "^19.2.1",
+    "react-day-picker": "^9.14.0",
+    "react-dom": "^19.2.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.1",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vitest": "^4.0.18",
+    "zustand": "^5.0.11"
+  }
+}
