@@ -75,7 +75,9 @@ New files in `src/renderer/src/components/layout/`:
 
 ## Animation & Styling
 
-- `motion` library (new dependency) for panel show/hide transitions
+- `motion` library (new dependency) for panel width animation (slide in/out)
+- React 19.2 `<Activity>` component wraps panel content — cleans up effects when hidden, restores when visible
+- Combined: `motion` handles visual animation, `<Activity>` handles state/effects lifecycle
 - Spring-based animation (critically damped: stiffness ~600, damping ~49)
 - All Tailwind utility classes, CSS variables from existing `globals.css`
 - Panel backgrounds use `card`/`card-foreground` theme tokens

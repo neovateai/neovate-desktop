@@ -93,10 +93,10 @@ This file contains the root layout and panel slot components. Only components th
 
 **Step 1: Write the layout components**
 
-Panels are always mounted (never conditionally rendered) to preserve internal state. Animation clips content via `overflow: hidden` on the motion container while an inner div maintains fixed width.
+Panels are always mounted (never conditionally rendered) to preserve internal state. `motion` handles the width animation, `<Activity>` manages effects cleanup/restore when hidden.
 
 ```tsx
-import { type ReactNode } from "react"
+import { Activity, type ReactNode } from "react"
 import { motion } from "motion/react"
 import { useLayoutStore } from "./use-layout-store"
 
@@ -120,7 +120,9 @@ export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
       animate={{ width: collapsed ? 0 : 300 }}
       transition={SPRING}
     >
-      <div className="h-full w-[300px]">{children}</div>
+      <Activity mode={collapsed ? "hidden" : "visible"}>
+        <div className="h-full w-[300px]">{children}</div>
+      </Activity>
     </motion.aside>
   )
 }
@@ -151,7 +153,9 @@ export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
       animate={{ width: collapsed ? 0 : 300 }}
       transition={SPRING}
     >
-      <div className="h-full w-[300px]">{children}</div>
+      <Activity mode={collapsed ? "hidden" : "visible"}>
+        <div className="h-full w-[300px]">{children}</div>
+      </Activity>
     </motion.div>
   )
 }
@@ -166,7 +170,9 @@ export function AppLayoutSecondarySidebar({ children }: { children: ReactNode })
       animate={{ width: collapsed ? 0 : 240 }}
       transition={SPRING}
     >
-      <div className="h-full w-[240px]">{children}</div>
+      <Activity mode={collapsed ? "hidden" : "visible"}>
+        <div className="h-full w-[240px]">{children}</div>
+      </Activity>
     </motion.aside>
   )
 }
