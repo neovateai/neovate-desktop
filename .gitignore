@@ -9,4 +9,4 @@ release
 *.tsbuildinfo
 test-results/
 playwright-report/
-docs/plans/
+docs/plans

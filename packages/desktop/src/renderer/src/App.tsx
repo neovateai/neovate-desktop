@@ -12,6 +12,7 @@ import {
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
 } from "./components/app-layout";
+import { ThemeToggle } from "./components/ui/theme-toggle";
 
 export default function App() {
   return (
@@ -24,13 +25,16 @@ export default function App() {
           <div className="flex flex-1 items-center justify-center">
             <p className="text-xs text-muted-foreground">No sessions yet</p>
           </div>
+          <div className="mt-auto pt-2">
+            <ThemeToggle />
+          </div>
         </div>
       </AppLayoutPrimarySidebar>
 
       <AppLayoutPanelSeparator panelId="primarySidebar" />
 
       {/* Right container: titlebar + panels + status bar */}
-      <div className="flex min-w-0 flex-1 flex-col mb-2">
+      <div className="mb-2 flex min-w-0 flex-1 flex-col">
         <AppLayoutTitleBar>
           <AppLayoutPrimaryTitleBar />
           <AppLayoutSecondaryTitleBar />
