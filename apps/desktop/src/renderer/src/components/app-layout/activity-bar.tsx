@@ -28,9 +28,9 @@ function ActivityBarItem({ icon, label, panelId }: ActivityBarItemProps) {
   )
 }
 
-export function ActivityBar() {
+export function AppLayoutActivityBar() {
   return (
-    <nav data-slot="activity-bar" className="flex flex-col items-center pt-1">
+    <nav data-slot="activity-bar" className="flex h-full w-12 shrink-0 flex-col items-center pt-1">
       <ActivityBarItem icon={<Files className="h-5 w-5" />} label="Files" panelId="secondarySidebar" />
       <ActivityBarItem icon={<Search className="h-5 w-5" />} label="Search" panelId="secondarySidebar" />
       <ActivityBarItem icon={<GitBranch className="h-5 w-5" />} label="Git" panelId="secondarySidebar" />

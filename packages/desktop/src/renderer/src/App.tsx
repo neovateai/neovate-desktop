@@ -1,6 +1,5 @@
 import { AgentChat } from "./features/acp"
 import {
-  ActivityBar,
   AppLayoutActivityBar,
   AppLayoutChatPanel,
   AppLayoutContentPanel,
@@ -12,7 +11,7 @@ import {
   AppLayoutStatusBar,
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
-} from "./components/layout"
+} from "./components/app-layout"
 
 export default function App() {
   return (
@@ -61,9 +60,7 @@ export default function App() {
             </AppLayoutSecondarySidebar>
           </div>
 
-          <AppLayoutActivityBar>
-            <ActivityBar />
-          </AppLayoutActivityBar>
+          <AppLayoutActivityBar />
         </div>
 
         <AppLayoutStatusBar />
