@@ -3,6 +3,7 @@ import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
   AppLayoutContentPanel,
+  AppLayoutPanelSeparator,
   AppLayoutPrimarySidebar,
   AppLayoutPrimaryTitleBar,
   AppLayoutRoot,
@@ -27,6 +28,8 @@ export default function App() {
         </div>
       </AppLayoutPrimarySidebar>
 
+      <AppLayoutPanelSeparator panelId="primarySidebar" />
+
       {/* Right container: titlebar + panels + status bar */}
       <div className="flex min-w-0 flex-1 flex-col">
         <AppLayoutTitleBar>
@@ -35,11 +38,12 @@ export default function App() {
         </AppLayoutTitleBar>
 
         <div className="flex min-h-0 flex-1">
-          {/* Panel row */}
-          <div className="flex min-h-0 flex-1 gap-1">
+          <div className="flex min-h-0 flex-1">
             <AppLayoutChatPanel>
               <AgentChat />
             </AppLayoutChatPanel>
+
+            <AppLayoutPanelSeparator panelId="contentPanel" />
 
             <AppLayoutContentPanel>
               <div className="flex h-full flex-col p-3">
@@ -49,6 +53,8 @@ export default function App() {
                 </div>
               </div>
             </AppLayoutContentPanel>
+
+            <AppLayoutPanelSeparator panelId="secondarySidebar" />
 
             <AppLayoutSecondarySidebar>
               <div className="flex h-full flex-col p-3">

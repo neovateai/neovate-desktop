@@ -6,6 +6,7 @@ export {
   AppLayoutTrafficLights,
   AppLayoutPrimaryTitleBar,
   AppLayoutSecondaryTitleBar,
+  AppLayoutPanelSeparator,
   AppLayoutStatusBar,
 } from "./app-layout"
 export { AppLayoutPrimarySidebar } from "./primary-sidebar"
