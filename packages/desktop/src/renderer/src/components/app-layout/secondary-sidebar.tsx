@@ -1,4 +1,4 @@
-import { Activity, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { useLayoutStore } from "./use-layout-store";
@@ -18,9 +18,7 @@ export function AppLayoutSecondarySidebar({ children }: { children: ReactNode })
       animate={{ width: collapsed ? 0 : 240 }}
       transition={SPRING}
     >
-      <Activity mode={collapsed ? "hidden" : "visible"}>
-        <div className="h-full w-[240px] pb-2">{children}</div>
-      </Activity>
+      <div className="h-full w-[240px] pb-2">{children}</div>
     </motion.aside>
   );
 }

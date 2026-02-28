@@ -1,18 +1,25 @@
 import { type ReactNode } from "react";
-import { PanelLeftIcon, Settings01Icon, ViewSidebarLeftIcon } from "@hugeicons/core-free-icons";
+import {
+  PanelLeftIcon,
+  PanelRightIcon,
+  Settings01Icon,
+  ViewSidebarLeftIcon,
+  ViewSidebarRightIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { Button } from "../ui/button";
 import { useLayoutStore } from "./use-layout-store";
 
 const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
+const COLLAPSED_TITLEBAR_LEFT_MARGIN = 136;
 
 export function AppLayoutRoot({ children }: { children: ReactNode }) {
   return (
     <div
       data-slot="app-layout-root"
       data-testid="app-root"
-      className="relative flex h-screen w-screen overflow-hidden p-2"
+      className="relative flex h-screen w-screen overflow-hidden"
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
       {children}
@@ -21,14 +28,17 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
+  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
+
   return (
-    <div
+    <motion.div
       data-slot="titlebar"
-      className="flex h-11 shrink-0 select-none items-center"
-      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      className="[-webkit-app-region:drag] flex h-11 shrink-0 select-none items-center"
+      animate={{ marginLeft: collapsed ? COLLAPSED_TITLEBAR_LEFT_MARGIN : 0 }}
+      transition={{ type: "spring" as const, stiffness: 360, damping: 34 }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -86,8 +96,7 @@ export function AppLayoutPrimaryTitleBar() {
   return (
     <div
       data-slot="primary-titlebar"
-      className="relative flex shrink-0 items-center gap-1"
-      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+      className="[-webkit-app-region:no-drag] relative flex shrink-0 items-center gap-1"
     >
       <span data-testid="app-title" className="px-2 text-sm font-medium">
         Neovate Desktop
@@ -97,19 +106,31 @@ export function AppLayoutPrimaryTitleBar() {
 }
 
 export function AppLayoutSecondaryTitleBar() {
+  const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
+  const togglePanel = useLayoutStore((s) => s.togglePanel);
+
   return (
     <div
       data-slot="secondary-titlebar"
-      className="flex flex-1 items-center"
-      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      className="[-webkit-app-region:drag] flex flex-1 items-center"
     >
       <div className="flex-1" />
-      <div
-        className="flex items-center gap-1"
-        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-      >
-        <Button variant="ghost" size="icon" className="size-8" title="Settings">
-          <HugeiconsIcon icon={Settings01Icon} size={18} strokeWidth={1.5} />
+      <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-0.5 pr-2">
+        <Button variant="ghost" size="icon-sm" className="size-7" title="Settings">
+          <HugeiconsIcon icon={Settings01Icon} size={16} strokeWidth={1.5} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-7"
+          onClick={() => togglePanel("secondarySidebar")}
+          title={secondaryCollapsed ? "Show sidebar" : "Hide sidebar"}
+        >
+          <HugeiconsIcon
+            icon={secondaryCollapsed ? PanelRightIcon : ViewSidebarRightIcon}
+            size={16}
+            strokeWidth={1.5}
+          />
         </Button>
       </div>
     </div>

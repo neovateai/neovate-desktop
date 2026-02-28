@@ -9,7 +9,6 @@ import {
   AppLayoutRoot,
   AppLayoutSecondarySidebar,
   AppLayoutSecondaryTitleBar,
-  AppLayoutStatusBar,
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
 } from "./components/app-layout";
@@ -31,7 +30,7 @@ export default function App() {
       <AppLayoutPanelSeparator panelId="primarySidebar" />
 
       {/* Right container: titlebar + panels + status bar */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col mb-2">
         <AppLayoutTitleBar>
           <AppLayoutPrimaryTitleBar />
           <AppLayoutSecondaryTitleBar />
@@ -69,7 +68,7 @@ export default function App() {
           <AppLayoutActivityBar />
         </div>
 
-        <AppLayoutStatusBar />
+        {/* <AppLayoutStatusBar /> */}
       </div>
     </AppLayoutRoot>
   );
