@@ -25,9 +25,9 @@ export default function App() {
           <div className="flex flex-1 items-center justify-center">
             <p className="text-xs text-muted-foreground">No sessions yet</p>
           </div>
-          <div className="mt-auto pt-2">
-            <ThemeToggle />
-          </div>
+        </div>
+        <div className="mt-auto ml-auto px-1.5 pb-1.5">
+          <ThemeToggle />
         </div>
       </AppLayoutPrimarySidebar>
 
