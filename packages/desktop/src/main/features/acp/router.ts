@@ -46,9 +46,18 @@ export const acpRouter = os.acp.router({
     const agent = context.acpAgentRegistry.get(input.agentId);
     if (!agent) throw new Error(`Unknown agent: ${input.agentId}`);
 
-    const connection = await context.acpConnectionManager.connect(agent, input.cwd);
-    acpLog("connect: success", { connectionId: connection.id, agentId: input.agentId });
-    return { connectionId: connection.id };
+    try {
+      const connection = await context.acpConnectionManager.connect(agent, input.cwd);
+      acpLog("connect: success", { connectionId: connection.id, agentId: input.agentId });
+      return { connectionId: connection.id };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? `Failed to start agent "${agent.name}": ${error.message}`
+          : `Failed to start agent "${agent.name}"`;
+      acpLog("connect: failed", { agentId: input.agentId, error: message });
+      throw new ORPCError("BAD_GATEWAY", { defined: true, message });
+    }
   }),
 
   newSession: os.acp.newSession.handler(async ({ input, context }) => {

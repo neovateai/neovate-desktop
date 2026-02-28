@@ -38,6 +38,13 @@ export class AcpConnectionManager {
       stdio: ["pipe", "pipe", "pipe"],
       cwd,
       env,
+      shell: true,
+    });
+
+    // Reject early if spawn itself fails (e.g. command not found)
+    await new Promise<void>((resolve, reject) => {
+      agentProcess.on("error", reject);
+      agentProcess.on("spawn", resolve);
     });
 
     // Buffer stderr lines for diagnostics
