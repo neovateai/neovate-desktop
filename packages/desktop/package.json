@@ -32,6 +32,7 @@
     "@orpc/contract": "^1.13.5",
     "@orpc/server": "^1.13.5",
     "electron-updater": "^6.3.9",
+    "motion": "^12.34.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
