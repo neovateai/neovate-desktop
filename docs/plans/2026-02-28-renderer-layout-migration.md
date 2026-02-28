@@ -50,7 +50,6 @@ type PanelState = {
 type LayoutStore = {
   panels: Record<string, PanelState>
   togglePanel: (id: string) => void
-  isPanelOpen: (id: string) => boolean
 }
 
 const DEFAULT_PANELS: Record<string, PanelState> = {
@@ -59,7 +58,7 @@ const DEFAULT_PANELS: Record<string, PanelState> = {
   secondarySidebar: { collapsed: true },
 }
 
-export const useLayoutStore = create<LayoutStore>((set, get) => ({
+export const useLayoutStore = create<LayoutStore>((set) => ({
   panels: DEFAULT_PANELS,
   togglePanel: (id) =>
     set((state) => ({
@@ -68,7 +67,6 @@ export const useLayoutStore = create<LayoutStore>((set, get) => ({
         [id]: { ...state.panels[id], collapsed: !state.panels[id]?.collapsed },
       },
     })),
-  isPanelOpen: (id) => !get().panels[id]?.collapsed,
 }))
 ```
 
@@ -95,9 +93,11 @@ This file contains the root layout and panel slot components. Only components th
 
 **Step 1: Write the layout components**
 
+Panels are always mounted (never conditionally rendered) to preserve internal state. Animation clips content via `overflow: hidden` on the motion container while an inner div maintains fixed width.
+
 ```tsx
 import { type ReactNode } from "react"
-import { AnimatePresence, motion } from "motion/react"
+import { motion } from "motion/react"
 import { useLayoutStore } from "./use-layout-store"
 
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 }
@@ -111,24 +111,17 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
-  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
-  const open = isPanelOpen("primarySidebar")
+  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed)
 
   return (
-    <AnimatePresence initial={false}>
-      {open && (
-        <motion.aside
-          data-slot="primary-sidebar"
-          className="h-full w-[300px] shrink-0 overflow-hidden rounded-lg bg-card"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 300, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={SPRING}
-        >
-          <div className="h-full w-[300px]">{children}</div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+    <motion.aside
+      data-slot="primary-sidebar"
+      className="h-full shrink-0 overflow-hidden rounded-lg bg-card"
+      animate={{ width: collapsed ? 0 : 300 }}
+      transition={SPRING}
+    >
+      <div className="h-full w-[300px]">{children}</div>
+    </motion.aside>
   )
 }
 
@@ -149,46 +142,32 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
-  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
-  const open = isPanelOpen("contentPanel")
+  const collapsed = useLayoutStore((s) => s.panels.contentPanel?.collapsed)
 
   return (
-    <AnimatePresence initial={false}>
-      {open && (
-        <motion.div
-          data-slot="content-panel"
-          className="h-full w-[300px] shrink-0 overflow-hidden rounded-lg bg-card"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 300, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={SPRING}
-        >
-          <div className="h-full w-[300px]">{children}</div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <motion.div
+      data-slot="content-panel"
+      className="h-full shrink-0 overflow-hidden rounded-lg bg-card"
+      animate={{ width: collapsed ? 0 : 300 }}
+      transition={SPRING}
+    >
+      <div className="h-full w-[300px]">{children}</div>
+    </motion.div>
   )
 }
 
 export function AppLayoutSecondarySidebar({ children }: { children: ReactNode }) {
-  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
-  const open = isPanelOpen("secondarySidebar")
+  const collapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed)
 
   return (
-    <AnimatePresence initial={false}>
-      {open && (
-        <motion.aside
-          data-slot="secondary-sidebar"
-          className="h-full w-[240px] shrink-0 overflow-hidden rounded-lg bg-card"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 240, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={SPRING}
-        >
-          <div className="h-full w-[240px]">{children}</div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+    <motion.aside
+      data-slot="secondary-sidebar"
+      className="h-full shrink-0 overflow-hidden rounded-lg bg-card"
+      animate={{ width: collapsed ? 0 : 240 }}
+      transition={SPRING}
+    >
+      <div className="h-full w-[240px]">{children}</div>
+    </motion.aside>
   )
 }
 
@@ -229,9 +208,8 @@ import { PanelLeft } from "lucide-react"
 import { useLayoutStore } from "./use-layout-store"
 
 export function TrafficLightsSection() {
+  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed)
   const togglePanel = useLayoutStore((s) => s.togglePanel)
-  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
-  const sidebarOpen = isPanelOpen("primarySidebar")
 
   return (
     <div data-slot="traffic-lights" className="flex w-[76px] shrink-0 items-center justify-end pr-1">
@@ -239,7 +217,7 @@ export function TrafficLightsSection() {
         type="button"
         onClick={() => togglePanel("primarySidebar")}
         className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-        aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+        aria-label={collapsed ? "Show sidebar" : "Hide sidebar"}
       >
         <PanelLeft className="h-4 w-4" />
       </button>
@@ -344,9 +322,8 @@ type ActivityBarItemProps = {
 }
 
 function ActivityBarItem({ icon, label, panelId }: ActivityBarItemProps) {
+  const collapsed = useLayoutStore((s) => s.panels[panelId]?.collapsed)
   const togglePanel = useLayoutStore((s) => s.togglePanel)
-  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
-  const active = isPanelOpen(panelId)
 
   return (
     <button
@@ -354,10 +331,10 @@ function ActivityBarItem({ icon, label, panelId }: ActivityBarItemProps) {
       onClick={() => togglePanel(panelId)}
       className={cn(
         "flex h-10 w-full items-center justify-center text-muted-foreground hover:text-foreground",
-        active && "text-foreground",
+        !collapsed && "text-foreground",
       )}
       aria-label={label}
-      aria-pressed={active}
+      aria-pressed={!collapsed}
     >
       {icon}
     </button>
