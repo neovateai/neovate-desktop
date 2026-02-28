@@ -1,4 +1,5 @@
 import { AgentChat } from "./features/acp";
+import { ThemeToggle } from "./components/ui/theme-toggle";
 
 export default function App() {
   return (
@@ -7,6 +8,7 @@ export default function App() {
         <h1 data-testid="app-title" className="text-sm font-semibold">
           Neovate Desktop
         </h1>
+        <ThemeToggle className="ml-auto" />
       </header>
       <main className="flex-1 overflow-hidden">
         <AgentChat />
