@@ -1,4 +1,4 @@
-import { AgentChat } from "./features/acp"
+import { AgentChat } from "./features/acp";
 import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
@@ -12,7 +12,7 @@ import {
   AppLayoutStatusBar,
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
-} from "./components/app-layout"
+} from "./components/app-layout";
 
 export default function App() {
   return (
@@ -72,5 +72,5 @@ export default function App() {
         <AppLayoutStatusBar />
       </div>
     </AppLayoutRoot>
-  )
+  );
 }

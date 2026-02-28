@@ -1,12 +1,12 @@
-import { Activity, type ReactNode } from "react"
-import { motion } from "motion/react"
-import { cn } from "../../lib/utils"
-import { useLayoutStore } from "./use-layout-store"
+import { Activity, type ReactNode } from "react";
+import { motion } from "motion/react";
+import { cn } from "../../lib/utils";
+import { useLayoutStore } from "./use-layout-store";
 
-const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 }
+const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 };
 
 export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
-  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed)
+  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
 
   return (
     <motion.aside
@@ -19,10 +19,8 @@ export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
       transition={SPRING}
     >
       <Activity mode={collapsed ? "hidden" : "visible"}>
-        <div className="flex h-full w-[300px] flex-col pt-8">
-          {children}
-        </div>
+        <div className="flex h-full w-[300px] flex-col pt-8">{children}</div>
       </Activity>
     </motion.aside>
-  )
+  );
 }

@@ -31,8 +31,8 @@ Layout state manages panel visibility only. Designed to be extensible for future
 ```typescript
 // Phase 1 (now)
 type PanelState = {
-  collapsed: boolean
-}
+  collapsed: boolean;
+};
 
 // Phase 2 (future: tabs)
 // Add: activeTabId?: string, tabs?: Array<{ id: string; label: string }>
@@ -42,16 +42,17 @@ type PanelState = {
 
 // Root shape (stable across all phases)
 type LayoutState = {
-  panels: Record<string, PanelState>
-}
+  panels: Record<string, PanelState>;
+};
 
 type LayoutActions = {
-  togglePanel: (id: string) => void
-  isPanelOpen: (id: string) => boolean
-}
+  togglePanel: (id: string) => void;
+  isPanelOpen: (id: string) => boolean;
+};
 ```
 
 Key decisions:
+
 - `Record<string, PanelState>` is open-ended: new panels = new string IDs, no type changes
 - Tab selection is per-panel local state, not in layout state (avoids coupling)
 - The whole tree serializes as one JSON blob for future persistence
@@ -62,16 +63,16 @@ Key decisions:
 
 New files in `src/renderer/src/components/layout/`:
 
-| File | Purpose |
-|------|---------|
-| `app-layout.tsx` | Root layout container + panel sub-components |
-| `use-layout-store.ts` | Zustand store for panel visibility state |
-| `activity-bar.tsx` | Right icon bar with panel toggle buttons |
-| `primary-titlebar.tsx` | Left title bar (app name, drag region) |
-| `secondary-titlebar.tsx` | Right title bar (settings, drag region) |
-| `traffic-lights.tsx` | macOS window controls spacer + sidebar toggle |
-| `status-bar.tsx` | Bottom status bar |
-| `index.ts` | Barrel exports |
+| File                     | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `app-layout.tsx`         | Root layout container + panel sub-components  |
+| `use-layout-store.ts`    | Zustand store for panel visibility state      |
+| `activity-bar.tsx`       | Right icon bar with panel toggle buttons      |
+| `primary-titlebar.tsx`   | Left title bar (app name, drag region)        |
+| `secondary-titlebar.tsx` | Right title bar (settings, drag region)       |
+| `traffic-lights.tsx`     | macOS window controls spacer + sidebar toggle |
+| `status-bar.tsx`         | Bottom status bar                             |
+| `index.ts`               | Barrel exports                                |
 
 ## Animation & Styling
 
@@ -87,10 +88,12 @@ New files in `src/renderer/src/components/layout/`:
 ## Integration
 
 ### Modified files
+
 - `App.tsx` — replace simple layout with new layout components; AgentChat slots into chat panel
 - `package.json` — add `motion` dependency
 
 ### Unchanged
+
 - AgentChat component (re-parented only)
 - All existing UI components in `components/ui/`
 - Main process, preload, IPC layer

@@ -1,19 +1,23 @@
-import { type ReactNode } from "react"
-import { PanelLeftIcon, Settings01Icon, ViewSidebarLeftIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { motion } from "motion/react"
-import { Button } from "../ui/button"
-import { useLayoutStore } from "./use-layout-store"
+import { type ReactNode } from "react";
+import { PanelLeftIcon, Settings01Icon, ViewSidebarLeftIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { motion } from "motion/react";
+import { Button } from "../ui/button";
+import { useLayoutStore } from "./use-layout-store";
 
-const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 }
+const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
 
 export function AppLayoutRoot({ children }: { children: ReactNode }) {
   return (
-    <div data-slot="app-layout-root" className="relative flex h-screen w-screen overflow-hidden p-2">
+    <div
+      data-slot="app-layout-root"
+      data-testid="app-root"
+      className="relative flex h-screen w-screen overflow-hidden p-2"
+    >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
       {children}
     </div>
-  )
+  );
 }
 
 export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
@@ -25,21 +29,24 @@ export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
     >
       {children}
     </div>
-  )
+  );
 }
 
 export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   return (
-    <div data-slot="chat-panel" className="min-w-[320px] flex-1 overflow-hidden rounded-lg bg-card pb-2">
+    <div
+      data-slot="chat-panel"
+      className="min-w-[320px] flex-1 overflow-hidden rounded-lg bg-card pb-2"
+    >
       {children}
     </div>
-  )
+  );
 }
 
 export function AppLayoutTrafficLights() {
-  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed)
-  const togglePanel = useLayoutStore((s) => s.togglePanel)
-  const isOpen = !collapsed
+  const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
+  const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const isOpen = !collapsed;
 
   return (
     <div
@@ -72,7 +79,7 @@ export function AppLayoutTrafficLights() {
         </motion.span>
       </Button>
     </div>
-  )
+  );
 }
 
 export function AppLayoutPrimaryTitleBar() {
@@ -82,9 +89,11 @@ export function AppLayoutPrimaryTitleBar() {
       className="relative flex shrink-0 items-center gap-1"
       style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
     >
-      <span className="px-2 text-sm font-medium">Neovate Desktop</span>
+      <span data-testid="app-title" className="px-2 text-sm font-medium">
+        Neovate Desktop
+      </span>
     </div>
-  )
+  );
 }
 
 export function AppLayoutSecondaryTitleBar() {
@@ -104,13 +113,13 @@ export function AppLayoutSecondaryTitleBar() {
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 export function AppLayoutPanelSeparator({ panelId }: { panelId: string }) {
-  const collapsed = useLayoutStore((s) => s.panels[panelId]?.collapsed)
-  if (collapsed) return null
-  return <div className="w-[5px] shrink-0" />
+  const collapsed = useLayoutStore((s) => s.panels[panelId]?.collapsed);
+  if (collapsed) return null;
+  return <div className="w-[5px] shrink-0" />;
 }
 
 export function AppLayoutStatusBar() {
@@ -118,5 +127,5 @@ export function AppLayoutStatusBar() {
     <div data-slot="status-bar" className="flex h-6 shrink-0 items-center px-3">
       <span className="text-[11px] text-muted-foreground">Ready</span>
     </div>
-  )
+  );
 }

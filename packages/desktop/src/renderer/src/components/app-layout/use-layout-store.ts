@@ -1,20 +1,20 @@
-import { createStore } from "zustand/vanilla"
-import { useStore } from "zustand"
+import { createStore } from "zustand/vanilla";
+import { useStore } from "zustand";
 
 type PanelState = {
-  collapsed: boolean
-}
+  collapsed: boolean;
+};
 
 type LayoutStore = {
-  panels: Record<string, PanelState>
-  togglePanel: (id: string) => void
-}
+  panels: Record<string, PanelState>;
+  togglePanel: (id: string) => void;
+};
 
 const DEFAULT_PANELS: Record<string, PanelState> = {
   primarySidebar: { collapsed: false },
   contentPanel: { collapsed: true },
   secondarySidebar: { collapsed: true },
-}
+};
 
 const layoutStore = createStore<LayoutStore>((set) => ({
   panels: DEFAULT_PANELS,
@@ -25,7 +25,7 @@ const layoutStore = createStore<LayoutStore>((set) => ({
         [id]: { ...state.panels[id], collapsed: !state.panels[id]?.collapsed },
       },
     })),
-}))
+}));
 
 export const useLayoutStore = <T>(selector: (state: LayoutStore) => T) =>
-  useStore(layoutStore, selector)
+  useStore(layoutStore, selector);

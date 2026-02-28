@@ -13,8 +13,8 @@ test("window has correct initial dimensions", async ({ electronApp }) => {
     const win = electron.BrowserWindow.getAllWindows()[0];
     return win.getSize();
   });
-  expect(width).toBe(900);
-  expect(height).toBe(670);
+  expect(width).toBe(1200);
+  expect(height).toBe(800);
 });
 
 test("Electron main process is accessible", async ({ electronApp }) => {
