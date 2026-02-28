@@ -1,6 +1,6 @@
 import { Settings } from "lucide-react"
 
-export function SecondaryTitleBar() {
+export function AppLayoutSecondaryTitleBar() {
   return (
     <div
       data-slot="secondary-titlebar"

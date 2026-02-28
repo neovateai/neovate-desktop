@@ -1,7 +1,7 @@
 import { PanelLeft } from "lucide-react"
 import { useLayoutStore } from "./use-layout-store"
 
-export function TrafficLightsSection() {
+export function AppLayoutTrafficLights() {
   const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed)
   const togglePanel = useLayoutStore((s) => s.togglePanel)
 

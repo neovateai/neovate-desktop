@@ -8,8 +8,8 @@ export {
   AppLayoutSecondarySidebar,
   AppLayoutActivityBar,
 } from "./app-layout"
-export { TrafficLightsSection } from "./traffic-lights"
-export { PrimaryTitleBar } from "./primary-titlebar"
-export { SecondaryTitleBar } from "./secondary-titlebar"
+export { AppLayoutTrafficLights } from "./traffic-lights"
+export { AppLayoutPrimaryTitleBar } from "./primary-titlebar"
+export { AppLayoutSecondaryTitleBar } from "./secondary-titlebar"
 export { ActivityBar } from "./activity-bar"
-export { StatusBar } from "./status-bar"
+export { AppLayoutStatusBar } from "./status-bar"

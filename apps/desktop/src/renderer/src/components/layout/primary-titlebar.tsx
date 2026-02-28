@@ -1,4 +1,4 @@
-export function PrimaryTitleBar() {
+export function AppLayoutPrimaryTitleBar() {
   return (
     <div
       data-slot="primary-titlebar"

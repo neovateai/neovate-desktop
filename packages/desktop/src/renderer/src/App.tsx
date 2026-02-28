@@ -5,19 +5,19 @@ import {
   AppLayoutChatPanel,
   AppLayoutContentPanel,
   AppLayoutPrimarySidebar,
+  AppLayoutPrimaryTitleBar,
   AppLayoutRoot,
   AppLayoutSecondarySidebar,
+  AppLayoutSecondaryTitleBar,
+  AppLayoutStatusBar,
   AppLayoutTitleBar,
-  PrimaryTitleBar,
-  SecondaryTitleBar,
-  StatusBar,
-  TrafficLightsSection,
+  AppLayoutTrafficLights,
 } from "./components/layout"
 
 export default function App() {
   return (
     <AppLayoutRoot>
-      <TrafficLightsSection />
+      <AppLayoutTrafficLights />
 
       <AppLayoutPrimarySidebar>
         <div className="flex h-full flex-col p-3">
@@ -31,8 +31,8 @@ export default function App() {
       {/* Right container: titlebar + panels + status bar */}
       <div className="flex min-w-0 flex-1 flex-col">
         <AppLayoutTitleBar>
-          <PrimaryTitleBar />
-          <SecondaryTitleBar />
+          <AppLayoutPrimaryTitleBar />
+          <AppLayoutSecondaryTitleBar />
         </AppLayoutTitleBar>
 
         <div className="flex min-h-0 flex-1">
@@ -66,7 +66,7 @@ export default function App() {
           </AppLayoutActivityBar>
         </div>
 
-        <StatusBar />
+        <AppLayoutStatusBar />
       </div>
     </AppLayoutRoot>
   )
