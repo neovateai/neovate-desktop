@@ -8,9 +8,10 @@
         "npm-run-all2": "^8.0.4",
         "oxfmt": "^0.35.0",
         "oxlint": "^1.50.0",
+        "vitest": "^4.0.18",
       },
     },
-    "apps/desktop": {
+    "packages/desktop": {
       "name": "neovate-desktop",
       "version": "0.0.0",
       "dependencies": {
@@ -928,7 +929,7 @@
 
     "negotiator": ["negotiator@1.0.0", "", {}, "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="],
 
-    "neovate-desktop": ["neovate-desktop@workspace:apps/desktop"],
+    "neovate-desktop": ["neovate-desktop@workspace:packages/desktop"],
 
     "node-abi": ["node-abi@4.26.0", "", { "dependencies": { "semver": "^7.6.3" } }, "sha512-8QwIZqikRvDIkXS2S93LjzhsSPJuIbfaMETWH+Bx8oOT9Sa9UsUtBFQlc3gBNd1+QINjaTloitXr1W3dQLi9Iw=="],
 
