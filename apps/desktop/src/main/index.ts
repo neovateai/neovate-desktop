@@ -3,19 +3,25 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { RPCHandler } from "@orpc/server/message-port";
-import { createRouter } from "./router";
+import { router } from "./router";
 import { AgentRegistry } from "./features/acp/agent-registry";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
+import type { AppContext } from "./router";
+
+const ACP_DEBUG = process.env.ACP_DEBUG === "1";
+
+if (is.dev && process.env.ELECTRON_CDP_PORT) {
+  app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
+}
 
 const agentRegistry = new AgentRegistry();
 const connectionManager = new AcpConnectionManager();
+const appContext: AppContext = {
+  acpConnectionManager: connectionManager,
+  acpAgentRegistry: agentRegistry,
+};
 
-const handler = new RPCHandler(
-  createRouter({
-    acpConnectionManager: connectionManager,
-    acpAgentRegistry: agentRegistry,
-  }),
-);
+const handler = new RPCHandler(router);
 
 function createWindow(): void {
   // Create the browser window.
@@ -65,7 +71,10 @@ app.whenReady().then(() => {
 
   ipcMain.on("start-orpc-server", (event) => {
     const [serverPort] = event.ports;
-    handler.upgrade(serverPort);
+    if (ACP_DEBUG) {
+      console.log("[orpc] start-orpc-server received, upgrading message port");
+    }
+    handler.upgrade(serverPort, { context: appContext });
     serverPort.start();
   });
 
