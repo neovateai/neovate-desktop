@@ -1,16 +1,73 @@
-import { AgentChat } from "./features/acp";
+import { AgentChat } from "./features/acp"
+import {
+  ActivityBar,
+  AppLayoutActivityBar,
+  AppLayoutChatPanel,
+  AppLayoutContentPanel,
+  AppLayoutPrimarySidebar,
+  AppLayoutRoot,
+  AppLayoutSecondarySidebar,
+  AppLayoutTitleBar,
+  PrimaryTitleBar,
+  SecondaryTitleBar,
+  StatusBar,
+  TrafficLightsSection,
+} from "./components/layout"
 
 export default function App() {
   return (
-    <div data-testid="app-root" className="flex h-screen flex-col">
-      <header className="flex items-center border-b border-border px-4 py-2">
-        <h1 data-testid="app-title" className="text-sm font-semibold">
-          Neovate Desktop
-        </h1>
-      </header>
-      <main className="flex-1 overflow-hidden">
-        <AgentChat />
-      </main>
-    </div>
-  );
+    <AppLayoutRoot>
+      <TrafficLightsSection />
+
+      <AppLayoutPrimarySidebar>
+        <div className="flex h-full flex-col p-3">
+          <h2 className="text-xs font-semibold text-muted-foreground">Sessions</h2>
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-xs text-muted-foreground">No sessions yet</p>
+          </div>
+        </div>
+      </AppLayoutPrimarySidebar>
+
+      {/* Right container: titlebar + panels + status bar */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppLayoutTitleBar>
+          <PrimaryTitleBar />
+          <SecondaryTitleBar />
+        </AppLayoutTitleBar>
+
+        <div className="flex min-h-0 flex-1">
+          {/* Panel row */}
+          <div className="flex min-h-0 flex-1 gap-1">
+            <AppLayoutChatPanel>
+              <AgentChat />
+            </AppLayoutChatPanel>
+
+            <AppLayoutContentPanel>
+              <div className="flex h-full flex-col p-3">
+                <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
+                </div>
+              </div>
+            </AppLayoutContentPanel>
+
+            <AppLayoutSecondarySidebar>
+              <div className="flex h-full flex-col p-3">
+                <h2 className="text-xs font-semibold text-muted-foreground">Files</h2>
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-xs text-muted-foreground">File tree</p>
+                </div>
+              </div>
+            </AppLayoutSecondarySidebar>
+          </div>
+
+          <AppLayoutActivityBar>
+            <ActivityBar />
+          </AppLayoutActivityBar>
+        </div>
+
+        <StatusBar />
+      </div>
+    </AppLayoutRoot>
+  )
 }
