@@ -7,6 +7,7 @@
 The current neovate-desktop store is a single flat Zustand store (`useAcpStore`) that holds agents, sessions, and messages in one place. Sessions are ephemeral, there is no project/workspace concept, and messages are plain strings. As the app grows to support multiple agents running in parallel and richer conversation features, we need a more structured store design.
 
 This design was informed by:
+
 - **neovate-code-desktop** (neovateai/neovate-code-desktop) — uses a slice-based Zustand store with a Repo → Workspace → Session → Message hierarchy, per-session processing state, and agent progress tracking
 - **DeepChat** (ThinkInAIXYZ/deepchat) — mature multi-provider chat client with Pinia stores, conversation branching, and structured message blocks
 
@@ -53,28 +54,28 @@ ACP connection management is handled entirely in the main process — see [ACP C
 
 ```typescript
 type Project = {
-  id: string
-  name: string
-  path: string          // workspace directory
-  createdAt: number
-}
+  id: string;
+  name: string;
+  path: string; // workspace directory
+  createdAt: number;
+};
 
 type Session = {
-  id: string
-  projectId: string     // FK -> Project
-  agentId: string       // which agent type (connection managed in main process)
-  streaming: boolean
-  promptError: string | null
-  pendingPermission: PendingPermission | null
-  createdAt: number
-}
+  id: string;
+  projectId: string; // FK -> Project
+  agentId: string; // which agent type (connection managed in main process)
+  streaming: boolean;
+  promptError: string | null;
+  pendingPermission: PendingPermission | null;
+  createdAt: number;
+};
 
 type Message = {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  thinking?: string
-}
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  thinking?: string;
+};
 ```
 
 ### Store Shape
@@ -82,17 +83,17 @@ type Message = {
 ```typescript
 type Store = {
   // Entities
-  projects: Map<string, Project>
-  sessions: Map<string, Session>
-  messages: Map<string, Message[]>   // keyed by sessionId
+  projects: Map<string, Project>;
+  sessions: Map<string, Session>;
+  messages: Map<string, Message[]>; // keyed by sessionId
 
   // UI selection
-  currentProjectId: string | null
-  currentSessionId: string | null
+  currentProjectId: string | null;
+  currentSessionId: string | null;
 
   // Agent registry
-  agents: AgentInfo[]
-}
+  agents: AgentInfo[];
+};
 ```
 
 ### Entity Relationships
@@ -125,14 +126,14 @@ currentMessages = messages.get(currentSessionId)
 
 ### Key Behaviors
 
-| Action | Effect |
-|--------|--------|
-| Create project | User picks folder + name, new Project added to map |
-| New session | RPC to main process, which creates ACP session and returns sessionId |
-| Switch agent | Update session's `agentId`, main process handles connection swap |
-| Delete project | Remove project, all its sessions, and their messages |
-| Switch project | Update `currentProjectId`, optionally clear `currentSessionId` |
-| Switch session | Update `currentSessionId` |
+| Action         | Effect                                                               |
+| -------------- | -------------------------------------------------------------------- |
+| Create project | User picks folder + name, new Project added to map                   |
+| New session    | RPC to main process, which creates ACP session and returns sessionId |
+| Switch agent   | Update session's `agentId`, main process handles connection swap     |
+| Delete project | Remove project, all its sessions, and their messages                 |
+| Switch project | Update `currentProjectId`, optionally clear `currentSessionId`       |
+| Switch session | Update `currentSessionId`                                            |
 
 ### What's Deferred
 

@@ -12,18 +12,22 @@ This project is an Electron app with the renderer source at `src/renderer/src/`.
 ## Steps
 
 1. Ensure `tsconfig.json` has the `paths` alias that shadcn needs to resolve output paths. Read the current `tsconfig.json` and add the paths entry if missing:
+
    ```jsonc
    // tsconfig.json compilerOptions must include:
    "paths": { "@/*": ["./src/renderer/src/*"] }
    ```
+
    If `compilerOptions` doesn't exist, add it. If `paths` already contains the entry, skip this step.
 
 2. Run the shadcn CLI to add components:
+
    ```bash
    bunx --bun shadcn@latest add <components...> --overwrite
    ```
 
 3. Run the import fixer to convert `@/` alias imports to relative imports:
+
    ```bash
    bun .claude/skills/coss-ui-sync/scripts/fix-imports.ts
    ```

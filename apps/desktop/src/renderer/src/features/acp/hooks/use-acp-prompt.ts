@@ -127,13 +127,10 @@ export function useAcpPrompt() {
     [addUserMessage, appendChunk, setStreaming],
   );
 
-  const cancel = useCallback(
-    async (connectionId: string, sessionId: string) => {
-      abortRef.current?.abort();
-      await client.acp.cancel({ connectionId, sessionId });
-    },
-    [],
-  );
+  const cancel = useCallback(async (connectionId: string, sessionId: string) => {
+    abortRef.current?.abort();
+    await client.acp.cancel({ connectionId, sessionId });
+  }, []);
 
   return { sendPrompt, cancel };
 }

@@ -1,8 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import {
-  getShellEnvironment,
-  clearShellEnvironmentCache,
-} from "../shell-env";
+import { getShellEnvironment, clearShellEnvironmentCache } from "../shell-env";
 
 afterEach(() => {
   clearShellEnvironmentCache();

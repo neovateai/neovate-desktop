@@ -1,7 +1,4 @@
-import type {
-  SessionNotification,
-  RequestPermissionRequest,
-} from "@agentclientprotocol/sdk";
+import type { SessionNotification, RequestPermissionRequest } from "@agentclientprotocol/sdk";
 
 export type AgentInfo = {
   id: string;

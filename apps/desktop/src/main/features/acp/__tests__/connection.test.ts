@@ -77,9 +77,7 @@ describe("AcpConnection", () => {
         kind: "edit",
         status: "pending",
       },
-      options: [
-        { kind: "allow_once", name: "Allow", optionId: "allow" },
-      ],
+      options: [{ kind: "allow_once", name: "Allow", optionId: "allow" }],
     });
 
     await collecting;

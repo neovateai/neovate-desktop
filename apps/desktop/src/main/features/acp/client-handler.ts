@@ -17,9 +17,7 @@ export class ClientHandler implements Client {
     this.connection.emitSessionUpdate(params);
   }
 
-  async requestPermission(
-    params: RequestPermissionRequest,
-  ): Promise<RequestPermissionResponse> {
+  async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     return this.connection.handlePermissionRequest(params);
   }
 }

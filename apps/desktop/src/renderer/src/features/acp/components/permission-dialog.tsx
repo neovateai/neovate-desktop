@@ -11,9 +11,7 @@ export function PermissionDialog({ permission, onResolve }: Props) {
 
   return (
     <div className="mx-4 mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
-      <p className="mb-2 text-sm font-medium">
-        Permission requested: {data.toolCall.title}
-      </p>
+      <p className="mb-2 text-sm font-medium">Permission requested: {data.toolCall.title}</p>
       <div className="flex flex-wrap gap-2">
         {data.options.map((option) => (
           <Button

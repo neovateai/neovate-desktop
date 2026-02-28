@@ -7,12 +7,7 @@ type Props = {
   disabled?: boolean;
 };
 
-export function AgentSelector({
-  agents,
-  selectedId,
-  onSelect,
-  disabled,
-}: Props) {
+export function AgentSelector({ agents, selectedId, onSelect, disabled }: Props) {
   return (
     <select
       className="h-8 rounded-lg border border-input bg-background px-3 text-sm"

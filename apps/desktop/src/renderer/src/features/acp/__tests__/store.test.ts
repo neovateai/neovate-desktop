@@ -183,9 +183,7 @@ describe("AcpStore", () => {
     useAcpStore.getState().createSession("s1", "conn1");
     useAcpStore.getState().setPromptError("s1", "Quota exceeded");
 
-    expect(useAcpStore.getState().sessions.get("s1")!.promptError).toBe(
-      "Quota exceeded",
-    );
+    expect(useAcpStore.getState().sessions.get("s1")!.promptError).toBe("Quota exceeded");
 
     useAcpStore.getState().setPromptError("s1", null);
     expect(useAcpStore.getState().sessions.get("s1")!.promptError).toBeNull();

@@ -43,18 +43,14 @@ class MockAgent implements Agent {
     this.connection = connection;
   }
 
-  async initialize(
-    _params: InitializeRequest,
-  ): Promise<InitializeResponse> {
+  async initialize(_params: InitializeRequest): Promise<InitializeResponse> {
     return {
       protocolVersion: PROTOCOL_VERSION,
       agentCapabilities: {},
     };
   }
 
-  async newSession(
-    _params: NewSessionRequest,
-  ): Promise<NewSessionResponse> {
+  async newSession(_params: NewSessionRequest): Promise<NewSessionResponse> {
     const sessionId = `mock-session-${++sessionCounter}`;
     return { sessionId };
   }

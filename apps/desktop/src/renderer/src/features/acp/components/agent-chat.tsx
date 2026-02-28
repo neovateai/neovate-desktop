@@ -24,9 +24,7 @@ export function AgentChat() {
   const { sendPrompt, cancel } = useAcpPrompt();
   const { resolvePermission } = useAcpPermission();
 
-  const activeSession = activeSessionId
-    ? sessions.get(activeSessionId)
-    : undefined;
+  const activeSession = activeSessionId ? sessions.get(activeSessionId) : undefined;
 
   useEffect(() => {
     client.acp.listAgents().then(setAgents);
@@ -49,12 +47,7 @@ export function AgentChat() {
 
   const handleResolvePermission = (requestId: string, optionId: string) => {
     if (!activeSession) return;
-    resolvePermission(
-      activeSession.connectionId,
-      activeSession.sessionId,
-      requestId,
-      optionId,
-    );
+    resolvePermission(activeSession.connectionId, activeSession.sessionId, requestId, optionId);
   };
 
   if (!activeSession) {
@@ -68,15 +61,8 @@ export function AgentChat() {
             onSelect={setSelectedAgentId}
             disabled={connecting}
           />
-          <WorkdirPicker
-            value={cwd}
-            onChange={setCwd}
-            disabled={connecting}
-          />
-          <Button
-            onClick={handleConnect}
-            disabled={!selectedAgentId || connecting}
-          >
+          <WorkdirPicker value={cwd} onChange={setCwd} disabled={connecting} />
+          <Button onClick={handleConnect} disabled={!selectedAgentId || connecting}>
             {connecting ? "Connecting..." : "Connect"}
           </Button>
         </div>
@@ -86,10 +72,7 @@ export function AgentChat() {
 
   return (
     <div className="flex h-full flex-col">
-      <MessageList
-        messages={activeSession.messages}
-        toolCalls={activeSession.toolCalls}
-      />
+      <MessageList messages={activeSession.messages} toolCalls={activeSession.toolCalls} />
       {activeSession.pendingPermission && (
         <PermissionDialog
           permission={activeSession.pendingPermission}

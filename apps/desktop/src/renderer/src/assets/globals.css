@@ -29,8 +29,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   @keyframes skeleton {
-  to {
-    background-position: -200% 0;
+    to {
+      background-position: -200% 0;
     }
   }
 }

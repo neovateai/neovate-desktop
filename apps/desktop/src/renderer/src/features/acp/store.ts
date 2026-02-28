@@ -1,12 +1,6 @@
 import { create } from "zustand";
-import type {
-  AgentInfo,
-  SessionEvent,
-} from "../../../../shared/features/acp/types";
-import type {
-  RequestPermissionRequest,
-  SessionUpdate,
-} from "@agentclientprotocol/sdk";
+import type { AgentInfo, SessionEvent } from "../../../../shared/features/acp/types";
+import type { RequestPermissionRequest, SessionUpdate } from "@agentclientprotocol/sdk";
 
 export type AcpMessage = {
   id: string;
@@ -49,10 +43,7 @@ type AcpState = {
   addUserMessage: (sessionId: string, content: string) => void;
   setStreaming: (sessionId: string, streaming: boolean) => void;
   setPromptError: (sessionId: string, error: string | null) => void;
-  setPendingPermission: (
-    sessionId: string,
-    perm: PendingPermission | null,
-  ) => void;
+  setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
   appendChunk: (sessionId: string, event: SessionEvent) => void;
 };
 
@@ -84,8 +75,7 @@ export const useAcpStore = create<AcpState>((set, get) => ({
   removeSession: (sessionId) => {
     const sessions = new Map(get().sessions);
     sessions.delete(sessionId);
-    const activeSessionId =
-      get().activeSessionId === sessionId ? null : get().activeSessionId;
+    const activeSessionId = get().activeSessionId === sessionId ? null : get().activeSessionId;
     set({ sessions, activeSessionId });
   },
 
@@ -96,10 +86,7 @@ export const useAcpStore = create<AcpState>((set, get) => ({
 
     sessions.set(sessionId, {
       ...session,
-      messages: [
-        ...session.messages,
-        { id: String(++messageId), role: "user", content },
-      ],
+      messages: [...session.messages, { id: String(++messageId), role: "user", content }],
     });
     set({ sessions });
   },

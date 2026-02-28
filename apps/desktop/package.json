@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
+    "@playwright/test": "^1.52.0",
     "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
@@ -62,7 +63,6 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
-    "@playwright/test": "^1.52.0",
     "vitest": "^4.0.18"
   }
 }

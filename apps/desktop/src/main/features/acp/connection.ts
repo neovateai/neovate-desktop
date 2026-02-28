@@ -43,9 +43,7 @@ export class AcpConnection {
    * Publishes an event to subscribers and returns a promise that resolves
    * when the user responds via resolvePermission().
    */
-  handlePermissionRequest(
-    params: RequestPermissionRequest,
-  ): Promise<RequestPermissionResponse> {
+  handlePermissionRequest(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     const requestId = String(++this.requestIdCounter);
 
     return new Promise<RequestPermissionResponse>((resolve) => {

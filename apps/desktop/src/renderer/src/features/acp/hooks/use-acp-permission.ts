@@ -6,12 +6,7 @@ export function useAcpPermission() {
   const setPendingPermission = useAcpStore((s) => s.setPendingPermission);
 
   const resolvePermission = useCallback(
-    async (
-      connectionId: string,
-      sessionId: string,
-      requestId: string,
-      optionId: string,
-    ) => {
+    async (connectionId: string, sessionId: string, requestId: string, optionId: string) => {
       await client.acp.resolvePermission({
         connectionId,
         requestId,

@@ -49,7 +49,5 @@ export const acpContract = {
     .input(z.object({ connectionId: z.string(), sessionId: z.string() }))
     .output(type<void>()),
 
-  disconnect: oc
-    .input(z.object({ connectionId: z.string() }))
-    .output(type<void>()),
+  disconnect: oc.input(z.object({ connectionId: z.string() })).output(type<void>()),
 };

@@ -7,6 +7,7 @@
 The app needs to manage ACP (Agent Client Protocol) connections between the main process and agent processes (e.g., claude-code). The current implementation creates one connection per session, spawning a new agent process each time. This is wasteful when multiple sessions use the same agent type.
 
 This design was informed by:
+
 - **claude-code-acp** (zed-industries/claude-code-acp) — the ACP server implementation. Confirmed that `newSession({ cwd })` supports different working directories per session on the same connection. Each session gets its own `SettingsManager`, `Query` subprocess, and `cwd`. cwd is session-level, not process-level
 - **DeepChat** (ThinkInAIXYZ/deepchat) — uses one connection per agent+workdir pair via `AcpProcessManager`. This is more conservative than necessary given claude-code-acp's per-session cwd support
 
@@ -15,6 +16,7 @@ This design was informed by:
 ### Key Finding
 
 claude-code-acp's `newSession()` accepts a `cwd` parameter. Each session on the same connection can have a completely different working directory. Internally, each session creates its own:
+
 - `SettingsManager` initialized with that session's cwd
 - `Query` with `Options.cwd` set per-session
 - Project-specific settings loaded from `<cwd>/.claude/settings.json`
@@ -51,17 +53,17 @@ Main Process
 
 ```typescript
 type ManagedConnection = {
-  agentId: string
-  process: ChildProcess
-  connection: ClientSideConnection   // from @agentclientprotocol/sdk
-  sessions: Map<string, ManagedSession>
-}
+  agentId: string;
+  process: ChildProcess;
+  connection: ClientSideConnection; // from @agentclientprotocol/sdk
+  sessions: Map<string, ManagedSession>;
+};
 
 type ManagedSession = {
-  sessionId: string
-  cwd: string
+  sessionId: string;
+  cwd: string;
   // event subscriptions, permission handlers, etc.
-}
+};
 ```
 
 ### Connection Lifecycle

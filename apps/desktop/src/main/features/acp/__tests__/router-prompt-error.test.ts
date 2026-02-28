@@ -7,11 +7,9 @@ import type { AppContext } from "../../../router";
 function makeAbortableHangingSubscription(signal: AbortSignal): AsyncGenerator<SessionEvent> {
   return (async function* () {
     await new Promise<void>((_, reject) => {
-      signal.addEventListener(
-        "abort",
-        () => reject(new DOMException("aborted", "AbortError")),
-        { once: true },
-      );
+      signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), {
+        once: true,
+      });
     });
   })();
 }
@@ -24,9 +22,7 @@ describe("acp router prompt error handling", () => {
       sdk: {
         prompt: vi.fn().mockRejectedValue(promptError),
       },
-      subscribeSession: vi.fn((signal: AbortSignal) =>
-        makeAbortableHangingSubscription(signal),
-      ),
+      subscribeSession: vi.fn((signal: AbortSignal) => makeAbortableHangingSubscription(signal)),
     };
 
     const context = {

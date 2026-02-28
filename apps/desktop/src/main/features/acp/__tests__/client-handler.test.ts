@@ -38,9 +38,7 @@ describe("ClientHandler", () => {
         kind: "edit" as const,
         status: "pending" as const,
       },
-      options: [
-        { kind: "allow_once" as const, name: "Allow", optionId: "allow" },
-      ],
+      options: [{ kind: "allow_once" as const, name: "Allow", optionId: "allow" }],
     };
 
     const spy = vi.spyOn(connection, "handlePermissionRequest").mockResolvedValue({

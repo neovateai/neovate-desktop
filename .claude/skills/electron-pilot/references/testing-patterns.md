@@ -93,10 +93,12 @@ agent-browser --cdp "$WS" snapshot -i
 ## Data-testid Attributes
 
 The app uses `data-testid` attributes for stable selectors:
+
 - `data-testid="app-root"` — root container
 - `data-testid="app-title"` — header title
 
 You can scope snapshots to specific areas:
+
 ```bash
 agent-browser --cdp "$WS" snapshot -s "[data-testid='app-root']"
 ```

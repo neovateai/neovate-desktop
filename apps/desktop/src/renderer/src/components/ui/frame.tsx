@@ -49,10 +49,7 @@ function FrameTitle({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function FrameDescription({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function FrameDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn("text-muted-foreground text-sm", className)}
@@ -64,19 +61,8 @@ function FrameDescription({
 
 function FrameFooter({ className, ...props }: React.ComponentProps<"footer">) {
   return (
-    <footer
-      className={cn("px-5 py-4", className)}
-      data-slot="frame-panel-footer"
-      {...props}
-    />
+    <footer className={cn("px-5 py-4", className)} data-slot="frame-panel-footer" {...props} />
   );
 }
 
-export {
-  Frame,
-  FramePanel,
-  FrameHeader,
-  FrameTitle,
-  FrameDescription,
-  FrameFooter,
-};
+export { Frame, FramePanel, FrameHeader, FrameTitle, FrameDescription, FrameFooter };

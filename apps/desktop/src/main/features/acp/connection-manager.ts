@@ -1,10 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { Writable, Readable } from "node:stream";
-import {
-  ClientSideConnection,
-  ndJsonStream,
-  PROTOCOL_VERSION,
-} from "@agentclientprotocol/sdk";
+import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type { AgentInfo } from "../../../shared/features/acp/types";
 import { AcpConnection } from "./connection";
 import { ClientHandler } from "./client-handler";
@@ -29,13 +25,7 @@ export class AcpConnectionManager {
     const shellEnv = await getShellEnvironment();
 
     // Merge PATH: shell PATH prepended, then process PATH, agent env PATH highest
-    const mergedPath = [
-      agent.env?.PATH,
-      shellEnv.PATH,
-      process.env.PATH,
-    ]
-      .filter(Boolean)
-      .join(":");
+    const mergedPath = [agent.env?.PATH, shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
 
     const env = {
       ...process.env,
@@ -63,9 +53,7 @@ export class AcpConnectionManager {
     });
 
     const input = Writable.toWeb(agentProcess.stdin!);
-    const output = Readable.toWeb(
-      agentProcess.stdout!,
-    ) as ReadableStream<Uint8Array>;
+    const output = Readable.toWeb(agentProcess.stdout!) as ReadableStream<Uint8Array>;
 
     const stream = ndJsonStream(input, output);
 

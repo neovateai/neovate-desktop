@@ -44,10 +44,7 @@ export function clearShellEnvironmentCache(): void {
 
 function extractEnvFromShell(): Promise<string> {
   return new Promise((resolve, reject) => {
-    const shell =
-      process.platform === "darwin"
-        ? "/bin/zsh"
-        : (process.env.SHELL ?? "/bin/bash");
+    const shell = process.platform === "darwin" ? "/bin/zsh" : (process.env.SHELL ?? "/bin/bash");
 
     const rcFile = shell.endsWith("zsh") ? "~/.zshrc" : "~/.bashrc";
 

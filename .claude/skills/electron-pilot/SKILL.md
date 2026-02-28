@@ -9,13 +9,13 @@ This skill lets you — the AI agent — interactively test and debug the runnin
 
 ## When to Use This vs Playwright
 
-| Scenario | Tool |
-|---|---|
-| "Test if my changes work" | **This skill** — explore, screenshot, verify |
-| "Debug why X is broken" | **This skill** — inspect state, read console, try interactions |
-| "Verify the UI renders after refactor" | **This skill** — snapshot and visually confirm |
-| "Write a regression test for X" | **Playwright** — scripted, repeatable, runs in CI |
-| "Add E2E test coverage" | **Playwright** — deterministic assertions |
+| Scenario                               | Tool                                                           |
+| -------------------------------------- | -------------------------------------------------------------- |
+| "Test if my changes work"              | **This skill** — explore, screenshot, verify                   |
+| "Debug why X is broken"                | **This skill** — inspect state, read console, try interactions |
+| "Verify the UI renders after refactor" | **This skill** — snapshot and visually confirm                 |
+| "Write a regression test for X"        | **Playwright** — scripted, repeatable, runs in CI              |
+| "Add E2E test coverage"                | **Playwright** — deterministic assertions                      |
 
 ## Connection Setup
 

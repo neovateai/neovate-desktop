@@ -108,9 +108,7 @@ export const acpRouter = os.acp.router({
         done.abort("prompt_done");
       })
       .catch((error: unknown) => {
-        const stderrTail = context.acpConnectionManager
-          .getStderr(input.connectionId)
-          .slice(-20);
+        const stderrTail = context.acpConnectionManager.getStderr(input.connectionId).slice(-20);
         const message = getUnknownErrorMessage(error) ?? "Agent prompt failed.";
         promptError = new ORPCError("BAD_GATEWAY", {
           defined: true,

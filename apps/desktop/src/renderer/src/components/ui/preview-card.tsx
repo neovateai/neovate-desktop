@@ -7,9 +7,7 @@ import { cn } from "../../lib/utils";
 const PreviewCard = PreviewCardPrimitive.Root;
 
 function PreviewCardTrigger({ ...props }: PreviewCardPrimitive.Trigger.Props) {
-  return (
-    <PreviewCardPrimitive.Trigger data-slot="preview-card-trigger" {...props} />
-  );
+  return <PreviewCardPrimitive.Trigger data-slot="preview-card-trigger" {...props} />;
 }
 
 function PreviewCardPopup({

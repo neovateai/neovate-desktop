@@ -65,9 +65,7 @@ describe("ACP integration", () => {
     expect(events.length).toBeGreaterThan(0);
 
     const textEvents = events.filter(
-      (e) =>
-        e.type === "update" &&
-        e.data.update.sessionUpdate === "agent_message_chunk",
+      (e) => e.type === "update" && e.data.update.sessionUpdate === "agent_message_chunk",
     );
     expect(textEvents.length).toBeGreaterThan(0);
   }, 30000);

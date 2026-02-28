@@ -9,11 +9,7 @@ import { join } from "node:path";
 
 const RENDERER_SRC = join(process.cwd(), "src/renderer/src");
 
-const DIRS_TO_FIX = [
-  "components/ui",
-  "lib",
-  "hooks",
-] as const;
+const DIRS_TO_FIX = ["components/ui", "lib", "hooks"] as const;
 
 function resolveRelative(fromDir: string, aliasPath: string): string {
   // aliasPath e.g. "@/components/ui/button" or "@/lib/utils"
@@ -23,7 +19,11 @@ function resolveRelative(fromDir: string, aliasPath: string): string {
 
   // Find common prefix to simplify the relative path
   let common = 0;
-  while (common < fromParts.length && common < toParts.length && fromParts[common] === toParts[common]) {
+  while (
+    common < fromParts.length &&
+    common < toParts.length &&
+    fromParts[common] === toParts[common]
+  ) {
     common++;
   }
 
@@ -38,13 +38,10 @@ function resolveRelative(fromDir: string, aliasPath: string): string {
 
 async function fixFile(filePath: string, relativeDir: string): Promise<boolean> {
   const content = await readFile(filePath, "utf-8");
-  const fixed = content.replace(
-    /from ["']@\/([^"']+)["']/g,
-    (_match, aliasPath) => {
-      const relative = resolveRelative(relativeDir, `@/${aliasPath}`);
-      return `from "${relative}"`;
-    },
-  );
+  const fixed = content.replace(/from ["']@\/([^"']+)["']/g, (_match, aliasPath) => {
+    const relative = resolveRelative(relativeDir, `@/${aliasPath}`);
+    return `from "${relative}"`;
+  });
 
   if (fixed !== content) {
     await writeFile(filePath, fixed);
