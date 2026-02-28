@@ -4,9 +4,9 @@
 
 **Goal:** Build a multi-panel layout (primary sidebar, chat, content panel, secondary sidebar, activity bar, title bars, status bar) from scratch in neovate-desktop, inspired by neovate-code-desktop's layout.
 
-**Architecture:** React context provides panel visibility state (`Record<string, PanelState>`). Layout components are thin wrappers using Tailwind + `motion` for animated show/hide. AgentChat stays as-is in the chat panel. All other panels get placeholder content.
+**Architecture:** Zustand store manages panel visibility state (`Record<string, PanelState>`). Layout components are thin wrappers using Tailwind + `motion` for animated show/hide. Structural divs are inlined in App.tsx (no wrapper components for simple flex containers). AgentChat stays as-is in the chat panel. All other panels get placeholder content.
 
-**Tech Stack:** React 19, Tailwind CSS 4, motion (Framer Motion), Lucide icons, existing `cn()` utility
+**Tech Stack:** React 19, Tailwind CSS 4, Zustand, motion (Framer Motion), Lucide icons, existing `cn()` utility
 
 ---
 
@@ -33,27 +33,25 @@ git commit -m "deps: add motion library for layout animations"
 
 ---
 
-### Task 2: Create layout state provider
+### Task 2: Create layout Zustand store
 
 **Files:**
-- Create: `apps/desktop/src/renderer/src/components/layout/app-layout-provider.tsx`
+- Create: `apps/desktop/src/renderer/src/components/layout/use-layout-store.ts`
 
-**Step 1: Write the provider**
+**Step 1: Write the store**
 
-```tsx
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
+```ts
+import { create } from "zustand"
 
 type PanelState = {
   collapsed: boolean
 }
 
-type LayoutContextValue = {
+type LayoutStore = {
   panels: Record<string, PanelState>
   togglePanel: (id: string) => void
   isPanelOpen: (id: string) => boolean
 }
-
-const LayoutContext = createContext<LayoutContextValue | null>(null)
 
 const DEFAULT_PANELS: Record<string, PanelState> = {
   primarySidebar: { collapsed: false },
@@ -61,36 +59,17 @@ const DEFAULT_PANELS: Record<string, PanelState> = {
   secondarySidebar: { collapsed: true },
 }
 
-export function AppLayoutProvider({ children }: { children: ReactNode }) {
-  const [panels, setPanels] = useState<Record<string, PanelState>>(DEFAULT_PANELS)
-
-  const togglePanel = useCallback((id: string) => {
-    setPanels((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], collapsed: !prev[id]?.collapsed },
-    }))
-  }, [])
-
-  const isPanelOpen = useCallback(
-    (id: string) => !panels[id]?.collapsed,
-    [panels],
-  )
-
-  const value = useMemo(
-    () => ({ panels, togglePanel, isPanelOpen }),
-    [panels, togglePanel, isPanelOpen],
-  )
-
-  return <LayoutContext value={value}>{children}</LayoutContext>
-}
-
-export function useLayout() {
-  const context = useContext(LayoutContext)
-  if (!context) {
-    throw new Error("useLayout must be used within AppLayoutProvider")
-  }
-  return context
-}
+export const useLayoutStore = create<LayoutStore>((set, get) => ({
+  panels: DEFAULT_PANELS,
+  togglePanel: (id) =>
+    set((state) => ({
+      panels: {
+        ...state.panels,
+        [id]: { ...state.panels[id], collapsed: !state.panels[id]?.collapsed },
+      },
+    })),
+  isPanelOpen: (id) => !get().panels[id]?.collapsed,
+}))
 ```
 
 **Step 2: Verify typecheck**
@@ -101,8 +80,8 @@ Expected: No errors
 **Step 3: Commit**
 
 ```bash
-git add apps/desktop/src/renderer/src/components/layout/app-layout-provider.tsx
-git commit -m "feat: add layout state provider with panel visibility context"
+git add apps/desktop/src/renderer/src/components/layout/use-layout-store.ts
+git commit -m "feat: add layout Zustand store for panel visibility"
 ```
 
 ---
@@ -112,15 +91,14 @@ git commit -m "feat: add layout state provider with panel visibility context"
 **Files:**
 - Create: `apps/desktop/src/renderer/src/components/layout/app-layout.tsx`
 
-This file contains the root layout and all panel slot components. Each is a thin wrapper with Tailwind classes and motion animation.
+This file contains the root layout and panel slot components. Only components that have logic (animation, state reads) are componentized. Simple structural divs are left to App.tsx.
 
 **Step 1: Write the layout components**
 
 ```tsx
 import { type ReactNode } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { cn } from "@/lib/utils"
-import { useLayout } from "./app-layout-provider"
+import { useLayoutStore } from "./use-layout-store"
 
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 }
 
@@ -133,7 +111,7 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
-  const { isPanelOpen } = useLayout()
+  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
   const open = isPanelOpen("primarySidebar")
 
   return (
@@ -154,25 +132,9 @@ export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
   )
 }
 
-export function AppLayoutRightContainer({ children }: { children: ReactNode }) {
-  return (
-    <div data-slot="right-container" className="flex min-w-0 flex-1 flex-col">
-      {children}
-    </div>
-  )
-}
-
 export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
   return (
     <div data-slot="titlebar" className="flex h-10 shrink-0 items-center">
-      {children}
-    </div>
-  )
-}
-
-export function AppLayoutPanelRow({ children }: { children: ReactNode }) {
-  return (
-    <div data-slot="panel-row" className="flex min-h-0 flex-1 gap-1">
       {children}
     </div>
   )
@@ -187,7 +149,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
-  const { isPanelOpen } = useLayout()
+  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
   const open = isPanelOpen("contentPanel")
 
   return (
@@ -209,7 +171,7 @@ export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutSecondarySidebar({ children }: { children: ReactNode }) {
-  const { isPanelOpen } = useLayout()
+  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
   const open = isPanelOpen("secondarySidebar")
 
   return (
@@ -264,10 +226,11 @@ macOS window controls need a spacer so content doesn't overlap them. Includes a 
 
 ```tsx
 import { PanelLeft } from "lucide-react"
-import { useLayout } from "./app-layout-provider"
+import { useLayoutStore } from "./use-layout-store"
 
 export function TrafficLightsSection() {
-  const { togglePanel, isPanelOpen } = useLayout()
+  const togglePanel = useLayoutStore((s) => s.togglePanel)
+  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
   const sidebarOpen = isPanelOpen("primarySidebar")
 
   return (
@@ -372,7 +335,7 @@ git commit -m "feat: add primary and secondary title bar components"
 ```tsx
 import { Files, GitBranch, Search, Terminal } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useLayout } from "./app-layout-provider"
+import { useLayoutStore } from "./use-layout-store"
 
 type ActivityBarItemProps = {
   icon: React.ReactNode
@@ -381,7 +344,8 @@ type ActivityBarItemProps = {
 }
 
 function ActivityBarItem({ icon, label, panelId }: ActivityBarItemProps) {
-  const { togglePanel, isPanelOpen } = useLayout()
+  const togglePanel = useLayoutStore((s) => s.togglePanel)
+  const isPanelOpen = useLayoutStore((s) => s.isPanelOpen)
   const active = isPanelOpen(panelId)
 
   return (
@@ -460,13 +424,11 @@ git commit -m "feat: add status bar component"
 **Step 1: Write the barrel export**
 
 ```ts
-export { AppLayoutProvider, useLayout } from "./app-layout-provider"
+export { useLayoutStore } from "./use-layout-store"
 export {
   AppLayoutRoot,
   AppLayoutPrimarySidebar,
-  AppLayoutRightContainer,
   AppLayoutTitleBar,
-  AppLayoutPanelRow,
   AppLayoutChatPanel,
   AppLayoutContentPanel,
   AppLayoutSecondarySidebar,
@@ -500,6 +462,8 @@ git commit -m "feat: add layout barrel exports"
 
 **Step 1: Replace App.tsx with the new layout**
 
+Structural divs (right container, panel row) are inlined directly — no wrapper components needed.
+
 ```tsx
 import { AgentChat } from "./features/acp"
 import {
@@ -507,10 +471,7 @@ import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
   AppLayoutContentPanel,
-  AppLayoutPanelRow,
   AppLayoutPrimarySidebar,
-  AppLayoutProvider,
-  AppLayoutRightContainer,
   AppLayoutRoot,
   AppLayoutSecondarySidebar,
   AppLayoutTitleBar,
@@ -522,59 +483,59 @@ import {
 
 export default function App() {
   return (
-    <AppLayoutProvider>
-      <AppLayoutRoot>
-        <TrafficLightsSection />
+    <AppLayoutRoot>
+      <TrafficLightsSection />
 
-        <AppLayoutPrimarySidebar>
-          <div className="flex h-full flex-col p-3">
-            <h2 className="text-xs font-semibold text-muted-foreground">Sessions</h2>
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-xs text-muted-foreground">No sessions yet</p>
-            </div>
+      <AppLayoutPrimarySidebar>
+        <div className="flex h-full flex-col p-3">
+          <h2 className="text-xs font-semibold text-muted-foreground">Sessions</h2>
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-xs text-muted-foreground">No sessions yet</p>
           </div>
-        </AppLayoutPrimarySidebar>
+        </div>
+      </AppLayoutPrimarySidebar>
 
-        <AppLayoutRightContainer>
-          <AppLayoutTitleBar>
-            <PrimaryTitleBar />
-            <SecondaryTitleBar />
-          </AppLayoutTitleBar>
+      {/* Right container: titlebar + panels + status bar */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppLayoutTitleBar>
+          <PrimaryTitleBar />
+          <SecondaryTitleBar />
+        </AppLayoutTitleBar>
 
-          <div className="flex min-h-0 flex-1">
-            <AppLayoutPanelRow>
-              <AppLayoutChatPanel>
-                <AgentChat />
-              </AppLayoutChatPanel>
+        <div className="flex min-h-0 flex-1">
+          {/* Panel row */}
+          <div className="flex min-h-0 flex-1 gap-1">
+            <AppLayoutChatPanel>
+              <AgentChat />
+            </AppLayoutChatPanel>
 
-              <AppLayoutContentPanel>
-                <div className="flex h-full flex-col p-3">
-                  <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
-                  <div className="flex flex-1 items-center justify-center">
-                    <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
-                  </div>
+            <AppLayoutContentPanel>
+              <div className="flex h-full flex-col p-3">
+                <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
                 </div>
-              </AppLayoutContentPanel>
+              </div>
+            </AppLayoutContentPanel>
 
-              <AppLayoutSecondarySidebar>
-                <div className="flex h-full flex-col p-3">
-                  <h2 className="text-xs font-semibold text-muted-foreground">Files</h2>
-                  <div className="flex flex-1 items-center justify-center">
-                    <p className="text-xs text-muted-foreground">File tree</p>
-                  </div>
+            <AppLayoutSecondarySidebar>
+              <div className="flex h-full flex-col p-3">
+                <h2 className="text-xs font-semibold text-muted-foreground">Files</h2>
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-xs text-muted-foreground">File tree</p>
                 </div>
-              </AppLayoutSecondarySidebar>
-            </AppLayoutPanelRow>
-
-            <AppLayoutActivityBar>
-              <ActivityBar />
-            </AppLayoutActivityBar>
+              </div>
+            </AppLayoutSecondarySidebar>
           </div>
 
-          <StatusBar />
-        </AppLayoutRightContainer>
-      </AppLayoutRoot>
-    </AppLayoutProvider>
+          <AppLayoutActivityBar>
+            <ActivityBar />
+          </AppLayoutActivityBar>
+        </div>
+
+        <StatusBar />
+      </div>
+    </AppLayoutRoot>
   )
 }
 ```

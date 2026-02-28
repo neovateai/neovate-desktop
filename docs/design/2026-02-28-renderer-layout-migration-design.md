@@ -55,7 +55,8 @@ Key decisions:
 - `Record<string, PanelState>` is open-ended: new panels = new string IDs, no type changes
 - Tab selection is per-panel local state, not in layout state (avoids coupling)
 - The whole tree serializes as one JSON blob for future persistence
-- React context (not Zustand) for now; migrate to Zustand + persist when needed
+- Zustand store from the start (already a dependency) — persistence-ready via `persist` middleware when needed
+- No React context provider needed — Zustand stores are consumed directly via hooks
 
 ## Component Architecture
 
@@ -64,7 +65,7 @@ New files in `src/renderer/src/components/layout/`:
 | File | Purpose |
 |------|---------|
 | `app-layout.tsx` | Root layout container + panel sub-components |
-| `app-layout-provider.tsx` | React context for panel visibility state |
+| `use-layout-store.ts` | Zustand store for panel visibility state |
 | `activity-bar.tsx` | Right icon bar with panel toggle buttons |
 | `primary-titlebar.tsx` | Left title bar (app name, drag region) |
 | `secondary-titlebar.tsx` | Right title bar (settings, drag region) |
