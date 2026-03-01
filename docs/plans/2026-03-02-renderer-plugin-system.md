@@ -4,7 +4,7 @@
 
 **Goal:** Add `RendererApp` class with plugin system and contribution collection so features can be registered as plugins.
 
-**Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. During `start()`, it hydrates the store, calls `configContributions()` on each plugin (which can read persisted state), merges results into a frozen `CollectedContributions`, runs `activate()` hooks, then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
+**Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. It delegates to `PluginManager` which owns `ContributionRegistry`. During `start()`, `PluginManager.initialize()` hydrates the store, calls `configContributions()` on each plugin (which can read persisted state), merges results via `ContributionRegistry` into a frozen `CollectedContributions`, then runs `activate()` hooks. `RendererApp` then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
 
 **Tech Stack:** React 19, TypeScript 5, Zustand 5, Vitest 4, `bun` as package manager/runner.
 
@@ -237,6 +237,7 @@ export type {
   CollectedContributions,
 } from "./contributions";
 export type { RendererPlugin, RendererPluginHooks, PluginContext } from "./types";
+// PluginManager and ContributionRegistry exported after Task 4
 ```
 
 **Step 3: Verify TypeScript**
@@ -253,178 +254,313 @@ git commit -m "feat: add RendererPlugin interface and PluginContext"
 
 ---
 
-### Task 4: Create PluginManager
+### Task 4: Create ContributionRegistry and PluginManager
 
 **Files:**
-- Create: `packages/desktop/src/renderer/src/core/plugin-manager.ts`
+- Create: `packages/desktop/src/renderer/src/core/plugin/contribution-registry.ts`
+- Create: `packages/desktop/src/renderer/src/core/plugin/plugin-manager.ts`
+- Create: `packages/desktop/src/renderer/src/core/__tests__/contribution-registry.test.ts`
 - Create: `packages/desktop/src/renderer/src/core/__tests__/plugin-manager.test.ts`
 
-Ported from neovate-code-desktop. Only the methods needed by RendererApp: `applyParallel` (for configContributions) and `applySeries` (for activate/deactivate).
+`PluginManager` is renderer-specific (not generic). It owns `ContributionRegistry` and the full plugin lifecycle.
 
-**Step 1: Write the failing tests**
+**Step 1: Write ContributionRegistry failing tests**
 
 ```typescript
-// packages/desktop/src/renderer/src/core/__tests__/plugin-manager.test.ts
+// packages/desktop/src/renderer/src/core/__tests__/contribution-registry.test.ts
 import { describe, it, expect, vi } from "vitest";
-import { PluginManager } from "../plugin-manager";
+import { ContributionRegistry } from "../plugin/contribution-registry";
 
-interface TestHooks {
-  hook(this: { ctx: string }, arg: number): string;
-}
-
-type TestPlugin = { name: string; enforce?: "pre" | "post" } & Partial<TestHooks>;
-
-describe("PluginManager", () => {
-  describe("enforce ordering", () => {
-    it("sorts plugins: pre → normal → post", () => {
-      const plugins: TestPlugin[] = [
-        { name: "normal" },
-        { name: "post", enforce: "post" },
-        { name: "pre", enforce: "pre" },
-      ];
-      const pm = new PluginManager<TestHooks>(plugins);
-      const names = pm.getPlugins().map((p) => p.name);
-      expect(names).toEqual(["pre", "normal", "post"]);
-    });
+describe("ContributionRegistry", () => {
+  it("returns empty collections initially", () => {
+    const registry = new ContributionRegistry();
+    const c = registry.contributions;
+    expect(c.activityBarItems).toEqual([]);
+    expect(c.secondarySidebarPanels).toEqual([]);
+    expect(c.contentPanels).toEqual([]);
+    expect(c.primaryTitlebarItems).toEqual([]);
+    expect(c.secondaryTitlebarItems).toEqual([]);
   });
 
-  describe("applySeries", () => {
-    it("calls hook on each plugin in order", async () => {
-      const calls: string[] = [];
-      const plugins: TestPlugin[] = [
-        { name: "a", hook() { calls.push("a"); return "a"; } },
-        { name: "b", hook() { calls.push("b"); return "b"; } },
-      ];
-      const pm = new PluginManager<TestHooks>(plugins);
-      await pm.applySeries("hook", { ctx: "test" }, 1);
-      expect(calls).toEqual(["a", "b"]);
-    });
-
-    it("skips plugins without the hook", async () => {
-      const plugins: TestPlugin[] = [
-        { name: "no-hook" },
-        { name: "has-hook", hook() { return "ok"; } },
-      ];
-      const pm = new PluginManager<TestHooks>(plugins);
-      await expect(pm.applySeries("hook", { ctx: "test" }, 1)).resolves.toBeUndefined();
-    });
+  it("merges contributions from multiple plugins", () => {
+    const registry = new ContributionRegistry();
+    registry.collect([
+      { secondarySidebarPanels: [{ id: "a", title: "A", component: vi.fn() }] },
+      { secondarySidebarPanels: [{ id: "b", title: "B", component: vi.fn() }] },
+    ]);
+    expect(registry.contributions.secondarySidebarPanels).toHaveLength(2);
+    expect(registry.contributions.secondarySidebarPanels[0].id).toBe("a");
+    expect(registry.contributions.secondarySidebarPanels[1].id).toBe("b");
   });
 
-  describe("applyParallel", () => {
-    it("calls all plugins and returns results", async () => {
-      const plugins: TestPlugin[] = [
-        { name: "a", hook() { return "a-result"; } },
-        { name: "b", hook() { return "b-result"; } },
-      ];
-      const pm = new PluginManager<TestHooks>(plugins);
-      const results = await pm.applyParallel("hook", { ctx: "test" }, 1);
-      expect(results).toEqual(["a-result", "b-result"]);
-    });
+  it("sorts activityBarItems by order ascending", () => {
+    const registry = new ContributionRegistry();
+    registry.collect([
+      {
+        activityBarItems: [
+          { id: "z", icon: vi.fn(), tooltip: "Z", panelId: "z", order: 30 },
+          { id: "a", icon: vi.fn(), tooltip: "A", panelId: "a", order: 10 },
+        ],
+      },
+    ]);
+    const items = registry.contributions.activityBarItems;
+    expect(items[0].id).toBe("a");
+    expect(items[1].id).toBe("z");
+  });
+
+  it("places items without order after ordered items", () => {
+    const registry = new ContributionRegistry();
+    registry.collect([
+      {
+        activityBarItems: [
+          { id: "no-order", icon: vi.fn(), tooltip: "X", panelId: "x" },
+          { id: "ordered", icon: vi.fn(), tooltip: "Y", panelId: "y", order: 1 },
+        ],
+      },
+    ]);
+    const items = registry.contributions.activityBarItems;
+    expect(items[0].id).toBe("ordered");
+    expect(items[1].id).toBe("no-order");
+  });
+
+  it("freezes contributions after collect", () => {
+    const registry = new ContributionRegistry();
+    registry.collect([]);
+    expect(Object.isFrozen(registry.contributions)).toBe(true);
   });
 });
 ```
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/plugin-manager.test.ts`
+Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/contribution-registry.test.ts`
 Expected: FAIL — module not found
 
-**Step 3: Implement**
+**Step 3: Implement ContributionRegistry**
 
 ```typescript
-// packages/desktop/src/renderer/src/core/plugin-manager.ts
+// packages/desktop/src/renderer/src/core/plugin/contribution-registry.ts
+import type { CollectedContributions, PluginContributions } from "./contributions";
 
-/**
- * Type-safe Plugin Manager for renderer process.
- * Plugins are sorted by enforce ordering: pre → normal → post.
- */
+const EMPTY_CONTRIBUTIONS: CollectedContributions = Object.freeze({
+  activityBarItems: [],
+  secondarySidebarPanels: [],
+  contentPanels: [],
+  primaryTitlebarItems: [],
+  secondaryTitlebarItems: [],
+});
 
-type DefinePlugin<H> = {
-  name: string;
-  enforce?: "pre" | "post";
-} & Partial<H>;
+export class ContributionRegistry {
+  private _contributions: CollectedContributions = EMPTY_CONTRIBUTIONS;
 
-/** Extract `this` context from a hook function */
-type HookContext<H, K extends keyof H> = H[K] extends (
-  this: infer C,
-  ...args: never[]
-) => unknown
-  ? C
-  : unknown;
+  get contributions(): CollectedContributions {
+    return this._contributions;
+  }
 
-/** Extract argument types from hook function (excluding `this`) */
-type HookArgs<H, K extends keyof H> = H[K] extends (
-  this: unknown,
-  ...args: infer A
-) => unknown
-  ? A
-  : H[K] extends (...args: infer A) => unknown
-    ? A
-    : never;
+  collect(items: PluginContributions[]): void {
+    const sortByOrder = <T extends { order?: number }>(list: T[]) =>
+      list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
-/** Extract return type from hook function (awaited) */
-type HookReturn<H, K extends keyof H> = H[K] extends (
-  ...args: never[]
-) => infer R
-  ? Awaited<R>
-  : never;
+    this._contributions = Object.freeze({
+      activityBarItems: sortByOrder(
+        items.flatMap((r) => r.activityBarItems ?? []),
+      ),
+      secondarySidebarPanels: items.flatMap(
+        (r) => r.secondarySidebarPanels ?? [],
+      ),
+      contentPanels: items.flatMap((r) => r.contentPanels ?? []),
+      primaryTitlebarItems: sortByOrder(
+        items.flatMap((r) => r.primaryTitlebarItems ?? []),
+      ),
+      secondaryTitlebarItems: sortByOrder(
+        items.flatMap((r) => r.secondaryTitlebarItems ?? []),
+      ),
+    });
+  }
+}
+```
 
-export class PluginManager<H extends object> {
-  readonly #plugins: DefinePlugin<H>[];
+**Step 4: Run ContributionRegistry tests to verify they pass**
 
-  constructor(rawPlugins: DefinePlugin<H>[] = []) {
-    this.#plugins = [
+Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/contribution-registry.test.ts`
+Expected: all 5 tests PASS
+
+**Step 5: Write PluginManager failing tests**
+
+```typescript
+// packages/desktop/src/renderer/src/core/__tests__/plugin-manager.test.ts
+import { describe, it, expect, vi } from "vitest";
+import { PluginManager } from "../plugin/plugin-manager";
+import type { RendererPlugin } from "../plugin";
+
+describe("PluginManager", () => {
+  describe("enforce ordering", () => {
+    it("sorts plugins: pre → normal → post", () => {
+      const plugins: RendererPlugin[] = [
+        { name: "normal" },
+        { name: "post", enforce: "post" },
+        { name: "pre", enforce: "pre" },
+      ];
+      const pm = new PluginManager(plugins);
+      const names = pm.getPlugins().map((p) => p.name);
+      expect(names).toEqual(["pre", "normal", "post"]);
+    });
+  });
+
+  describe("initialize", () => {
+    it("collects contributions from all plugins", async () => {
+      const plugins: RendererPlugin[] = [
+        {
+          name: "a",
+          configContributions: () => ({
+            secondarySidebarPanels: [{ id: "a", title: "A", component: vi.fn() }],
+          }),
+        },
+        {
+          name: "b",
+          configContributions: () => ({
+            secondarySidebarPanels: [{ id: "b", title: "B", component: vi.fn() }],
+          }),
+        },
+      ];
+      const pm = new PluginManager(plugins);
+      const mockApp = {} as any;
+      await pm.initialize({ app: mockApp });
+      expect(pm.contributions.secondarySidebarPanels).toHaveLength(2);
+    });
+
+    it("calls configContributions before activate", async () => {
+      const order: string[] = [];
+      const plugins: RendererPlugin[] = [
+        {
+          name: "test",
+          configContributions: () => { order.push("config"); return {}; },
+          activate: () => { order.push("activate"); },
+        },
+      ];
+      const pm = new PluginManager(plugins);
+      await pm.initialize({ app: {} as any });
+      expect(order).toEqual(["config", "activate"]);
+    });
+
+    it("calls activate with PluginContext", async () => {
+      const activateFn = vi.fn();
+      const pm = new PluginManager([{ name: "test", activate: activateFn }]);
+      const mockApp = {} as any;
+      await pm.initialize({ app: mockApp });
+      expect(activateFn).toHaveBeenCalledWith({ app: mockApp });
+    });
+
+    it("calls activate in enforce order", async () => {
+      const calls: string[] = [];
+      const plugins: RendererPlugin[] = [
+        { name: "normal", activate: () => { calls.push("normal"); } },
+        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
+        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
+      ];
+      const pm = new PluginManager(plugins);
+      await pm.initialize({ app: {} as any });
+      expect(calls).toEqual(["pre", "normal", "post"]);
+    });
+  });
+
+  describe("shutdown", () => {
+    it("calls deactivate on each plugin", async () => {
+      const deactivateFn = vi.fn();
+      const pm = new PluginManager([{ name: "test", deactivate: deactivateFn }]);
+      await pm.initialize({ app: {} as any });
+      await pm.shutdown();
+      expect(deactivateFn).toHaveBeenCalledOnce();
+    });
+  });
+});
+```
+
+**Step 6: Implement PluginManager**
+
+```typescript
+// packages/desktop/src/renderer/src/core/plugin/plugin-manager.ts
+import type { CollectedContributions, PluginContributions } from "./contributions";
+import type { PluginContext, RendererPlugin } from "./types";
+import { ContributionRegistry } from "./contribution-registry";
+
+export class PluginManager {
+  private readonly plugins: RendererPlugin[];
+  private readonly contributionRegistry = new ContributionRegistry();
+
+  get contributions(): CollectedContributions {
+    return this.contributionRegistry.contributions;
+  }
+
+  constructor(rawPlugins: RendererPlugin[] = []) {
+    this.plugins = [
       ...rawPlugins.filter((p) => p.enforce === "pre"),
       ...rawPlugins.filter((p) => !p.enforce),
       ...rawPlugins.filter((p) => p.enforce === "post"),
     ];
   }
 
-  getPlugins(): readonly DefinePlugin<H>[] {
-    return this.#plugins;
+  getPlugins(): readonly RendererPlugin[] {
+    return this.plugins;
   }
 
-  /** Call hook on each plugin sequentially */
-  async applySeries<K extends keyof H>(
-    hook: K,
-    context: HookContext<H, K>,
-    ...args: HookArgs<H, K>
-  ): Promise<void> {
-    for (const plugin of this.#plugins) {
-      const fn = plugin[hook];
-      if (typeof fn === "function") {
-        await fn.call(context, ...args);
+  async initialize(ctx: PluginContext): Promise<void> {
+    // 1. Collect contributions (parallel)
+    const results = await Promise.all(
+      this.plugins
+        .filter((p) => p.configContributions)
+        .map((p) => p.configContributions!()),
+    );
+    this.contributionRegistry.collect(
+      results.filter((r): r is PluginContributions => r != null),
+    );
+
+    // 2. Activate (series, enforce order)
+    for (const plugin of this.plugins) {
+      if (plugin.activate) {
+        await plugin.activate(ctx);
       }
     }
   }
 
-  /** Call hook on all plugins in parallel, return results */
-  async applyParallel<K extends keyof H>(
-    hook: K,
-    context: HookContext<H, K>,
-    ...args: HookArgs<H, K>
-  ): Promise<HookReturn<H, K>[]> {
-    const promises = this.#plugins
-      .filter((plugin) => typeof plugin[hook] === "function")
-      .map((plugin) => {
-        const fn = plugin[hook] as (...a: unknown[]) => unknown;
-        return fn.call(context, ...args);
-      });
-    return Promise.all(promises) as Promise<HookReturn<H, K>[]>;
+  async shutdown(): Promise<void> {
+    for (const plugin of this.plugins) {
+      if (plugin.deactivate) {
+        plugin.deactivate();
+      }
+    }
   }
 }
 ```
 
-**Step 4: Run tests to verify they pass**
+**Step 7: Run all PluginManager tests**
 
 Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/plugin-manager.test.ts`
-Expected: all 5 tests PASS
+Expected: all 6 tests PASS
 
-**Step 5: Commit**
+**Step 8: Update plugin barrel export**
+
+```typescript
+// packages/desktop/src/renderer/src/core/plugin/index.ts
+export type {
+  PluginContributions,
+  ActivityBarItem,
+  SidebarPanel,
+  ContentPanel,
+  PluginTab,
+  TitlebarItem,
+  CollectedContributions,
+} from "./contributions";
+export type { RendererPlugin, RendererPluginHooks, PluginContext } from "./types";
+export { PluginManager } from "./plugin-manager";
+export { ContributionRegistry } from "./contribution-registry";
+```
+
+**Step 9: Commit**
 
 ```bash
 git add packages/desktop/src/renderer/src/core/
-git commit -m "feat: add PluginManager with enforce ordering"
+git commit -m "feat: add ContributionRegistry and PluginManager"
 ```
 
 ---
@@ -435,6 +571,8 @@ git commit -m "feat: add PluginManager with enforce ordering"
 - Create: `packages/desktop/src/renderer/src/core/__tests__/app.test.ts`
 - Create: `packages/desktop/src/renderer/src/core/app.tsx`
 
+RendererApp delegates to PluginManager. Contribution collection and lifecycle tests are already in Task 4. This task tests the integration and React wiring.
+
 **Step 1: Write the failing tests**
 
 ```typescript
@@ -444,137 +582,36 @@ import { RendererApp } from "../app";
 import type { RendererPlugin } from "../plugin";
 
 describe("RendererApp", () => {
-  describe("contributions", () => {
-    it("returns empty collections when no plugins registered", async () => {
-      const app = new RendererApp({ plugins: [] });
-      await app.initialize();
-      const c = app.contributions;
-      expect(c.activityBarItems).toEqual([]);
-      expect(c.secondarySidebarPanels).toEqual([]);
-      expect(c.contentPanels).toEqual([]);
-      expect(c.primaryTitlebarItems).toEqual([]);
-      expect(c.secondaryTitlebarItems).toEqual([]);
+  it("delegates contributions to pluginManager", async () => {
+    const app = new RendererApp({
+      plugins: [
+        {
+          name: "a",
+          configContributions: () => ({
+            secondarySidebarPanels: [{ id: "a", title: "A", component: vi.fn() }],
+          }),
+        },
+      ],
     });
-
-    it("collects contributions from all plugins", async () => {
-      const app = new RendererApp({
-        plugins: [
-          {
-            name: "a",
-            configContributions: () => ({
-              secondarySidebarPanels: [
-                { id: "a-panel", title: "A", component: vi.fn() },
-              ],
-            }),
-          },
-          {
-            name: "b",
-            configContributions: () => ({
-              secondarySidebarPanels: [
-                { id: "b-panel", title: "B", component: vi.fn() },
-              ],
-            }),
-          },
-        ],
-      });
-      await app.initialize();
-      expect(app.contributions.secondarySidebarPanels).toHaveLength(2);
-      expect(app.contributions.secondarySidebarPanels[0].id).toBe("a-panel");
-      expect(app.contributions.secondarySidebarPanels[1].id).toBe("b-panel");
-    });
-
-    it("sorts activityBarItems by order ascending", async () => {
-      const app = new RendererApp({
-        plugins: [
-          {
-            name: "a",
-            configContributions: () => ({
-              activityBarItems: [
-                { id: "z", icon: vi.fn(), tooltip: "Z", panelId: "z", order: 30 },
-                { id: "a", icon: vi.fn(), tooltip: "A", panelId: "a", order: 10 },
-              ],
-            }),
-          },
-        ],
-      });
-      await app.initialize();
-      const items = app.contributions.activityBarItems;
-      expect(items[0].id).toBe("a");
-      expect(items[1].id).toBe("z");
-    });
-
-    it("places items without order after ordered items", async () => {
-      const app = new RendererApp({
-        plugins: [
-          {
-            name: "a",
-            configContributions: () => ({
-              activityBarItems: [
-                { id: "no-order", icon: vi.fn(), tooltip: "X", panelId: "x" },
-                { id: "ordered", icon: vi.fn(), tooltip: "Y", panelId: "y", order: 1 },
-              ],
-            }),
-          },
-        ],
-      });
-      await app.initialize();
-      const items = app.contributions.activityBarItems;
-      expect(items[0].id).toBe("ordered");
-      expect(items[1].id).toBe("no-order");
-    });
-
-    it("contributions are frozen after initialize", async () => {
-      const app = new RendererApp({ plugins: [] });
-      await app.initialize();
-      expect(Object.isFrozen(app.contributions)).toBe(true);
-    });
+    await app.initialize();
+    expect(app.contributions.secondarySidebarPanels).toHaveLength(1);
+    expect(app.contributions.secondarySidebarPanels[0].id).toBe("a");
   });
 
-  describe("activate lifecycle", () => {
-    it("calls activate on each plugin with PluginContext", async () => {
-      const activateFn = vi.fn();
-      const app = new RendererApp({
-        plugins: [{ name: "test", activate: activateFn }],
-      });
-      await app.initialize();
-      expect(activateFn).toHaveBeenCalledWith({ app });
+  it("passes itself as PluginContext to activate", async () => {
+    const activateFn = vi.fn();
+    const app = new RendererApp({
+      plugins: [{ name: "test", activate: activateFn }],
     });
-
-    it("calls activate in enforce order", async () => {
-      const calls: string[] = [];
-      const plugins: RendererPlugin[] = [
-        { name: "normal", activate: () => { calls.push("normal"); } },
-        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
-        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
-      ];
-      const app = new RendererApp({ plugins });
-      await app.initialize();
-      expect(calls).toEqual(["pre", "normal", "post"]);
-    });
-
-    it("calls configContributions before activate", async () => {
-      const order: string[] = [];
-      const app = new RendererApp({
-        plugins: [
-          {
-            name: "test",
-            configContributions: () => { order.push("config"); return {}; },
-            activate: () => { order.push("activate"); },
-          },
-        ],
-      });
-      await app.initialize();
-      expect(order).toEqual(["config", "activate"]);
-    });
+    await app.initialize();
+    expect(activateFn).toHaveBeenCalledWith({ app });
   });
 
-  describe("subscriptions", () => {
-    it("exposes disposable store on app", () => {
-      const app = new RendererApp({ plugins: [] });
-      expect(app.subscriptions).toBeDefined();
-      expect(typeof app.subscriptions.push).toBe("function");
-      expect(typeof app.subscriptions.dispose).toBe("function");
-    });
+  it("exposes disposable store", () => {
+    const app = new RendererApp({ plugins: [] });
+    expect(app.subscriptions).toBeDefined();
+    expect(typeof app.subscriptions.push).toBe("function");
+    expect(typeof app.subscriptions.dispose).toBe("function");
   });
 });
 ```
@@ -591,21 +628,8 @@ Expected: FAIL — module not found
 import { StrictMode, createContext, useContext } from "react";
 import ReactDOM from "react-dom/client";
 import { DisposableStore } from "./disposable";
-import type {
-  CollectedContributions,
-  PluginContributions,
-  RendererPlugin,
-  RendererPluginHooks,
-} from "./plugin";
-import { PluginManager } from "./plugin-manager";
-
-const EMPTY_CONTRIBUTIONS: CollectedContributions = Object.freeze({
-  activityBarItems: [],
-  secondarySidebarPanels: [],
-  contentPanels: [],
-  primaryTitlebarItems: [],
-  secondaryTitlebarItems: [],
-});
+import type { CollectedContributions, RendererPlugin } from "./plugin";
+import { PluginManager } from "./plugin";
 
 const RendererAppContext = createContext<RendererApp | null>(null);
 
@@ -620,37 +644,19 @@ export interface RendererAppOptions {
 }
 
 export class RendererApp {
-  private pluginManager: PluginManager<RendererPluginHooks>;
-
+  private readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
 
-  private _contributions: CollectedContributions = EMPTY_CONTRIBUTIONS;
-
   get contributions(): CollectedContributions {
-    return this._contributions;
+    return this.pluginManager.contributions;
   }
 
   constructor(options: RendererAppOptions = {}) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
   }
 
-  /**
-   * Collect contributions and run activate hooks.
-   * Called before React render. Separated from start() for testability.
-   */
   async initialize(): Promise<void> {
-    // 1. Collect contributions (parallel)
-    const results = await this.pluginManager.applyParallel(
-      "configContributions",
-      {},
-    );
-    const contributions = results.filter(
-      (r): r is PluginContributions => r != null,
-    );
-    this._contributions = this.mergeContributions(contributions);
-
-    // 2. Run activate hooks (series, enforce order)
-    await this.pluginManager.applySeries("activate", {}, { app: this });
+    await this.pluginManager.initialize({ app: this });
   }
 
   async start(): Promise<void> {
@@ -670,38 +676,13 @@ export class RendererApp {
       </StrictMode>,
     );
   }
-
-  private mergeContributions(
-    results: PluginContributions[],
-  ): CollectedContributions {
-    const sortByOrder = <T extends { order?: number }>(items: T[]) =>
-      items.sort(
-        (a, b) => (a.order ?? Infinity) - (b.order ?? Infinity),
-      );
-
-    return Object.freeze({
-      activityBarItems: sortByOrder(
-        results.flatMap((r) => r.activityBarItems ?? []),
-      ),
-      secondarySidebarPanels: results.flatMap(
-        (r) => r.secondarySidebarPanels ?? [],
-      ),
-      contentPanels: results.flatMap((r) => r.contentPanels ?? []),
-      primaryTitlebarItems: sortByOrder(
-        results.flatMap((r) => r.primaryTitlebarItems ?? []),
-      ),
-      secondaryTitlebarItems: sortByOrder(
-        results.flatMap((r) => r.secondaryTitlebarItems ?? []),
-      ),
-    });
-  }
 }
 ```
 
 **Step 4: Run tests to verify they pass**
 
 Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/app.test.ts`
-Expected: all 9 tests PASS
+Expected: all 3 tests PASS
 
 **Step 5: Verify TypeScript**
 
@@ -712,7 +693,7 @@ Expected: no new errors
 
 ```bash
 git add packages/desktop/src/renderer/src/core/
-git commit -m "feat: add RendererApp with plugin lifecycle and contribution collection"
+git commit -m "feat: add RendererApp with plugin delegation"
 ```
 
 ---
@@ -740,6 +721,7 @@ export type {
   PluginTab,
   TitlebarItem,
 } from "./plugin";
+export { PluginManager } from "./plugin";
 export type { Disposable } from "./disposable";
 export { DisposableStore, toDisposable } from "./disposable";
 ```

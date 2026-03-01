@@ -50,7 +50,7 @@ interface PluginContext {
 }
 ```
 
-`PluginManager` from neovate-code-desktop is reused unchanged — provides enforce ordering (`pre` → `normal` → `post`) and typed hook execution (`applyParallel`, `applySeries`, etc.).
+`PluginManager` is renderer-specific (not generic). Provides enforce ordering (`pre` → `normal` → `post`), typed hook execution, and owns `ContributionRegistry` for collecting/merging contributions.
 
 ---
 
@@ -125,19 +125,48 @@ interface CollectedContributions {
 
 ---
 
+## PluginManager
+
+Renderer-specific. Owns plugin lifecycle and `ContributionRegistry`. Not generic — `RendererPluginHooks` defined directly.
+
+```typescript
+class ContributionRegistry {
+  private _contributions: CollectedContributions = EMPTY_CONTRIBUTIONS;
+  get contributions(): CollectedContributions;
+  /** Merge plugin results, sort by order, freeze */
+  collect(items: PluginContributions[]): void;
+}
+
+class PluginManager {
+  private readonly contributionRegistry = new ContributionRegistry();
+
+  get contributions(): CollectedContributions;
+
+  /** Collect configContributions (parallel), then activate (series) */
+  async initialize(ctx: PluginContext): Promise<void>;
+
+  /** Run deactivate hooks (series) */
+  async shutdown(): Promise<void>;
+}
+```
+
+---
+
 ## RendererApp
 
-Single entry point for plugins and components. Owns contributions and subscriptions.
+Single entry point for plugins and components. Delegates to `PluginManager`.
 
 ```typescript
 class RendererApp {
-  /** Frozen, pre-merged contributions from all plugins */
-  readonly contributions: CollectedContributions;
+  private readonly pluginManager: PluginManager;
+
+  /** Delegates to pluginManager.contributions */
+  get contributions(): CollectedContributions;
 
   /** Global disposable store — auto-disposed on shutdown */
   readonly subscriptions: DisposableStore;
 
-  /** Start the app — collect, activate, render */
+  /** Start the app — initialize plugins, render */
   async start(): Promise<void>;
 }
 
