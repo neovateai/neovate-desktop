@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { isDefinedError } from "@orpc/client";
+import { ORPCError } from "@orpc/client";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 
@@ -68,8 +68,9 @@ export function useAcpPrompt() {
         }
 
         let message: string;
-        if (isDefinedError(error)) {
-          message = error.data?.message ?? error.message;
+        if (error instanceof ORPCError) {
+          const data = error.data as { message?: string } | undefined;
+          message = data?.message ?? error.message;
         } else if (error instanceof Error) {
           message = error.message;
         } else {

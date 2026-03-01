@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { isDefinedError } from "@orpc/client";
+import { ORPCError } from "@orpc/client";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 
@@ -21,9 +21,8 @@ export function useAcpConnect() {
         createSession(sessionId, connectionId);
         return { connectionId, sessionId };
       } catch (error) {
-        const message = isDefinedError(error)
-          ? error.message
-          : error instanceof Error
+        const message =
+          error instanceof ORPCError || error instanceof Error
             ? error.message
             : "Failed to connect to agent.";
         setConnectError(message);
