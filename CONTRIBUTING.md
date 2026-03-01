@@ -14,17 +14,23 @@ bun dev
 
 ## Scripts
 
-| Command         | Description                           |
-| --------------- | ------------------------------------- |
-| `bun dev`       | Start dev server with hot reload      |
-| `bun build`     | Build the app                         |
-| `bun build:mac` | Build macOS distributable             |
-| `bun check`     | Run typecheck + lint + format check   |
-| `bun lint`      | Run oxlint                            |
-| `bun format`    | Format code with oxfmt                |
-| `bun test`      | Run unit tests in watch mode (vitest) |
-| `bun test:run`  | Run unit tests once (CI)              |
-| `bun test:e2e`  | Build and run e2e tests (playwright)  |
+| Command         | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `bun dev`       | Start dev server with hot reload                 |
+| `bun build`     | Build the app                                    |
+| `bun build:mac` | Build macOS distributable                        |
+| `bun check`     | Run typecheck + lint + format check              |
+| `bun lint`      | Run oxlint                                       |
+| `bun format`    | Format code with oxfmt                           |
+| `bun test`      | Run unit tests in watch mode (vitest)            |
+| `bun test:run`  | Run unit tests once (CI)                         |
+| `bun test:e2e`  | Build and run e2e tests (playwright)             |
+| `bun ready`     | Pre-push readiness check (format + check + test) |
+
+Flags for `bun ready`:
+
+- `--build` — also run full build
+- `--e2e` — also run e2e tests
 
 ## Code Style
 
