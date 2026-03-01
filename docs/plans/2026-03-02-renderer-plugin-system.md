@@ -192,10 +192,15 @@ git commit -m "feat: add PluginContributions types"
 ```typescript
 // packages/desktop/src/renderer/src/core/plugin/types.ts
 import type { PluginContributions } from "./contributions";
-import type { RendererApp } from "../app";
+import type { Disposable } from "../disposable";
+
+/** Plugin layer interface — RendererApp implements this */
+export interface IRendererApp {
+  readonly subscriptions: { push(...disposables: Disposable[]): void };
+}
 
 export interface PluginContext {
-  app: RendererApp;
+  app: IRendererApp;
 }
 
 export interface RendererPluginHooks {
@@ -227,7 +232,7 @@ export type {
   PluginTab,
   TitlebarItem,
   } from "./contributions";
-export type { RendererPlugin, RendererPluginHooks, PluginContext } from "./types";
+export type { RendererPlugin, RendererPluginHooks, PluginContext, IRendererApp } from "./types";
 // PluginManager exported after Task 4
 ```
 
@@ -493,7 +498,7 @@ export type {
   PluginTab,
   TitlebarItem,
   } from "./contributions";
-export type { RendererPlugin, RendererPluginHooks, PluginContext } from "./types";
+export type { RendererPlugin, RendererPluginHooks, PluginContext, IRendererApp } from "./types";
 export { PluginManager } from "./plugin-manager";
 ```
 

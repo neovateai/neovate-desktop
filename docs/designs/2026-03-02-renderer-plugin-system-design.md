@@ -45,8 +45,12 @@ interface RendererPluginHooks {
 }
 
 interface PluginContext {
-  app: RendererApp;
-  // Extensible — add fields here as needed (logger, config, etc.)
+  app: IRendererApp;
+}
+
+/** Plugin layer interface — RendererApp implements this */
+interface IRendererApp {
+  readonly subscriptions: { push(...disposables: Disposable[]): void };
 }
 ```
 
