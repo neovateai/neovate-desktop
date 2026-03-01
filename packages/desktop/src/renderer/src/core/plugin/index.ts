@@ -7,4 +7,4 @@ export type {
   TitlebarItem,
 } from "./contributions";
 export type { RendererPlugin, RendererPluginHooks, PluginContext, IRendererApp } from "./types";
-// PluginManager exported after Task 4
+export { PluginManager } from "./plugin-manager";
