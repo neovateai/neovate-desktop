@@ -1,4 +1,4 @@
-import { AcpClient, resolveAgentCommand } from "acpx";
+import { AcpClient, resolveAgentCommand, type SessionRecord } from "acpx";
 import { ORPCError } from "@orpc/server";
 import { AcpConnection } from "./connection";
 import { getShellEnvironment } from "./shell-env";
@@ -6,13 +6,16 @@ import { getShellEnvironment } from "./shell-env";
 const MAX_STDERR_LINES = 100;
 
 export const AGENT_OVERRIDES: Record<string, string> = {
-  claude: "npx -y @zed-industries/claude-code-acp",
+  claude: "npx -y @zed-industries/claude-agent-acp",
 };
 
 type ManagedConnection = {
   connection: AcpConnection;
   client: AcpClient;
+  agentCommand: string;
+  cwd: string;
   stderr: string[];
+  sessionRecords: Map<string, SessionRecord>;
 };
 
 export class AcpConnectionManager {
@@ -52,7 +55,15 @@ export class AcpConnectionManager {
     await client.start();
     connection.setClient(client);
 
-    this.connections.set(id, { connection, client, stderr: stderrLines });
+    const resolvedCwd = cwd ?? process.cwd();
+    this.connections.set(id, {
+      connection,
+      client,
+      agentCommand,
+      cwd: resolvedCwd,
+      stderr: stderrLines,
+      sessionRecords: new Map(),
+    });
     return connection;
   }
 
@@ -73,6 +84,22 @@ export class AcpConnectionManager {
 
   getClient(id: string): AcpClient | undefined {
     return this.connections.get(id)?.client;
+  }
+
+  getAgentCommand(id: string): string | undefined {
+    return this.connections.get(id)?.agentCommand;
+  }
+
+  getCwd(id: string): string | undefined {
+    return this.connections.get(id)?.cwd;
+  }
+
+  getSessionRecord(connectionId: string, acpSessionId: string): SessionRecord | undefined {
+    return this.connections.get(connectionId)?.sessionRecords.get(acpSessionId);
+  }
+
+  setSessionRecord(connectionId: string, record: SessionRecord): void {
+    this.connections.get(connectionId)?.sessionRecords.set(record.acpSessionId, record);
   }
 
   getStderr(id: string): string[] {

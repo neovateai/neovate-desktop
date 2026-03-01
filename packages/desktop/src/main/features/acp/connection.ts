@@ -38,6 +38,17 @@ export class AcpConnection {
   }
 
   emitSessionUpdate(notification: SessionNotification): void {
+    const update = notification.update;
+
+    // Emit user messages as a dedicated event so the store can create separate messages
+    if (update.sessionUpdate === "user_message_chunk" && update.content.type === "text") {
+      this.publisher.publish("session", {
+        type: "user_message",
+        text: update.content.text,
+      });
+      return;
+    }
+
     const drafts = sessionUpdateToEventDrafts(notification);
     for (const draft of drafts) {
       const event = createAcpxEvent({ sessionId: this.id, seq: this.seq++ }, draft);

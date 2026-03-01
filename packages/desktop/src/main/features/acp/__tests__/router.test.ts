@@ -14,6 +14,10 @@ function makeContext(overrides?: Partial<AppContext["acpConnectionManager"]>): A
         throw new ORPCError("NOT_FOUND", { defined: true, message: `Unknown connection: ${id}` });
       }),
       getClient: vi.fn(),
+      getAgentCommand: vi.fn().mockReturnValue(""),
+      getCwd: vi.fn().mockReturnValue(process.cwd()),
+      getSessionRecord: vi.fn(),
+      setSessionRecord: vi.fn(),
       getStderr: vi.fn().mockReturnValue([]),
       disconnect: vi.fn(),
       disconnectAll: vi.fn(),
