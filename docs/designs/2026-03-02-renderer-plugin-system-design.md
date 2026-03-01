@@ -170,8 +170,8 @@ Single entry point for plugins and components. Delegates to `PluginManager`.
 class RendererApp {
   private readonly pluginManager: PluginManager;
 
-  /** Delegates to pluginManager.contributions */
-  get contributions(): CollectedContributions;
+  /** Assigned after initialize — frozen contributions from all plugins */
+  contributions!: CollectedContributions;
 
   /** Global disposable store — auto-disposed on shutdown */
   readonly subscriptions: DisposableStore;

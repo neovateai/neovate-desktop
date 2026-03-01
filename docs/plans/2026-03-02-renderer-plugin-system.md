@@ -694,10 +694,7 @@ export interface RendererAppOptions {
 export class RendererApp {
   private readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
-
-  get contributions(): CollectedContributions {
-    return this.pluginManager.contributions;
-  }
+  contributions!: CollectedContributions;
 
   constructor(options: RendererAppOptions = {}) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
@@ -705,17 +702,16 @@ export class RendererApp {
 
   async initialize(): Promise<void> {
     await this.pluginManager.initialize({ app: this });
+    this.contributions = this.pluginManager.contributions;
   }
 
   async start(): Promise<void> {
     await this.initialize();
-    this.render();
+    await this.render();
   }
 
-  private render(): void {
-    const { default: App } = require("../App") as {
-      default: React.ComponentType;
-    };
+  private async render(): Promise<void> {
+    const { default: App } = await import("../App");
     ReactDOM.createRoot(document.getElementById("root")!).render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
