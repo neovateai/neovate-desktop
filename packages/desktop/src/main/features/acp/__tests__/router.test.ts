@@ -77,9 +77,7 @@ describe("acpRouter", () => {
     });
 
     it("throws NOT_FOUND for unknown connection", async () => {
-      const context = makeContext({
-        get: vi.fn().mockReturnValue(undefined),
-      });
+      const context = makeContext();
 
       await expect(
         call(acpRouter.newSession, { connectionId: "unknown" }, { context }),
@@ -106,9 +104,7 @@ describe("acpRouter", () => {
     });
 
     it("throws NOT_FOUND for unknown connection", async () => {
-      const context = makeContext({
-        get: vi.fn().mockReturnValue(undefined),
-      });
+      const context = makeContext();
 
       await expect(
         call(
@@ -137,9 +133,7 @@ describe("acpRouter", () => {
     });
 
     it("throws NOT_FOUND for unknown connection", async () => {
-      const context = makeContext({
-        get: vi.fn().mockReturnValue(undefined),
-      });
+      const context = makeContext();
 
       await expect(
         call(acpRouter.cancel, { connectionId: "unknown", sessionId: "s1" }, { context }),
