@@ -1,14 +1,10 @@
 import "./assets/main.css";
+import { RendererApp } from "./core";
 
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "next-themes";
-import App from "./App";
+const app = new RendererApp({
+  plugins: [
+    // Plugins will be registered here
+  ],
+});
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <App />
-    </ThemeProvider>
-  </StrictMode>,
-);
+app.start();
