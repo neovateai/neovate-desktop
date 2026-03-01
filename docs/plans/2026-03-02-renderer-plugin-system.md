@@ -2,13 +2,15 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add `RendererApp` class with plugin system, command registry, event bus, and contribution collection so features can be registered as plugins.
+**Goal:** Add `RendererApp` class with plugin system and contribution collection so features can be registered as plugins.
 
 **Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. During `start()`, it calls `configContributions()` on each plugin, merges results into a frozen `CollectedContributions`, runs `activate()` hooks, then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
 
 **Tech Stack:** React 19, TypeScript 5, Zustand 5, Vitest 4, `bun` as package manager/runner.
 
 **Design doc:** `docs/designs/2026-03-02-renderer-plugin-system-design.md`
+
+**Deferred:** `app.commands` (CommandRegistry), `app.events` (EventBus) — add when there's a concrete need.
 
 ---
 
@@ -103,214 +105,7 @@ git commit -m "feat: add Disposable and DisposableStore"
 
 ---
 
-### Task 2: Create CommandRegistry
-
-**Files:**
-- Create: `packages/desktop/src/renderer/src/core/command-registry.ts`
-- Create: `packages/desktop/src/renderer/src/core/__tests__/command-registry.test.ts`
-
-**Step 1: Write the failing tests**
-
-```typescript
-// packages/desktop/src/renderer/src/core/__tests__/command-registry.test.ts
-import { describe, it, expect, vi } from "vitest";
-import { CommandRegistry } from "../command-registry";
-
-describe("CommandRegistry", () => {
-  it("registers and executes a command", () => {
-    const registry = new CommandRegistry();
-    const handler = vi.fn(() => 42);
-    registry.register("test.cmd", handler);
-    const result = registry.execute("test.cmd", "arg1");
-    expect(handler).toHaveBeenCalledWith("arg1");
-    expect(result).toBe(42);
-  });
-
-  it("throws when executing an unregistered command", () => {
-    const registry = new CommandRegistry();
-    expect(() => registry.execute("unknown")).toThrow("Command not found: unknown");
-  });
-
-  it("throws when registering a duplicate command", () => {
-    const registry = new CommandRegistry();
-    registry.register("dup", vi.fn());
-    expect(() => registry.register("dup", vi.fn())).toThrow(
-      "Command already registered: dup",
-    );
-  });
-
-  it("disposes removes the command", () => {
-    const registry = new CommandRegistry();
-    const disposable = registry.register("removable", vi.fn());
-    disposable.dispose();
-    expect(() => registry.execute("removable")).toThrow("Command not found: removable");
-  });
-});
-```
-
-**Step 2: Run tests to verify they fail**
-
-Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/command-registry.test.ts`
-Expected: FAIL — module not found
-
-**Step 3: Implement**
-
-```typescript
-// packages/desktop/src/renderer/src/core/command-registry.ts
-import type { Disposable } from "./disposable";
-
-export class CommandRegistry {
-  private handlers = new Map<string, (...args: unknown[]) => unknown>();
-
-  register(id: string, handler: (...args: unknown[]) => unknown): Disposable {
-    if (this.handlers.has(id)) {
-      throw new Error(`Command already registered: ${id}`);
-    }
-    this.handlers.set(id, handler);
-    return { dispose: () => this.handlers.delete(id) };
-  }
-
-  execute<T = unknown>(id: string, ...args: unknown[]): T {
-    const handler = this.handlers.get(id);
-    if (!handler) {
-      throw new Error(`Command not found: ${id}`);
-    }
-    return handler(...args) as T;
-  }
-}
-```
-
-**Step 4: Run tests to verify they pass**
-
-Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/command-registry.test.ts`
-Expected: all 4 tests PASS
-
-**Step 5: Commit**
-
-```bash
-git add packages/desktop/src/renderer/src/core/
-git commit -m "feat: add CommandRegistry"
-```
-
----
-
-### Task 3: Create EventBus
-
-**Files:**
-- Create: `packages/desktop/src/renderer/src/core/event-bus.ts`
-- Create: `packages/desktop/src/renderer/src/core/__tests__/event-bus.test.ts`
-
-**Step 1: Write the failing tests**
-
-```typescript
-// packages/desktop/src/renderer/src/core/__tests__/event-bus.test.ts
-import { describe, it, expect, vi } from "vitest";
-import { EventBus } from "../event-bus";
-
-describe("EventBus", () => {
-  it("emits events to registered listeners", () => {
-    const bus = new EventBus();
-    const handler = vi.fn();
-    bus.on("test", handler);
-    bus.emit("test", { value: 1 });
-    expect(handler).toHaveBeenCalledWith({ value: 1 });
-  });
-
-  it("supports multiple listeners for the same event", () => {
-    const bus = new EventBus();
-    const h1 = vi.fn();
-    const h2 = vi.fn();
-    bus.on("evt", h1);
-    bus.on("evt", h2);
-    bus.emit("evt", "data");
-    expect(h1).toHaveBeenCalledWith("data");
-    expect(h2).toHaveBeenCalledWith("data");
-  });
-
-  it("does not call listeners for other events", () => {
-    const bus = new EventBus();
-    const handler = vi.fn();
-    bus.on("a", handler);
-    bus.emit("b", "data");
-    expect(handler).not.toHaveBeenCalled();
-  });
-
-  it("dispose removes the listener", () => {
-    const bus = new EventBus();
-    const handler = vi.fn();
-    const disposable = bus.on("evt", handler);
-    disposable.dispose();
-    bus.emit("evt", "data");
-    expect(handler).not.toHaveBeenCalled();
-  });
-
-  it("emits with no data when data is omitted", () => {
-    const bus = new EventBus();
-    const handler = vi.fn();
-    bus.on("ping", handler);
-    bus.emit("ping");
-    expect(handler).toHaveBeenCalledWith(undefined);
-  });
-});
-```
-
-**Step 2: Run tests to verify they fail**
-
-Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/event-bus.test.ts`
-Expected: FAIL — module not found
-
-**Step 3: Implement**
-
-```typescript
-// packages/desktop/src/renderer/src/core/event-bus.ts
-import type { Disposable } from "./disposable";
-
-export class EventBus {
-  private listeners = new Map<string, Set<(data: unknown) => void>>();
-
-  on<T = unknown>(event: string, handler: (data: T) => void): Disposable {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    const fn = handler as (data: unknown) => void;
-    this.listeners.get(event)!.add(fn);
-    return {
-      dispose: () => {
-        const set = this.listeners.get(event);
-        if (set) {
-          set.delete(fn);
-          if (set.size === 0) this.listeners.delete(event);
-        }
-      },
-    };
-  }
-
-  emit(event: string, data?: unknown): void {
-    const set = this.listeners.get(event);
-    if (set) {
-      for (const handler of set) {
-        handler(data);
-      }
-    }
-  }
-}
-```
-
-**Step 4: Run tests to verify they pass**
-
-Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/event-bus.test.ts`
-Expected: all 5 tests PASS
-
-**Step 5: Commit**
-
-```bash
-git add packages/desktop/src/renderer/src/core/
-git commit -m "feat: add EventBus"
-```
-
----
-
-### Task 4: Create plugin contribution types
+### Task 2: Create plugin contribution types
 
 **Files:**
 - Create: `packages/desktop/src/renderer/src/core/plugin/contributions.ts`
@@ -394,7 +189,7 @@ git commit -m "feat: add PluginContributions types"
 
 ---
 
-### Task 5: Create RendererPlugin interface and PluginContext
+### Task 3: Create RendererPlugin interface and PluginContext
 
 **Files:**
 - Create: `packages/desktop/src/renderer/src/core/plugin/types.ts`
@@ -458,7 +253,7 @@ git commit -m "feat: add RendererPlugin interface and PluginContext"
 
 ---
 
-### Task 6: Create PluginManager
+### Task 4: Create PluginManager
 
 **Files:**
 - Create: `packages/desktop/src/renderer/src/core/plugin-manager.ts`
@@ -634,7 +429,7 @@ git commit -m "feat: add PluginManager with enforce ordering"
 
 ---
 
-### Task 7: Create RendererApp with unit tests
+### Task 5: Create RendererApp with unit tests
 
 **Files:**
 - Create: `packages/desktop/src/renderer/src/core/__tests__/app.test.ts`
@@ -773,24 +568,6 @@ describe("RendererApp", () => {
     });
   });
 
-  describe("commands", () => {
-    it("exposes command registry on app", () => {
-      const app = new RendererApp({ plugins: [] });
-      expect(app.commands).toBeDefined();
-      expect(typeof app.commands.register).toBe("function");
-      expect(typeof app.commands.execute).toBe("function");
-    });
-  });
-
-  describe("events", () => {
-    it("exposes event bus on app", () => {
-      const app = new RendererApp({ plugins: [] });
-      expect(app.events).toBeDefined();
-      expect(typeof app.events.on).toBe("function");
-      expect(typeof app.events.emit).toBe("function");
-    });
-  });
-
   describe("subscriptions", () => {
     it("exposes disposable store on app", () => {
       const app = new RendererApp({ plugins: [] });
@@ -813,9 +590,7 @@ Expected: FAIL — module not found
 // packages/desktop/src/renderer/src/core/app.tsx
 import { StrictMode, createContext, useContext } from "react";
 import ReactDOM from "react-dom/client";
-import { CommandRegistry } from "./command-registry";
 import { DisposableStore } from "./disposable";
-import { EventBus } from "./event-bus";
 import type {
   CollectedContributions,
   PluginContributions,
@@ -847,8 +622,6 @@ export interface RendererAppOptions {
 export class RendererApp {
   private pluginManager: PluginManager<RendererPluginHooks>;
 
-  readonly commands = new CommandRegistry();
-  readonly events = new EventBus();
   readonly subscriptions = new DisposableStore();
 
   private _contributions: CollectedContributions = EMPTY_CONTRIBUTIONS;
@@ -928,7 +701,7 @@ export class RendererApp {
 **Step 4: Run tests to verify they pass**
 
 Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/app.test.ts`
-Expected: all 10 tests PASS
+Expected: all 9 tests PASS
 
 **Step 5: Verify TypeScript**
 
@@ -944,7 +717,7 @@ git commit -m "feat: add RendererApp with plugin lifecycle and contribution coll
 
 ---
 
-### Task 8: Create core barrel export
+### Task 6: Create core barrel export
 
 **Files:**
 - Create: `packages/desktop/src/renderer/src/core/index.ts`
@@ -969,8 +742,6 @@ export type {
 } from "./plugin";
 export type { Disposable } from "./disposable";
 export { DisposableStore, toDisposable } from "./disposable";
-export { CommandRegistry } from "./command-registry";
-export { EventBus } from "./event-bus";
 ```
 
 **Step 2: Verify TypeScript**
@@ -987,7 +758,7 @@ git commit -m "feat: add core barrel export"
 
 ---
 
-### Task 9: Wire RendererApp into main.tsx
+### Task 7: Wire RendererApp into main.tsx
 
 **Files:**
 - Modify: `packages/desktop/src/renderer/src/main.tsx`
@@ -1027,7 +798,7 @@ git commit -m "feat: wire RendererApp into main.tsx"
 
 ---
 
-### Task 10: Update App.tsx to use useRendererApp
+### Task 8: Update App.tsx to use useRendererApp
 
 **Files:**
 - Modify: `packages/desktop/src/renderer/src/App.tsx`
@@ -1039,6 +810,7 @@ git commit -m "feat: wire RendererApp into main.tsx"
 import { AgentChat } from "./features/acp";
 import { useRendererApp } from "./core";
 import {
+  AppLayoutActivityBar,
   AppLayoutChatPanel,
   AppLayoutContentPanel,
   AppLayoutPanelSeparator,
@@ -1050,7 +822,6 @@ import {
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
 } from "./components/app-layout";
-import { AppLayoutActivityBar } from "./components/app-layout";
 import { ThemeToggle } from "./components/ui/theme-toggle";
 
 export default function App() {
@@ -1140,10 +911,11 @@ git commit -m "feat: use useRendererApp in App.tsx"
 ## Done
 
 At this point:
-- `src/renderer/src/core/` contains the full plugin system
-- `RendererApp` collects plugin contributions, runs lifecycle hooks, exposes commands/events/subscriptions
+- `src/renderer/src/core/` contains the plugin system
+- `RendererApp` collects plugin contributions, runs lifecycle hooks, exposes subscriptions
 - `main.tsx` instantiates `RendererApp` — new plugins are added to the `plugins` array
 - `App.tsx` has access to contributions via `useRendererApp()`
 - All existing functionality unchanged — ACP chat still works
-- Unit tests covering: Disposable, CommandRegistry, EventBus, PluginManager, RendererApp
+- Unit tests covering: Disposable, PluginManager, RendererApp (contributions + lifecycle)
+- `app.commands` and `app.events` deferred — add when needed
 - Built-in features can be registered as plugins in future tasks

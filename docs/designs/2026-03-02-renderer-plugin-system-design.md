@@ -1,6 +1,6 @@
 # RendererApp Plugin System Design
 
-**Goal:** Extensible plugin system for neovate-desktop's renderer where features (both built-in and future third-party) register UI contributions, commands, and event listeners as plugins.
+**Goal:** Extensible plugin system for neovate-desktop's renderer where features (both built-in and future third-party) register UI contributions as plugins.
 
 **Migrating from:** `neovateai/neovate-code-desktop` — same core pattern, with design fixes.
 
@@ -14,8 +14,8 @@
 |---|---|---|
 | Plugin scope | Internal-first, future third-party | Both internal modularity and eventual external extensibility |
 | Registry | Static, frozen at boot | All plugins known before React mounts. No reactivity needed. Trivial to upgrade later. |
-| State access | Services on RendererApp | `app.commands`, `app.events`, `app.subscriptions` — one object to learn |
-| Inter-plugin comms | Event bus on app | `app.events.on()` / `app.events.emit()` — loose coupling |
+| State access | Services on RendererApp | `app.subscriptions` — one object to learn. Commands and events deferred. |
+| Inter-plugin comms | Deferred | `app.commands` and `app.events` added when there's a concrete need |
 | Contributions API | `configContributions()` function returning object | Allows conditional contributions, still collected at boot |
 | Component props | `useRendererApp()` hook | No `app` prop drilling — components access app via context |
 | Built-in features | Plugins (e.g., `builtin:files`) | No hardcoded built-in vs plugin distinction in layout |
@@ -128,37 +128,18 @@ interface CollectedContributions {
 
 ## RendererApp
 
-Single entry point for plugins and components. Owns contributions, commands, events, subscriptions.
+Single entry point for plugins and components. Owns contributions and subscriptions.
 
 ```typescript
 class RendererApp {
   /** Frozen, pre-merged contributions from all plugins */
   readonly contributions: CollectedContributions;
 
-  /** Command registry — register and execute named commands */
-  readonly commands: CommandRegistry;
-
-  /** Event bus — inter-plugin and plugin-to-UI communication */
-  readonly events: EventBus;
-
   /** Global disposable store — auto-disposed on shutdown */
   readonly subscriptions: DisposableStore;
 
-  /** Zustand store access */
-  readonly useStore: typeof useStore;
-
   /** Start the app — collect, activate, render */
   async start(): Promise<void>;
-}
-
-interface CommandRegistry {
-  register(id: string, handler: (...args: unknown[]) => unknown): Disposable;
-  execute<T = unknown>(id: string, ...args: unknown[]): T;
-}
-
-interface EventBus {
-  on<T = unknown>(event: string, handler: (data: T) => void): Disposable;
-  emit(event: string, data?: unknown): void;
 }
 
 interface Disposable {
@@ -170,6 +151,8 @@ class DisposableStore {
   dispose(): void;
 }
 ```
+
+**Deferred:** `app.commands` (CommandRegistry) and `app.events` (EventBus) — add when there's a concrete need.
 
 React components access the same instance:
 
