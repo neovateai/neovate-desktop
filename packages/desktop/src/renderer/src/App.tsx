@@ -1,3 +1,4 @@
+import { useRendererApp } from "./core";
 import { AgentChat, SessionList } from "./features/acp";
 import {
   AppLayoutActivityBar,
@@ -15,6 +16,9 @@ import {
 import { ThemeToggle } from "./components/ui/theme-toggle";
 
 export default function App() {
+  // TODO: use app context for plugin contributions
+  void useRendererApp();
+
   return (
     <AppLayoutRoot>
       <AppLayoutTrafficLights />
