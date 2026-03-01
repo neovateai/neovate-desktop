@@ -50,7 +50,7 @@ interface PluginContext {
 }
 ```
 
-`PluginManager` is renderer-specific (not generic). Provides enforce ordering (`pre` → `normal` → `post`), typed hook execution, and owns `ContributionRegistry` for collecting/merging contributions.
+`PluginManager` is renderer-specific (not generic). Provides enforce ordering (`pre` → `normal` → `post`), typed hook execution, and contribution merging.
 
 ---
 
@@ -127,20 +127,12 @@ interface CollectedContributions {
 
 ## PluginManager
 
-Renderer-specific. Owns plugin lifecycle and `ContributionRegistry`. Not generic — `RendererPluginHooks` defined directly.
+Renderer-specific. Owns plugin lifecycle and contribution merging. Not generic — `RendererPluginHooks` defined directly.
 
 ```typescript
-class ContributionRegistry {
-  private _contributions: CollectedContributions = EMPTY_CONTRIBUTIONS;
-  get contributions(): CollectedContributions;
-  /** Merge plugin results, sort by order, freeze */
-  collect(items: PluginContributions[]): void;
-}
-
 class PluginManager {
-  private readonly contributionRegistry = new ContributionRegistry();
-
-  get contributions(): CollectedContributions;
+  /** Frozen, pre-merged contributions from all plugins */
+  contributions: CollectedContributions;
 
   /** Call hook on each plugin sequentially (enforce order) */
   async applySeries<K extends keyof RendererPluginHooks>(
@@ -164,14 +156,11 @@ class PluginManager {
 
 ## RendererApp
 
-Single entry point for plugins and components. Delegates to `PluginManager`.
+Single entry point for plugins and components. Exposes `pluginManager` for contribution access.
 
 ```typescript
 class RendererApp {
-  private readonly pluginManager: PluginManager;
-
-  /** Assigned after initialize — frozen contributions from all plugins */
-  contributions!: CollectedContributions;
+  readonly pluginManager: PluginManager;
 
   /** Global disposable store — auto-disposed on shutdown */
   readonly subscriptions: DisposableStore;
@@ -198,7 +187,7 @@ function useRendererApp(): RendererApp;
 // In any component:
 function MyComponent() {
   const app = useRendererApp();
-  const panels = app.contributions.secondarySidebarPanels;
+  const panels = app.pluginManager.contributions.secondarySidebarPanels;
 }
 ```
 
@@ -244,7 +233,7 @@ function ActivityBar() {
   const app = useRendererApp();
   return (
     <nav>
-      {app.contributions.activityBarItems.map(item => (
+      {app.pluginManager.contributions.activityBarItems.map(item => (
         <ActivityBarButton key={item.id} {...item} />
       ))}
     </nav>
@@ -255,7 +244,7 @@ function ActivityBar() {
 function SecondarySidebar() {
   const app = useRendererApp();
   const activeTab = useStore(s => s.secondarySidebarTab);
-  const panel = app.contributions.secondarySidebarPanels.find(p => p.id === activeTab);
+  const panel = app.pluginManager.contributions.secondarySidebarPanels.find(p => p.id === activeTab);
   if (!panel) return null;
   const Component = lazy(panel.component);
   return (
