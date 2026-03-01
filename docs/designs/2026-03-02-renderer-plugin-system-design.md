@@ -142,6 +142,16 @@ class PluginManager {
 
   get contributions(): CollectedContributions;
 
+  /** Call hook on each plugin sequentially (enforce order) */
+  async applySeries<K extends keyof RendererPluginHooks>(
+    hook: K, ...args: Parameters<RendererPluginHooks[K]>
+  ): Promise<void>;
+
+  /** Call hook on all plugins in parallel, return results */
+  async applyParallel<K extends keyof RendererPluginHooks>(
+    hook: K, ...args: Parameters<RendererPluginHooks[K]>
+  ): Promise<ReturnType<RendererPluginHooks[K]>[]>;
+
   /** Collect configContributions (parallel), then activate (series) */
   async initialize(ctx: PluginContext): Promise<void>;
 

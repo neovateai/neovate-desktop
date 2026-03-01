@@ -407,6 +407,53 @@ describe("PluginManager", () => {
     });
   });
 
+  describe("applySeries", () => {
+    it("calls hook on each plugin sequentially in enforce order", async () => {
+      const calls: string[] = [];
+      const plugins: RendererPlugin[] = [
+        { name: "normal", activate: () => { calls.push("normal"); } },
+        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
+        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
+      ];
+      const pm = new PluginManager(plugins);
+      await pm.applySeries("activate", { app: {} as any });
+      expect(calls).toEqual(["pre", "normal", "post"]);
+    });
+
+    it("skips plugins without the hook", async () => {
+      const activateFn = vi.fn();
+      const plugins: RendererPlugin[] = [
+        { name: "no-hook" },
+        { name: "has-hook", activate: activateFn },
+      ];
+      const pm = new PluginManager(plugins);
+      await pm.applySeries("activate", { app: {} as any });
+      expect(activateFn).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("applyParallel", () => {
+    it("calls hook on all plugins and returns results", async () => {
+      const plugins: RendererPlugin[] = [
+        { name: "a", configContributions: () => ({ activityBarItems: [] }) },
+        { name: "b", configContributions: () => ({ contentPanels: [] }) },
+      ];
+      const pm = new PluginManager(plugins);
+      const results = await pm.applyParallel("configContributions");
+      expect(results).toHaveLength(2);
+    });
+
+    it("skips plugins without the hook", async () => {
+      const plugins: RendererPlugin[] = [
+        { name: "no-hook" },
+        { name: "has-hook", configContributions: () => ({}) },
+      ];
+      const pm = new PluginManager(plugins);
+      const results = await pm.applyParallel("configContributions");
+      expect(results).toHaveLength(1);
+    });
+  });
+
   describe("initialize", () => {
     it("collects contributions from all plugins", async () => {
       const plugins: RendererPlugin[] = [
@@ -424,8 +471,7 @@ describe("PluginManager", () => {
         },
       ];
       const pm = new PluginManager(plugins);
-      const mockApp = {} as any;
-      await pm.initialize({ app: mockApp });
+      await pm.initialize({ app: {} as any });
       expect(pm.contributions.secondarySidebarPanels).toHaveLength(2);
     });
 
@@ -443,24 +489,12 @@ describe("PluginManager", () => {
       expect(order).toEqual(["config", "activate"]);
     });
 
-    it("calls activate with PluginContext", async () => {
+    it("passes PluginContext to activate", async () => {
       const activateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", activate: activateFn }]);
       const mockApp = {} as any;
       await pm.initialize({ app: mockApp });
       expect(activateFn).toHaveBeenCalledWith({ app: mockApp });
-    });
-
-    it("calls activate in enforce order", async () => {
-      const calls: string[] = [];
-      const plugins: RendererPlugin[] = [
-        { name: "normal", activate: () => { calls.push("normal"); } },
-        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
-        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
-      ];
-      const pm = new PluginManager(plugins);
-      await pm.initialize({ app: {} as any });
-      expect(calls).toEqual(["pre", "normal", "post"]);
     });
   });
 
@@ -468,7 +502,6 @@ describe("PluginManager", () => {
     it("calls deactivate on each plugin", async () => {
       const deactivateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", deactivate: deactivateFn }]);
-      await pm.initialize({ app: {} as any });
       await pm.shutdown();
       expect(deactivateFn).toHaveBeenCalledOnce();
     });
@@ -481,7 +514,7 @@ describe("PluginManager", () => {
 ```typescript
 // packages/desktop/src/renderer/src/core/plugin/plugin-manager.ts
 import type { CollectedContributions, PluginContributions } from "./contributions";
-import type { PluginContext, RendererPlugin } from "./types";
+import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 import { ContributionRegistry } from "./contribution-registry";
 
 export class PluginManager {
@@ -504,31 +537,46 @@ export class PluginManager {
     return this.plugins;
   }
 
+  /** Call hook on each plugin sequentially (enforce order) */
+  async applySeries<K extends keyof RendererPluginHooks>(
+    hook: K,
+    ...args: Parameters<RendererPluginHooks[K]>
+  ): Promise<void> {
+    for (const plugin of this.plugins) {
+      const fn = plugin[hook];
+      if (typeof fn === "function") {
+        await (fn as Function).call(plugin, ...args);
+      }
+    }
+  }
+
+  /** Call hook on all plugins in parallel, return results */
+  async applyParallel<K extends keyof RendererPluginHooks>(
+    hook: K,
+    ...args: Parameters<RendererPluginHooks[K]>
+  ): Promise<ReturnType<RendererPluginHooks[K]>[]> {
+    const promises = this.plugins
+      .filter((plugin) => typeof plugin[hook] === "function")
+      .map((plugin) => {
+        const fn = plugin[hook] as Function;
+        return fn.call(plugin, ...args);
+      });
+    return Promise.all(promises) as Promise<ReturnType<RendererPluginHooks[K]>[]>;
+  }
+
   async initialize(ctx: PluginContext): Promise<void> {
     // 1. Collect contributions (parallel)
-    const results = await Promise.all(
-      this.plugins
-        .filter((p) => p.configContributions)
-        .map((p) => p.configContributions!()),
-    );
+    const results = await this.applyParallel("configContributions");
     this.contributionRegistry.collect(
       results.filter((r): r is PluginContributions => r != null),
     );
 
     // 2. Activate (series, enforce order)
-    for (const plugin of this.plugins) {
-      if (plugin.activate) {
-        await plugin.activate(ctx);
-      }
-    }
+    await this.applySeries("activate", ctx);
   }
 
   async shutdown(): Promise<void> {
-    for (const plugin of this.plugins) {
-      if (plugin.deactivate) {
-        plugin.deactivate();
-      }
-    }
+    await this.applySeries("deactivate");
   }
 }
 ```
@@ -536,7 +584,7 @@ export class PluginManager {
 **Step 7: Run all PluginManager tests**
 
 Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/plugin-manager.test.ts`
-Expected: all 6 tests PASS
+Expected: all 9 tests PASS
 
 **Step 8: Update plugin barrel export**
 
