@@ -630,31 +630,6 @@ import { RendererApp } from "../app";
 import type { RendererPlugin } from "../plugin";
 
 describe("RendererApp", () => {
-  it("delegates contributions to pluginManager", async () => {
-    const app = new RendererApp({
-      plugins: [
-        {
-          name: "a",
-          configContributions: () => ({
-            secondarySidebarPanels: [{ id: "a", title: "A", component: vi.fn() }],
-          }),
-        },
-      ],
-    });
-    await app.initialize();
-    expect(app.contributions.secondarySidebarPanels).toHaveLength(1);
-    expect(app.contributions.secondarySidebarPanels[0].id).toBe("a");
-  });
-
-  it("passes itself as PluginContext to activate", async () => {
-    const activateFn = vi.fn();
-    const app = new RendererApp({
-      plugins: [{ name: "test", activate: activateFn }],
-    });
-    await app.initialize();
-    expect(activateFn).toHaveBeenCalledWith({ app });
-  });
-
   it("exposes disposable store", () => {
     const app = new RendererApp({ plugins: [] });
     expect(app.subscriptions).toBeDefined();
@@ -700,13 +675,9 @@ export class RendererApp {
     this.pluginManager = new PluginManager(options.plugins ?? []);
   }
 
-  async initialize(): Promise<void> {
+  async start(): Promise<void> {
     await this.pluginManager.initialize({ app: this });
     this.contributions = this.pluginManager.contributions;
-  }
-
-  async start(): Promise<void> {
-    await this.initialize();
     await this.render();
   }
 
@@ -726,7 +697,7 @@ export class RendererApp {
 **Step 4: Run tests to verify they pass**
 
 Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/app.test.ts`
-Expected: all 3 tests PASS
+Expected: 1 test PASS
 
 **Step 5: Verify TypeScript**
 

@@ -176,7 +176,7 @@ class RendererApp {
   /** Global disposable store — auto-disposed on shutdown */
   readonly subscriptions: DisposableStore;
 
-  /** Start the app — initialize plugins, render */
+  /** Initialize plugins, collect contributions, render */
   async start(): Promise<void>;
 }
 
