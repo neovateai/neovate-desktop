@@ -48,44 +48,36 @@ export class PluginManager {
 
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
-    const results = await this.applyParallel("configContributions");
-    this.contributions = mergeContributions(
-      results.filter((r): r is PluginContributions => r != null),
+    const results = await this.applyParallel(
+      (plugin) => plugin.configContributions?.(),
     );
+    this.contributions = mergeContributions(results);
   }
 
   /** Run activate hooks (series, enforce order) */
   async activate(ctx: PluginContext): Promise<void> {
-    await this.applySeries("activate", ctx);
+    await this.applySeries((plugin) => plugin.activate?.(ctx));
   }
 
   /** Run deactivate hooks (series) */
   async deactivate(): Promise<void> {
-    await this.applySeries("deactivate");
+    await this.applySeries((plugin) => plugin.deactivate?.());
   }
 
-  private async applySeries<K extends keyof RendererPluginHooks>(
-    hook: K,
-    ...args: Parameters<RendererPluginHooks[K]>
+  private async applySeries(
+    fn: (plugin: RendererPlugin) => void | Promise<void>,
   ): Promise<void> {
     for (const plugin of this.plugins) {
-      const fn = plugin[hook];
-      if (typeof fn === "function") {
-        await (fn as Function).call(plugin, ...args);
-      }
+      await fn(plugin);
     }
   }
 
-  private async applyParallel<K extends keyof RendererPluginHooks>(
-    hook: K,
-    ...args: Parameters<RendererPluginHooks[K]>
-  ): Promise<ReturnType<RendererPluginHooks[K]>[]> {
-    const promises = this.plugins
-      .filter((plugin) => typeof plugin[hook] === "function")
-      .map((plugin) => {
-        const fn = plugin[hook] as Function;
-        return fn.call(plugin, ...args);
-      });
-    return Promise.all(promises) as Promise<ReturnType<RendererPluginHooks[K]>[]>;
+  private async applyParallel<T>(
+    fn: (plugin: RendererPlugin) => T | undefined,
+  ): Promise<NonNullable<Awaited<T>>[]> {
+    const results = await Promise.all(this.plugins.map(fn));
+    return results.filter(
+      (r): r is NonNullable<Awaited<T>> => r != null,
+    );
   }
 }

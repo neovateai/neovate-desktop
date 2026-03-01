@@ -1,6 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
 import { PluginManager } from "../plugin/plugin-manager";
-import type { RendererPlugin } from "../plugin";
+import type { IRendererApp, RendererPlugin, SidebarPanel, ContentPanel } from "../plugin";
+
+function createMockApp(): IRendererApp {
+  return { subscriptions: { push: vi.fn() } };
+}
+
+const mockComponent: SidebarPanel["component"] = () =>
+  Promise.resolve({ default: () => null });
+
+const mockContentComponent: ContentPanel["component"] = () =>
+  Promise.resolve({ default: () => null });
 
 describe("PluginManager", () => {
   describe("enforce ordering", () => {
@@ -22,13 +32,13 @@ describe("PluginManager", () => {
         {
           name: "a",
           configContributions: () => ({
-            secondarySidebarPanels: [{ id: "a", title: "A", component: vi.fn() }],
+            secondarySidebarPanels: [{ id: "a", title: "A", component: mockComponent }],
           }),
         },
         {
           name: "b",
           configContributions: () => ({
-            secondarySidebarPanels: [{ id: "b", title: "B", component: vi.fn() }],
+            secondarySidebarPanels: [{ id: "b", title: "B", component: mockComponent }],
           }),
         },
       ];
@@ -38,12 +48,13 @@ describe("PluginManager", () => {
     });
 
     it("sorts activityBarItems by order", async () => {
+      const MockIcon = () => null;
       const pm = new PluginManager([{
         name: "test",
         configContributions: () => ({
           activityBarItems: [
-            { id: "z", icon: vi.fn(), tooltip: "Z", panelId: "z", order: 30 },
-            { id: "a", icon: vi.fn(), tooltip: "A", panelId: "a", order: 10 },
+            { id: "z", icon: MockIcon, tooltip: "Z", panelId: "z", order: 30 },
+            { id: "a", icon: MockIcon, tooltip: "A", panelId: "a", order: 10 },
           ],
         }),
       }]);
@@ -64,7 +75,7 @@ describe("PluginManager", () => {
       const pm = new PluginManager([
         { name: "no-hook" },
         { name: "has-hook", configContributions: () => ({
-          contentPanels: [{ id: "p", name: "P", component: vi.fn() }],
+          contentPanels: [{ id: "p", name: "P", component: mockContentComponent }],
         }) },
       ]);
       await pm.configContributions();
@@ -76,7 +87,7 @@ describe("PluginManager", () => {
     it("calls activate on each plugin with PluginContext", async () => {
       const activateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", activate: activateFn }]);
-      const mockApp = {} as any;
+      const mockApp = createMockApp();
       await pm.activate({ app: mockApp });
       expect(activateFn).toHaveBeenCalledWith({ app: mockApp });
     });
@@ -89,7 +100,7 @@ describe("PluginManager", () => {
         { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
       ];
       const pm = new PluginManager(plugins);
-      await pm.activate({ app: {} as any });
+      await pm.activate({ app: createMockApp() });
       expect(calls).toEqual(["pre", "normal", "post"]);
     });
 
@@ -99,7 +110,7 @@ describe("PluginManager", () => {
         { name: "no-hook" },
         { name: "has-hook", activate: activateFn },
       ]);
-      await pm.activate({ app: {} as any });
+      await pm.activate({ app: createMockApp() });
       expect(activateFn).toHaveBeenCalledOnce();
     });
   });

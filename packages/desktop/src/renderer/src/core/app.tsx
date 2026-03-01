@@ -31,9 +31,16 @@ export class RendererApp implements IRendererApp {
     await this.render();
   }
 
+  async stop(): Promise<void> {
+    await this.pluginManager.deactivate();
+    this.subscriptions.dispose();
+  }
+
   private async render(): Promise<void> {
+    const root = document.getElementById("root");
+    if (!root) throw new Error("Missing #root element");
     const { default: App } = await import("../App");
-    ReactDOM.createRoot(document.getElementById("root")!).render(
+    ReactDOM.createRoot(root).render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
