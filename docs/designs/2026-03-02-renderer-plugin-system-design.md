@@ -146,7 +146,7 @@ class PluginManager {
 Single entry point for plugins and components. Exposes `pluginManager` for contribution access.
 
 ```typescript
-class RendererApp {
+class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
 
   /** Global disposable store — auto-disposed on shutdown */

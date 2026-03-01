@@ -554,7 +554,7 @@ Expected: FAIL — module not found
 import { StrictMode, createContext, useContext } from "react";
 import ReactDOM from "react-dom/client";
 import { DisposableStore } from "./disposable";
-import type { RendererPlugin } from "./plugin";
+import type { IRendererApp, RendererPlugin } from "./plugin";
 import { PluginManager } from "./plugin";
 
 const RendererAppContext = createContext<RendererApp | null>(null);
@@ -569,7 +569,7 @@ export interface RendererAppOptions {
   plugins?: RendererPlugin[];
 }
 
-export class RendererApp {
+export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
 
