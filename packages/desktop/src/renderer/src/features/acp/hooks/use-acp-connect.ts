@@ -7,6 +7,7 @@ export function useAcpConnect() {
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const createSession = useAcpStore((s) => s.createSession);
+  const setAgentSessions = useAcpStore((s) => s.setAgentSessions);
 
   const connect = useCallback(
     async (agentId: string, cwd?: string) => {
@@ -19,6 +20,13 @@ export function useAcpConnect() {
           cwd,
         });
         createSession(sessionId, connectionId);
+
+        // Fetch persisted sessions after connect
+        client.acp
+          .listSessions({ connectionId })
+          .then(setAgentSessions)
+          .catch(() => {});
+
         return { connectionId, sessionId };
       } catch (error) {
         const message =
@@ -31,7 +39,7 @@ export function useAcpConnect() {
         setConnecting(false);
       }
     },
-    [createSession],
+    [createSession, setAgentSessions],
   );
 
   return { connect, connecting, connectError };

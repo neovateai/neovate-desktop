@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { enableMapSet } from "immer";
-import type { AgentInfo, StreamEvent } from "../../../../shared/features/acp/types";
+import type { AgentInfo, SessionInfo, StreamEvent } from "../../../../shared/features/acp/types";
 import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
 
 enableMapSet();
@@ -39,10 +39,12 @@ type AcpState = {
   agents: AgentInfo[];
   sessions: Map<string, AcpSession>;
   activeSessionId: string | null;
+  agentSessions: SessionInfo[];
   _nextMessageId: number;
 
   setAgents: (agents: AgentInfo[]) => void;
   setActiveSession: (sessionId: string | null) => void;
+  setAgentSessions: (sessions: SessionInfo[]) => void;
   createSession: (sessionId: string, connectionId: string) => void;
   removeSession: (sessionId: string) => void;
   addUserMessage: (sessionId: string, content: string) => void;
@@ -57,11 +59,14 @@ export const useAcpStore = create<AcpState>()(
     agents: [],
     sessions: new Map(),
     activeSessionId: null,
+    agentSessions: [],
     _nextMessageId: 0,
 
     setAgents: (agents) => set({ agents }),
 
     setActiveSession: (sessionId) => set({ activeSessionId: sessionId }),
+
+    setAgentSessions: (agentSessions) => set({ agentSessions }),
 
     createSession: (sessionId, connectionId) => {
       set((state) => {
@@ -131,6 +136,16 @@ export const useAcpStore = create<AcpState>()(
             requestId: event.requestId,
             data: event.data,
           };
+          return;
+        }
+
+        if (event.type === "user_message") {
+          state._nextMessageId += 1;
+          session.messages.push({
+            id: String(state._nextMessageId),
+            role: "user",
+            content: event.text,
+          });
           return;
         }
 

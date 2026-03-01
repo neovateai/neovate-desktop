@@ -1,6 +1,6 @@
 import { oc, type, eventIterator } from "@orpc/contract";
 import { z } from "zod";
-import type { AgentInfo, StreamEvent, PromptResult } from "./types";
+import type { AgentInfo, SessionInfo, StreamEvent, LoadSessionResult, PromptResult } from "./types";
 
 const promptErrorDataSchema = type<{
   source: "acp_agent";
@@ -27,6 +27,11 @@ export const acpContract = {
     .errors(connectionNotFoundError)
     .output(type<{ sessionId: string; agentSessionId?: string; modes?: string[] }>()),
 
+  listSessions: oc
+    .input(z.object({ connectionId: z.string() }))
+    .errors(connectionNotFoundError)
+    .output(type<SessionInfo[]>()),
+
   loadSession: oc
     .input(
       z.object({
@@ -36,7 +41,7 @@ export const acpContract = {
       }),
     )
     .errors(connectionNotFoundError)
-    .output(type<{ sessionId: string; agentSessionId?: string }>()),
+    .output(eventIterator(type<StreamEvent>(), type<LoadSessionResult>())),
 
   prompt: oc
     .input(

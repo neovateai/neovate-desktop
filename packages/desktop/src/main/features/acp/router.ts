@@ -1,5 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { ORPCError, implement } from "@orpc/server";
-import { AgentSpawnError, listBuiltInAgents, formatErrorMessage } from "acpx";
+import {
+  AgentSpawnError,
+  listBuiltInAgents,
+  formatErrorMessage,
+  listSessionsForAgent,
+  writeSessionRecord,
+  isoNow,
+  SESSION_RECORD_SCHEMA,
+  type SessionRecord,
+} from "acpx";
 import { acpContract } from "../../../shared/features/acp/contract";
 import { AGENT_OVERRIDES } from "./connection-manager";
 import type { AppContext } from "../../router";
@@ -69,9 +79,32 @@ export const acpRouter = os.acp.router({
 
   newSession: os.acp.newSession.handler(async ({ input, context }) => {
     acpLog("newSession: start", { connectionId: input.connectionId, cwd: input.cwd });
-    const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
+    const manager = context.acpConnectionManager;
+    const conn = manager.getOrThrow(input.connectionId);
 
-    const result = await conn.client.createSession(input.cwd ?? process.cwd());
+    const cwd = input.cwd ?? manager.getCwd(input.connectionId) ?? process.cwd();
+    const result = await conn.client.createSession(cwd);
+
+    const agentCommand = manager.getAgentCommand(input.connectionId) ?? "";
+    const now = isoNow();
+    const record: SessionRecord = {
+      schema: SESSION_RECORD_SCHEMA,
+      acpxRecordId: randomUUID(),
+      acpSessionId: result.sessionId,
+      agentSessionId: result.agentSessionId,
+      agentCommand,
+      cwd,
+      createdAt: now,
+      lastUsedAt: now,
+      lastSeq: 0,
+      eventLog: { active_path: "", segment_count: 0, max_segment_bytes: 0, max_segments: 0 },
+      messages: [],
+      updated_at: now,
+      cumulative_token_usage: {},
+      request_token_usage: {},
+    };
+    manager.setSessionRecord(input.connectionId, record);
+    writeSessionRecord(record).catch(() => {});
 
     acpLog("newSession: success", {
       connectionId: input.connectionId,
@@ -81,7 +114,34 @@ export const acpRouter = os.acp.router({
     return { sessionId: result.sessionId, agentSessionId: result.agentSessionId };
   }),
 
-  loadSession: os.acp.loadSession.handler(async ({ input, context }) => {
+  listSessions: os.acp.listSessions.handler(async ({ input, context }) => {
+    acpLog("listSessions: start", { connectionId: input.connectionId });
+    context.acpConnectionManager.getOrThrow(input.connectionId);
+
+    const agentCommand = context.acpConnectionManager.getAgentCommand(input.connectionId);
+    if (!agentCommand) {
+      throw new ORPCError("NOT_FOUND", {
+        defined: true,
+        message: `Unknown connection: ${input.connectionId}`,
+      });
+    }
+
+    const records = await listSessionsForAgent(agentCommand);
+    const sessions = records.map((r) => ({
+      sessionId: r.acpSessionId,
+      title: r.title ?? r.name,
+      cwd: r.cwd,
+      updatedAt: r.lastUsedAt,
+    }));
+
+    acpLog("listSessions: success", {
+      connectionId: input.connectionId,
+      count: sessions.length,
+    });
+    return sessions;
+  }),
+
+  loadSession: os.acp.loadSession.handler(async function* ({ input, signal, context }) {
     acpLog("loadSession: start", {
       connectionId: input.connectionId,
       sessionId: input.sessionId,
@@ -89,14 +149,59 @@ export const acpRouter = os.acp.router({
     });
     const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
 
-    const result = await conn.client.loadSession(input.sessionId, input.cwd);
+    const done = new AbortController();
+    if (signal) {
+      signal.addEventListener("abort", () => done.abort(signal.reason), { once: true });
+    }
+
+    // Subscribe before loadSession so we capture replayed events
+    const subscription = conn.subscribeSession(done.signal);
+
+    let loadResult: { agentSessionId?: string } | undefined;
+    let loadError: unknown;
+
+    const loadPromise = conn.client
+      .loadSession(input.sessionId, input.cwd)
+      .then((result) => {
+        loadResult = result;
+        acpLog("loadSession: resolved", {
+          connectionId: input.connectionId,
+          sessionId: input.sessionId,
+          agentSessionId: result.agentSessionId,
+        });
+        done.abort("load_done");
+      })
+      .catch((error: unknown) => {
+        loadError = error;
+        acpLog("loadSession: rejected", {
+          connectionId: input.connectionId,
+          sessionId: input.sessionId,
+          error: formatErrorMessage(error),
+        });
+        done.abort("load_error");
+      });
+
+    try {
+      for await (const event of subscription) {
+        yield event;
+      }
+    } catch (e: unknown) {
+      if (!done.signal.aborted) {
+        throw e;
+      }
+    } finally {
+      subscription.return(undefined);
+    }
+
+    await loadPromise;
+    if (loadError) throw loadError;
 
     acpLog("loadSession: success", {
       connectionId: input.connectionId,
       sessionId: input.sessionId,
-      agentSessionId: result.agentSessionId,
+      agentSessionId: loadResult?.agentSessionId,
     });
-    return { sessionId: input.sessionId, agentSessionId: result.agentSessionId };
+    return { sessionId: input.sessionId, agentSessionId: loadResult?.agentSessionId };
   }),
 
   prompt: os.acp.prompt.handler(async function* ({ input, signal, context }) {
@@ -162,6 +267,17 @@ export const acpRouter = os.acp.router({
 
     await promptPromise;
     if (promptError) throw promptError;
+
+    // Persist session record with updated timestamp
+    const record = context.acpConnectionManager.getSessionRecord(
+      input.connectionId,
+      input.sessionId,
+    );
+    if (record) {
+      record.lastUsedAt = isoNow();
+      record.lastPromptAt = record.lastUsedAt;
+      writeSessionRecord(record).catch(() => {});
+    }
 
     acpLog("prompt: done", {
       connectionId: input.connectionId,

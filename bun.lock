@@ -21,7 +21,7 @@
         "@electron-toolkit/utils": "^4.0.0",
         "@orpc/contract": "^1.13.5",
         "@orpc/server": "^1.13.5",
-        "acpx": "github:neovateai/acpx#c8240f4",
+        "acpx": "github:neovateai/acpx#e9c0e00",
         "electron-updater": "^6.3.9",
         "immer": "^11.1.4",
         "motion": "^12.34.3",
@@ -526,7 +526,7 @@
 
     "abbrev": ["abbrev@3.0.1", "", {}, "sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg=="],
 
-    "acpx": ["acpx@github:neovateai/acpx#c8240f4", { "dependencies": { "@agentclientprotocol/sdk": "^0.14.1", "commander": "^13.0.0", "skillflag": "^0.1.4" }, "bin": { "acpx": "dist/cli.js" } }, "neovateai-acpx-c8240f4"],
+    "acpx": ["acpx@github:neovateai/acpx#e9c0e00", { "dependencies": { "@agentclientprotocol/sdk": "^0.14.1", "commander": "^13.0.0", "skillflag": "^0.1.4" }, "bin": { "acpx": "dist/cli.js" } }, "neovateai-acpx-e9c0e00"],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
