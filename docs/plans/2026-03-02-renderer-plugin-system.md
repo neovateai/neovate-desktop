@@ -4,7 +4,7 @@
 
 **Goal:** Add `RendererApp` class with plugin system and contribution collection so features can be registered as plugins.
 
-**Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. It delegates to `PluginManager` which owns `ContributionRegistry`. During `start()`, `PluginManager.initialize()` hydrates the store, calls `configContributions()` on each plugin (which can read persisted state), merges results via `ContributionRegistry` into a frozen `CollectedContributions`, then runs `activate()` hooks. `RendererApp` then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
+**Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. It delegates to `PluginManager`. During `start()`, `PluginManager.initialize()` hydrates the store, calls `configContributions()` on each plugin (which can read persisted state), merges results into `Required<PluginContributions>`, then runs `activate()` hooks. `RendererApp` then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
 
 **Tech Stack:** React 19, TypeScript 5, Zustand 5, Vitest 4, `bun` as package manager/runner.
 
@@ -165,14 +165,6 @@ export interface TitlebarItem {
   component: () => Promise<{ default: React.ComponentType }>;
 }
 
-/** Merged contributions from all registered plugins, frozen at boot */
-export interface CollectedContributions {
-  activityBarItems: ActivityBarItem[];
-  secondarySidebarPanels: SidebarPanel[];
-  contentPanels: ContentPanel[];
-  primaryTitlebarItems: TitlebarItem[];
-  secondaryTitlebarItems: TitlebarItem[];
-}
 ```
 
 **Step 2: Verify TypeScript compiles**
@@ -234,8 +226,7 @@ export type {
   ContentPanel,
   PluginTab,
   TitlebarItem,
-  CollectedContributions,
-} from "./contributions";
+  } from "./contributions";
 export type { RendererPlugin, RendererPluginHooks, PluginContext } from "./types";
 // PluginManager exported after Task 4
 ```
@@ -418,22 +409,22 @@ Expected: FAIL — module not found
 
 ```typescript
 // packages/desktop/src/renderer/src/core/plugin/plugin-manager.ts
-import type { CollectedContributions, PluginContributions } from "./contributions";
+import type { PluginContributions } from "./contributions";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
-const EMPTY_CONTRIBUTIONS: CollectedContributions = Object.freeze({
+const EMPTY_CONTRIBUTIONS: Required<PluginContributions> = {
   activityBarItems: [],
   secondarySidebarPanels: [],
   contentPanels: [],
   primaryTitlebarItems: [],
   secondaryTitlebarItems: [],
-});
+};
 
-function mergeContributions(items: PluginContributions[]): CollectedContributions {
+function mergeContributions(items: PluginContributions[]): Required<PluginContributions> {
   const sortByOrder = <T extends { order?: number }>(list: T[]) =>
     list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
-  return Object.freeze({
+  return {
     activityBarItems: sortByOrder(
       items.flatMap((r) => r.activityBarItems ?? []),
     ),
@@ -447,12 +438,12 @@ function mergeContributions(items: PluginContributions[]): CollectedContribution
     secondaryTitlebarItems: sortByOrder(
       items.flatMap((r) => r.secondaryTitlebarItems ?? []),
     ),
-  });
+  };
 }
 
 export class PluginManager {
   private readonly plugins: RendererPlugin[];
-  contributions: CollectedContributions = EMPTY_CONTRIBUTIONS;
+  contributions: Required<PluginContributions> = EMPTY_CONTRIBUTIONS;
 
   constructor(rawPlugins: RendererPlugin[] = []) {
     this.plugins = [
@@ -526,8 +517,7 @@ export type {
   ContentPanel,
   PluginTab,
   TitlebarItem,
-  CollectedContributions,
-} from "./contributions";
+  } from "./contributions";
 export type { RendererPlugin, RendererPluginHooks, PluginContext } from "./types";
 export { PluginManager } from "./plugin-manager";
 ```
@@ -660,8 +650,7 @@ export type {
   RendererPluginHooks,
   PluginContext,
   PluginContributions,
-  CollectedContributions,
-  ActivityBarItem,
+    ActivityBarItem,
   SidebarPanel,
   ContentPanel,
   PluginTab,

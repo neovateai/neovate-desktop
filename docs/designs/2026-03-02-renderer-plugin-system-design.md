@@ -13,7 +13,7 @@
 | Decision | Choice | Rationale |
 |---|---|---|
 | Plugin scope | Internal-first, future third-party | Both internal modularity and eventual external extensibility |
-| Registry | Static, frozen at boot | All plugins known before React mounts. No reactivity needed. Trivial to upgrade later. |
+| Registry | Static, computed at boot | All plugins known before React mounts. No reactivity needed. Trivial to upgrade later. |
 | State access | Services on RendererApp | `app.subscriptions` — one object to learn |
 | Contributions API | `configContributions()` function returning object | Allows conditional contributions, still collected at boot |
 | Component props | `useRendererApp()` hook | No `app` prop drilling — components access app via context |
@@ -58,7 +58,7 @@ interface PluginContext {
 
 ```
 1. hydrate store          — restore persisted state
-2. configContributions()  — parallel, merge into frozen CollectedContributions (can read store)
+2. configContributions()  — parallel, merge into Required<PluginContributions> (can read store)
 3. activate({ app })      — series (enforce order), initialize services
 4. React render           — mount App with contributions available via useRendererApp()
 5. deactivate()           — series on shutdown, app.subscriptions auto-disposed
@@ -109,19 +109,7 @@ interface TitlebarItem {
 }
 ```
 
-### CollectedContributions
-
-Pre-merged from all plugins, frozen, computed once at boot. Layout components read flat arrays directly.
-
-```typescript
-interface CollectedContributions {
-  activityBarItems: ActivityBarItem[];          // sorted by order
-  secondarySidebarPanels: SidebarPanel[];
-  contentPanels: ContentPanel[];
-  primaryTitlebarItems: TitlebarItem[];         // sorted by order
-  secondaryTitlebarItems: TitlebarItem[];       // sorted by order
-}
-```
+The merged result from all plugins is typed as `Required<PluginContributions>` — all fields required, sorted by `order` where applicable. Computed once at boot.
 
 ---
 
@@ -131,8 +119,8 @@ Renderer-specific. Owns plugin lifecycle and contribution merging. Not generic �
 
 ```typescript
 class PluginManager {
-  /** Frozen, pre-merged contributions from all plugins */
-  contributions: CollectedContributions;
+  /** Pre-merged contributions from all plugins */
+  contributions: Required<PluginContributions>;
 
   /** Call hook on each plugin sequentially (enforce order) */
   async applySeries<K extends keyof RendererPluginHooks>(
@@ -263,7 +251,7 @@ function SecondarySidebar() {
 
 | Issue | Before | After |
 |---|---|---|
-| Contribution merging | `PluginConfigContribution[]` — layout flatMaps every render | `CollectedContributions` — pre-merged, frozen, flat arrays |
+| Contribution merging | `PluginConfigContribution[]` — layout flatMaps every render | `Required<PluginContributions>` — pre-merged, flat arrays |
 | Built-in features | Hardcoded in layout, plugin items appended | Everything is a plugin (`builtin:*` naming convention) |
 | Activity bar coupling | `secondarySidebarPanelId` | `panelId` (same concept, cleaner name) |
 | Component props | `{ app: RendererApp }` passed as prop | `useRendererApp()` hook — no prop drilling |
