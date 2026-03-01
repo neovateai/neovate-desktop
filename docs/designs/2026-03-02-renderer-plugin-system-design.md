@@ -122,23 +122,18 @@ class PluginManager {
   /** Pre-merged contributions from all plugins */
   contributions: Required<PluginContributions>;
 
-  /** Call hook on each plugin sequentially (enforce order) */
-  async applySeries<K extends keyof RendererPluginHooks>(
-    hook: K, ...args: Parameters<RendererPluginHooks[K]>
-  ): Promise<void>;
+  /** Collect and merge configContributions from all plugins (parallel) */
+  async configContributions(): Promise<void>;
 
-  /** Call hook on all plugins in parallel, return results */
-  async applyParallel<K extends keyof RendererPluginHooks>(
-    hook: K, ...args: Parameters<RendererPluginHooks[K]>
-  ): Promise<ReturnType<RendererPluginHooks[K]>[]>;
-
-  /** Collect configContributions (parallel), then activate (series) */
-  async initialize(ctx: PluginContext): Promise<void>;
+  /** Run activate hooks (series, enforce order) */
+  async activate(ctx: PluginContext): Promise<void>;
 
   /** Run deactivate hooks (series) */
-  async shutdown(): Promise<void>;
+  async deactivate(): Promise<void>;
 }
 ```
+
+`applySeries` and `applyParallel` are private implementation details.
 
 ---
 
@@ -153,7 +148,7 @@ class RendererApp {
   /** Global disposable store — auto-disposed on shutdown */
   readonly subscriptions: DisposableStore;
 
-  /** Initialize plugins, collect contributions, render */
+  /** Boot sequence: configContributions → activate → render */
   async start(): Promise<void>;
 }
 

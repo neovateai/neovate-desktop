@@ -275,54 +275,7 @@ describe("PluginManager", () => {
     });
   });
 
-  describe("applySeries", () => {
-    it("calls hook on each plugin sequentially in enforce order", async () => {
-      const calls: string[] = [];
-      const plugins: RendererPlugin[] = [
-        { name: "normal", activate: () => { calls.push("normal"); } },
-        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
-        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
-      ];
-      const pm = new PluginManager(plugins);
-      await pm.applySeries("activate", { app: {} as any });
-      expect(calls).toEqual(["pre", "normal", "post"]);
-    });
-
-    it("skips plugins without the hook", async () => {
-      const activateFn = vi.fn();
-      const plugins: RendererPlugin[] = [
-        { name: "no-hook" },
-        { name: "has-hook", activate: activateFn },
-      ];
-      const pm = new PluginManager(plugins);
-      await pm.applySeries("activate", { app: {} as any });
-      expect(activateFn).toHaveBeenCalledOnce();
-    });
-  });
-
-  describe("applyParallel", () => {
-    it("calls hook on all plugins and returns results", async () => {
-      const plugins: RendererPlugin[] = [
-        { name: "a", configContributions: () => ({ activityBarItems: [] }) },
-        { name: "b", configContributions: () => ({ contentPanels: [] }) },
-      ];
-      const pm = new PluginManager(plugins);
-      const results = await pm.applyParallel("configContributions");
-      expect(results).toHaveLength(2);
-    });
-
-    it("skips plugins without the hook", async () => {
-      const plugins: RendererPlugin[] = [
-        { name: "no-hook" },
-        { name: "has-hook", configContributions: () => ({}) },
-      ];
-      const pm = new PluginManager(plugins);
-      const results = await pm.applyParallel("configContributions");
-      expect(results).toHaveLength(1);
-    });
-  });
-
-  describe("initialize", () => {
+  describe("configContributions", () => {
     it("merges contributions from all plugins", async () => {
       const plugins: RendererPlugin[] = [
         {
@@ -339,7 +292,7 @@ describe("PluginManager", () => {
         },
       ];
       const pm = new PluginManager(plugins);
-      await pm.initialize({ app: {} as any });
+      await pm.configContributions();
       expect(pm.contributions.secondarySidebarPanels).toHaveLength(2);
     });
 
@@ -353,47 +306,68 @@ describe("PluginManager", () => {
           ],
         }),
       }]);
-      await pm.initialize({ app: {} as any });
+      await pm.configContributions();
       expect(pm.contributions.activityBarItems[0].id).toBe("a");
       expect(pm.contributions.activityBarItems[1].id).toBe("z");
     });
 
-    it("calls configContributions before activate", async () => {
-      const order: string[] = [];
-      const plugins: RendererPlugin[] = [
-        {
-          name: "test",
-          configContributions: () => { order.push("config"); return {}; },
-          activate: () => { order.push("activate"); },
-        },
-      ];
-      const pm = new PluginManager(plugins);
-      await pm.initialize({ app: {} as any });
-      expect(order).toEqual(["config", "activate"]);
-    });
-
-    it("passes PluginContext to activate", async () => {
-      const activateFn = vi.fn();
-      const pm = new PluginManager([{ name: "test", activate: activateFn }]);
-      const mockApp = {} as any;
-      await pm.initialize({ app: mockApp });
-      expect(activateFn).toHaveBeenCalledWith({ app: mockApp });
-    });
-
     it("returns empty contributions when no plugins", async () => {
       const pm = new PluginManager([]);
-      await pm.initialize({ app: {} as any });
+      await pm.configContributions();
       expect(pm.contributions.activityBarItems).toEqual([]);
       expect(pm.contributions.secondarySidebarPanels).toEqual([]);
       expect(pm.contributions.contentPanels).toEqual([]);
     });
+
+    it("skips plugins without configContributions", async () => {
+      const pm = new PluginManager([
+        { name: "no-hook" },
+        { name: "has-hook", configContributions: () => ({
+          contentPanels: [{ id: "p", name: "P", component: vi.fn() }],
+        }) },
+      ]);
+      await pm.configContributions();
+      expect(pm.contributions.contentPanels).toHaveLength(1);
+    });
   });
 
-  describe("shutdown", () => {
+  describe("activate", () => {
+    it("calls activate on each plugin with PluginContext", async () => {
+      const activateFn = vi.fn();
+      const pm = new PluginManager([{ name: "test", activate: activateFn }]);
+      const mockApp = {} as any;
+      await pm.activate({ app: mockApp });
+      expect(activateFn).toHaveBeenCalledWith({ app: mockApp });
+    });
+
+    it("calls activate in enforce order", async () => {
+      const calls: string[] = [];
+      const plugins: RendererPlugin[] = [
+        { name: "normal", activate: () => { calls.push("normal"); } },
+        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
+        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
+      ];
+      const pm = new PluginManager(plugins);
+      await pm.activate({ app: {} as any });
+      expect(calls).toEqual(["pre", "normal", "post"]);
+    });
+
+    it("skips plugins without activate", async () => {
+      const activateFn = vi.fn();
+      const pm = new PluginManager([
+        { name: "no-hook" },
+        { name: "has-hook", activate: activateFn },
+      ]);
+      await pm.activate({ app: {} as any });
+      expect(activateFn).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("deactivate", () => {
     it("calls deactivate on each plugin", async () => {
       const deactivateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", deactivate: deactivateFn }]);
-      await pm.shutdown();
+      await pm.deactivate();
       expect(deactivateFn).toHaveBeenCalledOnce();
     });
   });
@@ -457,8 +431,25 @@ export class PluginManager {
     return this.plugins;
   }
 
-  /** Call hook on each plugin sequentially (enforce order) */
-  async applySeries<K extends keyof RendererPluginHooks>(
+  /** Collect and merge configContributions from all plugins (parallel) */
+  async configContributions(): Promise<void> {
+    const results = await this.applyParallel("configContributions");
+    this.contributions = mergeContributions(
+      results.filter((r): r is PluginContributions => r != null),
+    );
+  }
+
+  /** Run activate hooks (series, enforce order) */
+  async activate(ctx: PluginContext): Promise<void> {
+    await this.applySeries("activate", ctx);
+  }
+
+  /** Run deactivate hooks (series) */
+  async deactivate(): Promise<void> {
+    await this.applySeries("deactivate");
+  }
+
+  private async applySeries<K extends keyof RendererPluginHooks>(
     hook: K,
     ...args: Parameters<RendererPluginHooks[K]>
   ): Promise<void> {
@@ -470,8 +461,7 @@ export class PluginManager {
     }
   }
 
-  /** Call hook on all plugins in parallel, return results */
-  async applyParallel<K extends keyof RendererPluginHooks>(
+  private async applyParallel<K extends keyof RendererPluginHooks>(
     hook: K,
     ...args: Parameters<RendererPluginHooks[K]>
   ): Promise<ReturnType<RendererPluginHooks[K]>[]> {
@@ -483,28 +473,13 @@ export class PluginManager {
       });
     return Promise.all(promises) as Promise<ReturnType<RendererPluginHooks[K]>[]>;
   }
-
-  async initialize(ctx: PluginContext): Promise<void> {
-    // 1. Collect contributions (parallel)
-    const results = await this.applyParallel("configContributions");
-    this.contributions = mergeContributions(
-      results.filter((r): r is PluginContributions => r != null),
-    );
-
-    // 2. Activate (series, enforce order)
-    await this.applySeries("activate", ctx);
-  }
-
-  async shutdown(): Promise<void> {
-    await this.applySeries("deactivate");
-  }
 }
 ```
 
 **Step 4: Run tests to verify they pass**
 
 Run: `cd packages/desktop && bun run test --run src/renderer/src/core/__tests__/plugin-manager.test.ts`
-Expected: all 11 tests PASS
+Expected: all 10 tests PASS
 
 **Step 5: Update plugin barrel export**
 
@@ -598,7 +573,8 @@ export class RendererApp {
   }
 
   async start(): Promise<void> {
-    await this.pluginManager.initialize({ app: this });
+    await this.pluginManager.configContributions();
+    await this.pluginManager.activate({ app: this });
     await this.render();
   }
 
