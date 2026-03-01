@@ -4,7 +4,7 @@
 
 **Goal:** Add `RendererApp` class with plugin system and contribution collection so features can be registered as plugins.
 
-**Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. During `start()`, it calls `configContributions()` on each plugin, merges results into a frozen `CollectedContributions`, runs `activate()` hooks, then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
+**Architecture:** `RendererApp` is instantiated in `main.tsx` with a `plugins` array. During `start()`, it hydrates the store, calls `configContributions()` on each plugin (which can read persisted state), merges results into a frozen `CollectedContributions`, runs `activate()` hooks, then mounts React with the app in context. Layout components read contributions via `useRendererApp()`.
 
 **Tech Stack:** React 19, TypeScript 5, Zustand 5, Vitest 4, `bun` as package manager/runner.
 

@@ -14,8 +14,7 @@
 |---|---|---|
 | Plugin scope | Internal-first, future third-party | Both internal modularity and eventual external extensibility |
 | Registry | Static, frozen at boot | All plugins known before React mounts. No reactivity needed. Trivial to upgrade later. |
-| State access | Services on RendererApp | `app.subscriptions` — one object to learn. Commands and events deferred. |
-| Inter-plugin comms | Deferred | `app.commands` and `app.events` added when there's a concrete need |
+| State access | Services on RendererApp | `app.subscriptions` — one object to learn |
 | Contributions API | `configContributions()` function returning object | Allows conditional contributions, still collected at boot |
 | Component props | `useRendererApp()` hook | No `app` prop drilling — components access app via context |
 | Built-in features | Plugins (e.g., `builtin:files`) | No hardcoded built-in vs plugin distinction in layout |
@@ -38,7 +37,7 @@ interface RendererPluginHooks {
   configContributions(): PluginContributions;
 
   /** Called after contributions collected, before React render.
-      Register commands, event listeners, initialize services. */
+      Initialize services, set up subscriptions. */
   activate(ctx: PluginContext): void | Promise<void>;
 
   /** Called on app shutdown — manual cleanup beyond subscriptions */
@@ -58,9 +57,9 @@ interface PluginContext {
 ## Lifecycle Flow
 
 ```
-1. configContributions()  — parallel, merge into frozen CollectedContributions
-2. hydrate store          — restore persisted state
-3. activate({ app })      — series (enforce order), register commands/events
+1. hydrate store          — restore persisted state
+2. configContributions()  — parallel, merge into frozen CollectedContributions (can read store)
+3. activate({ app })      — series (enforce order), initialize services
 4. React render           — mount App with contributions available via useRendererApp()
 5. deactivate()           — series on shutdown, app.subscriptions auto-disposed
 ```
@@ -152,8 +151,6 @@ class DisposableStore {
 }
 ```
 
-**Deferred:** `app.commands` (CommandRegistry) and `app.events` (EventBus) — add when there's a concrete need.
-
 React components access the same instance:
 
 ```typescript
@@ -163,7 +160,6 @@ function useRendererApp(): RendererApp;
 function MyComponent() {
   const app = useRendererApp();
   const panels = app.contributions.secondarySidebarPanels;
-  app.commands.execute('files.refresh');
 }
 ```
 
@@ -244,8 +240,7 @@ function SecondarySidebar() {
 | Activity bar coupling | `secondarySidebarPanelId` | `panelId` (same concept, cleaner name) |
 | Component props | `{ app: RendererApp }` passed as prop | `useRendererApp()` hook — no prop drilling |
 | Lifecycle | `configI18n`, `configContributes`, `beforeRender` | `configContributions`, `activate({ app })`, `deactivate()` |
-| Plugin context | `{ app }` only | `app.commands`, `app.events`, `app.subscriptions` on the app instance |
-| Inter-plugin comms | None | Event bus + command registry |
+| Plugin context | `{ app }` only | `app.subscriptions` on the app instance |
 | Cleanup | No structured teardown | `app.subscriptions` auto-disposed, `deactivate()` for manual cleanup |
 
 ---
@@ -290,17 +285,7 @@ export const notesPlugin: RendererPlugin = {
   },
 
   activate({ app }) {
-    app.subscriptions.push(
-      app.commands.register('notes.create', () => {
-        // open a new note in content panel
-      })
-    );
-
-    app.subscriptions.push(
-      app.events.on('workspace.changed', () => {
-        // refresh notes list
-      })
-    );
+    // initialize services, set up subscriptions
   },
 };
 ```
@@ -309,6 +294,7 @@ export const notesPlugin: RendererPlugin = {
 
 ## What's Deferred
 
+- **Inter-plugin comms** — `app.commands` (CommandRegistry) and `app.events` (EventBus) added when there's a concrete need
 - **i18n** — `configI18n` hook will be designed separately
 - **Sub-windows** — `WindowConfig` system from neovate-code-desktop, migrate later
 - **Settings UI** — plugin settings schema and auto-generated UI
