@@ -1,54 +1,59 @@
+import type { AcpClient } from "acpx";
+import { sessionUpdateToEventDrafts, createAcpxEvent } from "acpx";
 import type {
-  ClientSideConnection,
   SessionNotification,
   RequestPermissionRequest,
   RequestPermissionResponse,
 } from "@agentclientprotocol/sdk";
 import { EventPublisher } from "@orpc/server";
-import type { SessionEvent } from "../../../shared/features/acp/types";
+import type { StreamEvent } from "../../../shared/features/acp/types";
+
+/** Auto-cancel permission requests after 5 minutes of no UI response. */
+export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 
 type PendingPermission = {
   resolve: (response: RequestPermissionResponse) => void;
+  timer: ReturnType<typeof setTimeout>;
 };
-
-export type SdkRef = { value: ClientSideConnection | null };
 
 export class AcpConnection {
   readonly id: string;
-  private sdkRef: SdkRef;
-  private publisher = new EventPublisher<{ session: SessionEvent }>();
+  private _client?: AcpClient;
+  private publisher = new EventPublisher<{ session: StreamEvent }>();
   private pendingPermissions = new Map<string, PendingPermission>();
   private requestIdCounter = 0;
+  private seq = 0;
 
-  constructor(id: string, sdkRef: SdkRef) {
+  constructor(id: string) {
     this.id = id;
-    this.sdkRef = sdkRef;
   }
 
-  get sdk(): ClientSideConnection {
-    if (!this.sdkRef.value) throw new Error("SDK not initialized");
-    return this.sdkRef.value;
+  get client(): AcpClient {
+    if (!this._client) throw new Error("Client not initialized");
+    return this._client;
   }
 
-  /** Emit a session update event to all subscribers */
+  setClient(client: AcpClient): void {
+    this._client = client;
+  }
+
   emitSessionUpdate(notification: SessionNotification): void {
-    this.publisher.publish("session", {
-      type: "update",
-      data: notification,
-    });
+    const drafts = sessionUpdateToEventDrafts(notification);
+    for (const draft of drafts) {
+      const event = createAcpxEvent({ sessionId: this.id, seq: this.seq++ }, draft);
+      this.publisher.publish("session", { type: "acpx_event", event });
+    }
   }
 
-  /**
-   * Handle a permission request from the agent.
-   * Publishes an event to subscribers and returns a promise that resolves
-   * when the user responds via resolvePermission().
-   */
   handlePermissionRequest(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     const requestId = String(++this.requestIdCounter);
-
     return new Promise<RequestPermissionResponse>((resolve) => {
-      this.pendingPermissions.set(requestId, { resolve });
+      const timer = setTimeout(() => {
+        this.pendingPermissions.delete(requestId);
+        resolve({ outcome: { outcome: "cancelled" } });
+      }, PERMISSION_TIMEOUT_MS);
 
+      this.pendingPermissions.set(requestId, { resolve, timer });
       this.publisher.publish("session", {
         type: "permission_request",
         requestId,
@@ -57,26 +62,21 @@ export class AcpConnection {
     });
   }
 
-  /** Resolve a pending permission request (called from renderer via oRPC) */
   resolvePermission(requestId: string, optionId: string): void {
     const pending = this.pendingPermissions.get(requestId);
     if (!pending) return;
-
+    clearTimeout(pending.timer);
     this.pendingPermissions.delete(requestId);
-    pending.resolve({
-      outcome: { outcome: "selected", optionId },
-    });
+    pending.resolve({ outcome: { outcome: "selected", optionId } });
   }
 
-  /** Subscribe to session events as an async iterable */
-  subscribeSession(signal?: AbortSignal): AsyncGenerator<SessionEvent> {
+  subscribeSession(signal?: AbortSignal): AsyncGenerator<StreamEvent> {
     return this.publisher.subscribe("session", { signal });
   }
 
-  /** Clean up resources */
   dispose(): void {
-    // Reject all pending permissions
     for (const [id, pending] of this.pendingPermissions) {
+      clearTimeout(pending.timer);
       pending.resolve({ outcome: { outcome: "cancelled" } });
       this.pendingPermissions.delete(id);
     }

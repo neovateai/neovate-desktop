@@ -1,165 +1,174 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { join } from "node:path";
-import { AcpConnectionManager } from "../connection-manager";
-import type { SessionEvent } from "../../../../shared/features/acp/types";
+import { call } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { acpRouter } from "../router";
+import type { AppContext } from "../../../router";
+import { AcpConnection } from "../connection";
 
-const MOCK_AGENT_PATH = join(__dirname, "../../../../..", "test/fixtures/mock-agent.ts");
-
-/** Collect events until aborted, swallowing AbortError */
-async function collectEvents(
-  sub: AsyncGenerator<SessionEvent>,
-  events: SessionEvent[],
-  onEvent?: (event: SessionEvent) => void,
-): Promise<void> {
-  try {
-    for await (const event of sub) {
-      events.push(event);
-      onEvent?.(event);
-    }
-  } catch (e: unknown) {
-    if (e instanceof DOMException && e.name === "AbortError") return;
-    throw e;
-  }
+function makeContext(overrides?: Partial<AppContext["acpConnectionManager"]>): AppContext {
+  return {
+    acpConnectionManager: {
+      connect: vi.fn(),
+      get: vi.fn(),
+      getClient: vi.fn(),
+      getStderr: vi.fn().mockReturnValue([]),
+      disconnect: vi.fn(),
+      disconnectAll: vi.fn(),
+      ...overrides,
+    } as any,
+  };
 }
 
-describe("ACP integration", () => {
-  let manager: AcpConnectionManager;
+describe("acpRouter", () => {
+  describe("listAgents", () => {
+    it("returns built-in agents", async () => {
+      const context = makeContext();
+      const agents = await call(acpRouter.listAgents, undefined, { context });
 
-  afterEach(() => {
-    manager?.disconnectAll();
-  });
-
-  it("full flow: connect → newSession → prompt → receive events", async () => {
-    manager = new AcpConnectionManager();
-    const conn = await manager.connect({
-      id: "mock",
-      name: "Mock Agent",
-      command: "bun",
-      args: [MOCK_AGENT_PATH],
-    });
-
-    const session = await conn.sdk.newSession({
-      cwd: process.cwd(),
-      mcpServers: [],
-    });
-    expect(session.sessionId).toBeTruthy();
-
-    const events: SessionEvent[] = [];
-    const ac = new AbortController();
-    const sub = conn.subscribeSession(ac.signal);
-
-    // Run collection and prompt concurrently
-    const collecting = collectEvents(sub, events);
-
-    const result = await conn.sdk.prompt({
-      sessionId: session.sessionId,
-      prompt: [{ type: "text", text: "Hello" }],
-    });
-
-    // Give a moment for trailing events, then stop collection
-    await new Promise((r) => setTimeout(r, 50));
-    ac.abort();
-    await collecting;
-
-    expect(result.stopReason).toBe("end_turn");
-    expect(events.length).toBeGreaterThan(0);
-
-    const textEvents = events.filter(
-      (e) => e.type === "update" && e.data.update.sessionUpdate === "agent_message_chunk",
-    );
-    expect(textEvents.length).toBeGreaterThan(0);
-  }, 30000);
-
-  it("prompt with tool calls", async () => {
-    manager = new AcpConnectionManager();
-    const conn = await manager.connect({
-      id: "mock",
-      name: "Mock Agent",
-      command: "bun",
-      args: [MOCK_AGENT_PATH],
-      env: { MOCK_EMIT_TOOL_CALL: "1" },
-    });
-
-    const session = await conn.sdk.newSession({
-      cwd: process.cwd(),
-      mcpServers: [],
-    });
-
-    const events: SessionEvent[] = [];
-    const ac = new AbortController();
-    const sub = conn.subscribeSession(ac.signal);
-
-    const collecting = collectEvents(sub, events);
-
-    await conn.sdk.prompt({
-      sessionId: session.sessionId,
-      prompt: [{ type: "text", text: "Do tool calls" }],
-    });
-
-    await new Promise((r) => setTimeout(r, 50));
-    ac.abort();
-    await collecting;
-
-    const toolEvents = events.filter(
-      (e) =>
-        e.type === "update" &&
-        (e.data.update.sessionUpdate === "tool_call" ||
-          e.data.update.sessionUpdate === "tool_call_update"),
-    );
-    expect(toolEvents.length).toBeGreaterThanOrEqual(2);
-  }, 30000);
-
-  it("permission flow: prompt triggers permission → resolve → agent continues", async () => {
-    manager = new AcpConnectionManager();
-    const conn = await manager.connect({
-      id: "mock",
-      name: "Mock Agent",
-      command: "bun",
-      args: [MOCK_AGENT_PATH],
-      env: { MOCK_EMIT_PERMISSION: "1" },
-    });
-
-    const session = await conn.sdk.newSession({
-      cwd: process.cwd(),
-      mcpServers: [],
-    });
-
-    const events: SessionEvent[] = [];
-    const ac = new AbortController();
-    const sub = conn.subscribeSession(ac.signal);
-
-    const collecting = collectEvents(sub, events, (event) => {
-      if (event.type === "permission_request") {
-        setTimeout(() => conn.resolvePermission(event.requestId, "allow"), 10);
+      expect(agents).toBeInstanceOf(Array);
+      expect(agents.length).toBeGreaterThan(0);
+      for (const agent of agents) {
+        expect(agent).toHaveProperty("id");
+        expect(agent).toHaveProperty("name");
       }
     });
+  });
 
-    const result = await conn.sdk.prompt({
-      sessionId: session.sessionId,
-      prompt: [{ type: "text", text: "Need permission" }],
+  describe("connect", () => {
+    it("returns connectionId on success", async () => {
+      const fakeConn = new AcpConnection("acp-42");
+      const context = makeContext({
+        connect: vi.fn().mockResolvedValue(fakeConn),
+      });
+
+      const result = await call(
+        acpRouter.connect,
+        { agentId: "test-agent" },
+        { context },
+      );
+
+      expect(result).toEqual({ connectionId: "acp-42" });
     });
 
-    await new Promise((r) => setTimeout(r, 50));
-    ac.abort();
-    await collecting;
+    it("throws BAD_GATEWAY on AgentSpawnError", async () => {
+      const context = makeContext({
+        connect: vi.fn().mockRejectedValue(new Error("ENOENT")),
+      });
 
-    expect(result.stopReason).toBe("end_turn");
+      await expect(
+        call(acpRouter.connect, { agentId: "bad-agent" }, { context }),
+      ).rejects.toThrow(ORPCError);
+    });
+  });
 
-    const permEvents = events.filter((e) => e.type === "permission_request");
-    expect(permEvents.length).toBe(1);
-  }, 30000);
+  describe("newSession", () => {
+    it("creates session on valid connection", async () => {
+      const fakeConn = new AcpConnection("acp-1");
+      fakeConn.setClient({
+        createSession: vi.fn().mockResolvedValue({ sessionId: "s-123" }),
+      } as any);
 
-  it("disconnect removes connection", async () => {
-    manager = new AcpConnectionManager();
-    const conn = await manager.connect({
-      id: "mock",
-      name: "Mock Agent",
-      command: "bun",
-      args: [MOCK_AGENT_PATH],
+      const context = makeContext({
+        get: vi.fn().mockReturnValue(fakeConn),
+      });
+
+      const result = await call(
+        acpRouter.newSession,
+        { connectionId: "acp-1" },
+        { context },
+      );
+
+      expect(result).toEqual({ sessionId: "s-123" });
     });
 
-    const id = conn.id;
-    manager.disconnect(id);
-    expect(manager.get(id)).toBeUndefined();
-  }, 15000);
+    it("throws NOT_FOUND for unknown connection", async () => {
+      const context = makeContext({
+        get: vi.fn().mockReturnValue(undefined),
+      });
+
+      await expect(
+        call(acpRouter.newSession, { connectionId: "unknown" }, { context }),
+      ).rejects.toThrow(ORPCError);
+    });
+  });
+
+  describe("resolvePermission", () => {
+    it("calls resolvePermission on connection", async () => {
+      const fakeConn = new AcpConnection("acp-1");
+      vi.spyOn(fakeConn, "resolvePermission");
+
+      const context = makeContext({
+        get: vi.fn().mockReturnValue(fakeConn),
+      });
+
+      await call(
+        acpRouter.resolvePermission,
+        { connectionId: "acp-1", requestId: "r1", optionId: "allow" },
+        { context },
+      );
+
+      expect(fakeConn.resolvePermission).toHaveBeenCalledWith("r1", "allow");
+    });
+
+    it("throws NOT_FOUND for unknown connection", async () => {
+      const context = makeContext({
+        get: vi.fn().mockReturnValue(undefined),
+      });
+
+      await expect(
+        call(
+          acpRouter.resolvePermission,
+          { connectionId: "unknown", requestId: "r1", optionId: "allow" },
+          { context },
+        ),
+      ).rejects.toThrow(ORPCError);
+    });
+  });
+
+  describe("cancel", () => {
+    it("cancels session on valid connection", async () => {
+      const fakeConn = new AcpConnection("acp-1");
+      fakeConn.setClient({
+        cancel: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      const context = makeContext({
+        get: vi.fn().mockReturnValue(fakeConn),
+      });
+
+      await call(
+        acpRouter.cancel,
+        { connectionId: "acp-1", sessionId: "s1" },
+        { context },
+      );
+
+      expect(fakeConn.client.cancel).toHaveBeenCalledWith("s1");
+    });
+
+    it("throws NOT_FOUND for unknown connection", async () => {
+      const context = makeContext({
+        get: vi.fn().mockReturnValue(undefined),
+      });
+
+      await expect(
+        call(acpRouter.cancel, { connectionId: "unknown", sessionId: "s1" }, { context }),
+      ).rejects.toThrow(ORPCError);
+    });
+  });
+
+  describe("disconnect", () => {
+    it("calls disconnect on manager", async () => {
+      const context = makeContext({
+        disconnect: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await call(
+        acpRouter.disconnect,
+        { connectionId: "acp-1" },
+        { context },
+      );
+
+      expect(context.acpConnectionManager.disconnect).toHaveBeenCalledWith("acp-1");
+    });
+  });
 });

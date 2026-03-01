@@ -6,6 +6,10 @@ export default defineConfig({
   main: {
     build: {
       outDir: "dist/main",
+      // TODO: fix this
+      externalizeDeps: {
+        exclude: ["acpx"],
+      },
     },
   },
   preload: {

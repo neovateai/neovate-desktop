@@ -1,89 +1,58 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { Writable, Readable } from "node:stream";
-import { ClientSideConnection, ndJsonStream, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
-import type { AgentInfo } from "../../../shared/features/acp/types";
+import { AcpClient, resolveAgentCommand } from "acpx";
 import { AcpConnection } from "./connection";
-import { ClientHandler } from "./client-handler";
 import { getShellEnvironment } from "./shell-env";
 
 const MAX_STDERR_LINES = 100;
 
+export const AGENT_OVERRIDES: Record<string, string> = {
+  claude: "npx -y @zed-industries/claude-code-acp",
+};
+
 type ManagedConnection = {
   connection: AcpConnection;
-  process: ChildProcess;
+  client: AcpClient;
   stderr: string[];
 };
 
-let nextId = 0;
-
 export class AcpConnectionManager {
   private connections = new Map<string, ManagedConnection>();
+  private nextId = 0;
 
-  async connect(agent: AgentInfo, cwd?: string): Promise<AcpConnection> {
-    const id = `acp-${++nextId}`;
-
+  async connect(agentName: string, cwd?: string): Promise<AcpConnection> {
+    const id = `acp-${++this.nextId}`;
     const shellEnv = await getShellEnvironment();
 
-    // Merge PATH: shell PATH prepended, then process PATH, agent env PATH highest
-    const mergedPath = [agent.env?.PATH, shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
+    const mergedPath = [shellEnv.PATH, process.env.PATH]
+      .filter(Boolean)
+      .join(":");
 
-    const env = {
-      ...process.env,
+    const extraEnv = {
       ...shellEnv,
-      ...agent.env,
       ...(mergedPath ? { PATH: mergedPath } : {}),
     };
 
-    const agentProcess = spawn(agent.command, agent.args ?? [], {
-      stdio: ["pipe", "pipe", "pipe"],
-      cwd,
-      env,
-      shell: true,
-    });
+    const agentCommand = resolveAgentCommand(agentName, AGENT_OVERRIDES);
 
-    // Reject early if spawn itself fails (e.g. command not found)
-    await new Promise<void>((resolve, reject) => {
-      agentProcess.on("error", reject);
-      agentProcess.on("spawn", resolve);
-    });
-
-    // Buffer stderr lines for diagnostics
     const stderrLines: string[] = [];
-    agentProcess.stderr!.on("data", (chunk: Buffer) => {
-      const lines = chunk.toString().split("\n").filter(Boolean);
-      for (const line of lines) {
+    const connection = new AcpConnection(id);
+
+    const client = new AcpClient({
+      agentCommand,
+      cwd: cwd ?? process.cwd(),
+      permissionMode: "approve-reads",
+      extraEnv,
+      onSessionUpdate: (notification) => connection.emitSessionUpdate(notification),
+      onRequestPermission: (params) => connection.handlePermissionRequest(params),
+      onStderr: (line) => {
         stderrLines.push(line);
-        if (stderrLines.length > MAX_STDERR_LINES) {
-          stderrLines.shift();
-        }
-      }
+        if (stderrLines.length > MAX_STDERR_LINES) stderrLines.shift();
+      },
     });
 
-    const input = Writable.toWeb(agentProcess.stdin!);
-    const output = Readable.toWeb(agentProcess.stdout!) as ReadableStream<Uint8Array>;
+    await client.start();
+    connection.setClient(client);
 
-    const stream = ndJsonStream(input, output);
-
-    // SDK holder to break the TDZ — the callback is invoked synchronously
-    // by the constructor before `sdk` is assigned, but `sdkRef.value` is
-    // only read later when methods are called on the connection.
-    const sdkRef: { value: ClientSideConnection | null } = { value: null };
-
-    let connection!: AcpConnection;
-
-    const sdk = new ClientSideConnection((_agent) => {
-      connection = new AcpConnection(id, sdkRef);
-      return new ClientHandler(connection);
-    }, stream);
-
-    sdkRef.value = sdk;
-
-    await sdk.initialize({
-      protocolVersion: PROTOCOL_VERSION,
-      clientCapabilities: {},
-    });
-
-    this.connections.set(id, { connection, process: agentProcess, stderr: stderrLines });
+    this.connections.set(id, { connection, client, stderr: stderrLines });
     return connection;
   }
 
@@ -91,22 +60,25 @@ export class AcpConnectionManager {
     return this.connections.get(id)?.connection;
   }
 
+  getClient(id: string): AcpClient | undefined {
+    return this.connections.get(id)?.client;
+  }
+
   getStderr(id: string): string[] {
     return this.connections.get(id)?.stderr ?? [];
   }
 
-  disconnect(id: string): void {
+  async disconnect(id: string): Promise<void> {
     const managed = this.connections.get(id);
     if (!managed) return;
-
     managed.connection.dispose();
-    managed.process.kill();
+    await managed.client.close();
     this.connections.delete(id);
   }
 
-  disconnectAll(): void {
+  async disconnectAll(): Promise<void> {
     for (const id of this.connections.keys()) {
-      this.disconnect(id);
+      await this.disconnect(id);
     }
   }
 }

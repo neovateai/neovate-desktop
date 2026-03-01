@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { AgentInfo, SessionEvent } from "../../../../shared/features/acp/types";
-import type { RequestPermissionRequest, SessionUpdate } from "@agentclientprotocol/sdk";
+import type { AgentInfo, StreamEvent } from "../../../../shared/features/acp/types";
+import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
 
 export type AcpMessage = {
   id: string;
@@ -44,7 +44,7 @@ type AcpState = {
   setStreaming: (sessionId: string, streaming: boolean) => void;
   setPromptError: (sessionId: string, error: string | null) => void;
   setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
-  appendChunk: (sessionId: string, event: SessionEvent) => void;
+  appendChunk: (sessionId: string, event: StreamEvent) => void;
 };
 
 let messageId = 0;
@@ -135,66 +135,53 @@ export const useAcpStore = create<AcpState>((set, get) => ({
       return;
     }
 
-    // event.type === "update"
-    const update: SessionUpdate = event.data.update;
+    // event.type === "acpx_event"
+    const acpxEvent = event.event;
     const messages = [...session.messages];
     const toolCalls = new Map(session.toolCalls);
 
-    switch (update.sessionUpdate) {
-      case "agent_message_chunk": {
-        if (update.content.type === "text") {
+    switch (acpxEvent.type) {
+      case "output_delta": {
+        if (acpxEvent.data.stream === "output") {
           const last = messages[messages.length - 1];
           if (last && last.role === "assistant") {
             messages[messages.length - 1] = {
               ...last,
-              content: last.content + update.content.text,
+              content: last.content + acpxEvent.data.text,
             };
           } else {
             messages.push({
               id: String(++messageId),
               role: "assistant",
-              content: update.content.text,
+              content: acpxEvent.data.text,
             });
           }
         }
-        break;
-      }
-      case "agent_thought_chunk": {
-        if (update.content.type === "text") {
+        if (acpxEvent.data.stream === "thought") {
           const last = messages[messages.length - 1];
           if (last && last.role === "assistant") {
             messages[messages.length - 1] = {
               ...last,
-              thinking: (last.thinking ?? "") + update.content.text,
+              thinking: (last.thinking ?? "") + acpxEvent.data.text,
             };
           } else {
             messages.push({
               id: String(++messageId),
               role: "assistant",
               content: "",
-              thinking: update.content.text,
+              thinking: acpxEvent.data.text,
             });
           }
         }
         break;
       }
       case "tool_call": {
-        toolCalls.set(update.toolCallId, {
-          toolCallId: update.toolCallId,
-          title: update.title,
-          kind: update.kind,
-          status: update.status,
+        toolCalls.set(acpxEvent.data.tool_call_id, {
+          toolCallId: acpxEvent.data.tool_call_id,
+          title: acpxEvent.data.title ?? "",
+          kind: undefined,
+          status: acpxEvent.data.status,
         });
-        break;
-      }
-      case "tool_call_update": {
-        const existing = toolCalls.get(update.toolCallId);
-        if (existing) {
-          toolCalls.set(update.toolCallId, {
-            ...existing,
-            status: update.status ?? existing.status,
-          });
-        }
         break;
       }
     }

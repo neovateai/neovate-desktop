@@ -1,6 +1,10 @@
 import { ORPCError, implement } from "@orpc/server";
+import { AgentSpawnError, listBuiltInAgents, formatErrorMessage } from "acpx";
 import { acpContract } from "../../../shared/features/acp/contract";
+import { AGENT_OVERRIDES } from "./connection-manager";
 import type { AppContext } from "../../router";
+import type { AcpConnectionManager } from "./connection-manager";
+import type { AcpConnection } from "./connection";
 
 const os = implement({ acp: acpContract }).$context<AppContext>();
 const ACP_DEBUG = process.env.ACP_DEBUG === "1";
@@ -14,47 +18,61 @@ function acpLog(message: string, details?: Record<string, unknown>): void {
   console.log(`[acp-router] ${message}`);
 }
 
-function getUnknownErrorMessage(error: unknown): string | undefined {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
+function getConnection(manager: AcpConnectionManager, connectionId: string): AcpConnection {
+  const conn = manager.get(connectionId);
+  if (!conn) {
+    throw new ORPCError("NOT_FOUND", {
+      message: `Unknown connection: ${connectionId}`,
+    });
   }
+  return conn;
+}
 
-  if (typeof error === "string" && error.trim()) {
-    return error;
-  }
-
-  if (error && typeof error === "object") {
-    const maybeError = error as { message?: unknown; code?: unknown };
-    if (typeof maybeError.message === "string" && maybeError.message.trim()) {
-      return maybeError.message;
-    }
-    if (typeof maybeError.code === "string" && maybeError.code.trim()) {
-      return `Agent prompt failed (${maybeError.code}).`;
-    }
-  }
-
-  return undefined;
+function buildPromptError(
+  error: unknown,
+  manager: AcpConnectionManager,
+  connectionId: string,
+): ORPCError {
+  const stderrTail = manager.getStderr(connectionId).slice(-20);
+  const lifecycle = manager.getClient(connectionId)?.getAgentLifecycleSnapshot();
+  const lastExit = lifecycle?.lastExit;
+  const message = formatErrorMessage(error);
+  return new ORPCError("BAD_GATEWAY", {
+    defined: true,
+    message,
+    data: {
+      source: "acp_agent" as const,
+      message,
+      stderrTail,
+      ...(lastExit
+        ? {
+            exitCode: lastExit.exitCode,
+            signal: lastExit.signal,
+            unexpectedDuringPrompt: lastExit.unexpectedDuringPrompt,
+          }
+        : {}),
+    },
+    cause: error instanceof Error ? error : undefined,
+  });
 }
 
 export const acpRouter = os.acp.router({
-  listAgents: os.acp.listAgents.handler(({ context }) => {
-    return context.acpAgentRegistry.getAll();
+  listAgents: os.acp.listAgents.handler(() => {
+    return listBuiltInAgents(AGENT_OVERRIDES).map((name) => ({ id: name, name }));
   }),
 
   connect: os.acp.connect.handler(async ({ input, context }) => {
     acpLog("connect: start", { agentId: input.agentId, cwd: input.cwd });
-    const agent = context.acpAgentRegistry.get(input.agentId);
-    if (!agent) throw new Error(`Unknown agent: ${input.agentId}`);
 
     try {
-      const connection = await context.acpConnectionManager.connect(agent, input.cwd);
+      const connection = await context.acpConnectionManager.connect(input.agentId, input.cwd);
       acpLog("connect: success", { connectionId: connection.id, agentId: input.agentId });
       return { connectionId: connection.id };
     } catch (error) {
       const message =
-        error instanceof Error
-          ? `Failed to start agent "${agent.name}": ${error.message}`
-          : `Failed to start agent "${agent.name}"`;
+        error instanceof AgentSpawnError || error instanceof Error
+          ? `Failed to start agent "${input.agentId}": ${error.message}`
+          : `Failed to start agent "${input.agentId}"`;
       acpLog("connect: failed", { agentId: input.agentId, error: message });
       throw new ORPCError("BAD_GATEWAY", { defined: true, message });
     }
@@ -62,21 +80,15 @@ export const acpRouter = os.acp.router({
 
   newSession: os.acp.newSession.handler(async ({ input, context }) => {
     acpLog("newSession: start", { connectionId: input.connectionId, cwd: input.cwd });
-    const conn = context.acpConnectionManager.get(input.connectionId);
-    if (!conn) throw new Error(`Unknown connection: ${input.connectionId}`);
+    const conn = getConnection(context.acpConnectionManager, input.connectionId);
 
-    const result = await conn.sdk.newSession({
-      cwd: input.cwd ?? process.cwd(),
-      mcpServers: [],
-    });
+    const result = await conn.client.createSession(input.cwd ?? process.cwd());
 
-    const modes = result.modes?.availableModes?.map((m) => m.name);
     acpLog("newSession: success", {
       connectionId: input.connectionId,
       sessionId: result.sessionId,
-      modes,
     });
-    return { sessionId: result.sessionId, modes };
+    return { sessionId: result.sessionId };
   }),
 
   prompt: os.acp.prompt.handler(async function* ({ input, signal, context }) {
@@ -85,31 +97,22 @@ export const acpRouter = os.acp.router({
       sessionId: input.sessionId,
       promptLength: input.prompt.length,
     });
-    const conn = context.acpConnectionManager.get(input.connectionId);
-    if (!conn) throw new Error(`Unknown connection: ${input.connectionId}`);
+    const conn = getConnection(context.acpConnectionManager, input.connectionId);
 
-    // Use an internal AbortController to break the subscription when
-    // the prompt resolves. Without this, the `for await` loop blocks
-    // waiting for the next event even after the prompt is done.
     const done = new AbortController();
     if (signal) {
-      signal.addEventListener("abort", () => done.abort(signal.reason), {
-        once: true,
-      });
+      signal.addEventListener("abort", () => done.abort(signal.reason), { once: true });
     }
 
-    let promptResult: Awaited<ReturnType<typeof conn.sdk.prompt>> | undefined;
+    let stopReason: string | undefined;
     let promptError: unknown;
     let eventCount = 0;
 
-    const promptPromise = conn.sdk
-      .prompt({
-        sessionId: input.sessionId,
-        prompt: [{ type: "text", text: input.prompt }],
-      })
+    const promptPromise = conn.client
+      .prompt(input.sessionId, input.prompt)
       .then((result) => {
-        promptResult = result;
-        acpLog("prompt: sdk resolved", {
+        stopReason = result.stopReason;
+        acpLog("prompt: resolved", {
           connectionId: input.connectionId,
           sessionId: input.sessionId,
           stopReason: result.stopReason,
@@ -117,23 +120,11 @@ export const acpRouter = os.acp.router({
         done.abort("prompt_done");
       })
       .catch((error: unknown) => {
-        const stderrTail = context.acpConnectionManager.getStderr(input.connectionId).slice(-20);
-        const message = getUnknownErrorMessage(error) ?? "Agent prompt failed.";
-        promptError = new ORPCError("BAD_GATEWAY", {
-          defined: true,
-          message,
-          data: {
-            source: "acp_agent",
-            message,
-            stderrTail,
-          },
-          cause: error instanceof Error ? error : undefined,
-        });
-        acpLog("prompt: sdk rejected", {
+        promptError = buildPromptError(error, context.acpConnectionManager, input.connectionId);
+        acpLog("prompt: rejected", {
           connectionId: input.connectionId,
           sessionId: input.sessionId,
-          error: message,
-          stderrTail,
+          error: formatErrorMessage(error),
         });
         done.abort("prompt_error");
       });
@@ -144,21 +135,17 @@ export const acpRouter = os.acp.router({
       for await (const event of subscription) {
         eventCount += 1;
         if (eventCount <= 10) {
-          const sessionUpdate = event.type === "update" ? event.data.update.sessionUpdate : null;
           acpLog("prompt: event", {
             connectionId: input.connectionId,
             sessionId: input.sessionId,
             eventType: event.type,
-            sessionUpdate,
             eventCount,
           });
         }
         yield event;
       }
     } catch (e: unknown) {
-      // When we abort our internal `done` signal after prompt completion/failure,
-      // different runtimes can throw either DOMException AbortError or custom values.
-      if (!done.signal.aborted && !(e instanceof DOMException && e.name === "AbortError")) {
+      if (!done.signal.aborted) {
         throw e;
       }
     } finally {
@@ -172,26 +159,39 @@ export const acpRouter = os.acp.router({
       connectionId: input.connectionId,
       sessionId: input.sessionId,
       eventCount,
-      stopReason: promptResult?.stopReason ?? "end_turn",
+      stopReason: stopReason ?? "end_turn",
     });
-    return { stopReason: promptResult?.stopReason ?? "end_turn" };
+    return { stopReason: stopReason ?? "end_turn" };
   }),
 
   resolvePermission: os.acp.resolvePermission.handler(({ input, context }) => {
-    const conn = context.acpConnectionManager.get(input.connectionId);
-    if (!conn) throw new Error(`Unknown connection: ${input.connectionId}`);
-
+    const conn = getConnection(context.acpConnectionManager, input.connectionId);
     conn.resolvePermission(input.requestId, input.optionId);
   }),
 
   cancel: os.acp.cancel.handler(async ({ input, context }) => {
-    const conn = context.acpConnectionManager.get(input.connectionId);
-    if (!conn) throw new Error(`Unknown connection: ${input.connectionId}`);
-
-    await conn.sdk.cancel({ sessionId: input.sessionId });
+    const conn = getConnection(context.acpConnectionManager, input.connectionId);
+    try {
+      await conn.client.cancel(input.sessionId);
+    } catch (error) {
+      acpLog("cancel: failed", {
+        connectionId: input.connectionId,
+        sessionId: input.sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }),
 
-  disconnect: os.acp.disconnect.handler(({ input, context }) => {
-    context.acpConnectionManager.disconnect(input.connectionId);
+  disconnect: os.acp.disconnect.handler(async ({ input, context }) => {
+    try {
+      await context.acpConnectionManager.disconnect(input.connectionId);
+    } catch (error) {
+      acpLog("disconnect: failed", {
+        connectionId: input.connectionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }),
 });

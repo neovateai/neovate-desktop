@@ -1,5 +1,23 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useAcpStore } from "../store";
+import type { StreamEvent } from "../../../../../shared/features/acp/types";
+import type { AcpxEvent } from "acpx";
+
+/** Helper to create a minimal AcpxEvent envelope */
+function makeAcpxEvent(partial: Pick<AcpxEvent, "type" | "data">): AcpxEvent {
+  return {
+    schema: "acpx.event.v1",
+    event_id: "test-event",
+    session_id: "s1",
+    seq: 0,
+    ts: new Date().toISOString(),
+    ...partial,
+  } as AcpxEvent;
+}
+
+function acpxStreamEvent(partial: Pick<AcpxEvent, "type" | "data">): StreamEvent {
+  return { type: "acpx_event", event: makeAcpxEvent(partial) };
+}
 
 describe("AcpStore", () => {
   beforeEach(() => {
@@ -31,30 +49,18 @@ describe("AcpStore", () => {
     });
   });
 
-  it("appendChunk with agent_message_chunk appends text", () => {
+  it("appendChunk with output_delta (output) appends text", () => {
     useAcpStore.getState().createSession("s1", "conn1");
 
-    useAcpStore.getState().appendChunk("s1", {
-      type: "update",
-      data: {
-        sessionId: "s1",
-        update: {
-          sessionUpdate: "agent_message_chunk",
-          content: { type: "text", text: "Hello " },
-        },
-      },
-    });
+    useAcpStore.getState().appendChunk(
+      "s1",
+      acpxStreamEvent({ type: "output_delta", data: { stream: "output", text: "Hello " } }),
+    );
 
-    useAcpStore.getState().appendChunk("s1", {
-      type: "update",
-      data: {
-        sessionId: "s1",
-        update: {
-          sessionUpdate: "agent_message_chunk",
-          content: { type: "text", text: "world" },
-        },
-      },
-    });
+    useAcpStore.getState().appendChunk(
+      "s1",
+      acpxStreamEvent({ type: "output_delta", data: { stream: "output", text: "world" } }),
+    );
 
     const session = useAcpStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);
@@ -62,19 +68,13 @@ describe("AcpStore", () => {
     expect(session.messages[0].role).toBe("assistant");
   });
 
-  it("appendChunk with agent_thought_chunk appends thinking", () => {
+  it("appendChunk with output_delta (thought) appends thinking", () => {
     useAcpStore.getState().createSession("s1", "conn1");
 
-    useAcpStore.getState().appendChunk("s1", {
-      type: "update",
-      data: {
-        sessionId: "s1",
-        update: {
-          sessionUpdate: "agent_thought_chunk",
-          content: { type: "text", text: "thinking..." },
-        },
-      },
-    });
+    useAcpStore.getState().appendChunk(
+      "s1",
+      acpxStreamEvent({ type: "output_delta", data: { stream: "thought", text: "thinking..." } }),
+    );
 
     const session = useAcpStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);
@@ -84,19 +84,13 @@ describe("AcpStore", () => {
   it("appendChunk with tool_call adds tool state", () => {
     useAcpStore.getState().createSession("s1", "conn1");
 
-    useAcpStore.getState().appendChunk("s1", {
-      type: "update",
-      data: {
-        sessionId: "s1",
-        update: {
-          sessionUpdate: "tool_call",
-          toolCallId: "tc1",
-          title: "Read file",
-          kind: "read",
-          status: "pending",
-        },
-      },
-    });
+    useAcpStore.getState().appendChunk(
+      "s1",
+      acpxStreamEvent({
+        type: "tool_call",
+        data: { tool_call_id: "tc1", title: "Read file", status: "pending" },
+      }),
+    );
 
     const session = useAcpStore.getState().sessions.get("s1")!;
     expect(session.toolCalls.get("tc1")).toMatchObject({
@@ -104,39 +98,6 @@ describe("AcpStore", () => {
       title: "Read file",
       status: "pending",
     });
-  });
-
-  it("appendChunk with tool_call_update updates existing tool", () => {
-    useAcpStore.getState().createSession("s1", "conn1");
-
-    useAcpStore.getState().appendChunk("s1", {
-      type: "update",
-      data: {
-        sessionId: "s1",
-        update: {
-          sessionUpdate: "tool_call",
-          toolCallId: "tc1",
-          title: "Read file",
-          kind: "read",
-          status: "pending",
-        },
-      },
-    });
-
-    useAcpStore.getState().appendChunk("s1", {
-      type: "update",
-      data: {
-        sessionId: "s1",
-        update: {
-          sessionUpdate: "tool_call_update",
-          toolCallId: "tc1",
-          status: "completed",
-        },
-      },
-    });
-
-    const session = useAcpStore.getState().sessions.get("s1")!;
-    expect(session.toolCalls.get("tc1")?.status).toBe("completed");
   });
 
   it("appendChunk with permission_request sets pendingPermission", () => {

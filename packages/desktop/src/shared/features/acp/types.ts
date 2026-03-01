@@ -1,16 +1,14 @@
-import type { SessionNotification, RequestPermissionRequest } from "@agentclientprotocol/sdk";
+import type { AcpxEvent } from "acpx";
+import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
 
 export type AgentInfo = {
   id: string;
   name: string;
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
 };
 
 /** What the eventIterator yields to the renderer */
-export type SessionEvent =
-  | { type: "update"; data: SessionNotification }
+export type StreamEvent =
+  | { type: "acpx_event"; event: AcpxEvent }
   | {
       type: "permission_request";
       requestId: string;

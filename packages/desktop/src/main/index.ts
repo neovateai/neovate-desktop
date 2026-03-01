@@ -4,7 +4,6 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { RPCHandler } from "@orpc/server/message-port";
 import { router } from "./router";
-import { AgentRegistry } from "./features/acp/agent-registry";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
 import type { AppContext } from "./router";
 
@@ -14,11 +13,9 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
 }
 
-const agentRegistry = new AgentRegistry();
 const connectionManager = new AcpConnectionManager();
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
-  acpAgentRegistry: agentRegistry,
 };
 
 const handler = new RPCHandler(router);
@@ -101,5 +98,5 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  connectionManager.disconnectAll();
+  void connectionManager.disconnectAll();
 });

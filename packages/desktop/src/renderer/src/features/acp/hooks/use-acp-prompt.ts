@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 
@@ -18,46 +18,17 @@ function getPromptErrorMessage(error: unknown): string {
     return "";
   }
 
-  if (typeof error === "string" && error.trim()) {
-    return error;
-  }
-
   if (error && typeof error === "object") {
-    const objectError = error as {
-      message?: unknown;
-      code?: unknown;
-      data?: unknown;
-      status?: unknown;
-    };
-
-    if (objectError.data && typeof objectError.data === "object") {
-      const data = objectError.data as { message?: unknown; detail?: unknown };
-      if (typeof data.message === "string" && data.message.trim()) {
-        return data.message;
-      }
-      if (typeof data.detail === "string" && data.detail.trim()) {
-        return data.detail;
-      }
+    const obj = error as { data?: { message?: unknown }; message?: unknown };
+    if (typeof obj.data?.message === "string" && obj.data.message.trim()) {
+      return obj.data.message;
     }
-
-    if (typeof objectError.message === "string" && objectError.message.trim()) {
-      if (objectError.message === "Internal server error") {
-        return "Agent request failed on backend. Check ACP debug logs for details.";
-      }
-      return objectError.message;
-    }
-    if (typeof objectError.code === "string" && objectError.code.trim()) {
-      return `Agent request failed (${objectError.code}).`;
-    }
-    if (typeof objectError.status === "number") {
-      return `Agent request failed (HTTP ${objectError.status}).`;
+    if (typeof obj.message === "string" && obj.message.trim()) {
+      return obj.message;
     }
   }
 
   if (error instanceof Error && error.message.trim()) {
-    if (error.message === "Internal server error") {
-      return "Agent request failed on backend. Check ACP debug logs for details.";
-    }
     return error.message;
   }
 
@@ -69,6 +40,12 @@ export function useAcpPrompt() {
   const addUserMessage = useAcpStore((s) => s.addUserMessage);
   const appendChunk = useAcpStore((s) => s.appendChunk);
   const setStreaming = useAcpStore((s) => s.setStreaming);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const sendPrompt = useCallback(
     async (connectionId: string, sessionId: string, prompt: string) => {
@@ -96,12 +73,10 @@ export function useAcpPrompt() {
         for await (const event of iterator) {
           eventCount += 1;
           if (eventCount <= 10) {
-            const sessionUpdate = event.type === "update" ? event.data.update.sessionUpdate : null;
             acpPromptLog("sendPrompt: event", {
               connectionId,
               sessionId,
               eventType: event.type,
-              sessionUpdate,
               eventCount,
             });
           }

@@ -1,11 +1,14 @@
 import { oc, type, eventIterator } from "@orpc/contract";
 import { z } from "zod";
-import type { AgentInfo, SessionEvent, PromptResult } from "./types";
+import type { AgentInfo, StreamEvent, PromptResult } from "./types";
 
 const promptErrorDataSchema = type<{
   source: "acp_agent";
   message: string;
   stderrTail: string[];
+  exitCode?: number | null;
+  signal?: string | null;
+  unexpectedDuringPrompt?: boolean;
 }>();
 
 export const acpContract = {
@@ -33,7 +36,7 @@ export const acpContract = {
         data: promptErrorDataSchema,
       },
     })
-    .output(eventIterator(type<SessionEvent>(), type<PromptResult>())),
+    .output(eventIterator(type<StreamEvent>(), type<PromptResult>())),
 
   resolvePermission: oc
     .input(
