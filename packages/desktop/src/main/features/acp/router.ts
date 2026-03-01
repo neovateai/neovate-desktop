@@ -32,7 +32,7 @@ function buildPromptError(
   error: unknown,
   manager: AcpConnectionManager,
   connectionId: string,
-): ORPCError {
+): ORPCError<"BAD_GATEWAY", unknown> {
   const stderrTail = manager.getStderr(connectionId).slice(-20);
   const lifecycle = manager.getClient(connectionId)?.getAgentLifecycleSnapshot();
   const lastExit = lifecycle?.lastExit;

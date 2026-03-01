@@ -53,15 +53,15 @@ packages/desktop/src/
 
 The shared contract (`contract.ts`) defines the complete RPC surface:
 
-| Procedure | Input | Output | Notes |
-|---|---|---|---|
-| `listAgents` | none | `AgentInfo[]` | Discovers available agents |
-| `connect` | `agentId, cwd?` | `{ connectionId }` | Spawns agent subprocess |
-| `newSession` | `connectionId, cwd?` | `{ sessionId }` | Creates ACP session |
-| `prompt` | `connectionId, sessionId, prompt` | `eventIterator<StreamEvent> + PromptResult` | Streaming generator |
-| `resolvePermission` | `connectionId, requestId, optionId` | `void` | Responds to permission request |
-| `cancel` | `connectionId, sessionId` | `void` | Cancels active prompt |
-| `disconnect` | `connectionId` | `void` | Tears down connection |
+| Procedure           | Input                               | Output                                      | Notes                          |
+| ------------------- | ----------------------------------- | ------------------------------------------- | ------------------------------ |
+| `listAgents`        | none                                | `AgentInfo[]`                               | Discovers available agents     |
+| `connect`           | `agentId, cwd?`                     | `{ connectionId }`                          | Spawns agent subprocess        |
+| `newSession`        | `connectionId, cwd?`                | `{ sessionId }`                             | Creates ACP session            |
+| `prompt`            | `connectionId, sessionId, prompt`   | `eventIterator<StreamEvent> + PromptResult` | Streaming generator            |
+| `resolvePermission` | `connectionId, requestId, optionId` | `void`                                      | Responds to permission request |
+| `cancel`            | `connectionId, sessionId`           | `void`                                      | Cancels active prompt          |
+| `disconnect`        | `connectionId`                      | `void`                                      | Tears down connection          |
 
 The `prompt` handler is an async generator that yields `StreamEvent` objects and returns a `PromptResult` with `stopReason`.
 
@@ -69,8 +69,8 @@ The `prompt` handler is an async generator that yields `StreamEvent` objects and
 
 ```typescript
 type StreamEvent =
-  | { type: "acpx_event"; event: AcpxEvent }     // Agent output, tool calls
-  | { type: "permission_request"; requestId; data } // Permission needed
+  | { type: "acpx_event"; event: AcpxEvent } // Agent output, tool calls
+  | { type: "permission_request"; requestId; data }; // Permission needed
 ```
 
 ## Main Process
@@ -136,6 +136,7 @@ The `appendChunk()` action routes incoming `StreamEvent` objects:
 **`useAcpConnect`** - Calls `connect` then `newSession`, creates the store session, exposes `{ connect, connecting, error }`.
 
 **`useAcpPrompt`** - Manages the streaming lifecycle:
+
 1. Adds user message to store, sets streaming flag
 2. Creates an `AbortController` for cancellation
 3. Iterates the oRPC event stream, calling `appendChunk` for each event
@@ -210,13 +211,13 @@ The renderer creates a `MessageChannel`, sends one port through the preload brid
 
 ## Error Handling
 
-| Layer | Pattern |
-|---|---|
-| Connect | `AgentSpawnError` / `Error` caught, wrapped as `ORPCError("BAD_GATEWAY")` with descriptive message |
-| Prompt (main) | Agent errors enriched with stderr tail (20 lines), exit code, signal, `unexpectedDuringPrompt` flag |
-| Prompt (renderer) | Extracts message from `error.data.message` → `error.message` → fallback string. AbortError silently ignored. |
-| Permission | 5-minute timeout auto-cancels with `{ outcome: "cancelled" }` |
-| Router handlers | `getConnection()` throws `ORPCError("NOT_FOUND")` for unknown connections. `cancel`/`disconnect` have try/catch with debug logging. |
+| Layer             | Pattern                                                                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Connect           | `AgentSpawnError` / `Error` caught, wrapped as `ORPCError("BAD_GATEWAY")` with descriptive message                                  |
+| Prompt (main)     | Agent errors enriched with stderr tail (20 lines), exit code, signal, `unexpectedDuringPrompt` flag                                 |
+| Prompt (renderer) | Extracts message from `error.data.message` → `error.message` → fallback string. AbortError silently ignored.                        |
+| Permission        | 5-minute timeout auto-cancels with `{ outcome: "cancelled" }`                                                                       |
+| Router handlers   | `getConnection()` throws `ORPCError("NOT_FOUND")` for unknown connections. `cancel`/`disconnect` have try/catch with debug logging. |
 
 ## Debugging
 
@@ -228,15 +229,15 @@ In the renderer, debug logging is enabled when `import.meta.env.DEV` is true (de
 
 The `acpx` library (`github:neovateai/acpx`) provides the core agent communication layer:
 
-| Export | Purpose |
-|---|---|
-| `AcpClient` | Spawns and communicates with agent subprocess |
-| `listBuiltInAgents()` | Discovers available agents |
-| `resolveAgentCommand()` | Resolves agent name to shell command |
-| `AgentSpawnError` | Error type for spawn failures |
-| `formatErrorMessage()` | Normalizes error objects to strings |
-| `sessionUpdateToEventDrafts()` | Converts `SessionNotification` to event drafts |
-| `createAcpxEvent()` | Wraps event draft with metadata (session ID, sequence, timestamp) |
+| Export                         | Purpose                                                           |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `AcpClient`                    | Spawns and communicates with agent subprocess                     |
+| `listBuiltInAgents()`          | Discovers available agents                                        |
+| `resolveAgentCommand()`        | Resolves agent name to shell command                              |
+| `AgentSpawnError`              | Error type for spawn failures                                     |
+| `formatErrorMessage()`         | Normalizes error objects to strings                               |
+| `sessionUpdateToEventDrafts()` | Converts `SessionNotification` to event drafts                    |
+| `createAcpxEvent()`            | Wraps event draft with metadata (session ID, sequence, timestamp) |
 
 Agent overrides are defined in `connection-manager.ts`:
 

@@ -52,15 +52,19 @@ describe("AcpStore", () => {
   it("appendChunk with output_delta (output) appends text", () => {
     useAcpStore.getState().createSession("s1", "conn1");
 
-    useAcpStore.getState().appendChunk(
-      "s1",
-      acpxStreamEvent({ type: "output_delta", data: { stream: "output", text: "Hello " } }),
-    );
+    useAcpStore
+      .getState()
+      .appendChunk(
+        "s1",
+        acpxStreamEvent({ type: "output_delta", data: { stream: "output", text: "Hello " } }),
+      );
 
-    useAcpStore.getState().appendChunk(
-      "s1",
-      acpxStreamEvent({ type: "output_delta", data: { stream: "output", text: "world" } }),
-    );
+    useAcpStore
+      .getState()
+      .appendChunk(
+        "s1",
+        acpxStreamEvent({ type: "output_delta", data: { stream: "output", text: "world" } }),
+      );
 
     const session = useAcpStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);
@@ -71,10 +75,12 @@ describe("AcpStore", () => {
   it("appendChunk with output_delta (thought) appends thinking", () => {
     useAcpStore.getState().createSession("s1", "conn1");
 
-    useAcpStore.getState().appendChunk(
-      "s1",
-      acpxStreamEvent({ type: "output_delta", data: { stream: "thought", text: "thinking..." } }),
-    );
+    useAcpStore
+      .getState()
+      .appendChunk(
+        "s1",
+        acpxStreamEvent({ type: "output_delta", data: { stream: "thought", text: "thinking..." } }),
+      );
 
     const session = useAcpStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);

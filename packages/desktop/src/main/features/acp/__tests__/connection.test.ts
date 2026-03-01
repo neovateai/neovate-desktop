@@ -75,7 +75,7 @@ describe("AcpConnection", () => {
 
     const perm2 = conn.handlePermissionRequest({
       sessionId: "s1",
-      toolCall: { toolCallId: "tc2", title: "Write", kind: "write", status: "pending" },
+      toolCall: { toolCallId: "tc2", title: "Write", kind: "edit", status: "pending" },
       options: [{ kind: "allow_once", name: "Allow", optionId: "a" }],
     });
 

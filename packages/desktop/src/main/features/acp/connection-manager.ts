@@ -22,9 +22,7 @@ export class AcpConnectionManager {
     const id = `acp-${++this.nextId}`;
     const shellEnv = await getShellEnvironment();
 
-    const mergedPath = [shellEnv.PATH, process.env.PATH]
-      .filter(Boolean)
-      .join(":");
+    const mergedPath = [shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
 
     const extraEnv = {
       ...shellEnv,

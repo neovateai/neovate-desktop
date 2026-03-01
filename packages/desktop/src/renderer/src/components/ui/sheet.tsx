@@ -32,7 +32,7 @@ function SheetBackdrop({ className, ...props }: SheetPrimitive.Backdrop.Props) {
 }
 
 function SheetViewport({
-  className,
+  className: _className,
   side,
   variant = "default",
   ...props

@@ -1,6 +1,6 @@
 import { call } from "@orpc/server";
 import { ORPCError } from "@orpc/server";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { acpRouter } from "../router";
 import type { AppContext } from "../../../router";
 import { AcpConnection } from "../connection";
@@ -41,11 +41,7 @@ describe("acpRouter", () => {
         connect: vi.fn().mockResolvedValue(fakeConn),
       });
 
-      const result = await call(
-        acpRouter.connect,
-        { agentId: "test-agent" },
-        { context },
-      );
+      const result = await call(acpRouter.connect, { agentId: "test-agent" }, { context });
 
       expect(result).toEqual({ connectionId: "acp-42" });
     });
@@ -55,9 +51,9 @@ describe("acpRouter", () => {
         connect: vi.fn().mockRejectedValue(new Error("ENOENT")),
       });
 
-      await expect(
-        call(acpRouter.connect, { agentId: "bad-agent" }, { context }),
-      ).rejects.toThrow(ORPCError);
+      await expect(call(acpRouter.connect, { agentId: "bad-agent" }, { context })).rejects.toThrow(
+        ORPCError,
+      );
     });
   });
 
@@ -72,11 +68,7 @@ describe("acpRouter", () => {
         get: vi.fn().mockReturnValue(fakeConn),
       });
 
-      const result = await call(
-        acpRouter.newSession,
-        { connectionId: "acp-1" },
-        { context },
-      );
+      const result = await call(acpRouter.newSession, { connectionId: "acp-1" }, { context });
 
       expect(result).toEqual({ sessionId: "s-123" });
     });
@@ -136,11 +128,7 @@ describe("acpRouter", () => {
         get: vi.fn().mockReturnValue(fakeConn),
       });
 
-      await call(
-        acpRouter.cancel,
-        { connectionId: "acp-1", sessionId: "s1" },
-        { context },
-      );
+      await call(acpRouter.cancel, { connectionId: "acp-1", sessionId: "s1" }, { context });
 
       expect(fakeConn.client.cancel).toHaveBeenCalledWith("s1");
     });
@@ -162,11 +150,7 @@ describe("acpRouter", () => {
         disconnect: vi.fn().mockResolvedValue(undefined),
       });
 
-      await call(
-        acpRouter.disconnect,
-        { connectionId: "acp-1" },
-        { context },
-      );
+      await call(acpRouter.disconnect, { connectionId: "acp-1" }, { context });
 
       expect(context.acpConnectionManager.disconnect).toHaveBeenCalledWith("acp-1");
     });
