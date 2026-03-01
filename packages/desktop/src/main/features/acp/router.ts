@@ -4,7 +4,6 @@ import { acpContract } from "../../../shared/features/acp/contract";
 import { AGENT_OVERRIDES } from "./connection-manager";
 import type { AppContext } from "../../router";
 import type { AcpConnectionManager } from "./connection-manager";
-import type { AcpConnection } from "./connection";
 
 const os = implement({ acp: acpContract }).$context<AppContext>();
 const ACP_DEBUG = process.env.ACP_DEBUG === "1";
@@ -16,16 +15,6 @@ function acpLog(message: string, details?: Record<string, unknown>): void {
     return;
   }
   console.log(`[acp-router] ${message}`);
-}
-
-function getConnection(manager: AcpConnectionManager, connectionId: string): AcpConnection {
-  const conn = manager.get(connectionId);
-  if (!conn) {
-    throw new ORPCError("NOT_FOUND", {
-      message: `Unknown connection: ${connectionId}`,
-    });
-  }
-  return conn;
 }
 
 function buildPromptError(
@@ -80,7 +69,7 @@ export const acpRouter = os.acp.router({
 
   newSession: os.acp.newSession.handler(async ({ input, context }) => {
     acpLog("newSession: start", { connectionId: input.connectionId, cwd: input.cwd });
-    const conn = getConnection(context.acpConnectionManager, input.connectionId);
+    const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
 
     const result = await conn.client.createSession(input.cwd ?? process.cwd());
 
@@ -97,7 +86,7 @@ export const acpRouter = os.acp.router({
       sessionId: input.sessionId,
       promptLength: input.prompt.length,
     });
-    const conn = getConnection(context.acpConnectionManager, input.connectionId);
+    const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
 
     const done = new AbortController();
     if (signal) {
@@ -165,12 +154,12 @@ export const acpRouter = os.acp.router({
   }),
 
   resolvePermission: os.acp.resolvePermission.handler(({ input, context }) => {
-    const conn = getConnection(context.acpConnectionManager, input.connectionId);
+    const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
     conn.resolvePermission(input.requestId, input.optionId);
   }),
 
   cancel: os.acp.cancel.handler(async ({ input, context }) => {
-    const conn = getConnection(context.acpConnectionManager, input.connectionId);
+    const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
     try {
       await conn.client.cancel(input.sessionId);
     } catch (error) {

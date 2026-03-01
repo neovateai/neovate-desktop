@@ -1,6 +1,10 @@
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import { enableMapSet } from "immer";
 import type { AgentInfo, StreamEvent } from "../../../../shared/features/acp/types";
 import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
+
+enableMapSet();
 
 export type AcpMessage = {
   id: string;
@@ -35,6 +39,7 @@ type AcpState = {
   agents: AgentInfo[];
   sessions: Map<string, AcpSession>;
   activeSessionId: string | null;
+  _nextMessageId: number;
 
   setAgents: (agents: AgentInfo[]) => void;
   setActiveSession: (sessionId: string | null) => void;
@@ -47,146 +52,133 @@ type AcpState = {
   appendChunk: (sessionId: string, event: StreamEvent) => void;
 };
 
-let messageId = 0;
+export const useAcpStore = create<AcpState>()(
+  immer((set) => ({
+    agents: [],
+    sessions: new Map(),
+    activeSessionId: null,
+    _nextMessageId: 0,
 
-export const useAcpStore = create<AcpState>((set, get) => ({
-  agents: [],
-  sessions: new Map(),
-  activeSessionId: null,
+    setAgents: (agents) => set({ agents }),
 
-  setAgents: (agents) => set({ agents }),
+    setActiveSession: (sessionId) => set({ activeSessionId: sessionId }),
 
-  setActiveSession: (sessionId) => set({ activeSessionId: sessionId }),
-
-  createSession: (sessionId, connectionId) => {
-    const sessions = new Map(get().sessions);
-    sessions.set(sessionId, {
-      sessionId,
-      connectionId,
-      messages: [],
-      toolCalls: new Map(),
-      streaming: false,
-      promptError: null,
-      pendingPermission: null,
-    });
-    set({ sessions, activeSessionId: sessionId });
-  },
-
-  removeSession: (sessionId) => {
-    const sessions = new Map(get().sessions);
-    sessions.delete(sessionId);
-    const activeSessionId = get().activeSessionId === sessionId ? null : get().activeSessionId;
-    set({ sessions, activeSessionId });
-  },
-
-  addUserMessage: (sessionId, content) => {
-    const sessions = new Map(get().sessions);
-    const session = sessions.get(sessionId);
-    if (!session) return;
-
-    sessions.set(sessionId, {
-      ...session,
-      messages: [...session.messages, { id: String(++messageId), role: "user", content }],
-    });
-    set({ sessions });
-  },
-
-  setStreaming: (sessionId, streaming) => {
-    const sessions = new Map(get().sessions);
-    const session = sessions.get(sessionId);
-    if (!session) return;
-
-    sessions.set(sessionId, { ...session, streaming });
-    set({ sessions });
-  },
-
-  setPromptError: (sessionId, promptError) => {
-    const sessions = new Map(get().sessions);
-    const session = sessions.get(sessionId);
-    if (!session) return;
-
-    sessions.set(sessionId, { ...session, promptError });
-    set({ sessions });
-  },
-
-  setPendingPermission: (sessionId, perm) => {
-    const sessions = new Map(get().sessions);
-    const session = sessions.get(sessionId);
-    if (!session) return;
-
-    sessions.set(sessionId, { ...session, pendingPermission: perm });
-    set({ sessions });
-  },
-
-  appendChunk: (sessionId, event) => {
-    const sessions = new Map(get().sessions);
-    const session = sessions.get(sessionId);
-    if (!session) return;
-
-    if (event.type === "permission_request") {
-      sessions.set(sessionId, {
-        ...session,
-        pendingPermission: {
-          requestId: event.requestId,
-          data: event.data,
-        },
-      });
-      set({ sessions });
-      return;
-    }
-
-    // event.type === "acpx_event"
-    const acpxEvent = event.event;
-    const messages = [...session.messages];
-    const toolCalls = new Map(session.toolCalls);
-
-    switch (acpxEvent.type) {
-      case "output_delta": {
-        if (acpxEvent.data.stream === "output") {
-          const last = messages[messages.length - 1];
-          if (last && last.role === "assistant") {
-            messages[messages.length - 1] = {
-              ...last,
-              content: last.content + acpxEvent.data.text,
-            };
-          } else {
-            messages.push({
-              id: String(++messageId),
-              role: "assistant",
-              content: acpxEvent.data.text,
-            });
-          }
-        }
-        if (acpxEvent.data.stream === "thought") {
-          const last = messages[messages.length - 1];
-          if (last && last.role === "assistant") {
-            messages[messages.length - 1] = {
-              ...last,
-              thinking: (last.thinking ?? "") + acpxEvent.data.text,
-            };
-          } else {
-            messages.push({
-              id: String(++messageId),
-              role: "assistant",
-              content: "",
-              thinking: acpxEvent.data.text,
-            });
-          }
-        }
-        break;
-      }
-      case "tool_call": {
-        toolCalls.set(acpxEvent.data.tool_call_id, {
-          toolCallId: acpxEvent.data.tool_call_id,
-          title: acpxEvent.data.title ?? "",
-          kind: undefined,
-          status: acpxEvent.data.status,
+    createSession: (sessionId, connectionId) => {
+      set((state) => {
+        state.sessions.set(sessionId, {
+          sessionId,
+          connectionId,
+          messages: [],
+          toolCalls: new Map(),
+          streaming: false,
+          promptError: null,
+          pendingPermission: null,
         });
-        break;
-      }
-    }
+        state.activeSessionId = sessionId;
+      });
+    },
 
-    sessions.set(sessionId, { ...session, messages, toolCalls });
-    set({ sessions });
-  },
-}));
+    removeSession: (sessionId) => {
+      set((state) => {
+        state.sessions.delete(sessionId);
+        if (state.activeSessionId === sessionId) {
+          state.activeSessionId = null;
+        }
+      });
+    },
+
+    addUserMessage: (sessionId, content) => {
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) return;
+        state._nextMessageId += 1;
+        session.messages.push({
+          id: String(state._nextMessageId),
+          role: "user",
+          content,
+        });
+      });
+    },
+
+    setStreaming: (sessionId, streaming) => {
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.streaming = streaming;
+      });
+    },
+
+    setPromptError: (sessionId, promptError) => {
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.promptError = promptError;
+      });
+    },
+
+    setPendingPermission: (sessionId, perm) => {
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.pendingPermission = perm;
+      });
+    },
+
+    appendChunk: (sessionId, event) => {
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) return;
+
+        if (event.type === "permission_request") {
+          session.pendingPermission = {
+            requestId: event.requestId,
+            data: event.data,
+          };
+          return;
+        }
+
+        // event.type === "acpx_event"
+        const acpxEvent = event.event;
+
+        switch (acpxEvent.type) {
+          case "output_delta": {
+            if (acpxEvent.data.stream === "output") {
+              const last = session.messages[session.messages.length - 1];
+              if (last && last.role === "assistant") {
+                last.content += acpxEvent.data.text;
+              } else {
+                state._nextMessageId += 1;
+                session.messages.push({
+                  id: String(state._nextMessageId),
+                  role: "assistant",
+                  content: acpxEvent.data.text,
+                });
+              }
+            }
+            if (acpxEvent.data.stream === "thought") {
+              const last = session.messages[session.messages.length - 1];
+              if (last && last.role === "assistant") {
+                last.thinking = (last.thinking ?? "") + acpxEvent.data.text;
+              } else {
+                state._nextMessageId += 1;
+                session.messages.push({
+                  id: String(state._nextMessageId),
+                  role: "assistant",
+                  content: "",
+                  thinking: acpxEvent.data.text,
+                });
+              }
+            }
+            break;
+          }
+          case "tool_call": {
+            session.toolCalls.set(acpxEvent.data.tool_call_id, {
+              toolCallId: acpxEvent.data.tool_call_id,
+              title: acpxEvent.data.title ?? "",
+              kind: undefined,
+              status: acpxEvent.data.status,
+            });
+            break;
+          }
+        }
+      });
+    },
+  })),
+);

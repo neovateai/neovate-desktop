@@ -1,4 +1,5 @@
 import { AcpClient, resolveAgentCommand } from "acpx";
+import { ORPCError } from "@orpc/server";
 import { AcpConnection } from "./connection";
 import { getShellEnvironment } from "./shell-env";
 
@@ -56,6 +57,17 @@ export class AcpConnectionManager {
 
   get(id: string): AcpConnection | undefined {
     return this.connections.get(id)?.connection;
+  }
+
+  getOrThrow(id: string): AcpConnection {
+    const conn = this.connections.get(id);
+    if (!conn) {
+      throw new ORPCError("NOT_FOUND", {
+        defined: true,
+        message: `Unknown connection: ${id}`,
+      });
+    }
+    return conn.connection;
   }
 
   getClient(id: string): AcpClient | undefined {

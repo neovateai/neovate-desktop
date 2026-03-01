@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { isDefinedError } from "@orpc/client";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 
@@ -11,28 +12,6 @@ function acpPromptLog(message: string, details?: Record<string, unknown>) {
     return;
   }
   console.log(`[acp-prompt] ${message}`);
-}
-
-function getPromptErrorMessage(error: unknown): string {
-  if (error instanceof DOMException && error.name === "AbortError") {
-    return "";
-  }
-
-  if (error && typeof error === "object") {
-    const obj = error as { data?: { message?: unknown }; message?: unknown };
-    if (typeof obj.data?.message === "string" && obj.data.message.trim()) {
-      return obj.data.message;
-    }
-    if (typeof obj.message === "string" && obj.message.trim()) {
-      return obj.message;
-    }
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return "Agent request failed. Please try again.";
 }
 
 export function useAcpPrompt() {
@@ -84,15 +63,21 @@ export function useAcpPrompt() {
         }
         acpPromptLog("sendPrompt: completed", { connectionId, sessionId, eventCount });
       } catch (error) {
-        const message = getPromptErrorMessage(error);
-        if (message) {
-          useAcpStore.getState().setPromptError(sessionId, message);
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
         }
-        console.error("[acp-prompt] sendPrompt failed", {
-          connectionId,
-          sessionId,
-          error,
-        });
+
+        let message: string;
+        if (isDefinedError(error)) {
+          message = error.data?.message ?? error.message;
+        } else if (error instanceof Error) {
+          message = error.message;
+        } else {
+          message = "Agent request failed. Please try again.";
+        }
+
+        useAcpStore.getState().setPromptError(sessionId, message);
+        console.error("[acp-prompt] sendPrompt failed", { connectionId, sessionId, error });
       } finally {
         setStreaming(sessionId, false);
         abortRef.current = null;

@@ -1,16 +1,17 @@
 import { useCallback, useState } from "react";
+import { isDefinedError } from "@orpc/client";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 
 export function useAcpConnect() {
   const [connecting, setConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const createSession = useAcpStore((s) => s.createSession);
 
   const connect = useCallback(
     async (agentId: string, cwd?: string) => {
       setConnecting(true);
-      setError(null);
+      setConnectError(null);
       try {
         const { connectionId } = await client.acp.connect({ agentId, cwd });
         const { sessionId } = await client.acp.newSession({
@@ -19,13 +20,14 @@ export function useAcpConnect() {
         });
         createSession(sessionId, connectionId);
         return { connectionId, sessionId };
-      } catch (e) {
-        const message =
-          e && typeof e === "object" && "message" in e && typeof e.message === "string"
-            ? e.message
+      } catch (error) {
+        const message = isDefinedError(error)
+          ? error.message
+          : error instanceof Error
+            ? error.message
             : "Failed to connect to agent.";
-        setError(message);
-        throw e;
+        setConnectError(message);
+        throw error;
       } finally {
         setConnecting(false);
       }
@@ -33,5 +35,5 @@ export function useAcpConnect() {
     [createSession],
   );
 
-  return { connect, connecting, error };
+  return { connect, connecting, connectError };
 }

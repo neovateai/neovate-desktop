@@ -33,6 +33,7 @@
     "@orpc/server": "^1.13.5",
     "acpx": "github:neovateai/acpx#f6d1eed",
     "electron-updater": "^6.3.9",
+    "immer": "^11.1.4",
     "motion": "^12.34.3",
     "zod": "^4.3.6"
   },

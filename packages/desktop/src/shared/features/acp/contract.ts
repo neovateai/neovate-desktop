@@ -11,6 +11,10 @@ const promptErrorDataSchema = type<{
   unexpectedDuringPrompt?: boolean;
 }>();
 
+const connectionNotFoundError = {
+  NOT_FOUND: { message: "Unknown connection" },
+};
+
 export const acpContract = {
   listAgents: oc.output(type<AgentInfo[]>()),
 
@@ -20,6 +24,7 @@ export const acpContract = {
 
   newSession: oc
     .input(z.object({ connectionId: z.string(), cwd: z.string().optional() }))
+    .errors(connectionNotFoundError)
     .output(type<{ sessionId: string; modes?: string[] }>()),
 
   prompt: oc
@@ -31,6 +36,7 @@ export const acpContract = {
       }),
     )
     .errors({
+      ...connectionNotFoundError,
       BAD_GATEWAY: {
         message: "Agent prompt failed",
         data: promptErrorDataSchema,
@@ -46,11 +52,16 @@ export const acpContract = {
         optionId: z.string(),
       }),
     )
+    .errors(connectionNotFoundError)
     .output(type<void>()),
 
   cancel: oc
     .input(z.object({ connectionId: z.string(), sessionId: z.string() }))
+    .errors(connectionNotFoundError)
     .output(type<void>()),
 
-  disconnect: oc.input(z.object({ connectionId: z.string() })).output(type<void>()),
+  disconnect: oc
+    .input(z.object({ connectionId: z.string() }))
+    .errors(connectionNotFoundError)
+    .output(type<void>()),
 };
