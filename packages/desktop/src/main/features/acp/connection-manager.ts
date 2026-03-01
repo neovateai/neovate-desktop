@@ -38,6 +38,7 @@ export class AcpConnectionManager {
     const client = new AcpClient({
       agentCommand,
       cwd: cwd ?? process.cwd(),
+      // TODO: implement configurable permission policies (approve-all, approve-reads, deny-all)
       permissionMode: "approve-reads",
       extraEnv,
       onSessionUpdate: (notification) => connection.emitSessionUpdate(notification),

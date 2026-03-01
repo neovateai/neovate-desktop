@@ -76,8 +76,27 @@ export const acpRouter = os.acp.router({
     acpLog("newSession: success", {
       connectionId: input.connectionId,
       sessionId: result.sessionId,
+      agentSessionId: result.agentSessionId,
     });
-    return { sessionId: result.sessionId };
+    return { sessionId: result.sessionId, agentSessionId: result.agentSessionId };
+  }),
+
+  loadSession: os.acp.loadSession.handler(async ({ input, context }) => {
+    acpLog("loadSession: start", {
+      connectionId: input.connectionId,
+      sessionId: input.sessionId,
+      cwd: input.cwd,
+    });
+    const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
+
+    const result = await conn.client.loadSession(input.sessionId, input.cwd);
+
+    acpLog("loadSession: success", {
+      connectionId: input.connectionId,
+      sessionId: input.sessionId,
+      agentSessionId: result.agentSessionId,
+    });
+    return { sessionId: input.sessionId, agentSessionId: result.agentSessionId };
   }),
 
   prompt: os.acp.prompt.handler(async function* ({ input, signal, context }) {
