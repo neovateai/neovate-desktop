@@ -1,9 +1,11 @@
 import { call } from "@orpc/server";
-import { describe, expect, it } from "vitest";
-import { router, type AppDependencies } from "../router";
+import { describe, expect, it, vi } from "vitest";
+import { buildRouter, type AppDependencies } from "../router";
+
+const router = buildRouter(new Map());
 
 describe("main router context wiring", () => {
-  it("listAgents returns built-in agents from acpx registry", async () => {
+  it("listAgents returns built-in agents from acp registry", async () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
@@ -17,5 +19,19 @@ describe("main router context wiring", () => {
       expect(agent).toHaveProperty("id");
       expect(agent).toHaveProperty("name");
     }
+  });
+
+  it("ping returns pong", async () => {
+    const context = {
+      acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
+    } satisfies AppDependencies;
+    const result = await call(router.ping, undefined, { context });
+    expect(result).toBe("pong");
+  });
+
+  it("spreads plugin routers into root", () => {
+    const fakeRouter = { myHandler: vi.fn() } as any;
+    const r = buildRouter(new Map([["myPlugin", fakeRouter]]));
+    expect(r).toHaveProperty("myPlugin");
   });
 });
