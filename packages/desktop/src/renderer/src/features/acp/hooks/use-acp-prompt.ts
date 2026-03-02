@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { ORPCError } from "@orpc/client";
+import debug from "debug";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 
-const ACP_DEBUG = import.meta.env.DEV;
-
-function acpPromptLog(message: string, details?: Record<string, unknown>) {
-  if (!ACP_DEBUG) return;
-  if (details) {
-    console.log(`[acp-prompt] ${message}`, details);
-    return;
-  }
-  console.log(`[acp-prompt] ${message}`);
-}
+const acpPromptLog = debug("neovate:acp-prompt");
 
 export function useAcpPrompt() {
   const abortRef = useRef<AbortController | null>(null);

@@ -34,13 +34,15 @@ Flags for `bun ready`:
 
 ## Tips
 
-Enable ACP debug logs during development:
+Enable debug logs during development:
 
 ```sh
-ACP_DEBUG=1 bun dev 2>&1 | tee /tmp/dev.log
+DEBUG=neovate:* bun dev 2>&1 | tee /tmp/dev.log
 ```
 
 This prints logs to the terminal and saves them to `/tmp/dev.log` for searching with `grep` or `less`.
+
+You can filter by namespace (e.g. `DEBUG=neovate:acp-router` for just the router).
 
 ## Code Style
 

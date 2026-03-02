@@ -10,22 +10,14 @@ import {
   SESSION_RECORD_SCHEMA,
   type SessionRecord,
 } from "acpx";
+import debug from "debug";
 import { acpContract } from "../../../shared/features/acp/contract";
 import { AGENT_OVERRIDES } from "./connection-manager";
 import type { AppContext } from "../../router";
 import type { AcpConnectionManager } from "./connection-manager";
 
 const os = implement({ acp: acpContract }).$context<AppContext>();
-const ACP_DEBUG = process.env.ACP_DEBUG === "1";
-
-function acpLog(message: string, details?: Record<string, unknown>): void {
-  if (!ACP_DEBUG) return;
-  if (details) {
-    console.log(`[acp-router] ${message}`, details);
-    return;
-  }
-  console.log(`[acp-router] ${message}`);
-}
+const acpLog = debug("neovate:acp-router");
 
 function buildPromptError(
   error: unknown,

@@ -313,9 +313,9 @@ The renderer creates a `MessageChannel`, sends one port through the preload brid
 
 ## Debugging
 
-Set `ACP_DEBUG=1` to enable verbose logging in the main process router. Logs include connection lifecycle, first 10 events per prompt, error details with stderr and lifecycle snapshots.
+Set `DEBUG=neovate:*` to enable verbose logging via the [`debug`](https://www.npmjs.com/package/debug) package. Namespaces: `neovate:acp-router` (main process router), `neovate:orpc` (IPC bridge), `neovate:orpc:preload` (preload script), `neovate:acp-prompt` (renderer). Logs include connection lifecycle, first 10 events per prompt, error details with stderr and lifecycle snapshots.
 
-In the renderer, debug logging is enabled when `import.meta.env.DEV` is true (development mode).
+In the renderer, set `localStorage.debug = 'neovate:*'` in the browser console to enable debug output.
 
 ## acpx Library
 

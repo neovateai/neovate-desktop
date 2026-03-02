@@ -1,12 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
+import debug from "debug";
+
+const log = debug("neovate:orpc:preload");
 
 window.addEventListener("message", (event) => {
   if (event.data === "start-orpc-client") {
     const [serverPort] = event.ports;
-    if (process.env.ACP_DEBUG === "1") {
-      console.log("[orpc] preload forwarding start-orpc-server");
-    }
+    log("forwarding start-orpc-server");
     ipcRenderer.postMessage("start-orpc-server", null, [serverPort]);
   }
 });

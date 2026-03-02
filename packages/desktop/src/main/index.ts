@@ -4,10 +4,11 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { RPCHandler } from "@orpc/server/message-port";
 import { router } from "./router";
+import debug from "debug";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
 import type { AppContext } from "./router";
 
-const ACP_DEBUG = process.env.ACP_DEBUG === "1";
+const log = debug("neovate:orpc");
 
 if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
@@ -72,9 +73,7 @@ app.whenReady().then(() => {
 
   ipcMain.on("start-orpc-server", (event) => {
     const [serverPort] = event.ports;
-    if (ACP_DEBUG) {
-      console.log("[orpc] start-orpc-server received, upgrading message port");
-    }
+    log("start-orpc-server received, upgrading message port");
     handler.upgrade(serverPort, { context: appContext });
     serverPort.start();
   });
