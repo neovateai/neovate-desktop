@@ -24,9 +24,16 @@ export default function GitView() {
         <p className="text-xs text-muted-foreground">Not a git repository</p>
       ) : (
         <div className="flex flex-col gap-1 text-xs">
-          <p><span className="text-muted-foreground">Branch:</span> {status.branch}</p>
-          <p><span className="text-muted-foreground">Changed:</span> {status.changed} files</p>
-          <p><span className="text-muted-foreground">Ahead:</span> {status.ahead} <span className="text-muted-foreground">Behind:</span> {status.behind}</p>
+          <p>
+            <span className="text-muted-foreground">Branch:</span> {status.branch}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Changed:</span> {status.changed} files
+          </p>
+          <p>
+            <span className="text-muted-foreground">Ahead:</span> {status.ahead}{" "}
+            <span className="text-muted-foreground">Behind:</span> {status.behind}
+          </p>
         </div>
       )}
     </div>

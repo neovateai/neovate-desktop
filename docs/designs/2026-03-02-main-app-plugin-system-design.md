@@ -3,6 +3,7 @@
 ## Goal
 
 Redesign the Electron main process to mirror the renderer plugin system pattern:
+
 - `MainApp` class owns plugin lifecycle and IPC wiring
 - `BrowserWindowManager` manages window creation, tracking, and teardown
 - `PluginManager` collects plugin contributions and runs lifecycle hooks
@@ -114,6 +115,7 @@ export type MainPlugin = {
 ```
 
 Key decisions:
+
 - `PluginContext = { app: IMainApp, orpcServer }` — `orpcServer` is the host's oRPC builder, passed to avoid version mismatch in third-party plugins
 - `IMainApp` exposes `subscriptions` and `windowManager` — plugins can register cleanup and open windows
 - `IBrowserWindowManager` lives in `core/types.ts` so `IMainApp` can reference it without circular deps
@@ -126,13 +128,13 @@ Manages all `BrowserWindow` instances: the primary window and secondary windows 
 
 ### Primary vs Secondary
 
-| | Primary | Secondary |
-|---|---|---|
-| Created by | `MainApp.start()` | plugins/features via `open()` |
-| macOS close | **hide** (not destroy) | destroy + remove from Map |
-| Dock icon click | `win.show()` to restore | — |
-| State persistence | bounds only (`electron-store`) | none |
-| Quantity | exactly one | unlimited, keyed by `windowId` |
+|                   | Primary                        | Secondary                      |
+| ----------------- | ------------------------------ | ------------------------------ |
+| Created by        | `MainApp.start()`              | plugins/features via `open()`  |
+| macOS close       | **hide** (not destroy)         | destroy + remove from Map      |
+| Dock icon click   | `win.show()` to restore        | —                              |
+| State persistence | bounds only (`electron-store`) | none                           |
+| Quantity          | exactly one                    | unlimited, keyed by `windowId` |
 
 ### State Persistence
 
@@ -414,8 +416,8 @@ import type { AnyRouter } from "@orpc/server";
 export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
   return os.router({
     ping: os.ping.handler(() => "pong" as const),
-    acp: acpRouter,                          // hard-wired built-in
-    ...Object.fromEntries(pluginRouters),    // plugins spread alongside
+    acp: acpRouter, // hard-wired built-in
+    ...Object.fromEntries(pluginRouters), // plugins spread alongside
   });
 }
 ```
@@ -459,6 +461,7 @@ export class MainApp implements IMainApp {
 ```
 
 Key decisions:
+
 - `windowManager` is injected — not constructed inside `MainApp`
 - No `AppContext` on `MainApp` — only the transport needs it (to pass as RPC context)
 - No `#handler`, no `ipcMain` — transport is fully external
@@ -514,7 +517,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("before-quit", () => { void mainApp.stop(); });
+app.on("before-quit", () => {
+  void mainApp.stop();
+});
 ```
 
 **Node/WS equivalent** — same `MainApp`, different transport:
@@ -542,7 +547,12 @@ export type { IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions } f
 export { PluginManager } from "./plugin/plugin-manager";
 export { buildContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
 export type { Contributions } from "./plugin/contributions";
-export type { MainPlugin, MainPluginHooks, PluginContributions, PluginContext } from "./plugin/types";
+export type {
+  MainPlugin,
+  MainPluginHooks,
+  PluginContributions,
+  PluginContext,
+} from "./plugin/types";
 export { DisposableStore, toDisposable } from "./disposable";
 export type { Disposable } from "./disposable";
 ```

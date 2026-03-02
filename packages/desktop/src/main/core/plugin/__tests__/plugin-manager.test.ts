@@ -78,11 +78,19 @@ describe("PluginManager", () => {
       const slow: MainPlugin = {
         name: "slow",
         configContributions: () =>
-          new Promise((r) => setTimeout(() => { order.push("slow"); r({}); }, 10)),
+          new Promise((r) =>
+            setTimeout(() => {
+              order.push("slow");
+              r({});
+            }, 10),
+          ),
       };
       const fast: MainPlugin = {
         name: "fast",
-        configContributions: () => { order.push("fast"); return {}; },
+        configContributions: () => {
+          order.push("fast");
+          return {};
+        },
       };
 
       const manager = new PluginManager([slow, fast]);
@@ -98,7 +106,9 @@ describe("PluginManager", () => {
       const mkPlugin = (name: string, enforce?: "pre" | "post"): MainPlugin => ({
         name,
         enforce,
-        activate: () => { order.push(name); },
+        activate: () => {
+          order.push(name);
+        },
       });
 
       const manager = new PluginManager([

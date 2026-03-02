@@ -44,8 +44,13 @@ describe("MainApp", () => {
     const order: string[] = [];
     const plugin: MainPlugin = {
       name: "test",
-      configContributions: () => { order.push("config"); return {}; },
-      activate: () => { order.push("activate"); },
+      configContributions: () => {
+        order.push("config");
+        return {};
+      },
+      activate: () => {
+        order.push("activate");
+      },
     };
     const wm = makeWindowManager();
     (wm.createMainWindow as ReturnType<typeof vi.fn>).mockImplementation(() => {

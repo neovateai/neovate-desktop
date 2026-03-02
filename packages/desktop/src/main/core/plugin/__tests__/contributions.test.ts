@@ -23,7 +23,10 @@ describe("buildContributions", () => {
   it("handles multiple items with routers", () => {
     const r1 = {} as any;
     const r2 = {} as any;
-    const result = buildContributions([{ name: "p1", router: r1 }, { name: "p2", router: r2 }]);
+    const result = buildContributions([
+      { name: "p1", router: r1 },
+      { name: "p2", router: r2 },
+    ]);
     expect(result.routers.get("p1")).toBe(r1);
     expect(result.routers.get("p2")).toBe(r2);
   });
