@@ -19,16 +19,21 @@ Redesign the Electron main process to mirror the renderer plugin system pattern:
 ```
 src/main/
 ├── core/
-│   ├── types.ts              # MainPlugin, IMainApp, IBrowserWindowManager, PluginContext, AppContext, etc.
-│   ├── plugin-manager.ts     # PluginManager class
-│   ├── disposable.ts         # DisposableStore (mirrors renderer)
-│   └── index.ts              # barrel export (public SDK surface)
-├── app.ts                    # MainApp class (mirrors RendererApp)
-├── browser-window-manager.ts # BrowserWindowManager class
-├── router.ts                 # buildRouter(pluginRouters) — acp + ping hard-wired
-├── features/acp/             # unchanged
-├── plugins/system-info/      # example plugin
-└── index.ts                  # thin entry: Electron events + new MainApp(...).start()
+│   ├── types.ts                    # MainPlugin, IMainApp, IBrowserWindowManager, PluginContext, AppContext, etc.
+│   ├── plugin-manager.ts           # PluginManager class
+│   ├── browser-window-manager.ts   # BrowserWindowManager class
+│   ├── disposable.ts               # DisposableStore (mirrors renderer)
+│   └── index.ts                    # barrel export (public SDK surface)
+├── plugins/
+│   └── system-info/
+│       ├── index.ts                # MainPlugin definition
+│       └── __tests__/
+│           └── index.test.ts
+├── features/
+│   └── acp/                        # unchanged
+├── app.ts                          # MainApp class (mirrors RendererApp)
+├── router.ts                       # buildRouter(pluginRouters) — acp + ping hard-wired
+└── index.ts                        # thin entry: Electron events + new MainApp(...).start()
 ```
 
 ## Core Types
@@ -163,13 +168,13 @@ app.on("activate", () => {
 ### Full Implementation
 
 ```typescript
-// browser-window-manager.ts
+// core/browser-window-manager.ts
 import Store from "electron-store";
 import { join } from "path";
 import { shell, BrowserWindow } from "electron";
 import { is } from "@electron-toolkit/utils";
-import icon from "../../resources/icon.png?asset";
-import type { IBrowserWindowManager, OpenWindowOptions } from "./core/types";
+import icon from "../../../resources/icon.png?asset";
+import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 type WindowStore = { bounds: Electron.Rectangle };
 
@@ -466,7 +471,7 @@ Mirrors `renderer/src/core/index.ts`:
 ```typescript
 export { MainApp } from "../app";
 export type { MainAppOptions } from "../app";
-export { BrowserWindowManager } from "../browser-window-manager";
+export { BrowserWindowManager } from "./browser-window-manager";
 export type {
   IMainApp,
   IBrowserWindowManager,
