@@ -174,12 +174,12 @@ export interface PluginContext {
   app: IMainApp;
 }
 
-export interface MainPluginContributions {
+export interface PluginContributions {
   router?: AnyRouter;
 }
 
 export interface MainPluginHooks {
-  configContributions(ctx: PluginContext): MainPluginContributions | Promise<MainPluginContributions>;
+  configContributions(ctx: PluginContext): PluginContributions | Promise<PluginContributions>;
   activate(ctx: PluginContext): void | Promise<void>;
   deactivate(): void | Promise<void>;
 }
@@ -210,43 +210,39 @@ git commit -m "feat: add main plugin types in core/plugin/"
 - Create: `packages/desktop/src/main/core/plugin/contributions.ts`
 - Test: `packages/desktop/src/main/core/plugin/__tests__/contributions.test.ts`
 
-`mergeContributions` is a standalone utility — not a method on `PluginManager`. This matches how the renderer's `buildContributions` is a standalone function.
+`buildContributions` is a standalone utility — not a method on `PluginManager`. This matches how the renderer's `buildContributions` is a standalone function.
 
 **Step 1: Write the failing test**
 
 ```typescript
 // packages/desktop/src/main/core/plugin/__tests__/contributions.test.ts
 import { describe, it, expect } from "vitest";
-import { mergeContributions, EMPTY_CONTRIBUTIONS } from "../contributions";
-import type { MainPlugin } from "../types";
+import { buildContributions, EMPTY_CONTRIBUTIONS } from "../contributions";
+import type { PluginContributions } from "../types";
 
-describe("mergeContributions", () => {
+describe("buildContributions", () => {
   it("returns empty map when no routers", () => {
-    const plugins: MainPlugin[] = [{ name: "a" }, { name: "b" }];
-    const result = mergeContributions(plugins, [{}, null]);
+    const result = buildContributions([{ name: "a" }, { name: "b" }]);
     expect(result.routers.size).toBe(0);
   });
 
   it("maps router to plugin name", () => {
     const fakeRouter = { getInfo: {} } as any;
-    const plugins: MainPlugin[] = [{ name: "myPlugin" }];
-    const result = mergeContributions(plugins, [{ router: fakeRouter }]);
+    const result = buildContributions([{ name: "myPlugin", router: fakeRouter }]);
     expect(result.routers.get("myPlugin")).toBe(fakeRouter);
   });
 
-  it("skips plugins with no router in result", () => {
-    const plugins: MainPlugin[] = [{ name: "a" }, { name: "b" }];
+  it("skips items with no router", () => {
     const fakeRouter = {} as any;
-    const result = mergeContributions(plugins, [{}, { router: fakeRouter }]);
+    const result = buildContributions([{ name: "a" }, { name: "b", router: fakeRouter }]);
     expect(result.routers.size).toBe(1);
     expect(result.routers.get("b")).toBe(fakeRouter);
   });
 
-  it("handles multiple plugins with routers", () => {
+  it("handles multiple items with routers", () => {
     const r1 = {} as any;
     const r2 = {} as any;
-    const plugins: MainPlugin[] = [{ name: "p1" }, { name: "p2" }];
-    const result = mergeContributions(plugins, [{ router: r1 }, { router: r2 }]);
+    const result = buildContributions([{ name: "p1", router: r1 }, { name: "p2", router: r2 }]);
     expect(result.routers.get("p1")).toBe(r1);
     expect(result.routers.get("p2")).toBe(r2);
   });
@@ -269,27 +265,23 @@ Expected: FAIL — cannot resolve `../contributions`
 ```typescript
 // packages/desktop/src/main/core/plugin/contributions.ts
 import type { AnyRouter } from "@orpc/server";
-import type { MainPlugin, MainPluginContributions } from "./types";
+import type { PluginContributions } from "./types";
 
-export type MergedContributions = {
+export type Contributions = {
   routers: Map<string, AnyRouter>;
 };
 
-export function mergeContributions(
-  plugins: MainPlugin[],
-  results: (MainPluginContributions | null | undefined)[],
-): MergedContributions {
+export function buildContributions(
+  items: ({ name: string } & PluginContributions)[],
+): Contributions {
   const routers = new Map<string, AnyRouter>();
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result?.router) {
-      routers.set(plugins[i]!.name, result.router);
-    }
+  for (const { name, router } of items) {
+    if (router) routers.set(name, router);
   }
   return { routers };
 }
 
-export const EMPTY_CONTRIBUTIONS: MergedContributions = { routers: new Map() };
+export const EMPTY_CONTRIBUTIONS: Contributions = { routers: new Map() };
 ```
 
 **Step 4: Run tests to confirm they pass**
@@ -301,7 +293,7 @@ Expected: all PASS
 
 ```bash
 git add packages/desktop/src/main/core/plugin/contributions.ts packages/desktop/src/main/core/plugin/__tests__/contributions.test.ts
-git commit -m "feat: add mergeContributions utility and EMPTY_CONTRIBUTIONS"
+git commit -m "feat: add buildContributions utility and EMPTY_CONTRIBUTIONS"
 ```
 
 ---
@@ -312,7 +304,7 @@ git commit -m "feat: add mergeContributions utility and EMPTY_CONTRIBUTIONS"
 - Create: `packages/desktop/src/main/core/plugin/plugin-manager.ts`
 - Test: `packages/desktop/src/main/core/plugin/__tests__/plugin-manager.test.ts`
 
-`PluginManager` uses `mergeContributions` from `contributions.ts`. `configContributions` takes a `PluginContext` argument (slight divergence from renderer — renderer's `configContributions` takes no args).
+`PluginManager` uses `buildContributions` from `contributions.ts`. `configContributions` takes a `PluginContext` argument (slight divergence from renderer — renderer's `configContributions` takes no args).
 
 **Step 1: Write the failing test**
 
@@ -471,14 +463,14 @@ Expected: FAIL — cannot resolve `../plugin-manager`
 
 ```typescript
 // packages/desktop/src/main/core/plugin/plugin-manager.ts
-import { mergeContributions, EMPTY_CONTRIBUTIONS, type MergedContributions } from "./contributions";
+import { buildContributions, EMPTY_CONTRIBUTIONS, type Contributions } from "./contributions";
 import type { MainPlugin, PluginContext } from "./types";
 
 type HookFn = (...args: unknown[]) => unknown;
 
 export class PluginManager {
   readonly #plugins: MainPlugin[];
-  contributions: MergedContributions = EMPTY_CONTRIBUTIONS;
+  contributions: Contributions = EMPTY_CONTRIBUTIONS;
 
   constructor(rawPlugins: MainPlugin[] = []) {
     this.#plugins = [
@@ -496,10 +488,10 @@ export class PluginManager {
     const pluginsWithHook = this.#plugins.filter(
       (p) => typeof p.configContributions === "function",
     );
-    const results = await Promise.all(
-      pluginsWithHook.map((p) => p.configContributions!(ctx)),
+    const items = await Promise.all(
+      pluginsWithHook.map(async (p) => ({ name: p.name, ...(await p.configContributions!(ctx)) })),
     );
-    this.contributions = mergeContributions(pluginsWithHook, results);
+    this.contributions = buildContributions(items);
   }
 
   async activate(ctx: PluginContext): Promise<void> {
@@ -544,12 +536,12 @@ git commit -m "feat: add PluginManager with enforce ordering and lifecycle hooks
 ```typescript
 // packages/desktop/src/main/core/plugin/index.ts
 export { PluginManager } from "./plugin-manager";
-export { mergeContributions, EMPTY_CONTRIBUTIONS } from "./contributions";
-export type { MergedContributions } from "./contributions";
+export { buildContributions, EMPTY_CONTRIBUTIONS } from "./contributions";
+export type { Contributions } from "./contributions";
 export type {
   MainPlugin,
   MainPluginHooks,
-  MainPluginContributions,
+  PluginContributions,
   PluginContext,
 } from "./types";
 ```
@@ -1226,12 +1218,12 @@ export type { MainAppOptions } from "../app";
 export { BrowserWindowManager } from "./browser-window-manager";
 export type { IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions } from "./types";
 export { PluginManager } from "./plugin/plugin-manager";
-export { mergeContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
-export type { MergedContributions } from "./plugin/contributions";
+export { buildContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
+export type { Contributions } from "./plugin/contributions";
 export type {
   MainPlugin,
   MainPluginHooks,
-  MainPluginContributions,
+  PluginContributions,
   PluginContext,
 } from "./plugin/types";
 export { DisposableStore, toDisposable } from "./disposable";

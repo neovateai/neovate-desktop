@@ -20,8 +20,8 @@ Redesign the Electron main process to mirror the renderer plugin system pattern:
 src/main/
 ├── core/
 │   ├── plugin/
-│   │   ├── types.ts              # MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext
-│   │   ├── contributions.ts      # MergedContributions type + mergeContributions() util
+│   │   ├── types.ts              # MainPlugin, MainPluginHooks, PluginContributions, PluginContext
+│   │   ├── contributions.ts      # Contributions type + buildContributions() util
 │   │   ├── plugin-manager.ts     # PluginManager class
 │   │   └── index.ts              # plugin barrel
 │   ├── browser-window-manager.ts # BrowserWindowManager class
@@ -95,12 +95,12 @@ export interface PluginContext {
   app: IMainApp;
 }
 
-export interface MainPluginContributions {
+export interface PluginContributions {
   router?: AnyRouter;
 }
 
 export interface MainPluginHooks {
-  configContributions(ctx: PluginContext): MainPluginContributions | Promise<MainPluginContributions>;
+  configContributions(ctx: PluginContext): PluginContributions | Promise<PluginContributions>;
   activate(ctx: PluginContext): void | Promise<void>;
   deactivate(): void | Promise<void>;
 }
@@ -348,38 +348,34 @@ Mirrors the renderer's `contributions.ts`. Owns the merged contributions type an
 ```typescript
 // core/plugin/contributions.ts
 import type { AnyRouter } from "@orpc/server";
-import type { MainPlugin, MainPluginContributions } from "./types";
+import type { PluginContributions } from "./types";
 
-export type MergedContributions = {
+export type Contributions = {
   routers: Map<string, AnyRouter>;
 };
 
-export function mergeContributions(
-  plugins: MainPlugin[],
-  results: (MainPluginContributions | null | undefined)[],
-): MergedContributions {
+export function buildContributions(
+  items: ({ name: string } & PluginContributions)[],
+): Contributions {
   const routers = new Map<string, AnyRouter>();
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result?.router) {
-      routers.set(plugins[i]!.name, result.router);
-    }
+  for (const { name, router } of items) {
+    if (router) routers.set(name, router);
   }
   return { routers };
 }
 
-export const EMPTY_CONTRIBUTIONS: MergedContributions = { routers: new Map() };
+export const EMPTY_CONTRIBUTIONS: Contributions = { routers: new Map() };
 ```
 
 ### `core/plugin/plugin-manager.ts`
 
 ```typescript
 // core/plugin/plugin-manager.ts
-import { mergeContributions, EMPTY_CONTRIBUTIONS, type MergedContributions } from "./contributions";
+import { buildContributions, EMPTY_CONTRIBUTIONS, type Contributions } from "./contributions";
 
 export class PluginManager {
   readonly #plugins: MainPlugin[];
-  contributions: MergedContributions = EMPTY_CONTRIBUTIONS;
+  contributions: Contributions = EMPTY_CONTRIBUTIONS;
 
   constructor(rawPlugins: MainPlugin[] = []) {
     this.#plugins = [
@@ -390,7 +386,16 @@ export class PluginManager {
   }
 
   getPlugins(): readonly MainPlugin[] { return this.#plugins; }
-  async configContributions(ctx: PluginContext): Promise<void> { ... }
+
+  async configContributions(ctx: PluginContext): Promise<void> {
+    const pluginsWithHook = this.#plugins.filter((p) => typeof p.configContributions === "function");
+    const results = await Promise.all(pluginsWithHook.map(async (p) => ({
+      name: p.name,
+      ...(await p.configContributions!(ctx)),
+    })));
+    this.contributions = buildContributions(results);
+  }
+
   async activate(ctx: PluginContext): Promise<void> { ... }
   async deactivate(): Promise<void> { ... }
 }
@@ -531,9 +536,9 @@ export type { MainAppOptions } from "../app";
 export { BrowserWindowManager } from "./browser-window-manager";
 export type { IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions } from "./types";
 export { PluginManager } from "./plugin/plugin-manager";
-export { mergeContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
-export type { MergedContributions } from "./plugin/contributions";
-export type { MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext } from "./plugin/types";
+export { buildContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
+export type { Contributions } from "./plugin/contributions";
+export type { MainPlugin, MainPluginHooks, PluginContributions, PluginContext } from "./plugin/types";
 export { DisposableStore, toDisposable } from "./disposable";
 export type { Disposable } from "./disposable";
 ```
