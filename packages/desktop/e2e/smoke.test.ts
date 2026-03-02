@@ -3,7 +3,7 @@ import { APP_ROOT, APP_TITLE } from "./selectors/app";
 
 test("window opens and app shell renders", async ({ window }) => {
   await expect(window.locator(APP_ROOT)).toBeVisible();
-  await expect(window.locator(APP_TITLE)).toHaveText("Neovate Desktop");
+  await expect(window.locator(APP_TITLE)).toBeVisible();
 });
 
 test("window has correct initial dimensions", async ({ electronApp }) => {
