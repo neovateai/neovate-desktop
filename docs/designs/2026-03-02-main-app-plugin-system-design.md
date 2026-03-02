@@ -21,6 +21,7 @@ src/main/
 ├── core/
 │   ├── plugin/
 │   │   ├── types.ts              # MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext
+│   │   ├── contributions.ts      # MergedContributions type + mergeContributions() util
 │   │   ├── plugin-manager.ts     # PluginManager class
 │   │   └── index.ts              # plugin barrel
 │   ├── browser-window-manager.ts # BrowserWindowManager class
@@ -338,19 +339,47 @@ export default {
 } satisfies MainPlugin;
 ```
 
-## PluginManager
+## contributions.ts + PluginManager
 
-Lives in `core/plugin/plugin-manager.ts`. Mirrors the renderer `PluginManager`. One difference: contributions use `Map<string, AnyRouter>` keyed by plugin name, since routers must be namespaced in the root router.
+### `core/plugin/contributions.ts`
+
+Mirrors the renderer's `contributions.ts`. Owns the merged contributions type and the merge utility.
 
 ```typescript
-// core/plugin/plugin-manager.ts
+// core/plugin/contributions.ts
+import type { AnyRouter } from "@orpc/server";
+import type { MainPlugin, MainPluginContributions } from "./types";
+
 export type MergedContributions = {
   routers: Map<string, AnyRouter>;
 };
 
+export function mergeContributions(
+  plugins: MainPlugin[],
+  results: (MainPluginContributions | null | undefined)[],
+): MergedContributions {
+  const routers = new Map<string, AnyRouter>();
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result?.router) {
+      routers.set(plugins[i]!.name, result.router);
+    }
+  }
+  return { routers };
+}
+
+export const EMPTY_CONTRIBUTIONS: MergedContributions = { routers: new Map() };
+```
+
+### `core/plugin/plugin-manager.ts`
+
+```typescript
+// core/plugin/plugin-manager.ts
+import { mergeContributions, EMPTY_CONTRIBUTIONS, type MergedContributions } from "./contributions";
+
 export class PluginManager {
   readonly #plugins: MainPlugin[];
-  contributions: MergedContributions = { routers: new Map() };
+  contributions: MergedContributions = EMPTY_CONTRIBUTIONS;
 
   constructor(rawPlugins: MainPlugin[] = []) {
     this.#plugins = [
@@ -490,7 +519,8 @@ export type { MainAppOptions } from "../app";
 export { BrowserWindowManager } from "./browser-window-manager";
 export type { IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions } from "./types";
 export { PluginManager } from "./plugin/plugin-manager";
-export type { MergedContributions } from "./plugin/plugin-manager";
+export { mergeContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
+export type { MergedContributions } from "./plugin/contributions";
 export type { MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext } from "./plugin/types";
 export { DisposableStore, toDisposable } from "./disposable";
 export type { Disposable } from "./disposable";
