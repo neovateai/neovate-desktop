@@ -1,8 +1,19 @@
 import { useCallback, useState } from "react";
+import { Pin, PinOff, Archive, Copy, Plus } from "lucide-react";
 import { useAcpStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { client } from "../../../orpc";
 import { cn } from "../../../lib/utils";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuPopup,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "../../../components/ui/context-menu";
+import { Button } from "../../../components/ui/button";
+import type { AcpSession } from "../store";
+import type { SessionInfo } from "../../../../../shared/features/acp/types";
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -17,6 +28,99 @@ function timeAgo(iso: string): string {
   return `${months}mo ago`;
 }
 
+// ─── SessionItemRow ─────────────────────────────────────────────────
+
+function SessionItemRow({
+  sessionId,
+  title,
+  createdAt,
+  isActive,
+  isPinned,
+  isRestoring,
+  subtitle,
+  onClick,
+  projectPath,
+}: {
+  sessionId: string;
+  title?: string;
+  createdAt: string;
+  isActive: boolean;
+  isPinned: boolean;
+  isRestoring: boolean;
+  subtitle?: string;
+  onClick: () => void;
+  projectPath: string;
+}) {
+  const archiveSession = useProjectStore((s) => s.archiveSession);
+  const togglePinSession = useProjectStore((s) => s.togglePinSession);
+
+  const handleCopySessionId = () => {
+    navigator.clipboard.writeText(sessionId);
+  };
+
+  return (
+    <li>
+      <ContextMenu>
+        <ContextMenuTrigger
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors cursor-pointer group",
+            isActive
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/50",
+          )}
+          onClick={onClick}
+        >
+          <div className="flex-1 min-w-0">
+            <span className="block truncate">
+              {isRestoring ? "Restoring..." : title || sessionId.slice(0, 8)}
+            </span>
+            <span className="block truncate text-[10px] opacity-60">
+              {subtitle ? `${subtitle} · ` : ""}
+              {timeAgo(createdAt)}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="hidden shrink-0 group-hover:block"
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePinSession(projectPath, sessionId);
+            }}
+          >
+            {isPinned ? (
+              <PinOff size={12} strokeWidth={1.5} />
+            ) : (
+              <Pin size={12} strokeWidth={1.5} />
+            )}
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuPopup>
+          <ContextMenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
+            {isPinned ? (
+              <>
+                <PinOff size={14} /> Unpin
+              </>
+            ) : (
+              <>
+                <Pin size={14} /> Pin
+              </>
+            )}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => archiveSession(projectPath, sessionId)}>
+            <Archive size={14} /> Archive
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={handleCopySessionId}>
+            <Copy size={14} /> Copy session ID
+          </ContextMenuItem>
+        </ContextMenuPopup>
+      </ContextMenu>
+    </li>
+  );
+}
+
+// ─── SessionList ────────────────────────────────────────────────────
+
 export function SessionList() {
   const sessions = useAcpStore((s) => s.sessions);
   const activeSessionId = useAcpStore((s) => s.activeSessionId);
@@ -24,23 +128,23 @@ export function SessionList() {
   const agentSessions = useAcpStore((s) => s.agentSessions);
   const createSession = useAcpStore((s) => s.createSession);
   const appendChunk = useAcpStore((s) => s.appendChunk);
+  const connectionId = useAcpStore((s) => s.activeConnectionId);
+
   const activeProject = useProjectStore((s) => s.activeProject);
+  const archivedSessions = useProjectStore((s) => s.archivedSessions);
+  const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
 
   const [restoring, setRestoring] = useState<string | null>(null);
-
-  const connectionId = useAcpStore((s) => s.activeConnectionId);
 
   const loadSession = useCallback(
     async (sessionId: string) => {
       if (!connectionId) return;
-      // Already loaded in memory — just switch
       if (sessions.has(sessionId)) {
         setActiveSession(sessionId);
         return;
       }
       setRestoring(sessionId);
       try {
-        // Create the store session first so appendChunk has a target
         const info = agentSessions.find((s) => s.sessionId === sessionId);
         createSession(
           sessionId,
@@ -57,10 +161,9 @@ export function SessionList() {
         setRestoring(null);
       }
     },
-    [connectionId, sessions, setActiveSession, createSession, appendChunk, agentSessions],
+    [connectionId, sessions, setActiveSession, createSession, appendChunk, agentSessions, activeProject?.path],
   );
 
-  // No project selected — show nothing
   if (!activeProject) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -70,82 +173,105 @@ export function SessionList() {
   }
 
   const projectPath = activeProject.path;
+  const archived = new Set(archivedSessions[projectPath] ?? []);
+  const pinned = new Set(pinnedSessions[projectPath] ?? []);
   const matchesProject = (cwd?: string) => cwd?.startsWith(projectPath) ?? false;
+  const isArchived = (id: string) => archived.has(id);
+  const isPinned = (id: string) => pinned.has(id);
 
-  // In-memory session IDs for dedup
   const loadedIds = new Set(sessions.keys());
 
-  // Persisted sessions not already loaded, filtered by project
-  const persistedOnly = agentSessions.filter(
-    (s) => !loadedIds.has(s.sessionId) && matchesProject(s.cwd),
+  // In-memory sessions filtered by project, excluding archived
+  const allInMemory = Array.from(sessions.values()).filter(
+    (s) => matchesProject(s.cwd) && !isArchived(s.sessionId),
+  );
+  const pinnedInMemory = allInMemory.filter((s) => isPinned(s.sessionId));
+  const regularInMemory = allInMemory.filter((s) => !isPinned(s.sessionId));
+
+  // Persisted sessions not loaded, filtered by project, excluding archived
+  const allPersisted = agentSessions.filter(
+    (s) => !loadedIds.has(s.sessionId) && matchesProject(s.cwd) && !isArchived(s.sessionId),
+  );
+  const pinnedPersisted = allPersisted.filter((s) => isPinned(s.sessionId));
+  const regularPersisted = allPersisted.filter((s) => !isPinned(s.sessionId));
+
+  const hasPinned = pinnedInMemory.length > 0 || pinnedPersisted.length > 0;
+  const hasRegular = regularInMemory.length > 0;
+  const hasHistory = regularPersisted.length > 0;
+
+  const renderInMemory = (session: AcpSession) => (
+    <SessionItemRow
+      key={session.sessionId}
+      sessionId={session.sessionId}
+      title={session.title}
+      createdAt={session.createdAt}
+      isActive={session.sessionId === activeSessionId}
+      isPinned={isPinned(session.sessionId)}
+      isRestoring={false}
+      subtitle={`${session.messages.length} msg${session.messages.length !== 1 ? "s" : ""}${session.streaming ? " · streaming" : ""}`}
+      onClick={() => setActiveSession(session.sessionId)}
+      projectPath={projectPath}
+    />
   );
 
-  // In-memory sessions filtered by project
-  const inMemory = Array.from(sessions.values()).filter((s) => matchesProject(s.cwd));
-  const hasAnything = inMemory.length > 0 || persistedOnly.length > 0;
-
-  if (!hasAnything) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-xs text-muted-foreground">No sessions yet</p>
-      </div>
-    );
-  }
+  const renderPersisted = (info: SessionInfo) => (
+    <SessionItemRow
+      key={info.sessionId}
+      sessionId={info.sessionId}
+      title={info.title}
+      createdAt={info.createdAt}
+      isActive={false}
+      isPinned={isPinned(info.sessionId)}
+      isRestoring={restoring === info.sessionId}
+      onClick={() => loadSession(info.sessionId)}
+      projectPath={projectPath}
+    />
+  );
 
   return (
-    <div className="flex flex-col gap-1">
-      <ul className="flex flex-col gap-0.5">
-        {/* In-memory sessions */}
-        {inMemory.map((session) => (
-          <li key={session.sessionId}>
-            <button
-              type="button"
-              onClick={() => setActiveSession(session.sessionId)}
-              className={cn(
-                "w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                session.sessionId === activeSessionId
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50",
-              )}
-            >
-              <span className="block truncate font-mono">
-                {session.title || session.sessionId.slice(0, 8)}
-              </span>
-              <span className="block truncate text-[10px] opacity-60">
-                {session.messages.length} message{session.messages.length !== 1 && "s"}
-                {session.streaming && " \u00b7 streaming"}
-                {" \u00b7 "}
-                {timeAgo(session.createdAt)}
-              </span>
-            </button>
-          </li>
-        ))}
+    <div className="flex flex-1 flex-col gap-1">
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-1 w-full"
+        onClick={() => setActiveSession(null)}
+      >
+        <Plus size={14} />
+        <span>New Chat</span>
+      </Button>
 
-        {/* Persisted sessions (not yet loaded) */}
-        {persistedOnly.length > 0 && inMemory.length > 0 && (
-          <li className="px-2 pt-1">
-            <span className="text-[10px] text-muted-foreground">History</span>
-          </li>
+      <ul className="flex flex-col gap-0.5">
+        {hasPinned && (
+          <>
+            <li className="px-2 pt-2">
+              <span className="text-[10px] font-medium text-muted-foreground">Pinned</span>
+            </li>
+            {pinnedInMemory.map(renderInMemory)}
+            {pinnedPersisted.map(renderPersisted)}
+          </>
         )}
-        {persistedOnly.map((info) => (
-          <li key={info.sessionId}>
-            <button
-              type="button"
-              onClick={() => loadSession(info.sessionId)}
-              disabled={restoring === info.sessionId}
-              className="w-full rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/50"
-            >
-              <span className="block truncate">
-                {restoring === info.sessionId
-                  ? "Restoring..."
-                  : info.title || info.sessionId.slice(0, 8)}
-              </span>
-              <span className="block truncate text-[10px] opacity-60">
-                {timeAgo(info.createdAt)}
-              </span>
-            </button>
-          </li>
-        ))}
+
+        {hasRegular && (
+          <>
+            {hasPinned && (
+              <li className="px-2 pt-2">
+                <span className="text-[10px] font-medium text-muted-foreground">Recent</span>
+              </li>
+            )}
+            {regularInMemory.map(renderInMemory)}
+          </>
+        )}
+
+        {hasHistory && (
+          <>
+            {(hasRegular || hasPinned) && (
+              <li className="px-2 pt-2">
+                <span className="text-[10px] font-medium text-muted-foreground">History</span>
+              </li>
+            )}
+            {regularPersisted.map(renderPersisted)}
+          </>
+        )}
       </ul>
     </div>
   );

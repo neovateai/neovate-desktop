@@ -1,5 +1,4 @@
 import { AgentChat, SessionList } from "./features/acp";
-import { ProjectSelector } from "./features/project";
 import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
@@ -22,10 +21,6 @@ export default function App() {
 
       <AppLayoutPrimarySidebar>
         <div className="flex h-full flex-col p-3">
-          <div className="mb-3">
-            <ProjectSelector />
-          </div>
-          <h2 className="text-xs font-semibold text-muted-foreground">Sessions</h2>
           <SessionList />
         </div>
         <div className="mt-auto ml-auto px-1.5 pb-1.5">

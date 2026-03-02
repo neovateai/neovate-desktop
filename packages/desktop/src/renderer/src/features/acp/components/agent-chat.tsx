@@ -11,6 +11,7 @@ import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { PermissionDialog } from "./permission-dialog";
 import { Button } from "../../../components/ui/button";
+import { WelcomePanel } from "./welcome-panel";
 
 export function AgentChat() {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -127,11 +128,11 @@ export function AgentChat() {
     );
   }
 
-  // State 2: Connected but no session yet — show empty chat with input
+  // State 2: Connected but no session yet — show welcome panel with input
   if (!activeSession) {
     return (
       <div className="flex h-full flex-col">
-        <MessageList messages={[]} toolCalls={new Map()} />
+        <WelcomePanel />
         <MessageInput onSend={handleSend} onCancel={() => {}} streaming={false} />
       </div>
     );
