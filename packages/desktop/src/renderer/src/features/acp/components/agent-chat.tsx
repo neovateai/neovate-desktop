@@ -114,7 +114,7 @@ export function AgentChat() {
   };
 
   // State 1: No connection — show agent selector
-  if (!activeConnectionId && !activeSession) {
+  if (!activeConnectionId && !activeSession && !connecting) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8">
         <h2 className="text-xl font-semibold">Connect to an Agent</h2>
