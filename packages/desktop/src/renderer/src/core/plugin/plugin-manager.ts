@@ -1,5 +1,5 @@
 import type { PluginContributions } from "./contributions";
-import type { PluginContext, RendererPlugin } from "./types";
+import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 const EMPTY_CONTRIBUTIONS: Required<PluginContributions> = {
   activityBarItems: [],
@@ -30,6 +30,8 @@ function mergeContributions(items: PluginContributions[]): Required<PluginContri
   };
 }
 
+type HookFn = (...args: unknown[]) => unknown;
+
 export class PluginManager {
   readonly #plugins: RendererPlugin[];
   contributions: Required<PluginContributions> = EMPTY_CONTRIBUTIONS;
@@ -48,53 +50,48 @@ export class PluginManager {
 
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
-    const results = await this.applyParallel(
-      (plugin) => plugin.configContributions?.(),
+    const results = await this.applyParallel("configContributions");
+    this.contributions = mergeContributions(
+      results.filter((r): r is PluginContributions => r != null),
     );
-    this.contributions = mergeContributions(results);
   }
 
   /** Run activate hooks (series, enforce order) */
   async activate(ctx: PluginContext): Promise<void> {
-    await this.applySeries((plugin) => plugin.activate?.(ctx));
+    await this.applySeries("activate", ctx);
   }
 
   /** Run deactivate hooks (series) */
   async deactivate(): Promise<void> {
-    await this.applySeries((plugin) => plugin.deactivate?.());
+    await this.applySeries("deactivate");
   }
 
   // ─── Hook Runners ─────────────────────────────────────────────────
 
-  /** Run callback on first plugin that returns a non-null result */
-  private async applyFirst<T>(
-    fn: (plugin: RendererPlugin) => T | undefined,
-  ): Promise<NonNullable<Awaited<T>> | undefined> {
-    for (const plugin of this.#plugins) {
-      const result = await fn(plugin);
-      if (result != null) {
-        return result as NonNullable<Awaited<T>>;
-      }
-    }
-    return undefined;
-  }
-
-  /** Run callback sequentially on all plugins (enforce order) */
+  /** Run hook sequentially on all plugins (enforce order) */
   private async applySeries(
-    fn: (plugin: RendererPlugin) => void | Promise<void>,
+    hook: keyof RendererPluginHooks,
+    ...args: unknown[]
   ): Promise<void> {
     for (const plugin of this.#plugins) {
-      await fn(plugin);
+      const fn = plugin[hook] as HookFn | undefined;
+      if (typeof fn === "function") {
+        await fn.call(plugin, ...args);
+      }
     }
   }
 
-  /** Run callback on all plugins in parallel, collect non-null results */
-  private async applyParallel<T>(
-    fn: (plugin: RendererPlugin) => T | undefined,
-  ): Promise<NonNullable<Awaited<T>>[]> {
-    const results = await Promise.all(this.#plugins.map(fn));
-    return results.filter(
-      (r): r is NonNullable<Awaited<T>> => r != null,
-    );
+  /** Run hook on all plugins in parallel, collect results */
+  private async applyParallel(
+    hook: keyof RendererPluginHooks,
+    ...args: unknown[]
+  ): Promise<unknown[]> {
+    const promises = this.#plugins
+      .filter((plugin) => typeof plugin[hook] === "function")
+      .map((plugin) => {
+        const fn = plugin[hook] as HookFn;
+        return fn.call(plugin, ...args);
+      });
+    return Promise.all(promises);
   }
 }
