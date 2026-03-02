@@ -6,11 +6,6 @@ export type {
   RendererPluginHooks,
   PluginContext,
   PluginContributions,
-  ActivityBarItem,
-  SidebarPanel,
-  ContentPanel,
-  PluginTab,
-  TitlebarItem,
 } from "./plugin";
 export { PluginManager } from "./plugin";
 export type { Disposable } from "./disposable";
