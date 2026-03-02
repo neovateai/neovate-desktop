@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Create a plugin system for the Electron main process so that features (like ACP) are loaded as plugins with a unified activate/deactivate lifecycle and oRPC router contributions.
+**Goal:** Create a plugin system for the Electron main process that lets plugins register oRPC routers alongside built-in features. Built-in features (ping, acp) remain unchanged. Plugins extend the app with additional routes.
 
-**Architecture:** Plugins are objects with `name`, `configContributions(ctx)`, `activate(ctx)`, and `deactivate()` hooks. A `PluginManager` (mirroring the renderer pattern) collects router contributions in parallel, merges them into the root oRPC router, then activates plugins in enforce order. Plugin routers use closure-based context — they capture their dependencies via closures in `configContributions`, not via oRPC's `$context`. This makes plugins self-contained and independent of a shared context type.
+**Architecture:** Plugins are objects with `name`, `configContributions(ctx)`, `activate(ctx)`, and `deactivate()` hooks. A `PluginManager` (mirroring the renderer pattern) collects router contributions in parallel, then the root router merges built-in routes + plugin routes. Plugin routers use closure-based context (self-contained, no dependency on `AppContext`). A system-info plugin demonstrates the system.
 
 **Tech Stack:** TypeScript, oRPC, Electron, Vitest
 
@@ -22,6 +22,11 @@
 ```typescript
 // packages/desktop/src/main/core/types.ts
 import type { Router } from "@orpc/server";
+import type { AcpConnectionManager } from "../features/acp/connection-manager";
+
+export type AppContext = {
+  acpConnectionManager: AcpConnectionManager;
+};
 
 export interface MainPluginContributions {
   router?: Router<any, any>;
@@ -41,18 +46,14 @@ export interface MainPlugin extends Partial<MainPluginHooks> {
   name: string;
   enforce?: "pre" | "post";
 }
-
-export type AppContext = {
-  acpConnectionManager: import("../features/acp/connection-manager").AcpConnectionManager;
-};
 ```
 
-Note: `AppContext` moves here from `packages/desktop/src/main/router.ts:6-8`. The old `router.ts` will import from here instead.
+Note: `AppContext` moves here from `packages/desktop/src/main/router.ts:6-8`.
 
 **Step 2: Verify types compile**
 
 Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.node.json`
-Expected: no errors (may need to adjust import paths)
+Expected: no errors
 
 **Step 3: Commit**
 
@@ -78,7 +79,7 @@ import { PluginManager } from "../plugin-manager";
 import type { MainPlugin, PluginContext } from "../types";
 
 function makeCtx(): PluginContext {
-  return { appContext: { acpConnectionManager: {} } } as any;
+  return { appContext: {} } as any;
 }
 
 describe("PluginManager", () => {
@@ -255,513 +256,40 @@ git commit -m "feat: add PluginManager with enforce ordering and lifecycle hooks
 
 ---
 
-### Task 3: Create router builder from plugin contributions
+### Task 3: Update root router to merge built-in + plugin routes
 
 **Files:**
-- Create: `packages/desktop/src/main/core/router.ts`
-- Test: `packages/desktop/src/main/core/__tests__/router.test.ts`
+- Modify: `packages/desktop/src/main/router.ts`
 
-**Step 1: Write the failing test**
+The existing router statically wires `ping` + `acp`. We update it to also accept plugin routers and merge them in. The built-in routes stay exactly as they are (with `implement(contract).$context<AppContext>()`).
 
-```typescript
-// packages/desktop/src/main/core/__tests__/router.test.ts
-import { describe, it, expect } from "vitest";
-import { call } from "@orpc/server";
-import { buildRouter } from "../router";
-
-describe("buildRouter", () => {
-  it("includes ping handler", async () => {
-    const router = buildRouter(new Map());
-    const result = await call(router.ping, undefined, { context: {} });
-    expect(result).toBe("pong");
-  });
-
-  it("includes plugin routers under their name", () => {
-    const fakeRouter = { someHandler: "fake" };
-    const routers = new Map([["myPlugin", fakeRouter as any]]);
-    const router = buildRouter(routers);
-    expect(router.myPlugin).toBe(fakeRouter);
-  });
-});
-```
-
-**Step 2: Run test to verify it fails**
-
-Run: `cd packages/desktop && bunx vitest run src/main/core/__tests__/router.test.ts`
-Expected: FAIL — cannot resolve `../router`
-
-**Step 3: Write the router builder**
+**Step 1: Update router.ts**
 
 ```typescript
-// packages/desktop/src/main/core/router.ts
-import { os } from "@orpc/server";
+// packages/desktop/src/main/router.ts
+import { implement } from "@orpc/server";
 import type { Router } from "@orpc/server";
+import { contract } from "../shared/contract";
+import { acpRouter } from "./features/acp/router";
+import type { AppContext } from "./core/types";
 
-export function buildRouter(pluginRouters: Map<string, Router<any, any>>) {
-  return {
-    ping: os.handler(() => "pong" as const),
-    ...Object.fromEntries(pluginRouters),
-  };
-}
-```
+export type { AppContext } from "./core/types";
+export type AppDependencies = AppContext;
 
-Note: This replaces the old `packages/desktop/src/main/router.ts` which statically wired `ping` + `acp`. The contract in `src/shared/contract.ts` is unchanged — it still defines the shape for the renderer client.
+const os = implement(contract).$context<AppContext>();
 
-**Step 4: Run test to verify it passes**
-
-Run: `cd packages/desktop && bunx vitest run src/main/core/__tests__/router.test.ts`
-Expected: all PASS
-
-**Step 5: Commit**
-
-```bash
-git add packages/desktop/src/main/core/router.ts packages/desktop/src/main/core/__tests__/router.test.ts
-git commit -m "feat: add buildRouter to merge plugin routers into root"
-```
-
----
-
-### Task 4: Refactor ACP router to closure-based context
-
-**Files:**
-- Modify: `packages/desktop/src/main/features/acp/router.ts`
-- Modify: `packages/desktop/src/main/features/acp/__tests__/router.test.ts`
-
-The current ACP router uses oRPC's `$context<AppContext>()` to access `context.acpConnectionManager` in handlers. We refactor it to a factory function `createAcpRouter(connectionManager)` where handlers close over their dependencies. This also flattens the router — removes the `os.acp.` nesting since the plugin system namespaces by plugin name.
-
-**Step 1: Refactor router.ts to factory function with closures**
-
-Replace `packages/desktop/src/main/features/acp/router.ts`:
-
-```typescript
-// packages/desktop/src/main/features/acp/router.ts
-import { ORPCError } from "@orpc/server";
-import { os } from "@orpc/server";
-import { AgentSpawnError, listBuiltInAgents, formatErrorMessage } from "acpx";
-import type { AcpConnectionManager } from "./connection-manager";
-import { AGENT_OVERRIDES } from "./connection-manager";
-
-const ACP_DEBUG = process.env.ACP_DEBUG === "1";
-
-function acpLog(message: string, details?: Record<string, unknown>): void {
-  if (!ACP_DEBUG) return;
-  if (details) {
-    console.log(`[acp-router] ${message}`, details);
-    return;
-  }
-  console.log(`[acp-router] ${message}`);
-}
-
-function buildPromptError(
-  error: unknown,
-  manager: AcpConnectionManager,
-  connectionId: string,
-): ORPCError<"BAD_GATEWAY", unknown> {
-  const stderrTail = manager.getStderr(connectionId).slice(-20);
-  const lifecycle = manager.getClient(connectionId)?.getAgentLifecycleSnapshot();
-  const lastExit = lifecycle?.lastExit;
-  const message = formatErrorMessage(error);
-  return new ORPCError("BAD_GATEWAY", {
-    defined: true,
-    message,
-    data: {
-      source: "acp_agent" as const,
-      message,
-      stderrTail,
-      ...(lastExit
-        ? {
-            exitCode: lastExit.exitCode,
-            signal: lastExit.signal,
-            unexpectedDuringPrompt: lastExit.unexpectedDuringPrompt,
-          }
-        : {}),
-    },
-    cause: error instanceof Error ? error : undefined,
-  });
-}
-
-export function createAcpRouter(manager: AcpConnectionManager) {
+export function createRouter(pluginRouters: Map<string, Router<any, any>>) {
   return os.router({
-    listAgents: os.handler(() => {
-      return listBuiltInAgents(AGENT_OVERRIDES).map((name) => ({ id: name, name }));
-    }),
-
-    connect: os.handler(async ({ input }) => {
-      acpLog("connect: start", { agentId: input.agentId, cwd: input.cwd });
-
-      try {
-        const connection = await manager.connect(input.agentId, input.cwd);
-        acpLog("connect: success", { connectionId: connection.id, agentId: input.agentId });
-        return { connectionId: connection.id };
-      } catch (error) {
-        const message =
-          error instanceof AgentSpawnError || error instanceof Error
-            ? `Failed to start agent "${input.agentId}": ${error.message}`
-            : `Failed to start agent "${input.agentId}"`;
-        acpLog("connect: failed", { agentId: input.agentId, error: message });
-        throw new ORPCError("BAD_GATEWAY", { defined: true, message });
-      }
-    }),
-
-    newSession: os.handler(async ({ input }) => {
-      acpLog("newSession: start", { connectionId: input.connectionId, cwd: input.cwd });
-      const conn = manager.getOrThrow(input.connectionId);
-
-      const result = await conn.client.createSession(input.cwd ?? process.cwd());
-
-      acpLog("newSession: success", {
-        connectionId: input.connectionId,
-        sessionId: result.sessionId,
-      });
-      return { sessionId: result.sessionId };
-    }),
-
-    prompt: os.handler(async function* ({ input, signal }) {
-      acpLog("prompt: start", {
-        connectionId: input.connectionId,
-        sessionId: input.sessionId,
-        promptLength: input.prompt.length,
-      });
-      const conn = manager.getOrThrow(input.connectionId);
-
-      const done = new AbortController();
-      if (signal) {
-        signal.addEventListener("abort", () => done.abort(signal.reason), { once: true });
-      }
-
-      let stopReason: string | undefined;
-      let promptError: unknown;
-      let eventCount = 0;
-
-      const promptPromise = conn.client
-        .prompt(input.sessionId, input.prompt)
-        .then((result) => {
-          stopReason = result.stopReason;
-          acpLog("prompt: resolved", {
-            connectionId: input.connectionId,
-            sessionId: input.sessionId,
-            stopReason: result.stopReason,
-          });
-          done.abort("prompt_done");
-        })
-        .catch((error: unknown) => {
-          promptError = buildPromptError(error, manager, input.connectionId);
-          acpLog("prompt: rejected", {
-            connectionId: input.connectionId,
-            sessionId: input.sessionId,
-            error: formatErrorMessage(error),
-          });
-          done.abort("prompt_error");
-        });
-
-      const subscription = conn.subscribeSession(done.signal);
-
-      try {
-        for await (const event of subscription) {
-          eventCount += 1;
-          if (eventCount <= 10) {
-            acpLog("prompt: event", {
-              connectionId: input.connectionId,
-              sessionId: input.sessionId,
-              eventType: event.type,
-              eventCount,
-            });
-          }
-          yield event;
-        }
-      } catch (e: unknown) {
-        if (!done.signal.aborted) {
-          throw e;
-        }
-      } finally {
-        subscription.return(undefined);
-      }
-
-      await promptPromise;
-      if (promptError) throw promptError;
-
-      acpLog("prompt: done", {
-        connectionId: input.connectionId,
-        sessionId: input.sessionId,
-        eventCount,
-        stopReason: stopReason ?? "end_turn",
-      });
-      return { stopReason: stopReason ?? "end_turn" };
-    }),
-
-    resolvePermission: os.handler(({ input }) => {
-      const conn = manager.getOrThrow(input.connectionId);
-      conn.resolvePermission(input.requestId, input.optionId);
-    }),
-
-    cancel: os.handler(async ({ input }) => {
-      const conn = manager.getOrThrow(input.connectionId);
-      try {
-        await conn.client.cancel(input.sessionId);
-      } catch (error) {
-        acpLog("cancel: failed", {
-          connectionId: input.connectionId,
-          sessionId: input.sessionId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw error;
-      }
-    }),
-
-    disconnect: os.handler(async ({ input }) => {
-      try {
-        await manager.disconnect(input.connectionId);
-      } catch (error) {
-        acpLog("disconnect: failed", {
-          connectionId: input.connectionId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw error;
-      }
-    }),
+    ping: os.ping.handler(() => "pong" as const),
+    acp: acpRouter,
+    ...Object.fromEntries(pluginRouters),
   });
 }
 ```
 
-Key changes:
-- `implement({ acp: acpContract }).$context<AppContext>()` → `os` (plain, no contract, no context type)
-- `os.acp.X.handler(({ input, context }) => ...)` → `os.handler(({ input }) => ...)` — no more `context` param
-- All `context.acpConnectionManager` → `manager` (from closure)
-- Export `createAcpRouter` factory instead of `acpRouter` constant
+Key change: `router` constant → `createRouter(pluginRouters)` function. Built-in `ping` and `acp` are unchanged. Plugin routers are spread alongside them.
 
-**Step 2: Update tests to use factory function**
-
-Replace `packages/desktop/src/main/features/acp/__tests__/router.test.ts`:
-
-```typescript
-// packages/desktop/src/main/features/acp/__tests__/router.test.ts
-import { call } from "@orpc/server";
-import { ORPCError } from "@orpc/server";
-import { describe, it, expect, vi } from "vitest";
-import { createAcpRouter } from "../router";
-import { AcpConnection } from "../connection";
-import type { AcpConnectionManager } from "../connection-manager";
-
-function makeManager(overrides?: Partial<AcpConnectionManager>): AcpConnectionManager {
-  return {
-    connect: vi.fn(),
-    get: vi.fn(),
-    getOrThrow: vi.fn().mockImplementation((id: string) => {
-      throw new ORPCError("NOT_FOUND", { defined: true, message: `Unknown connection: ${id}` });
-    }),
-    getClient: vi.fn(),
-    getStderr: vi.fn().mockReturnValue([]),
-    disconnect: vi.fn(),
-    disconnectAll: vi.fn(),
-    ...overrides,
-  } as any;
-}
-
-describe("createAcpRouter", () => {
-  describe("listAgents", () => {
-    it("returns built-in agents", async () => {
-      const manager = makeManager();
-      const router = createAcpRouter(manager);
-      const agents = await call(router.listAgents, undefined);
-
-      expect(agents).toBeInstanceOf(Array);
-      expect(agents.length).toBeGreaterThan(0);
-      for (const agent of agents) {
-        expect(agent).toHaveProperty("id");
-        expect(agent).toHaveProperty("name");
-      }
-    });
-  });
-
-  describe("connect", () => {
-    it("returns connectionId on success", async () => {
-      const fakeConn = new AcpConnection("acp-42");
-      const manager = makeManager({
-        connect: vi.fn().mockResolvedValue(fakeConn),
-      });
-      const router = createAcpRouter(manager);
-
-      const result = await call(router.connect, { agentId: "test-agent" });
-
-      expect(result).toEqual({ connectionId: "acp-42" });
-    });
-
-    it("throws BAD_GATEWAY on AgentSpawnError", async () => {
-      const manager = makeManager({
-        connect: vi.fn().mockRejectedValue(new Error("ENOENT")),
-      });
-      const router = createAcpRouter(manager);
-
-      await expect(call(router.connect, { agentId: "bad-agent" })).rejects.toThrow(
-        ORPCError,
-      );
-    });
-  });
-
-  describe("newSession", () => {
-    it("creates session on valid connection", async () => {
-      const fakeConn = new AcpConnection("acp-1");
-      fakeConn.setClient({
-        createSession: vi.fn().mockResolvedValue({ sessionId: "s-123" }),
-      } as any);
-
-      const manager = makeManager({
-        getOrThrow: vi.fn().mockReturnValue(fakeConn),
-      });
-      const router = createAcpRouter(manager);
-
-      const result = await call(router.newSession, { connectionId: "acp-1" });
-
-      expect(result).toEqual({ sessionId: "s-123" });
-    });
-
-    it("throws NOT_FOUND for unknown connection", async () => {
-      const manager = makeManager();
-      const router = createAcpRouter(manager);
-
-      await expect(
-        call(router.newSession, { connectionId: "unknown" }),
-      ).rejects.toThrow(ORPCError);
-    });
-  });
-
-  describe("resolvePermission", () => {
-    it("calls resolvePermission on connection", async () => {
-      const fakeConn = new AcpConnection("acp-1");
-      vi.spyOn(fakeConn, "resolvePermission");
-
-      const manager = makeManager({
-        getOrThrow: vi.fn().mockReturnValue(fakeConn),
-      });
-      const router = createAcpRouter(manager);
-
-      await call(
-        router.resolvePermission,
-        { connectionId: "acp-1", requestId: "r1", optionId: "allow" },
-      );
-
-      expect(fakeConn.resolvePermission).toHaveBeenCalledWith("r1", "allow");
-    });
-
-    it("throws NOT_FOUND for unknown connection", async () => {
-      const manager = makeManager();
-      const router = createAcpRouter(manager);
-
-      await expect(
-        call(
-          router.resolvePermission,
-          { connectionId: "unknown", requestId: "r1", optionId: "allow" },
-        ),
-      ).rejects.toThrow(ORPCError);
-    });
-  });
-
-  describe("cancel", () => {
-    it("cancels session on valid connection", async () => {
-      const fakeConn = new AcpConnection("acp-1");
-      fakeConn.setClient({
-        cancel: vi.fn().mockResolvedValue(undefined),
-      } as any);
-
-      const manager = makeManager({
-        getOrThrow: vi.fn().mockReturnValue(fakeConn),
-      });
-      const router = createAcpRouter(manager);
-
-      await call(router.cancel, { connectionId: "acp-1", sessionId: "s1" });
-
-      expect(fakeConn.client.cancel).toHaveBeenCalledWith("s1");
-    });
-
-    it("throws NOT_FOUND for unknown connection", async () => {
-      const manager = makeManager();
-      const router = createAcpRouter(manager);
-
-      await expect(
-        call(router.cancel, { connectionId: "unknown", sessionId: "s1" }),
-      ).rejects.toThrow(ORPCError);
-    });
-  });
-
-  describe("disconnect", () => {
-    it("calls disconnect on manager", async () => {
-      const manager = makeManager({
-        disconnect: vi.fn().mockResolvedValue(undefined),
-      });
-      const router = createAcpRouter(manager);
-
-      await call(router.disconnect, { connectionId: "acp-1" });
-
-      expect(manager.disconnect).toHaveBeenCalledWith("acp-1");
-    });
-  });
-});
-```
-
-Key changes to tests:
-- `acpRouter` → `createAcpRouter(manager)` — creates router with mocked manager
-- `makeContext()` → `makeManager()` — mock the manager directly, no oRPC context wrapper
-- `call(router.X, input, { context })` → `call(router.X, input)` — no context needed
-
-**Step 3: Run tests**
-
-Run: `cd packages/desktop && bunx vitest run src/main/features/acp/__tests__/router.test.ts`
-Expected: all PASS
-
-**Step 4: Update the barrel export**
-
-In `packages/desktop/src/main/features/acp/index.ts`, replace:
-```typescript
-export { acpRouter } from "./router";
-```
-With:
-```typescript
-export { createAcpRouter } from "./router";
-```
-
-**Step 5: Commit**
-
-```bash
-git add packages/desktop/src/main/features/acp/router.ts packages/desktop/src/main/features/acp/__tests__/router.test.ts packages/desktop/src/main/features/acp/index.ts
-git commit -m "refactor: ACP router to closure-based context with factory function"
-```
-
----
-
-### Task 5: Create ACP plugin definition
-
-**Files:**
-- Create: `packages/desktop/src/main/plugins/acp/index.ts`
-
-The plugin creates the `AcpConnectionManager` and passes it to `createAcpRouter` via closure. The plugin owns the full lifecycle of its dependencies.
-
-**Step 1: Write the plugin definition**
-
-```typescript
-// packages/desktop/src/main/plugins/acp/index.ts
-import type { MainPlugin } from "../../core/types";
-import { AcpConnectionManager } from "../../features/acp/connection-manager";
-import { createAcpRouter } from "../../features/acp/router";
-
-let connectionManager: AcpConnectionManager;
-
-export default {
-  name: "acp",
-  configContributions: () => {
-    connectionManager = new AcpConnectionManager();
-    return {
-      router: createAcpRouter(connectionManager),
-    };
-  },
-  deactivate: async () => {
-    await connectionManager.disconnectAll();
-  },
-} satisfies MainPlugin;
-```
-
-Note: The `AcpConnectionManager` is now created and owned by the plugin, not by `index.ts`. This means `AppContext` no longer needs `acpConnectionManager` — we'll clean that up in Task 7.
-
-**Step 2: Verify it compiles**
+**Step 2: Verify types compile**
 
 Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.node.json`
 Expected: no errors
@@ -769,30 +297,18 @@ Expected: no errors
 **Step 3: Commit**
 
 ```bash
-git add packages/desktop/src/main/plugins/acp/index.ts
-git commit -m "feat: add ACP main plugin definition with closure-based router"
+git add packages/desktop/src/main/router.ts
+git commit -m "refactor: router accepts plugin routers alongside built-in routes"
 ```
 
 ---
 
-### Task 6: Wire PluginManager into main entry point
+### Task 4: Wire PluginManager into main entry point
 
 **Files:**
 - Modify: `packages/desktop/src/main/index.ts`
-- Modify: `packages/desktop/src/main/router.ts` (remove old static wiring, re-export AppContext from core)
 
-**Step 1: Update router.ts to re-export from core**
-
-Replace `packages/desktop/src/main/router.ts` with a thin re-export so existing imports (`import type { AppContext } from "../../router"`) keep working:
-
-```typescript
-// packages/desktop/src/main/router.ts
-export type { AppContext } from "./core/types";
-```
-
-**Step 2: Update index.ts to use PluginManager**
-
-Replace `packages/desktop/src/main/index.ts`:
+**Step 1: Update index.ts to use PluginManager**
 
 ```typescript
 import { app, shell, BrowserWindow, ipcMain } from "electron";
@@ -800,10 +316,10 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { RPCHandler } from "@orpc/server/message-port";
+import { createRouter } from "./router";
 import { PluginManager } from "./core/plugin-manager";
-import { buildRouter } from "./core/router";
-import type { PluginContext } from "./core/types";
-import acpPlugin from "./plugins/acp";
+import { AcpConnectionManager } from "./features/acp/connection-manager";
+import type { AppContext } from "./core/types";
 
 const ACP_DEBUG = process.env.ACP_DEBUG === "1";
 
@@ -811,13 +327,18 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
 }
 
-const pluginManager = new PluginManager([acpPlugin]);
+const connectionManager = new AcpConnectionManager();
+const appContext: AppContext = {
+  acpConnectionManager: connectionManager,
+};
+
+const pluginManager = new PluginManager([]);
 let handler: RPCHandler<any>;
 
 async function initPlugins(): Promise<void> {
-  const ctx: PluginContext = { appContext: {} as any };
+  const ctx = { appContext };
   await pluginManager.configContributions(ctx);
-  const router = buildRouter(pluginManager.contributions.routers);
+  const router = createRouter(pluginManager.contributions.routers);
   handler = new RPCHandler(router);
   await pluginManager.activate(ctx);
 }
@@ -869,7 +390,7 @@ app.whenReady().then(async () => {
     if (ACP_DEBUG) {
       console.log("[orpc] start-orpc-server received, upgrading message port");
     }
-    handler.upgrade(serverPort, { context: {} });
+    handler.upgrade(serverPort, { context: appContext });
     serverPort.start();
   });
 
@@ -888,76 +409,134 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   void pluginManager.deactivate();
+  void connectionManager.disconnectAll();
 });
 ```
 
 Key changes:
-- No more `AcpConnectionManager` or `appContext` in index.ts — the ACP plugin owns it
-- `handler.upgrade(serverPort, { context: {} })` — context is empty, plugins use closures
-- `app.on("before-quit")` calls `pluginManager.deactivate()` which triggers ACP cleanup
-- `initPlugins()` is called inside `app.whenReady()` before creating windows
+- Import `createRouter` instead of `router`
+- Create `PluginManager` (empty for now — system-info plugin added in Task 5)
+- `initPlugins()` collects contributions and builds router
+- `handler.upgrade` still passes `appContext` — built-in routes (acp) use it via `$context`
+- `before-quit` calls both `pluginManager.deactivate()` and `connectionManager.disconnectAll()`
 
-**Step 3: Run typecheck**
+**Step 2: Run typecheck**
 
 Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.node.json`
 Expected: no errors
 
-**Step 4: Run all tests**
+**Step 3: Run all tests**
 
 Run: `cd packages/desktop && bunx vitest run`
 Expected: all PASS
 
-**Step 5: Commit**
+**Step 4: Commit**
 
 ```bash
-git add packages/desktop/src/main/index.ts packages/desktop/src/main/router.ts
+git add packages/desktop/src/main/index.ts
 git commit -m "feat: wire PluginManager into main entry point"
 ```
 
 ---
 
-### Task 7: Clean up AppContext
+### Task 5: Create system-info example plugin
 
 **Files:**
-- Modify: `packages/desktop/src/main/core/types.ts`
+- Create: `packages/desktop/src/main/plugins/system-info/index.ts`
+- Test: `packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts`
 
-Since plugins now own their own state via closures, `AppContext` can be simplified. For now it becomes an empty extensible type — plugins don't need it for router context, but `PluginContext` still wraps it for any future shared state.
+A simple plugin that exposes system information via oRPC — demonstrates the plugin system end-to-end.
 
-**Step 1: Simplify AppContext**
+**Step 1: Write the failing test**
 
-In `packages/desktop/src/main/core/types.ts`, replace:
 ```typescript
-export type AppContext = {
-  acpConnectionManager: import("../features/acp/connection-manager").AcpConnectionManager;
-};
+// packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
+import { describe, it, expect } from "vitest";
+import { call } from "@orpc/server";
+import systemInfoPlugin from "..";
+import type { PluginContext } from "../../../core/types";
+
+describe("system-info plugin", () => {
+  it("has name 'systemInfo'", () => {
+    expect(systemInfoPlugin.name).toBe("systemInfo");
+  });
+
+  it("configContributions returns a router", async () => {
+    const ctx = { appContext: {} } as PluginContext;
+    const contributions = await systemInfoPlugin.configContributions!(ctx);
+    expect(contributions.router).toBeDefined();
+  });
+
+  it("router.getInfo returns system info", async () => {
+    const ctx = { appContext: {} } as PluginContext;
+    const contributions = await systemInfoPlugin.configContributions!(ctx);
+    const result = await call(contributions.router!.getInfo, undefined);
+
+    expect(result).toHaveProperty("platform");
+    expect(result).toHaveProperty("arch");
+    expect(result).toHaveProperty("nodeVersion");
+    expect(result).toHaveProperty("electronVersion");
+    expect(result).toHaveProperty("appVersion");
+    expect(typeof result.platform).toBe("string");
+    expect(typeof result.arch).toBe("string");
+  });
+});
 ```
-With:
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
+Expected: FAIL — cannot resolve `..`
+
+**Step 3: Write the plugin**
+
 ```typescript
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export type AppContext = {};
+// packages/desktop/src/main/plugins/system-info/index.ts
+import { os } from "@orpc/server";
+import { app } from "electron";
+import type { MainPlugin } from "../../core/types";
+
+export default {
+  name: "systemInfo",
+  configContributions: () => ({
+    router: os.router({
+      getInfo: os.handler(() => ({
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.versions.node,
+        electronVersion: process.versions.electron,
+        appVersion: app.getVersion(),
+      })),
+    }),
+  }),
+} satisfies MainPlugin;
 ```
 
-**Step 2: Run typecheck and tests**
+**Step 4: Run test to verify it passes**
 
-Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.node.json && bunx vitest run`
-Expected: no errors, all PASS
+Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
+Expected: all PASS (may need to mock `electron` — if `app.getVersion()` fails in test, mock it with `vi.mock("electron", ...)`)
 
-**Step 3: Commit**
+**Step 5: Register the plugin in index.ts**
+
+In `packages/desktop/src/main/index.ts`, add the import and register:
+
+```typescript
+import systemInfoPlugin from "./plugins/system-info";
+
+const pluginManager = new PluginManager([systemInfoPlugin]);
+```
+
+**Step 6: Commit**
 
 ```bash
-git add packages/desktop/src/main/core/types.ts
-git commit -m "refactor: simplify AppContext now that plugins own their state"
+git add packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts packages/desktop/src/main/index.ts
+git commit -m "feat: add system-info example plugin"
 ```
 
 ---
 
-### Task 8: Verify shared contract compatibility
-
-**Files:**
-- Read (no changes expected): `packages/desktop/src/shared/contract.ts`
-- Read (no changes expected): `packages/desktop/src/renderer/src/orpc.ts`
-
-The shared contract `{ ping, acp: acpContract }` and the renderer client `ContractRouterClient<typeof contract>` should still work because the merged router shape matches: `{ ping: handler, acp: { listAgents, connect, ... } }`.
+### Task 6: Verify full compatibility
 
 **Step 1: Run full typecheck (both node and web)**
 
@@ -972,12 +551,12 @@ Expected: all PASS
 **Step 3: Commit (only if any fixups were needed)**
 
 ```bash
-git commit -m "fix: ensure contract compatibility with plugin router"
+git commit -m "fix: ensure full compatibility with plugin system"
 ```
 
 ---
 
-### Task 9: Create core/index.ts barrel export
+### Task 7: Create core/index.ts barrel export
 
 **Files:**
 - Create: `packages/desktop/src/main/core/index.ts`
@@ -987,7 +566,6 @@ git commit -m "fix: ensure contract compatibility with plugin router"
 ```typescript
 // packages/desktop/src/main/core/index.ts
 export { PluginManager } from "./plugin-manager";
-export { buildRouter } from "./router";
 export type { MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext, AppContext } from "./types";
 ```
 
