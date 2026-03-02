@@ -11,6 +11,7 @@ function makeCtx(): PluginContext {
         createMainWindow: vi.fn(),
         open: vi.fn(),
         close: vi.fn(),
+        destroyAll: vi.fn(),
       },
     },
     orpcServer: { router: vi.fn(), handler: vi.fn() } as any,

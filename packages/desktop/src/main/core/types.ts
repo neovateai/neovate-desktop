@@ -25,6 +25,7 @@ export interface IBrowserWindowManager {
   createMainWindow(): BrowserWindow;
   open(options: OpenWindowOptions): void;
   close(windowId: string): void;
+  destroyAll(): void;
 }
 
 /** Abstract app interface — plugins depend on this, MainApp implements it. */
