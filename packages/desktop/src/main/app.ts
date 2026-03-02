@@ -5,10 +5,10 @@ import { DisposableStore } from "./core/disposable";
 import type { IBrowserWindowManager, IMainApp } from "./core/types";
 import type { MainPlugin } from "./core/plugin/types";
 import { buildRouter } from "./router";
+import { BrowserWindowManager } from "./core";
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];
-  windowManager: IBrowserWindowManager;
 }
 
 export class MainApp implements IMainApp {
@@ -24,7 +24,7 @@ export class MainApp implements IMainApp {
 
   constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
-    this.windowManager = options.windowManager;
+    this.windowManager = new BrowserWindowManager();
   }
 
   async start(): Promise<void> {
