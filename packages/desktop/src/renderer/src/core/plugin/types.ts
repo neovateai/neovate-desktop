@@ -1,10 +1,5 @@
 import type { PluginContributions } from "./contributions";
-import type { Disposable } from "../disposable";
-
-/** Plugin layer interface — RendererApp implements this */
-export interface IRendererApp {
-  readonly subscriptions: { push(...disposables: Disposable[]): void };
-}
+import type { IRendererApp } from "../types";
 
 export interface PluginContext {
   app: IRendererApp;

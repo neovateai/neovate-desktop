@@ -1,5 +1,6 @@
 export { RendererApp, useRendererApp } from "./app";
 export type { RendererAppOptions } from "./app";
+export type { IRendererApp } from "./types";
 export type {
   RendererPlugin,
   RendererPluginHooks,

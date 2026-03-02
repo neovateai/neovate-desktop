@@ -2,7 +2,8 @@ import { StrictMode, createContext, useContext } from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import { DisposableStore } from "./disposable";
-import type { IRendererApp, RendererPlugin } from "./plugin";
+import type { IRendererApp } from "./types";
+import type { RendererPlugin } from "./plugin";
 import { PluginManager } from "./plugin";
 
 const RendererAppContext = createContext<RendererApp | null>(null);
