@@ -30,6 +30,7 @@ Manage the first release checklist tracked in GitHub issue #15. Follow this proc
    - Show the updated status
 
 Rules:
+
 - NEVER close issue #15
 - NEVER remove items from the list — only move checked items to the Completed section
 - Keep the existing issue structure (## First Release Checklist, ### Completed, ### Pending, ### Technical Notes, etc.)
