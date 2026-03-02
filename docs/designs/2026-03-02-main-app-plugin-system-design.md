@@ -3,10 +3,10 @@
 ## Goal
 
 Redesign the Electron main process to mirror the renderer plugin system pattern:
-- `MainApp` class owns all lifecycle (mirrors `RendererApp`)
-- `BrowserWindowManager` manages window creation and tracking
+- `MainApp` class owns plugin lifecycle and IPC wiring
+- `BrowserWindowManager` manages window creation, tracking, and teardown
 - `PluginManager` collects plugin contributions and runs lifecycle hooks
-- `index.ts` is ultra-thin: `new MainApp(appContext, { plugins: [...] }).start()`
+- Electron process events (`app.whenReady`, `app.on(...)`) live in `index.ts`, not inside `MainApp`
 
 ## Non-Goals
 
@@ -19,7 +19,7 @@ Redesign the Electron main process to mirror the renderer plugin system pattern:
 ```
 src/main/
 ├── core/
-│   ├── types.ts              # MainPlugin, IMainApp, PluginContext, AppContext, etc.
+│   ├── types.ts              # MainPlugin, IMainApp, IBrowserWindowManager, PluginContext, AppContext, etc.
 │   ├── plugin-manager.ts     # PluginManager class
 │   ├── disposable.ts         # DisposableStore (mirrors renderer)
 │   └── index.ts              # barrel export (public SDK surface)
@@ -28,14 +28,15 @@ src/main/
 ├── router.ts                 # buildRouter(pluginRouters) — acp + ping hard-wired
 ├── features/acp/             # unchanged
 ├── plugins/system-info/      # example plugin
-└── index.ts                  # ultra-thin entry point
+└── index.ts                  # thin entry: Electron events + new MainApp(...).start()
 ```
 
 ## Core Types
 
 ```typescript
 // core/types.ts
-import type { Router } from "@orpc/server";
+import type { AnyRouter } from "@orpc/server";
+import type { BrowserWindow } from "electron";
 import type { AcpConnectionManager } from "../features/acp/connection-manager";
 import type { Disposable } from "./disposable";
 
@@ -43,8 +44,31 @@ export type AppContext = {
   acpConnectionManager: AcpConnectionManager;
 };
 
+export interface OpenWindowOptions {
+  /** Unique window ID — re-focuses existing window if already open */
+  windowId: string;
+  /** Passed to renderer via URL param — renderer uses this to decide what to render */
+  windowType: string;
+  width?: number;
+  height?: number;
+  title?: string;
+  /** If true, uses the main window as the parent (modal-style) */
+  parent?: boolean;
+  /** Additional URL search params passed to the renderer */
+  urlSearchParams?: Record<string, string>;
+}
+
+export interface IBrowserWindowManager {
+  readonly mainWindow: BrowserWindow | null;
+  createMainWindow(): BrowserWindow;
+  open(options: OpenWindowOptions): void;
+  close(windowId: string): void;
+}
+
+/** Abstract app interface — plugins depend on this, MainApp implements it */
 export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
+  readonly windowManager: IBrowserWindowManager;
 }
 
 export interface PluginContext {
@@ -52,7 +76,7 @@ export interface PluginContext {
 }
 
 export interface MainPluginContributions {
-  router?: Router<any, any>;
+  router?: AnyRouter;
 }
 
 export interface MainPluginHooks {
@@ -69,17 +93,174 @@ export type MainPlugin = {
 
 Key decisions:
 - `PluginContext = { app: IMainApp }` — exact mirror of renderer's `{ app: IRendererApp }`
-- `IMainApp` exposes only `subscriptions` — plugins don't need `AppContext`
-- `configContributions(ctx)` takes context (slight divergence from renderer where it takes no args) — kept to allow future plugins that need app access at contribution time
+- `IMainApp` exposes `subscriptions` and `windowManager` — plugins can register cleanup and open windows
+- `IBrowserWindowManager` is an interface in `core/types.ts` so `IMainApp` can reference it without circular deps
 - `AppContext` is internal — used by `MainApp` to wire built-in acp router, never exposed to plugins via `IMainApp`
+- `AnyRouter` instead of `Router<any, any>` — uses oRPC's own escape hatch type (`type AnyRouter = Router<any, any>`)
+
+## BrowserWindowManager
+
+Manages all `BrowserWindow` instances: the primary main window and any secondary windows opened by plugins or the app itself.
+
+```typescript
+// browser-window-manager.ts
+import { join } from "path";
+import { shell, BrowserWindow } from "electron";
+import { is } from "@electron-toolkit/utils";
+import icon from "../../resources/icon.png?asset";
+import type { IBrowserWindowManager, OpenWindowOptions } from "./core/types";
+
+export class BrowserWindowManager implements IBrowserWindowManager {
+  #mainWindow: BrowserWindow | null = null;
+  #windows = new Map<string, BrowserWindow>();
+
+  get mainWindow(): BrowserWindow | null {
+    return this.#mainWindow;
+  }
+
+  /** Create the primary app window */
+  createMainWindow(): BrowserWindow {
+    const win = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      minWidth: 900,
+      minHeight: 600,
+      show: false,
+      autoHideMenuBar: true,
+      titleBarStyle: "hiddenInset",
+      trafficLightPosition: { x: 16, y: 16 },
+      ...(process.platform === "linux" ? { icon } : {}),
+      webPreferences: {
+        preload: join(__dirname, "../preload/index.js"),
+        sandbox: false,
+      },
+    });
+
+    win.on("ready-to-show", () => win.show());
+
+    win.webContents.setWindowOpenHandler((details) => {
+      shell.openExternal(details.url);
+      return { action: "deny" };
+    });
+
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+    } else {
+      win.loadFile(join(__dirname, "../renderer/index.html"));
+    }
+
+    win.on("closed", () => {
+      this.#mainWindow = null;
+    });
+
+    this.#mainWindow = win;
+    return win;
+  }
+
+  /**
+   * Open a secondary window by ID.
+   * If a window with the same ID is already open and not destroyed, focuses it instead.
+   * The renderer reads `windowType` from URL params to decide what to render.
+   */
+  open(options: OpenWindowOptions): void {
+    const { windowId, windowType, width = 800, height = 600, title, parent = false } = options;
+
+    const existing = this.#windows.get(windowId);
+    if (existing && !existing.isDestroyed()) {
+      existing.focus();
+      return;
+    }
+    if (existing) this.#windows.delete(windowId);
+
+    const win = new BrowserWindow({
+      width,
+      height,
+      title: title ?? windowId,
+      show: false,
+      ...(parent && this.#mainWindow ? { parent: this.#mainWindow } : {}),
+      webPreferences: {
+        preload: join(__dirname, "../preload/index.js"),
+        sandbox: false,
+      },
+    });
+
+    win.on("ready-to-show", () => win.show());
+
+    const params = new URLSearchParams({
+      windowId,
+      windowType,
+      ...options.urlSearchParams,
+    });
+
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      const url = new URL(process.env["ELECTRON_RENDERER_URL"]);
+      url.search = params.toString();
+      win.loadURL(url.toString());
+    } else {
+      win.loadFile(join(__dirname, "../renderer/index.html"), {
+        search: params.toString(),
+      });
+    }
+
+    win.on("closed", () => this.#windows.delete(windowId));
+    win.webContents.on("did-fail-load", () => {
+      this.#windows.delete(windowId);
+      if (!win.isDestroyed()) win.close();
+    });
+
+    this.#windows.set(windowId, win);
+  }
+
+  /** Close a secondary window by ID */
+  close(windowId: string): void {
+    const win = this.#windows.get(windowId);
+    if (win && !win.isDestroyed()) win.close();
+  }
+
+  /** Destroy all windows — called on app quit */
+  destroyAll(): void {
+    if (this.#mainWindow && !this.#mainWindow.isDestroyed()) {
+      this.#mainWindow.destroy();
+      this.#mainWindow = null;
+    }
+    for (const win of this.#windows.values()) {
+      if (!win.isDestroyed()) win.destroy();
+    }
+    this.#windows.clear();
+  }
+}
+```
+
+### Plugin usage example
+
+A plugin that opens a settings window from an IPC handler:
+
+```typescript
+// plugins/settings/index.ts
+export default {
+  name: "settings",
+  activate({ app }) {
+    ipcMain.on("open-settings", () => {
+      app.windowManager.open({
+        windowId: "settings",
+        windowType: "settings",
+        width: 700,
+        height: 500,
+        title: "Settings",
+        parent: true,
+      });
+    });
+  },
+} satisfies MainPlugin;
+```
 
 ## PluginManager
 
-Mirrors the renderer `PluginManager` with one difference: contributions use `Map<string, Router>` (keyed by plugin name) instead of flat arrays, since routers must be namespaced in the root router.
+Mirrors the renderer `PluginManager`. One difference: contributions use `Map<string, AnyRouter>` keyed by plugin name, since routers must be namespaced in the root router.
 
 ```typescript
 export type MergedContributions = {
-  routers: Map<string, Router<any, any>>;
+  routers: Map<string, AnyRouter>;
 };
 
 export class PluginManager {
@@ -101,13 +282,15 @@ export class PluginManager {
 }
 ```
 
-After `configContributions`, `contributions.routers` maps `pluginName → Router`, used by `buildRouter`.
+After `configContributions`, `contributions.routers` maps `pluginName → AnyRouter`, used by `buildRouter`.
 
 ## Router
 
 ```typescript
 // router.ts
-export function buildRouter(pluginRouters: Map<string, Router<any, any>>) {
+import type { AnyRouter } from "@orpc/server";
+
+export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
   return os.router({
     ping: os.ping.handler(() => "pong" as const),
     acp: acpRouter,                          // hard-wired built-in
@@ -117,6 +300,8 @@ export function buildRouter(pluginRouters: Map<string, Router<any, any>>) {
 ```
 
 ## MainApp
+
+`MainApp` owns plugin lifecycle and IPC wiring. Electron process events live in `index.ts`.
 
 ```typescript
 // app.ts
@@ -139,11 +324,9 @@ export class MainApp implements IMainApp {
   }
 
   async start(): Promise<void> {
-    await app.whenReady();
     await this.#initPlugins();
     this.#registerIpc();
-    this.windowManager.createWindow();
-    this.#registerLifecycle();
+    this.windowManager.createMainWindow();
   }
 
   async stop(): Promise<void> {
@@ -153,59 +336,58 @@ export class MainApp implements IMainApp {
     void this.#appContext.acpConnectionManager.disconnectAll();
   }
 
-  #initPlugins = async (): Promise<void> => {
+  async #initPlugins(): Promise<void> {
     const ctx = { app: this };
     await this.pluginManager.configContributions(ctx);
     const router = buildRouter(this.pluginManager.contributions.routers);
     this.#handler = new RPCHandler(router);
     await this.pluginManager.activate(ctx);
-  };
+  }
 
-  #registerIpc = (): void => {
+  #registerIpc(): void {
     ipcMain.on("start-orpc-server", (event) => {
       const [serverPort] = event.ports;
       this.#handler!.upgrade(serverPort, { context: this.#appContext });
       serverPort.start();
     });
-  };
-
-  #registerLifecycle = (): void => {
-    app.on("window-all-closed", () => {
-      if (process.platform !== "darwin") app.quit();
-    });
-    app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) this.windowManager.createWindow();
-    });
-    app.on("before-quit", () => { void this.stop(); });
-  };
+  }
 }
 ```
 
-## BrowserWindowManager
+## Index
 
-Owns `BrowserWindow` creation, tracking, and teardown. Extracted from `index.ts`.
-
-```typescript
-export class BrowserWindowManager {
-  #mainWindow: BrowserWindow | null = null;
-
-  createWindow(): BrowserWindow { ... }
-  destroyAll(): void { ... }
-}
-```
-
-## Index (ultra-thin)
+Electron process events live here — `MainApp` stays pure and testable.
 
 ```typescript
 // index.ts
-import { MainApp } from "./app";
+import { app, BrowserWindow } from "electron";
+import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
+import { MainApp } from "./app";
 import systemInfoPlugin from "./plugins/system-info";
 
 const connectionManager = new AcpConnectionManager();
 const appContext = { acpConnectionManager: connectionManager };
+const mainApp = new MainApp(appContext, { plugins: [systemInfoPlugin] });
 
-new MainApp(appContext, { plugins: [systemInfoPlugin] }).start();
+app.whenReady().then(async () => {
+  electronApp.setAppUserModelId("com.electron");
+  app.on("browser-window-created", (_, window) => {
+    optimizer.watchWindowShortcuts(window);
+  });
+  await mainApp.start();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainApp.windowManager.createMainWindow();
+    }
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", () => { void mainApp.stop(); });
 ```
 
 ## Public Exports (`core/index.ts`)
@@ -215,10 +397,21 @@ Mirrors `renderer/src/core/index.ts`:
 ```typescript
 export { MainApp } from "../app";
 export type { MainAppOptions } from "../app";
-export type { IMainApp } from "./types";
-export type { MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext, AppContext } from "./types";
+export { BrowserWindowManager } from "../browser-window-manager";
+export type {
+  IMainApp,
+  IBrowserWindowManager,
+  MainPlugin,
+  MainPluginHooks,
+  MainPluginContributions,
+  PluginContext,
+  AppContext,
+  OpenWindowOptions,
+} from "./types";
 export { PluginManager } from "./plugin-manager";
+export type { MergedContributions } from "./plugin-manager";
 export { DisposableStore, toDisposable } from "./disposable";
+export type { Disposable } from "./disposable";
 ```
 
 ## Example Plugin (system-info)
@@ -233,7 +426,7 @@ export default {
         platform: process.platform,
         arch: process.arch,
         nodeVersion: process.versions.node,
-        electronVersion: process.versions.electron,
+        electronVersion: process.versions.electron ?? "",
         appVersion: app.getVersion(),
       })),
     }),
@@ -244,10 +437,15 @@ export default {
 ## Lifecycle
 
 1. `new MainApp(appContext, { plugins })` — construct, enforce ordering applied
-2. `app.whenReady()` — wait for Electron
-3. `pluginManager.configContributions(ctx)` — parallel — collect `Map<name, Router>`
-4. `buildRouter(routers)` — merge built-ins + plugin routers
-5. `new RPCHandler(router)` — ready to serve RPC
-6. `pluginManager.activate(ctx)` — series — side-effect setup
-7. `windowManager.createWindow()` — show UI
-8. `before-quit → stop()` — deactivate plugins, destroy windows, dispose subscriptions
+2. `app.whenReady()` — Electron ready (handled in `index.ts`)
+3. `mainApp.start()`:
+   - `pluginManager.configContributions(ctx)` — parallel — collect `Map<name, AnyRouter>`
+   - `buildRouter(routers)` — merge built-ins + plugin routers
+   - `new RPCHandler(router)` — ready to serve RPC
+   - `pluginManager.activate(ctx)` — series — side-effect setup
+   - `windowManager.createMainWindow()` — show UI
+4. `before-quit → mainApp.stop()` (in `index.ts`):
+   - `pluginManager.deactivate()` — series
+   - `windowManager.destroyAll()` — destroy all windows
+   - `subscriptions.dispose()` — run cleanup handlers
+   - `acpConnectionManager.disconnectAll()` — disconnect ACP
