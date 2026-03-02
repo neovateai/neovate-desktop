@@ -1,5 +1,8 @@
 import Store from "electron-store";
-import type { Project, ProjectStore as ProjectStoreSchema } from "../../../shared/features/project/types";
+import type {
+  Project,
+  ProjectStore as ProjectStoreSchema,
+} from "../../../shared/features/project/types";
 
 export class ProjectStore {
   private store: Store<ProjectStoreSchema>;

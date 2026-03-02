@@ -32,7 +32,11 @@ export function useAcpPrompt() {
         });
         resolvedSessionId = newSessionId;
         const projectPath = useProjectStore.getState().activeProject?.path;
-        createSession(resolvedSessionId, connectionId, projectPath ? { cwd: projectPath } : undefined);
+        createSession(
+          resolvedSessionId,
+          connectionId,
+          projectPath ? { cwd: projectPath } : undefined,
+        );
         acpPromptLog("sendPrompt: session created", { connectionId, sessionId: resolvedSessionId });
       }
 
