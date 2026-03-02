@@ -46,3 +46,34 @@ export interface TitlebarItem {
   order?: number;
   component: () => Promise<{ default: React.ComponentType }>;
 }
+
+export const EMPTY_CONTRIBUTIONS: Required<PluginContributions> = {
+  activityBarItems: [],
+  secondarySidebarPanels: [],
+  contentPanels: [],
+  primaryTitlebarItems: [],
+  secondaryTitlebarItems: [],
+};
+
+export function mergeContributions(
+  items: PluginContributions[],
+): Required<PluginContributions> {
+  const sortByOrder = <T extends { order?: number }>(list: T[]) =>
+    list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+
+  return {
+    activityBarItems: sortByOrder(
+      items.flatMap((r) => r.activityBarItems ?? []),
+    ),
+    secondarySidebarPanels: items.flatMap(
+      (r) => r.secondarySidebarPanels ?? [],
+    ),
+    contentPanels: items.flatMap((r) => r.contentPanels ?? []),
+    primaryTitlebarItems: sortByOrder(
+      items.flatMap((r) => r.primaryTitlebarItems ?? []),
+    ),
+    secondaryTitlebarItems: sortByOrder(
+      items.flatMap((r) => r.secondaryTitlebarItems ?? []),
+    ),
+  };
+}

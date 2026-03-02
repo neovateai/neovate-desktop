@@ -1,34 +1,6 @@
 import type { PluginContributions } from "./contributions";
+import { EMPTY_CONTRIBUTIONS, mergeContributions } from "./contributions";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
-
-const EMPTY_CONTRIBUTIONS: Required<PluginContributions> = {
-  activityBarItems: [],
-  secondarySidebarPanels: [],
-  contentPanels: [],
-  primaryTitlebarItems: [],
-  secondaryTitlebarItems: [],
-};
-
-function mergeContributions(items: PluginContributions[]): Required<PluginContributions> {
-  const sortByOrder = <T extends { order?: number }>(list: T[]) =>
-    list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-
-  return {
-    activityBarItems: sortByOrder(
-      items.flatMap((r) => r.activityBarItems ?? []),
-    ),
-    secondarySidebarPanels: items.flatMap(
-      (r) => r.secondarySidebarPanels ?? [],
-    ),
-    contentPanels: items.flatMap((r) => r.contentPanels ?? []),
-    primaryTitlebarItems: sortByOrder(
-      items.flatMap((r) => r.primaryTitlebarItems ?? []),
-    ),
-    secondaryTitlebarItems: sortByOrder(
-      items.flatMap((r) => r.secondaryTitlebarItems ?? []),
-    ),
-  };
-}
 
 type HookFn = (...args: unknown[]) => unknown;
 
