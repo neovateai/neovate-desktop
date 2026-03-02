@@ -7,6 +7,7 @@ import { AcpConnection } from "../connection";
 
 function makeContext(overrides?: Partial<AppContext["acpConnectionManager"]>): AppContext {
   return {
+    projectStore: {} as any,
     acpConnectionManager: {
       connect: vi.fn(),
       get: vi.fn(),

@@ -3,6 +3,7 @@ import { ORPCError } from "@orpc/client";
 import debug from "debug";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
+import { useProjectStore } from "../../project/store";
 
 const acpPromptLog = debug("neovate:acp-prompt");
 
@@ -30,7 +31,8 @@ export function useAcpPrompt() {
           connectionId,
         });
         resolvedSessionId = newSessionId;
-        createSession(resolvedSessionId, connectionId);
+        const projectPath = useProjectStore.getState().activeProject?.path;
+        createSession(resolvedSessionId, connectionId, projectPath ? { cwd: projectPath } : undefined);
         acpPromptLog("sendPrompt: session created", { connectionId, sessionId: resolvedSessionId });
       }
 

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
+import { useProjectStore } from "../../project/store";
 import { useAcpConnect } from "../hooks/use-acp-connect";
 import { useAcpPrompt } from "../hooks/use-acp-prompt";
 import { useAcpPermission } from "../hooks/use-acp-permission";
@@ -13,11 +14,14 @@ import { Button } from "../../../components/ui/button";
 
 export function AgentChat() {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const activeProjectPath = activeProject?.path ?? "";
   const [cwd, setCwd] = useState("");
 
   const agents = useAcpStore((s) => s.agents);
   const setAgents = useAcpStore((s) => s.setAgents);
   const activeSessionId = useAcpStore((s) => s.activeSessionId);
+  const setActiveSession = useAcpStore((s) => s.setActiveSession);
   const activeConnectionId = useAcpStore((s) => s.activeConnectionId);
   const sessions = useAcpStore((s) => s.sessions);
 
@@ -27,9 +31,28 @@ export function AgentChat() {
 
   const activeSession = activeSessionId ? sessions.get(activeSessionId) : undefined;
 
+  // Track the project path we last auto-connected for, to avoid re-triggering
+  const autoConnectedPathRef = useRef<string | null>(null);
+
   useEffect(() => {
     client.acp.listAgents().then(setAgents);
   }, [setAgents]);
+
+  useEffect(() => {
+    if (activeProjectPath) setCwd(activeProjectPath);
+    setActiveSession(null);
+  }, [activeProjectPath, setActiveSession]);
+
+  // Auto-connect to "claude" when a project is active and no connection exists
+  useEffect(() => {
+    if (!activeProjectPath) return;
+    if (activeConnectionId) return;
+    if (connecting) return;
+    if (autoConnectedPathRef.current === activeProjectPath) return;
+
+    autoConnectedPathRef.current = activeProjectPath;
+    connect("claude", activeProjectPath).catch(() => {});
+  }, [activeProjectPath, activeConnectionId, connecting, connect]);
 
   const handleConnect = async () => {
     if (!selectedAgentId) return;

@@ -6,6 +6,7 @@ import { RPCHandler } from "@orpc/server/message-port";
 import { router } from "./router";
 import debug from "debug";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
+import { ProjectStore } from "./features/project/project-store";
 import type { AppContext } from "./router";
 
 const log = debug("neovate:orpc");
@@ -15,8 +16,10 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
 }
 
 const connectionManager = new AcpConnectionManager();
+const projectStore = new ProjectStore();
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
+  projectStore,
 };
 
 const handler = new RPCHandler(router);

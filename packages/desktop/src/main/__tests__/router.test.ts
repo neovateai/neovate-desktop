@@ -6,6 +6,7 @@ describe("main router context wiring", () => {
   it("listAgents returns built-in agents from acpx registry", async () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
+      projectStore: {} as unknown as AppDependencies["projectStore"],
     } satisfies AppDependencies;
 
     const agents = await call(router.acp.listAgents, undefined, { context });

@@ -28,6 +28,7 @@ export type PendingPermission = {
 export type AcpSession = {
   sessionId: string;
   connectionId: string;
+  cwd?: string;
   title?: string;
   createdAt: string;
   messages: AcpMessage[];
@@ -52,7 +53,7 @@ type AcpState = {
   createSession: (
     sessionId: string,
     connectionId: string,
-    meta?: { title?: string; createdAt?: string },
+    meta?: { title?: string; createdAt?: string; cwd?: string },
   ) => void;
   removeSession: (sessionId: string) => void;
   addUserMessage: (sessionId: string, content: string) => void;
@@ -84,6 +85,7 @@ export const useAcpStore = create<AcpState>()(
         state.sessions.set(sessionId, {
           sessionId,
           connectionId,
+          cwd: meta?.cwd,
           title: meta?.title,
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           messages: [],

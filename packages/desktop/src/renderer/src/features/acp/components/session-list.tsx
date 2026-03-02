@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { useAcpStore } from "../store";
+import { useProjectStore } from "../../project/store";
 import { client } from "../../../orpc";
 import { cn } from "../../../lib/utils";
 
@@ -23,6 +24,7 @@ export function SessionList() {
   const agentSessions = useAcpStore((s) => s.agentSessions);
   const createSession = useAcpStore((s) => s.createSession);
   const appendChunk = useAcpStore((s) => s.appendChunk);
+  const activeProject = useProjectStore((s) => s.activeProject);
 
   const [restoring, setRestoring] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export function SessionList() {
         createSession(
           sessionId,
           connectionId,
-          info ? { title: info.title, createdAt: info.createdAt } : undefined,
+          info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
         const iterator = await client.acp.loadSession({ connectionId, sessionId });
         for await (const event of iterator) {
@@ -58,13 +60,28 @@ export function SessionList() {
     [connectionId, sessions, setActiveSession, createSession, appendChunk, agentSessions],
   );
 
+  // No project selected — show nothing
+  if (!activeProject) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-xs text-muted-foreground">Select a project</p>
+      </div>
+    );
+  }
+
+  const projectPath = activeProject.path;
+  const matchesProject = (cwd?: string) => cwd?.startsWith(projectPath) ?? false;
+
   // In-memory session IDs for dedup
   const loadedIds = new Set(sessions.keys());
 
-  // Persisted sessions not already loaded
-  const persistedOnly = agentSessions.filter((s) => !loadedIds.has(s.sessionId));
+  // Persisted sessions not already loaded, filtered by project
+  const persistedOnly = agentSessions.filter(
+    (s) => !loadedIds.has(s.sessionId) && matchesProject(s.cwd),
+  );
 
-  const inMemory = Array.from(sessions.values());
+  // In-memory sessions filtered by project
+  const inMemory = Array.from(sessions.values()).filter((s) => matchesProject(s.cwd));
   const hasAnything = inMemory.length > 0 || persistedOnly.length > 0;
 
   if (!hasAnything) {
