@@ -5,6 +5,9 @@ import { DisposableStore } from "./disposable";
 import type { IRendererApp } from "./types";
 import type { RendererPlugin } from "./plugin";
 import { PluginManager } from "./plugin";
+import App from "../App";
+import filesPlugin from "../plugins/files";
+import gitPlugin from "../plugins/git";
 
 const RendererAppContext = createContext<RendererApp | null>(null);
 
@@ -13,6 +16,8 @@ export function useRendererApp(): RendererApp {
   if (!app) throw new Error("useRendererApp must be used within RendererApp");
   return app;
 }
+
+const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin];
 
 export interface RendererAppOptions {
   plugins?: RendererPlugin[];
@@ -23,7 +28,7 @@ export class RendererApp implements IRendererApp {
   readonly subscriptions = new DisposableStore();
 
   constructor(options: RendererAppOptions = {}) {
-    this.pluginManager = new PluginManager(options.plugins ?? []);
+    this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
   }
 
   async start(): Promise<void> {
@@ -40,7 +45,6 @@ export class RendererApp implements IRendererApp {
   private async render(): Promise<void> {
     const root = document.getElementById("root");
     if (!root) throw new Error("Missing #root element");
-    const { default: App } = await import("../App");
     ReactDOM.createRoot(root).render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>

@@ -4,28 +4,26 @@ import type React from "react";
 
 export interface PluginContributions {
   activityBarItems?: ActivityBarItem[];
-  secondarySidebarPanels?: SidebarPanel[];
-  contentPanels?: ContentPanel[];
+  secondarySidebarViews?: SecondarySidebarView[];
+  contentPanelViews?: ContentPanelView[];
   primaryTitlebarItems?: TitlebarItem[];
   secondaryTitlebarItems?: TitlebarItem[];
 }
-
 export interface ActivityBarItem {
   id: string;
   icon: React.ComponentType<{ className?: string }>;
   tooltip: string;
   order?: number;
-  /** References a SidebarPanel.id */
-  panelId: string;
+  action:  { type: "secondarySidebarView"; viewId: string };
 }
 
-export interface SidebarPanel {
+export interface SecondarySidebarView {
   id: string;
   title: string;
   component: () => Promise<{ default: React.ComponentType }>;
 }
 
-export interface ContentPanel {
+export interface ContentPanelView {
   id: string;
   name: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -66,10 +64,10 @@ export function buildContributions(
     activityBarItems: sortByOrder(
       valid.flatMap((r) => r.activityBarItems ?? []),
     ),
-    secondarySidebarPanels: valid.flatMap(
-      (r) => r.secondarySidebarPanels ?? [],
+    secondarySidebarViews: valid.flatMap(
+      (r) => r.secondarySidebarViews ?? [],
     ),
-    contentPanels: valid.flatMap((r) => r.contentPanels ?? []),
+    contentPanelViews: valid.flatMap((r) => r.contentPanelViews ?? []),
     primaryTitlebarItems: sortByOrder(
       valid.flatMap((r) => r.primaryTitlebarItems ?? []),
     ),

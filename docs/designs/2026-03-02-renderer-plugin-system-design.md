@@ -18,7 +18,7 @@
 | Contributions API | `configContributions()` function returning object | Allows conditional contributions, still collected at boot |
 | Component props | `useRendererApp()` hook | No `app` prop drilling — components access app via context |
 | Built-in features | Plugins (e.g., `builtin:files`) | No hardcoded built-in vs plugin distinction in layout |
-| Activity bar | `panelId` references a SidebarPanel | VS Code pattern — activity bar items open sidebar panels |
+| Activity bar | `panelId` references a SecondarySidebarView | VS Code pattern — activity bar items open sidebar panels |
 | Lifecycle | `configContributions` → `activate` → `deactivate` | VS Code-inspired. `activate` receives `PluginContext` for future extensibility. |
 | i18n | Deferred | Will design `configI18n` hook later |
 
@@ -75,8 +75,8 @@ interface IRendererApp {
 ```typescript
 interface PluginContributions {
   activityBarItems?: ActivityBarItem[];
-  secondarySidebarPanels?: SidebarPanel[];
-  contentPanels?: ContentPanel[];
+  secondarySidebarViews?: SecondarySidebarView[];
+  contentViews?: ContentPanelView[];
   primaryTitlebarItems?: TitlebarItem[];
   secondaryTitlebarItems?: TitlebarItem[];
 }
@@ -86,17 +86,17 @@ interface ActivityBarItem {
   icon: React.ComponentType<{ className?: string }>;
   tooltip: string;
   order?: number;
-  /** References a SidebarPanel.id */
+  /** References a SecondarySidebarView.id */
   panelId: string;
 }
 
-interface SidebarPanel {
+interface SecondarySidebarView {
   id: string;
   title: string;
   component: () => Promise<{ default: React.ComponentType }>;
 }
 
-interface ContentPanel {
+interface ContentPanelView {
   id: string;
   name: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -174,7 +174,7 @@ function useRendererApp(): RendererApp;
 // In any component:
 function MyComponent() {
   const app = useRendererApp();
-  const panels = app.pluginManager.contributions.secondarySidebarPanels;
+  const panels = app.pluginManager.contributions.secondarySidebarViews;
 }
 ```
 
@@ -193,7 +193,7 @@ export const filesPlugin: RendererPlugin = {
       activityBarItems: [
         { id: 'files', icon: FolderIcon, tooltip: 'Files', order: 10, panelId: 'files-panel' },
       ],
-      secondarySidebarPanels: [
+      secondarySidebarViews: [
         { id: 'files-panel', title: 'Files', component: () => import('./FileTree') },
       ],
     };
@@ -231,7 +231,7 @@ function ActivityBar() {
 function SecondarySidebar() {
   const app = useRendererApp();
   const activeTab = useStore(s => s.secondarySidebarTab);
-  const panel = app.pluginManager.contributions.secondarySidebarPanels.find(p => p.id === activeTab);
+  const panel = app.pluginManager.contributions.secondarySidebarViews.find(p => p.id === activeTab);
   if (!panel) return null;
   const Component = lazy(panel.component);
   return (
@@ -252,7 +252,7 @@ function SecondarySidebar() {
 |---|---|---|
 | Contribution merging | `PluginConfigContribution[]` — layout flatMaps every render | `Required<PluginContributions>` — pre-merged, flat arrays |
 | Built-in features | Hardcoded in layout, plugin items appended | Everything is a plugin (`builtin:*` naming convention) |
-| Activity bar coupling | `secondarySidebarPanelId` | `panelId` (same concept, cleaner name) |
+| Activity bar coupling | `secondarySecondarySidebarViewId` | `panelId` (same concept, cleaner name) |
 | Component props | `{ app: RendererApp }` passed as prop | `useRendererApp()` hook — no prop drilling |
 | Lifecycle | `configI18n`, `configContributes`, `beforeRender` | `configContributions`, `activate({ app })`, `deactivate()` |
 | Plugin context | `{ app }` only | `app.subscriptions` on the app instance |
@@ -280,14 +280,14 @@ export const notesPlugin: RendererPlugin = {
           panelId: 'notes-panel',
         },
       ],
-      secondarySidebarPanels: [
+      secondarySidebarViews: [
         {
           id: 'notes-panel',
           title: 'Notes',
           component: () => import('./NotesSidebar'),
         },
       ],
-      contentPanels: [
+      contentViews: [
         {
           id: 'note-editor',
           name: 'Note Editor',

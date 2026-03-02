@@ -1,4 +1,4 @@
-import { buildContributions } from "./contributions";
+import { buildContributions, PluginContributions } from "./contributions";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 type HookFn = (...args: unknown[]) => unknown;

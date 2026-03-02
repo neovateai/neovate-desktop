@@ -2,16 +2,16 @@ import { describe, it, expect, vi } from "vitest";
 import { PluginManager } from "../plugin/plugin-manager";
 import type { IRendererApp } from "../types";
 import type { RendererPlugin } from "../plugin";
-import type { SidebarPanel, ContentPanel } from "../plugin/contributions";
+import type { SecondarySidebarView, ContentPanelView } from "../plugin/contributions";
 
 function createMockApp(): IRendererApp {
   return { subscriptions: { push: vi.fn() } };
 }
 
-const mockComponent: SidebarPanel["component"] = () =>
+const mockComponent: SecondarySidebarView["component"] = () =>
   Promise.resolve({ default: () => null });
 
-const mockContentComponent: ContentPanel["component"] = () =>
+const mockContentComponent: ContentPanelView["component"] = () =>
   Promise.resolve({ default: () => null });
 
 describe("PluginManager", () => {
@@ -34,19 +34,19 @@ describe("PluginManager", () => {
         {
           name: "a",
           configContributions: () => ({
-            secondarySidebarPanels: [{ id: "a", title: "A", component: mockComponent }],
+            secondarySidebarViews: [{ id: "a", title: "A", component: mockComponent }],
           }),
         },
         {
           name: "b",
           configContributions: () => ({
-            secondarySidebarPanels: [{ id: "b", title: "B", component: mockComponent }],
+            secondarySidebarViews: [{ id: "b", title: "B", component: mockComponent }],
           }),
         },
       ];
       const pm = new PluginManager(plugins);
       await pm.configContributions();
-      expect(pm.contributions.secondarySidebarPanels).toHaveLength(2);
+      expect(pm.contributions.secondarySidebarViews).toHaveLength(2);
     });
 
     it("sorts activityBarItems by order", async () => {
@@ -55,8 +55,8 @@ describe("PluginManager", () => {
         name: "test",
         configContributions: () => ({
           activityBarItems: [
-            { id: "z", icon: MockIcon, tooltip: "Z", panelId: "z", order: 30 },
-            { id: "a", icon: MockIcon, tooltip: "A", panelId: "a", order: 10 },
+            { id: "z", icon: MockIcon, tooltip: "Z", action: { type: "secondarySidebarView", viewId: "z" }, order: 30 },
+            { id: "a", icon: MockIcon, tooltip: "A", action: { type: "secondarySidebarView", viewId: "a" }, order: 10 },
           ],
         }),
       }]);
@@ -69,19 +69,19 @@ describe("PluginManager", () => {
       const pm = new PluginManager([]);
       await pm.configContributions();
       expect(pm.contributions.activityBarItems).toEqual([]);
-      expect(pm.contributions.secondarySidebarPanels).toEqual([]);
-      expect(pm.contributions.contentPanels).toEqual([]);
+      expect(pm.contributions.secondarySidebarViews).toEqual([]);
+      expect(pm.contributions.contentPanelViews).toEqual([]);
     });
 
     it("skips plugins without configContributions", async () => {
       const pm = new PluginManager([
         { name: "no-hook" },
         { name: "has-hook", configContributions: () => ({
-          contentPanels: [{ id: "p", name: "P", component: mockContentComponent }],
+          contentPanelViews: [{ id: "p", name: "P", component: mockContentComponent }],
         }) },
       ]);
       await pm.configContributions();
-      expect(pm.contributions.contentPanels).toHaveLength(1);
+      expect(pm.contributions.contentPanelViews).toHaveLength(1);
     });
   });
 

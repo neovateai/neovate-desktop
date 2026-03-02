@@ -137,8 +137,12 @@ export function AppLayoutSecondaryTitleBar() {
   );
 }
 
-export function AppLayoutPanelSeparator({ panelId }: { panelId: string }) {
-  const collapsed = useLayoutStore((s) => s.panels[panelId]?.collapsed);
+export function AppLayoutPanelSeparator({
+  panelId,
+}: {
+  panelId: "primarySidebar" | "contentPanel" | "secondarySidebar";
+}) {
+  const collapsed = useLayoutStore((s) => s.panels[panelId].collapsed);
   if (collapsed) return null;
   return <div className="w-[5px] shrink-0" />;
 }
