@@ -1,5 +1,7 @@
 import { type ReactNode } from "react";
 import {
+  ArrowDown01Icon,
+  FolderIcon,
   PanelLeftIcon,
   PanelRightIcon,
   Settings01Icon,
@@ -9,6 +11,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { Button } from "../ui/button";
+import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
 import { OpenAppButton } from "../../features/open-in";
 import { useLayoutStore } from "./use-layout-store";
@@ -95,14 +98,23 @@ export function AppLayoutTrafficLights() {
 }
 
 export function AppLayoutPrimaryTitleBar() {
+  const activeProject = useProjectStore((s) => s.activeProject);
+
   return (
     <div
       data-slot="primary-titlebar"
       className="[-webkit-app-region:no-drag] relative flex shrink-0 items-center gap-1"
     >
-      <span data-testid="app-title" className="px-2 text-sm font-medium">
-        Neovate Desktop
-      </span>
+      <ProjectSelector>
+        <button
+          data-testid="app-title"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent/50"
+        >
+          <HugeiconsIcon icon={FolderIcon} size={14} strokeWidth={1.5} className="opacity-60" />
+          <span className="truncate">{activeProject?.name ?? "No project"}</span>
+          <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.5} className="shrink-0 opacity-40" />
+        </button>
+      </ProjectSelector>
     </div>
   );
 }
