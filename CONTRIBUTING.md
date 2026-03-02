@@ -78,6 +78,7 @@ If you use [Claude Code](https://docs.anthropic.com/en/docs/claude-code), two sl
 
 - `/bug-report` — create a structured bug report issue on GitHub
 - `/feature-request` — create a structured feature request issue on GitHub
+- `/release-todo` — view, check off, or add items on the first release checklist (issue #15)
 
 These commands auto-gather git context, batch questions, and create the issue via `gh` CLI.
 
