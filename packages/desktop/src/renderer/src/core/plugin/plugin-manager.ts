@@ -31,11 +31,11 @@ function mergeContributions(items: PluginContributions[]): Required<PluginContri
 }
 
 export class PluginManager {
-  private readonly plugins: RendererPlugin[];
+  readonly #plugins: RendererPlugin[];
   contributions: Required<PluginContributions> = EMPTY_CONTRIBUTIONS;
 
   constructor(rawPlugins: RendererPlugin[] = []) {
-    this.plugins = [
+    this.#plugins = [
       ...rawPlugins.filter((p) => p.enforce === "pre"),
       ...rawPlugins.filter((p) => !p.enforce),
       ...rawPlugins.filter((p) => p.enforce === "post"),
@@ -43,7 +43,7 @@ export class PluginManager {
   }
 
   getPlugins(): readonly RendererPlugin[] {
-    return this.plugins;
+    return this.#plugins;
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */
@@ -70,7 +70,7 @@ export class PluginManager {
   private async applyFirst<T>(
     fn: (plugin: RendererPlugin) => T | undefined,
   ): Promise<NonNullable<Awaited<T>> | undefined> {
-    for (const plugin of this.plugins) {
+    for (const plugin of this.#plugins) {
       const result = await fn(plugin);
       if (result != null) {
         return result as NonNullable<Awaited<T>>;
@@ -83,7 +83,7 @@ export class PluginManager {
   private async applySeries(
     fn: (plugin: RendererPlugin) => void | Promise<void>,
   ): Promise<void> {
-    for (const plugin of this.plugins) {
+    for (const plugin of this.#plugins) {
       await fn(plugin);
     }
   }
@@ -92,7 +92,7 @@ export class PluginManager {
   private async applyParallel<T>(
     fn: (plugin: RendererPlugin) => T | undefined,
   ): Promise<NonNullable<Awaited<T>>[]> {
-    const results = await Promise.all(this.plugins.map(fn));
+    const results = await Promise.all(this.#plugins.map(fn));
     return results.filter(
       (r): r is NonNullable<Awaited<T>> => r != null,
     );
