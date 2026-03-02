@@ -19,28 +19,34 @@ Redesign the Electron main process to mirror the renderer plugin system pattern:
 ```
 src/main/
 ├── core/
-│   ├── types.ts                    # MainPlugin, IMainApp, IBrowserWindowManager, PluginContext, AppContext, etc.
-│   ├── plugin-manager.ts           # PluginManager class
-│   ├── browser-window-manager.ts   # BrowserWindowManager class
-│   ├── disposable.ts               # DisposableStore (mirrors renderer)
-│   └── index.ts                    # barrel export (public SDK surface)
+│   ├── plugin/
+│   │   ├── types.ts              # MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext
+│   │   ├── plugin-manager.ts     # PluginManager class
+│   │   └── index.ts              # plugin barrel
+│   ├── browser-window-manager.ts # BrowserWindowManager class
+│   ├── disposable.ts             # DisposableStore (mirrors renderer)
+│   ├── types.ts                  # IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions
+│   └── index.ts                  # main barrel export (public SDK surface)
 ├── plugins/
 │   └── system-info/
-│       ├── index.ts                # MainPlugin definition
+│       ├── index.ts              # MainPlugin definition
 │       └── __tests__/
 │           └── index.test.ts
 ├── features/
-│   └── acp/                        # unchanged
-├── app.ts                          # MainApp class (mirrors RendererApp)
-├── router.ts                       # buildRouter(pluginRouters) — acp + ping hard-wired
-└── index.ts                        # thin entry: Electron events + new MainApp(...).start()
+│   └── acp/                      # unchanged
+├── app.ts                        # MainApp class (mirrors RendererApp)
+├── router.ts                     # buildRouter(pluginRouters) — acp + ping hard-wired
+└── index.ts                      # thin entry: Electron events + new MainApp(...).start()
 ```
 
 ## Core Types
 
+Split across two files mirroring the renderer's `core/` vs `core/plugin/` split.
+
+### `core/types.ts` — app-level types
+
 ```typescript
 // core/types.ts
-import type { AnyRouter } from "@orpc/server";
 import type { BrowserWindow } from "electron";
 import type { AcpConnectionManager } from "../features/acp/connection-manager";
 import type { Disposable } from "./disposable";
@@ -75,6 +81,14 @@ export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
 }
+```
+
+### `core/plugin/types.ts` — plugin types
+
+```typescript
+// core/plugin/types.ts
+import type { AnyRouter } from "@orpc/server";
+import type { IMainApp } from "../types";
 
 export interface PluginContext {
   app: IMainApp;
@@ -99,7 +113,7 @@ export type MainPlugin = {
 Key decisions:
 - `PluginContext = { app: IMainApp }` — exact mirror of renderer's `{ app: IRendererApp }`
 - `IMainApp` exposes `subscriptions` and `windowManager` — plugins can register cleanup and open windows
-- `IBrowserWindowManager` is an interface in `core/types.ts` so `IMainApp` can reference it without circular deps
+- `IBrowserWindowManager` lives in `core/types.ts` so `IMainApp` can reference it without circular deps
 - `AppContext` is internal — used by `MainApp` to wire built-in acp router, never exposed to plugins via `IMainApp`
 - `AnyRouter` instead of `Router<any, any>` — uses oRPC's own escape hatch type (`type AnyRouter = Router<any, any>`)
 
@@ -326,9 +340,10 @@ export default {
 
 ## PluginManager
 
-Mirrors the renderer `PluginManager`. One difference: contributions use `Map<string, AnyRouter>` keyed by plugin name, since routers must be namespaced in the root router.
+Lives in `core/plugin/plugin-manager.ts`. Mirrors the renderer `PluginManager`. One difference: contributions use `Map<string, AnyRouter>` keyed by plugin name, since routers must be namespaced in the root router.
 
 ```typescript
+// core/plugin/plugin-manager.ts
 export type MergedContributions = {
   routers: Map<string, AnyRouter>;
 };
@@ -469,21 +484,14 @@ app.on("before-quit", () => { void mainApp.stop(); });
 Mirrors `renderer/src/core/index.ts`:
 
 ```typescript
+// core/index.ts
 export { MainApp } from "../app";
 export type { MainAppOptions } from "../app";
 export { BrowserWindowManager } from "./browser-window-manager";
-export type {
-  IMainApp,
-  IBrowserWindowManager,
-  MainPlugin,
-  MainPluginHooks,
-  MainPluginContributions,
-  PluginContext,
-  AppContext,
-  OpenWindowOptions,
-} from "./types";
-export { PluginManager } from "./plugin-manager";
-export type { MergedContributions } from "./plugin-manager";
+export type { IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions } from "./types";
+export { PluginManager } from "./plugin/plugin-manager";
+export type { MergedContributions } from "./plugin/plugin-manager";
+export type { MainPlugin, MainPluginHooks, MainPluginContributions, PluginContext } from "./plugin/types";
 export { DisposableStore, toDisposable } from "./disposable";
 export type { Disposable } from "./disposable";
 ```
