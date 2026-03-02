@@ -2,19 +2,49 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Redesign the Electron main process to mirror the renderer plugin system — `MainApp` class owns lifecycle, `BrowserWindowManager` manages windows, `PluginManager` collects plugin contributions, `index.ts` is thin with Electron events outside `MainApp`.
+**Goal:** Redesign the Electron main process to mirror the renderer plugin system — `MainApp` owns plugin lifecycle, `BrowserWindowManager` manages windows, transport lives entirely in `index.ts`.
 
-**Architecture:** `MainApp` owns `pluginManager`, `subscriptions`, and `windowManager`. Electron lifecycle events (`app.whenReady`, `app.on(...)`) live in `index.ts` — not inside `MainApp` — keeping the class pure and testable. Built-in `acp` stays hard-wired in the router; plugins extend it via `Map<name, Router>` spread alongside.
+**Architecture:** `core/` holds self-contained primitives (`disposable`, `types`, `plugin/`, `browser-window-manager`). `app.ts` is the assembler above `core/` — no transport knowledge, no Electron events. `index.ts` is the thin entry point: Electron events, `BrowserWindowManager` instantiation, transport wiring (`RPCHandler`, `ipcMain`). Built-in `acp` stays hard-wired; plugins extend via `Map<name, AnyRouter>` spread in `buildRouter`.
 
-**Tech Stack:** TypeScript, oRPC, Electron, Vitest
+**Tech Stack:** TypeScript, oRPC (`@orpc/server`, `@orpc/contract`), Electron, `electron-store`, Vitest
 
 **Worktree:** `/Users/dinq/.vibest/worktrees/neovateai/neovate-desktop/feat-main-plugin-system`
+
+**Design doc:** `docs/designs/2026-03-02-main-app-plugin-system-design.md`
 
 **Reference:** Renderer plugin system at `packages/desktop/src/renderer/src/core/`
 
 ---
 
-### Task 1: Create `core/disposable.ts`
+### Task 1: Install `electron-store`
+
+**Files:** none (dependency install)
+
+`electron-store` is used by `BrowserWindowManager` for window bounds persistence. It is not yet in `package.json`.
+
+**Step 1: Install the package**
+
+```bash
+cd packages/desktop && bun add electron-store
+```
+
+**Step 2: Verify it resolves**
+
+```bash
+cd packages/desktop && node -e "require('electron-store')" && echo OK
+```
+Expected: `OK`
+
+**Step 3: Commit**
+
+```bash
+git add packages/desktop/package.json bun.lock
+git commit -m "deps: add electron-store for window state persistence"
+```
+
+---
+
+### Task 2: Create `core/disposable.ts`
 
 **Files:**
 - Create: `packages/desktop/src/main/core/disposable.ts`
@@ -63,16 +93,20 @@ git commit -m "feat: add main core disposable store"
 
 ---
 
-### Task 2: Create `core/types.ts`
+### Task 3: Create `core/types.ts`
 
 **Files:**
 - Create: `packages/desktop/src/main/core/types.ts`
+
+App-level interfaces: `IBrowserWindowManager`, `IMainApp`, `AppContext`, `OpenWindowOptions`.
+
+`IBrowserWindowManager` lives here (not in `browser-window-manager.ts`) so `IMainApp` can reference it without circular deps. `PluginContext` lives in `core/plugin/types.ts` (Task 4).
 
 **Step 1: Write the file**
 
 ```typescript
 // packages/desktop/src/main/core/types.ts
-import type { Router } from "@orpc/server";
+import type { BrowserWindow } from "electron";
 import type { AcpConnectionManager } from "../features/acp/connection-manager";
 import type { Disposable } from "./disposable";
 
@@ -80,17 +114,68 @@ export type AppContext = {
   acpConnectionManager: AcpConnectionManager;
 };
 
-/** Abstract app interface — plugins depend on this, MainApp implements it */
+export interface OpenWindowOptions {
+  /** Unique window ID — re-focuses existing window if already open */
+  windowId: string;
+  /** Passed to renderer via URL param — renderer uses this to decide what to render */
+  windowType: string;
+  width?: number;
+  height?: number;
+  title?: string;
+  /** If true, uses the main window as the parent (modal-style) */
+  parent?: boolean;
+  /** Additional URL search params passed to the renderer */
+  urlSearchParams?: Record<string, string>;
+}
+
+export interface IBrowserWindowManager {
+  readonly mainWindow: BrowserWindow | null;
+  createMainWindow(): BrowserWindow;
+  open(options: OpenWindowOptions): void;
+  close(windowId: string): void;
+}
+
+/** Abstract app interface — plugins depend on this, MainApp implements it. */
 export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
+  readonly windowManager: IBrowserWindowManager;
 }
+```
+
+**Step 2: Verify types compile**
+
+Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json`
+Expected: no errors
+
+**Step 3: Commit**
+
+```bash
+git add packages/desktop/src/main/core/types.ts
+git commit -m "feat: add main core app-level types"
+```
+
+---
+
+### Task 4: Create `core/plugin/types.ts`
+
+**Files:**
+- Create: `packages/desktop/src/main/core/plugin/types.ts`
+
+Plugin types live in their own subdirectory mirroring `renderer/src/core/plugin/`.
+
+**Step 1: Write the file**
+
+```typescript
+// packages/desktop/src/main/core/plugin/types.ts
+import type { AnyRouter } from "@orpc/server";
+import type { IMainApp } from "../types";
 
 export interface PluginContext {
   app: IMainApp;
 }
 
 export interface MainPluginContributions {
-  router?: Router<any, any>;
+  router?: AnyRouter;
 }
 
 export interface MainPluginHooks {
@@ -105,38 +190,150 @@ export type MainPlugin = {
 } & Partial<MainPluginHooks>;
 ```
 
-Note: `AppContext` moves here from `packages/desktop/src/main/router.ts`.
-
 **Step 2: Verify types compile**
 
 Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json`
-Expected: no errors (router.ts still exports its own `AppContext` — both can coexist temporarily)
+Expected: no errors
 
 **Step 3: Commit**
 
 ```bash
-git add packages/desktop/src/main/core/types.ts
-git commit -m "feat: add main plugin system core types"
+git add packages/desktop/src/main/core/plugin/types.ts
+git commit -m "feat: add main plugin types in core/plugin/"
 ```
 
 ---
 
-### Task 3: Create `core/plugin-manager.ts` with tests
+### Task 5: Create `core/plugin/contributions.ts` with tests
 
 **Files:**
-- Create: `packages/desktop/src/main/core/plugin-manager.ts`
-- Test: `packages/desktop/src/main/core/__tests__/plugin-manager.test.ts`
+- Create: `packages/desktop/src/main/core/plugin/contributions.ts`
+- Test: `packages/desktop/src/main/core/plugin/__tests__/contributions.test.ts`
+
+`mergeContributions` is a standalone utility — not a method on `PluginManager`. This matches how the renderer's `buildContributions` is a standalone function.
 
 **Step 1: Write the failing test**
 
 ```typescript
-// packages/desktop/src/main/core/__tests__/plugin-manager.test.ts
+// packages/desktop/src/main/core/plugin/__tests__/contributions.test.ts
+import { describe, it, expect } from "vitest";
+import { mergeContributions, EMPTY_CONTRIBUTIONS } from "../contributions";
+import type { MainPlugin } from "../types";
+
+describe("mergeContributions", () => {
+  it("returns empty map when no routers", () => {
+    const plugins: MainPlugin[] = [{ name: "a" }, { name: "b" }];
+    const result = mergeContributions(plugins, [{}, null]);
+    expect(result.routers.size).toBe(0);
+  });
+
+  it("maps router to plugin name", () => {
+    const fakeRouter = { getInfo: {} } as any;
+    const plugins: MainPlugin[] = [{ name: "myPlugin" }];
+    const result = mergeContributions(plugins, [{ router: fakeRouter }]);
+    expect(result.routers.get("myPlugin")).toBe(fakeRouter);
+  });
+
+  it("skips plugins with no router in result", () => {
+    const plugins: MainPlugin[] = [{ name: "a" }, { name: "b" }];
+    const fakeRouter = {} as any;
+    const result = mergeContributions(plugins, [{}, { router: fakeRouter }]);
+    expect(result.routers.size).toBe(1);
+    expect(result.routers.get("b")).toBe(fakeRouter);
+  });
+
+  it("handles multiple plugins with routers", () => {
+    const r1 = {} as any;
+    const r2 = {} as any;
+    const plugins: MainPlugin[] = [{ name: "p1" }, { name: "p2" }];
+    const result = mergeContributions(plugins, [{ router: r1 }, { router: r2 }]);
+    expect(result.routers.get("p1")).toBe(r1);
+    expect(result.routers.get("p2")).toBe(r2);
+  });
+});
+
+describe("EMPTY_CONTRIBUTIONS", () => {
+  it("has empty routers map", () => {
+    expect(EMPTY_CONTRIBUTIONS.routers.size).toBe(0);
+  });
+});
+```
+
+**Step 2: Run test to confirm it fails**
+
+Run: `cd packages/desktop && bunx vitest run src/main/core/plugin/__tests__/contributions.test.ts`
+Expected: FAIL — cannot resolve `../contributions`
+
+**Step 3: Write the implementation**
+
+```typescript
+// packages/desktop/src/main/core/plugin/contributions.ts
+import type { AnyRouter } from "@orpc/server";
+import type { MainPlugin, MainPluginContributions } from "./types";
+
+export type MergedContributions = {
+  routers: Map<string, AnyRouter>;
+};
+
+export function mergeContributions(
+  plugins: MainPlugin[],
+  results: (MainPluginContributions | null | undefined)[],
+): MergedContributions {
+  const routers = new Map<string, AnyRouter>();
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result?.router) {
+      routers.set(plugins[i]!.name, result.router);
+    }
+  }
+  return { routers };
+}
+
+export const EMPTY_CONTRIBUTIONS: MergedContributions = { routers: new Map() };
+```
+
+**Step 4: Run tests to confirm they pass**
+
+Run: `cd packages/desktop && bunx vitest run src/main/core/plugin/__tests__/contributions.test.ts`
+Expected: all PASS
+
+**Step 5: Commit**
+
+```bash
+git add packages/desktop/src/main/core/plugin/contributions.ts packages/desktop/src/main/core/plugin/__tests__/contributions.test.ts
+git commit -m "feat: add mergeContributions utility and EMPTY_CONTRIBUTIONS"
+```
+
+---
+
+### Task 6: Create `core/plugin/plugin-manager.ts` with tests
+
+**Files:**
+- Create: `packages/desktop/src/main/core/plugin/plugin-manager.ts`
+- Test: `packages/desktop/src/main/core/plugin/__tests__/plugin-manager.test.ts`
+
+`PluginManager` uses `mergeContributions` from `contributions.ts`. `configContributions` takes a `PluginContext` argument (slight divergence from renderer — renderer's `configContributions` takes no args).
+
+**Step 1: Write the failing test**
+
+```typescript
+// packages/desktop/src/main/core/plugin/__tests__/plugin-manager.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { PluginManager } from "../plugin-manager";
 import type { MainPlugin, PluginContext } from "../types";
 
 function makeCtx(): PluginContext {
-  return { app: { subscriptions: { push: vi.fn() } } };
+  return {
+    app: {
+      subscriptions: { push: vi.fn() },
+      windowManager: {
+        mainWindow: null,
+        createMainWindow: vi.fn(),
+        open: vi.fn(),
+        close: vi.fn(),
+      },
+    },
+  };
 }
 
 describe("PluginManager", () => {
@@ -198,7 +395,8 @@ describe("PluginManager", () => {
       const order: string[] = [];
       const slow: MainPlugin = {
         name: "slow",
-        configContributions: () => new Promise((r) => setTimeout(() => { order.push("slow"); r({}); }, 10)),
+        configContributions: () =>
+          new Promise((r) => setTimeout(() => { order.push("slow"); r({}); }, 10)),
       };
       const fast: MainPlugin = {
         name: "fast",
@@ -266,23 +464,21 @@ describe("PluginManager", () => {
 
 **Step 2: Run test to confirm it fails**
 
-Run: `cd packages/desktop && bunx vitest run src/main/core/__tests__/plugin-manager.test.ts`
+Run: `cd packages/desktop && bunx vitest run src/main/core/plugin/__tests__/plugin-manager.test.ts`
 Expected: FAIL — cannot resolve `../plugin-manager`
 
 **Step 3: Write the implementation**
 
 ```typescript
-// packages/desktop/src/main/core/plugin-manager.ts
-import type { Router } from "@orpc/server";
-import type { MainPlugin, MainPluginContributions, PluginContext } from "./types";
+// packages/desktop/src/main/core/plugin/plugin-manager.ts
+import { mergeContributions, EMPTY_CONTRIBUTIONS, type MergedContributions } from "./contributions";
+import type { MainPlugin, PluginContext } from "./types";
 
-export type MergedContributions = {
-  routers: Map<string, Router<any, any>>;
-};
+type HookFn = (...args: unknown[]) => unknown;
 
 export class PluginManager {
   readonly #plugins: MainPlugin[];
-  contributions: MergedContributions = { routers: new Map() };
+  contributions: MergedContributions = EMPTY_CONTRIBUTIONS;
 
   constructor(rawPlugins: MainPlugin[] = []) {
     this.#plugins = [
@@ -303,7 +499,7 @@ export class PluginManager {
     const results = await Promise.all(
       pluginsWithHook.map((p) => p.configContributions!(ctx)),
     );
-    this.contributions = this.#mergeContributions(pluginsWithHook, results);
+    this.contributions = mergeContributions(pluginsWithHook, results);
   }
 
   async activate(ctx: PluginContext): Promise<void> {
@@ -321,64 +517,94 @@ export class PluginManager {
       }
     }
   }
-
-  #mergeContributions(
-    plugins: MainPlugin[],
-    results: (MainPluginContributions | null | undefined)[],
-  ): MergedContributions {
-    const routers = new Map<string, Router<any, any>>();
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result?.router) {
-        routers.set(plugins[i]!.name, result.router);
-      }
-    }
-    return { routers };
-  }
 }
 ```
 
 **Step 4: Run tests to confirm they pass**
 
-Run: `cd packages/desktop && bunx vitest run src/main/core/__tests__/plugin-manager.test.ts`
+Run: `cd packages/desktop && bunx vitest run src/main/core/plugin/__tests__/plugin-manager.test.ts`
 Expected: all PASS
 
 **Step 5: Commit**
 
 ```bash
-git add packages/desktop/src/main/core/plugin-manager.ts packages/desktop/src/main/core/__tests__/plugin-manager.test.ts
+git add packages/desktop/src/main/core/plugin/plugin-manager.ts packages/desktop/src/main/core/plugin/__tests__/plugin-manager.test.ts
 git commit -m "feat: add PluginManager with enforce ordering and lifecycle hooks"
 ```
 
 ---
 
-### Task 4: Create `browser-window-manager.ts`
+### Task 7: Create `core/plugin/index.ts` barrel
 
 **Files:**
-- Create: `packages/desktop/src/main/browser-window-manager.ts`
-
-Owns `BrowserWindow` creation, tracking, and teardown. Extracted from `index.ts`.
+- Create: `packages/desktop/src/main/core/plugin/index.ts`
 
 **Step 1: Write the file**
 
 ```typescript
-// packages/desktop/src/main/browser-window-manager.ts
+// packages/desktop/src/main/core/plugin/index.ts
+export { PluginManager } from "./plugin-manager";
+export { mergeContributions, EMPTY_CONTRIBUTIONS } from "./contributions";
+export type { MergedContributions } from "./contributions";
+export type {
+  MainPlugin,
+  MainPluginHooks,
+  MainPluginContributions,
+  PluginContext,
+} from "./types";
+```
+
+**Step 2: Verify types compile**
+
+Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json`
+Expected: no errors
+
+**Step 3: Commit**
+
+```bash
+git add packages/desktop/src/main/core/plugin/index.ts
+git commit -m "feat: add core/plugin barrel export"
+```
+
+---
+
+### Task 8: Create `core/browser-window-manager.ts`
+
+**Files:**
+- Create: `packages/desktop/src/main/core/browser-window-manager.ts`
+
+Implements `IBrowserWindowManager`. Handles primary window (with bounds persistence via `electron-store` and macOS hide-on-close) and secondary windows (opened by plugins/features via `open()`).
+
+No unit tests — Electron `BrowserWindow` APIs can't be unit-tested without a real Electron process. Covered by E2E tests. Verify with typecheck only.
+
+**Step 1: Write the file**
+
+```typescript
+// packages/desktop/src/main/core/browser-window-manager.ts
+import Store from "electron-store";
 import { join } from "path";
 import { shell, BrowserWindow } from "electron";
 import { is } from "@electron-toolkit/utils";
-import icon from "../../resources/icon.png?asset";
+import icon from "../../../resources/icon.png?asset";
+import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
-export class BrowserWindowManager {
+type WindowStore = { bounds: Electron.Rectangle };
+
+export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
+  #windows = new Map<string, BrowserWindow>();
+  #store = new Store<WindowStore>({ name: "window-state" });
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
   }
 
-  createWindow(): BrowserWindow {
+  createMainWindow(): BrowserWindow {
+    const saved = this.#store.get("bounds");
+    const bounds = saved ?? { width: 1200, height: 800 };
+
     const win = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      ...bounds,
       minWidth: 900,
       minHeight: 600,
       show: false,
@@ -399,25 +625,92 @@ export class BrowserWindowManager {
       return { action: "deny" };
     });
 
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-    } else {
-      win.loadFile(join(__dirname, "../renderer/index.html"));
-    }
+    // Persist bounds before close/hide
+    win.on("close", (event) => {
+      this.#store.set("bounds", win.getNormalBounds());
+      if (process.platform === "darwin") {
+        event.preventDefault();
+        win.hide();
+      }
+    });
 
+    // Only fires on non-macOS (macOS close is prevented above)
     win.on("closed", () => {
       this.#mainWindow = null;
     });
 
+    this.#loadURL(win);
     this.#mainWindow = win;
     return win;
+  }
+
+  /**
+   * Open a secondary window by ID.
+   * Focuses existing window if already open.
+   * Renderer reads `windowType` from URL params to decide what to render.
+   */
+  open(options: OpenWindowOptions): void {
+    const { windowId, windowType, width = 800, height = 600, title, parent = false } = options;
+
+    const existing = this.#windows.get(windowId);
+    if (existing && !existing.isDestroyed()) {
+      existing.focus();
+      return;
+    }
+    if (existing) this.#windows.delete(windowId);
+
+    const win = new BrowserWindow({
+      width,
+      height,
+      title: title ?? windowId,
+      show: false,
+      ...(parent && this.#mainWindow ? { parent: this.#mainWindow } : {}),
+      webPreferences: {
+        preload: join(__dirname, "../preload/index.js"),
+        sandbox: false,
+      },
+    });
+
+    win.on("ready-to-show", () => win.show());
+
+    const params = new URLSearchParams({ windowId, windowType, ...options.urlSearchParams });
+    this.#loadURL(win, params);
+
+    win.on("closed", () => this.#windows.delete(windowId));
+    win.webContents.on("did-fail-load", () => {
+      this.#windows.delete(windowId);
+      if (!win.isDestroyed()) win.close();
+    });
+
+    this.#windows.set(windowId, win);
+  }
+
+  close(windowId: string): void {
+    const win = this.#windows.get(windowId);
+    if (win && !win.isDestroyed()) win.close();
   }
 
   destroyAll(): void {
     if (this.#mainWindow && !this.#mainWindow.isDestroyed()) {
       this.#mainWindow.destroy();
+      this.#mainWindow = null;
     }
-    this.#mainWindow = null;
+    for (const win of this.#windows.values()) {
+      if (!win.isDestroyed()) win.destroy();
+    }
+    this.#windows.clear();
+  }
+
+  #loadURL(win: BrowserWindow, params?: URLSearchParams): void {
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      const url = new URL(process.env["ELECTRON_RENDERER_URL"]);
+      if (params) url.search = params.toString();
+      win.loadURL(url.toString());
+    } else {
+      win.loadFile(join(__dirname, "../renderer/index.html"), {
+        ...(params ? { search: params.toString() } : {}),
+      });
+    }
   }
 }
 ```
@@ -430,34 +723,39 @@ Expected: no errors
 **Step 3: Commit**
 
 ```bash
-git add packages/desktop/src/main/browser-window-manager.ts
-git commit -m "feat: add BrowserWindowManager"
+git add packages/desktop/src/main/core/browser-window-manager.ts
+git commit -m "feat: add BrowserWindowManager with state persistence and macOS hide-on-close"
 ```
 
 ---
 
-### Task 5: Update `router.ts` to `buildRouter(pluginRouters)`
+### Task 9: Update `router.ts` to `buildRouter(pluginRouters)`
 
 **Files:**
 - Modify: `packages/desktop/src/main/router.ts`
 - Modify: `packages/desktop/src/main/__tests__/router.test.ts`
+
+Replace the static `router` export with a `buildRouter(pluginRouters)` function. Plugin routers are spread alongside the hard-wired built-ins. `AppContext` stays defined here (it's the transport's responsibility, not the plugin's).
 
 **Step 1: Update `router.ts`**
 
 ```typescript
 // packages/desktop/src/main/router.ts
 import { implement } from "@orpc/server";
-import type { Router } from "@orpc/server";
+import type { AnyRouter } from "@orpc/server";
 import { contract } from "../shared/contract";
 import { acpRouter } from "./features/acp/router";
-import type { AppContext } from "./core/types";
+import type { AcpConnectionManager } from "./features/acp/connection-manager";
 
-export type { AppContext } from "./core/types";
+export type AppContext = {
+  acpConnectionManager: AcpConnectionManager;
+};
+
 export type AppDependencies = AppContext;
 
 const os = implement(contract).$context<AppContext>();
 
-export function buildRouter(pluginRouters: Map<string, Router<any, any>>) {
+export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
   return os.router({
     ping: os.ping.handler(() => "pong" as const),
     acp: acpRouter,
@@ -471,13 +769,13 @@ export function buildRouter(pluginRouters: Map<string, Router<any, any>>) {
 ```typescript
 // packages/desktop/src/main/__tests__/router.test.ts
 import { call } from "@orpc/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildRouter, type AppDependencies } from "../router";
 
 const router = buildRouter(new Map());
 
 describe("main router context wiring", () => {
-  it("listAgents returns built-in agents from acpx registry", async () => {
+  it("listAgents returns built-in agents from acp registry", async () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
     } satisfies AppDependencies;
@@ -497,16 +795,13 @@ describe("main router context wiring", () => {
     expect(result).toBe("pong");
   });
 
-  it("spreads plugin routers into root", async () => {
-    const fakeHandler = vi.fn().mockResolvedValue("ok");
-    const pluginRouters = new Map([["myPlugin", { myHandler: fakeHandler } as any]]);
-    const r = buildRouter(pluginRouters);
+  it("spreads plugin routers into root", () => {
+    const fakeRouter = { myHandler: vi.fn() } as any;
+    const r = buildRouter(new Map([["myPlugin", fakeRouter]]));
     expect(r).toHaveProperty("myPlugin");
   });
 });
 ```
-
-Add `import { vi } from "vitest"` to the imports at the top.
 
 **Step 3: Run tests**
 
@@ -527,89 +822,90 @@ git commit -m "refactor: router accepts plugin routers alongside built-in routes
 
 ---
 
-### Task 6: Create `app.ts` (MainApp) with tests
+### Task 10: Create `app.ts` (MainApp) with tests
 
 **Files:**
 - Create: `packages/desktop/src/main/app.ts`
 - Test: `packages/desktop/src/main/__tests__/app.test.ts`
 
+`MainApp` owns plugin lifecycle only. No transport (`RPCHandler`, `ipcMain`). `windowManager` is injected via `MainAppOptions` — not constructed inside.
+
 **Step 1: Write the failing test**
 
 ```typescript
 // packages/desktop/src/main/__tests__/app.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { MainPlugin, AppContext } from "../core/types";
+import { describe, it, expect, vi } from "vitest";
+import type { MainPlugin } from "../core/plugin/types";
+import type { IBrowserWindowManager } from "../core/types";
 
-// Mock Electron before importing MainApp
-vi.mock("electron", () => ({
-  ipcMain: { on: vi.fn() },
-  BrowserWindow: vi.fn().mockImplementation(() => ({
-    on: vi.fn(),
-    webContents: { setWindowOpenHandler: vi.fn() },
-    loadURL: vi.fn(),
-    loadFile: vi.fn(),
-    show: vi.fn(),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    destroy: vi.fn(),
-  })),
-  app: { getVersion: vi.fn().mockReturnValue("0.0.0") },
-  shell: { openExternal: vi.fn() },
-}));
-
-vi.mock("@electron-toolkit/utils", () => ({
-  is: { dev: false },
-  electronApp: { setAppUserModelId: vi.fn() },
-  optimizer: { watchWindowShortcuts: vi.fn() },
-}));
-
-vi.mock("@orpc/server/message-port", () => ({
-  RPCHandler: vi.fn().mockImplementation(() => ({
-    upgrade: vi.fn(),
-  })),
-}));
-
-function makeAppContext(): AppContext {
+function makeWindowManager(): IBrowserWindowManager {
   return {
-    acpConnectionManager: {
-      disconnectAll: vi.fn(),
-    } as any,
-  };
+    mainWindow: null,
+    createMainWindow: vi.fn().mockReturnValue({}),
+    open: vi.fn(),
+    close: vi.fn(),
+    destroyAll: vi.fn(),
+  } as unknown as IBrowserWindowManager;
 }
 
 describe("MainApp", () => {
   it("exposes pluginManager", async () => {
     const { MainApp } = await import("../app");
-    const mainApp = new MainApp(makeAppContext());
-    expect(mainApp.pluginManager).toBeDefined();
+    const app = new MainApp({ windowManager: makeWindowManager() });
+    expect(app.pluginManager).toBeDefined();
   });
 
   it("exposes subscriptions", async () => {
     const { MainApp } = await import("../app");
-    const mainApp = new MainApp(makeAppContext());
-    expect(mainApp.subscriptions).toBeDefined();
-    expect(typeof mainApp.subscriptions.push).toBe("function");
+    const app = new MainApp({ windowManager: makeWindowManager() });
+    expect(typeof app.subscriptions.push).toBe("function");
   });
 
-  it("exposes windowManager", async () => {
+  it("exposes windowManager (the injected instance)", async () => {
     const { MainApp } = await import("../app");
-    const mainApp = new MainApp(makeAppContext());
-    expect(mainApp.windowManager).toBeDefined();
+    const wm = makeWindowManager();
+    const app = new MainApp({ windowManager: wm });
+    expect(app.windowManager).toBe(wm);
   });
 
   it("registers plugins passed in options", async () => {
     const { MainApp } = await import("../app");
     const plugin: MainPlugin = { name: "test" };
-    const mainApp = new MainApp(makeAppContext(), { plugins: [plugin] });
-    expect(mainApp.pluginManager.getPlugins()).toContain(plugin);
+    const app = new MainApp({ plugins: [plugin], windowManager: makeWindowManager() });
+    expect(app.pluginManager.getPlugins()).toContain(plugin);
   });
 
-  it("stop() calls pluginManager.deactivate and subscriptions.dispose", async () => {
+  it("start() calls configContributions, activate, then createMainWindow in order", async () => {
     const { MainApp } = await import("../app");
-    const mainApp = new MainApp(makeAppContext());
-    const deactivateSpy = vi.spyOn(mainApp.pluginManager, "deactivate");
-    const disposeSpy = vi.spyOn(mainApp.subscriptions, "dispose");
-    await mainApp.stop();
+    const order: string[] = [];
+    const plugin: MainPlugin = {
+      name: "test",
+      configContributions: () => { order.push("config"); return {}; },
+      activate: () => { order.push("activate"); },
+    };
+    const wm = makeWindowManager();
+    (wm.createMainWindow as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      order.push("createMainWindow");
+      return {};
+    });
+
+    const app = new MainApp({ plugins: [plugin], windowManager: wm });
+    await app.start();
+
+    expect(order).toEqual(["config", "activate", "createMainWindow"]);
+  });
+
+  it("stop() calls deactivate, destroyAll, and subscriptions.dispose", async () => {
+    const { MainApp } = await import("../app");
+    const wm = makeWindowManager();
+    const app = new MainApp({ windowManager: wm });
+    const deactivateSpy = vi.spyOn(app.pluginManager, "deactivate");
+    const disposeSpy = vi.spyOn(app.subscriptions, "dispose");
+
+    await app.stop();
+
     expect(deactivateSpy).toHaveBeenCalled();
+    expect(wm.destroyAll).toHaveBeenCalled();
     expect(disposeSpy).toHaveBeenCalled();
   });
 });
@@ -624,59 +920,37 @@ Expected: FAIL — cannot resolve `../app`
 
 ```typescript
 // packages/desktop/src/main/app.ts
-import { ipcMain } from "electron";
-import { RPCHandler } from "@orpc/server/message-port";
-import { PluginManager } from "./core/plugin-manager";
+import { PluginManager } from "./core/plugin/plugin-manager";
 import { DisposableStore } from "./core/disposable";
-import { BrowserWindowManager } from "./browser-window-manager";
-import { buildRouter } from "./router";
-import type { MainPlugin, IMainApp, AppContext } from "./core/types";
+import type { IBrowserWindowManager, IMainApp } from "./core/types";
+import type { MainPlugin } from "./core/plugin/types";
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];
+  windowManager: IBrowserWindowManager;
 }
 
 export class MainApp implements IMainApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
-  readonly windowManager: BrowserWindowManager;
+  readonly windowManager: IBrowserWindowManager;
 
-  readonly #appContext: AppContext;
-  #handler: RPCHandler<any> | null = null;
-
-  constructor(appContext: AppContext, options: MainAppOptions = {}) {
-    this.#appContext = appContext;
+  constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
-    this.windowManager = new BrowserWindowManager();
+    this.windowManager = options.windowManager;
   }
 
   async start(): Promise<void> {
-    await this.#initPlugins();
-    this.#registerIpc();
-    this.windowManager.createWindow();
+    const ctx = { app: this };
+    await this.pluginManager.configContributions(ctx);
+    await this.pluginManager.activate(ctx);
+    this.windowManager.createMainWindow();
   }
 
   async stop(): Promise<void> {
     await this.pluginManager.deactivate();
     this.windowManager.destroyAll();
     this.subscriptions.dispose();
-    void this.#appContext.acpConnectionManager.disconnectAll();
-  }
-
-  async #initPlugins(): Promise<void> {
-    const ctx = { app: this };
-    await this.pluginManager.configContributions(ctx);
-    const router = buildRouter(this.pluginManager.contributions.routers);
-    this.#handler = new RPCHandler(router);
-    await this.pluginManager.activate(ctx);
-  }
-
-  #registerIpc(): void {
-    ipcMain.on("start-orpc-server", (event) => {
-      const [serverPort] = event.ports;
-      this.#handler!.upgrade(serverPort, { context: this.#appContext });
-      serverPort.start();
-    });
   }
 }
 ```
@@ -690,37 +964,44 @@ Expected: all PASS
 
 ```bash
 git add packages/desktop/src/main/app.ts packages/desktop/src/main/__tests__/app.test.ts
-git commit -m "feat: add MainApp class with plugin lifecycle and window management"
+git commit -m "feat: add MainApp with plugin lifecycle, windowManager injected"
 ```
 
 ---
 
-### Task 7: Update `index.ts`
+### Task 11: Update `index.ts`
 
 **Files:**
 - Modify: `packages/desktop/src/main/index.ts`
 
-Electron lifecycle events live here, not inside `MainApp`. `index.ts` stays thin.
+`index.ts` is the thin entry point: Electron events, `BrowserWindowManager` instantiation, transport wiring. Nothing from here belongs in `MainApp`.
+
+Key detail: `app.on("activate")` uses `mainApp.windowManager.mainWindow` — **not** `BrowserWindow.getAllWindows().length === 0`. The window may be hidden (macOS hide-on-close) so `getAllWindows()` would be non-empty but the window invisible. Use the `mainWindow` getter.
 
 **Step 1: Replace `index.ts`**
 
 ```typescript
 // packages/desktop/src/main/index.ts
-import { app, BrowserWindow } from "electron";
-import { electronApp, optimizer } from "@electron-toolkit/utils";
+import { app, ipcMain } from "electron";
+import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { RPCHandler } from "@orpc/server/message-port";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
+import { BrowserWindowManager } from "./core/browser-window-manager";
 import { MainApp } from "./app";
+import { buildRouter } from "./router";
+import systemInfoPlugin from "./plugins/system-info";
 
-const ACP_DEBUG = process.env.ACP_DEBUG === "1";
-
-if (ACP_DEBUG) {
-  // ACP debug logging enabled
+if (is.dev && process.env.ELECTRON_CDP_PORT) {
+  app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
 }
 
 const connectionManager = new AcpConnectionManager();
 const appContext = { acpConnectionManager: connectionManager };
 
-const mainApp = new MainApp(appContext);
+const mainApp = new MainApp({
+  plugins: [systemInfoPlugin],
+  windowManager: new BrowserWindowManager(),
+});
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
@@ -731,9 +1012,20 @@ app.whenReady().then(async () => {
 
   await mainApp.start();
 
+  // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
+  const handler = new RPCHandler(buildRouter(mainApp.pluginManager.contributions.routers));
+  ipcMain.on("start-orpc-server", (event) => {
+    const [serverPort] = event.ports;
+    handler.upgrade(serverPort, { context: appContext });
+    serverPort.start();
+  });
+
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainApp.windowManager.createWindow();
+    const win = mainApp.windowManager.mainWindow;
+    if (!win) {
+      mainApp.windowManager.createMainWindow();
+    } else {
+      win.show();
     }
   });
 });
@@ -750,30 +1042,24 @@ app.on("before-quit", () => {
 **Step 2: Verify types compile**
 
 Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json`
-Expected: no errors
+Expected: no errors (will fail until Task 12 adds the system-info plugin — that's fine, come back and fix after Task 12)
 
-**Step 3: Run all tests**
-
-Run: `cd packages/desktop && bunx vitest run`
-Expected: all PASS
-
-**Step 4: Commit**
+**Step 3: Commit**
 
 ```bash
 git add packages/desktop/src/main/index.ts
-git commit -m "refactor: index.ts uses MainApp, Electron events stay outside class"
+git commit -m "refactor: index.ts wires transport and Electron events, MainApp stays pure"
 ```
 
 ---
 
-### Task 8: Create system-info plugin with contract and tests
+### Task 12: Create system-info plugin with contract and tests
 
 **Files:**
 - Create: `packages/desktop/src/shared/features/system-info/contract.ts`
 - Modify: `packages/desktop/src/shared/contract.ts`
 - Create: `packages/desktop/src/main/plugins/system-info/index.ts`
 - Test: `packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts`
-- Modify: `packages/desktop/src/main/index.ts`
 
 **Step 1: Write the shared contract**
 
@@ -796,19 +1082,7 @@ export const systemInfoContract = {
 
 **Step 2: Add systemInfo to root contract**
 
-Open `packages/desktop/src/shared/contract.ts`. Current content:
-
-```typescript
-import { oc, type } from "@orpc/contract";
-import { acpContract } from "./features/acp/contract";
-
-export const contract = {
-  ping: oc.output(type<"pong">()),
-  acp: acpContract,
-};
-```
-
-Update to:
+Open `packages/desktop/src/shared/contract.ts`. Add:
 
 ```typescript
 import { oc, type } from "@orpc/contract";
@@ -828,14 +1102,24 @@ export const contract = {
 // packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { call } from "@orpc/server";
-import type { PluginContext } from "../../../core/types";
+import type { PluginContext } from "../../../core/plugin/types";
 
 vi.mock("electron", () => ({
   app: { getVersion: vi.fn().mockReturnValue("1.0.0-test") },
 }));
 
 function makeCtx(): PluginContext {
-  return { app: { subscriptions: { push: vi.fn() } } };
+  return {
+    app: {
+      subscriptions: { push: vi.fn() },
+      windowManager: {
+        mainWindow: null,
+        createMainWindow: vi.fn(),
+        open: vi.fn(),
+        close: vi.fn(),
+      },
+    },
+  };
 }
 
 describe("system-info plugin", () => {
@@ -882,11 +1166,10 @@ Expected: FAIL — cannot resolve `../index`
 
 ```typescript
 // packages/desktop/src/main/plugins/system-info/index.ts
-import { os } from "@orpc/server";
-import { app } from "electron";
 import { implement } from "@orpc/server";
+import { app } from "electron";
 import { contract } from "../../../shared/contract";
-import type { MainPlugin, AppContext } from "../../core/types";
+import type { MainPlugin } from "../../core/plugin/types";
 
 const oi = implement(contract.systemInfo);
 
@@ -906,54 +1189,51 @@ export default {
 } satisfies MainPlugin;
 ```
 
-**Step 6: Register plugin in `index.ts`**
-
-In `packages/desktop/src/main/index.ts`, add the import and pass the plugin:
-
-```typescript
-import systemInfoPlugin from "./plugins/system-info";
-
-const mainApp = new MainApp(appContext, { plugins: [systemInfoPlugin] });
-```
-
-**Step 7: Run plugin tests**
+**Step 6: Run plugin tests**
 
 Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
 Expected: all PASS
 
-**Step 8: Run full typecheck**
+**Step 7: Run full typecheck**
 
 Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json && bunx tsc --noEmit -p tsconfig.web.json`
 Expected: no errors
 
-**Step 9: Commit**
+**Step 8: Commit**
 
 ```bash
-git add packages/desktop/src/shared/features/system-info/contract.ts packages/desktop/src/shared/contract.ts packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts packages/desktop/src/main/index.ts
-git commit -m "feat: add system-info plugin with contract and tests"
+git add packages/desktop/src/shared/features/system-info/contract.ts packages/desktop/src/shared/contract.ts packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
+git commit -m "feat: add system-info plugin with shared contract"
 ```
 
 ---
 
-### Task 9: Create `core/index.ts` barrel export
+### Task 13: Create `core/index.ts` barrel export
 
 **Files:**
 - Create: `packages/desktop/src/main/core/index.ts`
 
-**Step 1: Write the barrel**
+The public SDK surface for `core/`. Mirrors `renderer/src/core/index.ts`.
+
+Note: `MainApp` and `MainAppOptions` live in `app.ts` (outside `core/`) but are re-exported here for convenience, mirroring how the renderer's `core/index.ts` re-exports `RendererApp`.
+
+**Step 1: Write the file**
 
 ```typescript
 // packages/desktop/src/main/core/index.ts
-export { PluginManager } from "./plugin-manager";
-export type { MergedContributions } from "./plugin-manager";
+export { MainApp } from "../app";
+export type { MainAppOptions } from "../app";
+export { BrowserWindowManager } from "./browser-window-manager";
+export type { IMainApp, IBrowserWindowManager, AppContext, OpenWindowOptions } from "./types";
+export { PluginManager } from "./plugin/plugin-manager";
+export { mergeContributions, EMPTY_CONTRIBUTIONS } from "./plugin/contributions";
+export type { MergedContributions } from "./plugin/contributions";
 export type {
   MainPlugin,
   MainPluginHooks,
   MainPluginContributions,
   PluginContext,
-  AppContext,
-  IMainApp,
-} from "./types";
+} from "./plugin/types";
 export { DisposableStore, toDisposable } from "./disposable";
 export type { Disposable } from "./disposable";
 ```
@@ -972,7 +1252,7 @@ git commit -m "feat: add main core barrel export"
 
 ---
 
-### Task 10: Run all tests and typecheck
+### Task 14: Run all tests and typecheck
 
 **Step 1: Run all unit tests**
 
@@ -984,7 +1264,12 @@ Expected: all PASS
 Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json && bunx tsc --noEmit -p tsconfig.web.json`
 Expected: no errors
 
-**Step 3: Fix any issues found, then commit if needed**
+**Step 3: Fix any issues found, then commit**
+
+If there are failures, diagnose and fix them. Common issues:
+- `electron-store` import syntax — use `import Store from "electron-store"` (default import)
+- `destroyAll` not on `IBrowserWindowManager` (it's an internal method on the class, not the interface — that's correct, `index.ts` calls `mainApp.stop()` which delegates internally)
+- `AnyRouter` not exported from `@orpc/server` — check with `grep -r "AnyRouter" node_modules/@orpc/server/dist`
 
 ```bash
 git add -p
