@@ -14,7 +14,7 @@ export interface ActivityBarItem {
   icon: React.ComponentType<{ className?: string }>;
   tooltip: string;
   order?: number;
-  action:  { type: "secondarySidebarView"; viewId: string };
+  action: { type: "secondarySidebarView"; viewId: string };
 }
 
 export interface SecondarySidebarView {
@@ -53,26 +53,16 @@ export interface TitlebarItem {
 export function buildContributions(
   items: (PluginContributions | null | undefined)[],
 ): Required<PluginContributions> {
-  const valid = items.filter(
-    (r): r is PluginContributions => r != null,
-  );
+  const valid = items.filter((r): r is PluginContributions => r != null);
 
   const sortByOrder = <T extends { order?: number }>(list: T[]) =>
     list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
   return {
-    activityBarItems: sortByOrder(
-      valid.flatMap((r) => r.activityBarItems ?? []),
-    ),
-    secondarySidebarViews: valid.flatMap(
-      (r) => r.secondarySidebarViews ?? [],
-    ),
+    activityBarItems: sortByOrder(valid.flatMap((r) => r.activityBarItems ?? [])),
+    secondarySidebarViews: valid.flatMap((r) => r.secondarySidebarViews ?? []),
     contentPanelViews: valid.flatMap((r) => r.contentPanelViews ?? []),
-    primaryTitlebarItems: sortByOrder(
-      valid.flatMap((r) => r.primaryTitlebarItems ?? []),
-    ),
-    secondaryTitlebarItems: sortByOrder(
-      valid.flatMap((r) => r.secondaryTitlebarItems ?? []),
-    ),
+    primaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.primaryTitlebarItems ?? [])),
+    secondaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.secondaryTitlebarItems ?? [])),
   };
 }

@@ -51,15 +51,29 @@ describe("PluginManager", () => {
 
     it("sorts activityBarItems by order", async () => {
       const MockIcon = () => null;
-      const pm = new PluginManager([{
-        name: "test",
-        configContributions: () => ({
-          activityBarItems: [
-            { id: "z", icon: MockIcon, tooltip: "Z", action: { type: "secondarySidebarView", viewId: "z" }, order: 30 },
-            { id: "a", icon: MockIcon, tooltip: "A", action: { type: "secondarySidebarView", viewId: "a" }, order: 10 },
-          ],
-        }),
-      }]);
+      const pm = new PluginManager([
+        {
+          name: "test",
+          configContributions: () => ({
+            activityBarItems: [
+              {
+                id: "z",
+                icon: MockIcon,
+                tooltip: "Z",
+                action: { type: "secondarySidebarView", viewId: "z" },
+                order: 30,
+              },
+              {
+                id: "a",
+                icon: MockIcon,
+                tooltip: "A",
+                action: { type: "secondarySidebarView", viewId: "a" },
+                order: 10,
+              },
+            ],
+          }),
+        },
+      ]);
       await pm.configContributions();
       expect(pm.contributions.activityBarItems[0].id).toBe("a");
       expect(pm.contributions.activityBarItems[1].id).toBe("z");
@@ -76,9 +90,12 @@ describe("PluginManager", () => {
     it("skips plugins without configContributions", async () => {
       const pm = new PluginManager([
         { name: "no-hook" },
-        { name: "has-hook", configContributions: () => ({
-          contentPanelViews: [{ id: "p", name: "P", component: mockContentComponent }],
-        }) },
+        {
+          name: "has-hook",
+          configContributions: () => ({
+            contentPanelViews: [{ id: "p", name: "P", component: mockContentComponent }],
+          }),
+        },
       ]);
       await pm.configContributions();
       expect(pm.contributions.contentPanelViews).toHaveLength(1);
@@ -97,9 +114,26 @@ describe("PluginManager", () => {
     it("calls activate in enforce order", async () => {
       const calls: string[] = [];
       const plugins: RendererPlugin[] = [
-        { name: "normal", activate: () => { calls.push("normal"); } },
-        { name: "post", enforce: "post", activate: () => { calls.push("post"); } },
-        { name: "pre", enforce: "pre", activate: () => { calls.push("pre"); } },
+        {
+          name: "normal",
+          activate: () => {
+            calls.push("normal");
+          },
+        },
+        {
+          name: "post",
+          enforce: "post",
+          activate: () => {
+            calls.push("post");
+          },
+        },
+        {
+          name: "pre",
+          enforce: "pre",
+          activate: () => {
+            calls.push("pre");
+          },
+        },
       ];
       const pm = new PluginManager(plugins);
       await pm.activate({ app: createMockApp() });

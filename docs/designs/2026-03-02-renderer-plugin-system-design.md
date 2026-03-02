@@ -10,17 +10,17 @@
 
 ## Design Decisions
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Plugin scope | Internal-first, future third-party | Both internal modularity and eventual external extensibility |
-| Registry | Static, computed at boot | All plugins known before React mounts. No reactivity needed. Trivial to upgrade later. |
-| State access | Services on RendererApp | `app.subscriptions` — one object to learn |
-| Contributions API | `configContributions()` function returning object | Allows conditional contributions, still collected at boot |
-| Component props | `useRendererApp()` hook | No `app` prop drilling — components access app via context |
-| Built-in features | Plugins (e.g., `builtin:files`) | No hardcoded built-in vs plugin distinction in layout |
-| Activity bar | `panelId` references a SecondarySidebarView | VS Code pattern — activity bar items open sidebar panels |
-| Lifecycle | `configContributions` → `activate` → `deactivate` | VS Code-inspired. `activate` receives `PluginContext` for future extensibility. |
-| i18n | Deferred | Will design `configI18n` hook later |
+| Decision          | Choice                                            | Rationale                                                                              |
+| ----------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Plugin scope      | Internal-first, future third-party                | Both internal modularity and eventual external extensibility                           |
+| Registry          | Static, computed at boot                          | All plugins known before React mounts. No reactivity needed. Trivial to upgrade later. |
+| State access      | Services on RendererApp                           | `app.subscriptions` — one object to learn                                              |
+| Contributions API | `configContributions()` function returning object | Allows conditional contributions, still collected at boot                              |
+| Component props   | `useRendererApp()` hook                           | No `app` prop drilling — components access app via context                             |
+| Built-in features | Plugins (e.g., `builtin:files`)                   | No hardcoded built-in vs plugin distinction in layout                                  |
+| Activity bar      | `panelId` references a SecondarySidebarView       | VS Code pattern — activity bar items open sidebar panels                               |
+| Lifecycle         | `configContributions` → `activate` → `deactivate` | VS Code-inspired. `activate` receives `PluginContext` for future extensibility.        |
+| i18n              | Deferred                                          | Will design `configI18n` hook later                                                    |
 
 ---
 
@@ -29,7 +29,7 @@
 ```typescript
 type RendererPlugin = {
   name: string;
-  enforce?: 'pre' | 'post';
+  enforce?: "pre" | "post";
 } & Partial<RendererPluginHooks>;
 
 interface RendererPluginHooks {
@@ -187,14 +187,14 @@ No hardcoded built-in vs plugin distinction. Files, Search, Git are registered a
 ```typescript
 // plugins/files/plugin.ts
 export const filesPlugin: RendererPlugin = {
-  name: 'builtin:files',
+  name: "builtin:files",
   configContributions() {
     return {
       activityBarItems: [
-        { id: 'files', icon: FolderIcon, tooltip: 'Files', order: 10, panelId: 'files-panel' },
+        { id: "files", icon: FolderIcon, tooltip: "Files", order: 10, panelId: "files-panel" },
       ],
       secondarySidebarViews: [
-        { id: 'files-panel', title: 'Files', component: () => import('./FileTree') },
+        { id: "files-panel", title: "Files", component: () => import("./FileTree") },
       ],
     };
   },
@@ -248,15 +248,15 @@ function SecondarySidebar() {
 
 ## Design Fixes from neovate-code-desktop
 
-| Issue | Before | After |
-|---|---|---|
-| Contribution merging | `PluginConfigContribution[]` — layout flatMaps every render | `Required<PluginContributions>` — pre-merged, flat arrays |
-| Built-in features | Hardcoded in layout, plugin items appended | Everything is a plugin (`builtin:*` naming convention) |
-| Activity bar coupling | `secondarySecondarySidebarViewId` | `panelId` (same concept, cleaner name) |
-| Component props | `{ app: RendererApp }` passed as prop | `useRendererApp()` hook — no prop drilling |
-| Lifecycle | `configI18n`, `configContributes`, `beforeRender` | `configContributions`, `activate({ app })`, `deactivate()` |
-| Plugin context | `{ app }` only | `app.subscriptions` on the app instance |
-| Cleanup | No structured teardown | `app.subscriptions` auto-disposed, `deactivate()` for manual cleanup |
+| Issue                 | Before                                                      | After                                                                |
+| --------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| Contribution merging  | `PluginConfigContribution[]` — layout flatMaps every render | `Required<PluginContributions>` — pre-merged, flat arrays            |
+| Built-in features     | Hardcoded in layout, plugin items appended                  | Everything is a plugin (`builtin:*` naming convention)               |
+| Activity bar coupling | `secondarySecondarySidebarViewId`                           | `panelId` (same concept, cleaner name)                               |
+| Component props       | `{ app: RendererApp }` passed as prop                       | `useRendererApp()` hook — no prop drilling                           |
+| Lifecycle             | `configI18n`, `configContributes`, `beforeRender`           | `configContributions`, `activate({ app })`, `deactivate()`           |
+| Plugin context        | `{ app }` only                                              | `app.subscriptions` on the app instance                              |
+| Cleanup               | No structured teardown                                      | `app.subscriptions` auto-disposed, `deactivate()` for manual cleanup |
 
 ---
 

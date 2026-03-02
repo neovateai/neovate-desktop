@@ -15,9 +15,7 @@ function ActivityBarButton({ item }: { item: ActivityBarItem }) {
   const { action } = item;
 
   const active =
-    action.type === "secondarySidebarView" &&
-    activeView === action.viewId &&
-    !collapsed;
+    action.type === "secondarySidebarView" && activeView === action.viewId && !collapsed;
 
   const handleClick = () => {
     switch (action.type) {
@@ -64,7 +62,10 @@ export function AppLayoutActivityBar() {
   const items = app.pluginManager.contributions.activityBarItems;
 
   return (
-    <nav data-slot="activity-bar" className="flex h-full w-10 shrink-0 flex-col items-center gap-1 pb-2">
+    <nav
+      data-slot="activity-bar"
+      className="flex h-full w-10 shrink-0 flex-col items-center gap-1 pb-2"
+    >
       {items.map((item) => (
         <ActivityBarButton key={item.id} item={item} />
       ))}
