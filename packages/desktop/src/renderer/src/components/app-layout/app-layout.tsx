@@ -9,6 +9,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { Button } from "../ui/button";
+import { useProjectStore } from "../../features/project/store";
+import { OpenAppButton } from "../../features/open-in";
 import { useLayoutStore } from "./use-layout-store";
 
 const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
@@ -108,6 +110,7 @@ export function AppLayoutPrimaryTitleBar() {
 export function AppLayoutSecondaryTitleBar() {
   const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const activeProject = useProjectStore((s) => s.activeProject);
 
   return (
     <div
@@ -115,7 +118,8 @@ export function AppLayoutSecondaryTitleBar() {
       className="[-webkit-app-region:drag] flex flex-1 items-center"
     >
       <div className="flex-1" />
-      <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-0.5 pr-2">
+      <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-2">
+        {activeProject && <OpenAppButton cwd={activeProject.path} />}
         <Button variant="ghost" size="icon-sm" className="size-7" title="Settings">
           <HugeiconsIcon icon={Settings01Icon} size={16} strokeWidth={1.5} />
         </Button>
