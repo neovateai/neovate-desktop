@@ -5,7 +5,6 @@ import { DisposableStore } from "./disposable";
 import type { IRendererApp } from "./types";
 import type { RendererPlugin } from "./plugin";
 import { PluginManager } from "./plugin";
-import App from "../App";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 
@@ -45,6 +44,7 @@ export class RendererApp implements IRendererApp {
   private async render(): Promise<void> {
     const root = document.getElementById("root");
     if (!root) throw new Error("Missing #root element");
+    const { default: App } = await import("../App");
     ReactDOM.createRoot(root).render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
