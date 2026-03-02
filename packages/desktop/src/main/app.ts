@@ -1,4 +1,5 @@
 import { os } from "@orpc/server";
+import type { AnyRouter } from "@orpc/server";
 import { PluginManager } from "./core/plugin/plugin-manager";
 import { DisposableStore } from "./core/disposable";
 import type { IBrowserWindowManager, IMainApp } from "./core/types";
@@ -14,18 +15,18 @@ export class MainApp implements IMainApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
   readonly windowManager: IBrowserWindowManager;
-  get router() { return buildRouter(this.pluginManager.contributions.routers); }
 
   constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
     this.windowManager = options.windowManager;
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<AnyRouter> {
     const ctx = { app: this, orpcServer: os };
     await this.pluginManager.configContributions(ctx);
     await this.pluginManager.activate(ctx);
     this.windowManager.createMainWindow();
+    return buildRouter(this.pluginManager.contributions.routers);
   }
 
   async stop(): Promise<void> {

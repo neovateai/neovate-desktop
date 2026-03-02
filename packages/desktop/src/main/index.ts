@@ -32,10 +32,10 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window);
   });
 
-  await mainApp.start();
+  const router = await mainApp.start();
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
-  const handler = new RPCHandler(mainApp.router);
+  const handler = new RPCHandler(router);
   ipcMain.on("start-orpc-server", (event) => {
     const [serverPort] = event.ports;
     log("start-orpc-server received, upgrading message port");
