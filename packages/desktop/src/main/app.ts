@@ -15,18 +15,24 @@ export class MainApp implements IMainApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
   readonly windowManager: IBrowserWindowManager;
+  #router: AnyRouter | null = null;
+
+  get router(): AnyRouter {
+    if (!this.#router) throw new Error("MainApp.start() must be called first");
+    return this.#router;
+  }
 
   constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
     this.windowManager = options.windowManager;
   }
 
-  async start(): Promise<AnyRouter> {
+  async start(): Promise<void> {
     const ctx = { app: this, orpcServer: os };
     await this.pluginManager.configContributions(ctx);
     await this.pluginManager.activate(ctx);
+    this.#router = buildRouter(this.pluginManager.contributions.routers);
     this.windowManager.createMainWindow();
-    return buildRouter(this.pluginManager.contributions.routers);
   }
 
   async stop(): Promise<void> {
