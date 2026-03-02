@@ -77,7 +77,7 @@ export interface IBrowserWindowManager {
   close(windowId: string): void;
 }
 
-/** Abstract app interface — plugins depend on this, MainApp implements it */
+/** Abstract app interface — plugins depend on this, MainApp implements it. */
 export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
@@ -415,31 +415,29 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
 
 ## MainApp
 
-`MainApp` owns plugin lifecycle and IPC wiring. Electron process events live in `index.ts`.
+`MainApp` owns plugin lifecycle and window management only. No transport knowledge — `RPCHandler`, `ipcMain`, and oRPC wiring live entirely in `index.ts`. This keeps `MainApp` environment-agnostic and runnable in a pure Node context by swapping the transport in `index.ts`.
 
 ```typescript
 // app.ts
 export interface MainAppOptions {
   plugins?: MainPlugin[];
+  windowManager: IBrowserWindowManager;
 }
 
 export class MainApp implements IMainApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
-  readonly windowManager: BrowserWindowManager;
+  readonly windowManager: IBrowserWindowManager;
 
-  readonly #appContext: AppContext;
-  #handler: RPCHandler<any> | null = null;
-
-  constructor(appContext: AppContext, options: MainAppOptions = {}) {
-    this.#appContext = appContext;
+  constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
-    this.windowManager = new BrowserWindowManager();
+    this.windowManager = options.windowManager;
   }
 
   async start(): Promise<void> {
-    await this.#initPlugins();
-    this.#registerIpc();
+    const ctx = { app: this };
+    await this.pluginManager.configContributions(ctx);
+    await this.pluginManager.activate(ctx);
     this.windowManager.createMainWindow();
   }
 
@@ -447,57 +445,59 @@ export class MainApp implements IMainApp {
     await this.pluginManager.deactivate();
     this.windowManager.destroyAll();
     this.subscriptions.dispose();
-    void this.#appContext.acpConnectionManager.disconnectAll();
-  }
-
-  async #initPlugins(): Promise<void> {
-    const ctx = { app: this };
-    await this.pluginManager.configContributions(ctx);
-    const router = buildRouter(this.pluginManager.contributions.routers);
-    this.#handler = new RPCHandler(router);
-    await this.pluginManager.activate(ctx);
-  }
-
-  #registerIpc(): void {
-    ipcMain.on("start-orpc-server", (event) => {
-      const [serverPort] = event.ports;
-      this.#handler!.upgrade(serverPort, { context: this.#appContext });
-      serverPort.start();
-    });
   }
 }
 ```
 
+Key decisions:
+- `windowManager` is injected — not constructed inside `MainApp`
+- No `AppContext` on `MainApp` — only the transport needs it (to pass as RPC context)
+- No `#handler`, no `ipcMain` — transport is fully external
+- `start()` is a clean sequence: contributions → activate → show window
+
 ## Index
 
-Electron process events live here — `MainApp` stays pure and testable.
+Electron process events and transport wiring live here.
 
 ```typescript
 // index.ts
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
+import { RPCHandler } from "@orpc/server/message-port";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
+import { BrowserWindowManager } from "./core/browser-window-manager";
 import { MainApp } from "./app";
+import { buildRouter } from "./router";
 import systemInfoPlugin from "./plugins/system-info";
 
 const connectionManager = new AcpConnectionManager();
 const appContext = { acpConnectionManager: connectionManager };
-const mainApp = new MainApp(appContext, { plugins: [systemInfoPlugin] });
+
+const mainApp = new MainApp({
+  plugins: [systemInfoPlugin],
+  windowManager: new BrowserWindowManager(),
+});
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
+
   await mainApp.start();
+
+  // Transport — Electron MessagePort. Swap this for WS/HTTP in other environments.
+  const handler = new RPCHandler(buildRouter(mainApp.pluginManager.contributions.routers));
+  ipcMain.on("start-orpc-server", (event) => {
+    const [port] = event.ports;
+    handler.upgrade(port, { context: appContext });
+    port.start();
+  });
+
   app.on("activate", () => {
-    // macOS: window may exist but be hidden — show it, don't re-create
     const win = mainApp.windowManager.mainWindow;
-    if (!win) {
-      mainApp.windowManager.createMainWindow();
-    } else {
-      win.show();
-    }
+    if (!win) mainApp.windowManager.createMainWindow();
+    else win.show();
   });
 });
 
@@ -506,6 +506,18 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => { void mainApp.stop(); });
+```
+
+**Node/WS equivalent** — same `MainApp`, different transport:
+
+```typescript
+// server.ts
+const mainApp = new MainApp({ plugins: [systemInfoPlugin], windowManager: noopWindowManager });
+await mainApp.start();
+
+const handler = new WebSocketHandler(buildRouter(mainApp.pluginManager.contributions.routers));
+const wss = new WebSocketServer({ port: 3000 });
+wss.on("connection", (ws) => handler.upgrade(ws, { context: appContext }));
 ```
 
 ## Public Exports (`core/index.ts`)
@@ -548,16 +560,17 @@ export default {
 
 ## Lifecycle
 
-1. `new MainApp(appContext, { plugins })` — construct, enforce ordering applied
-2. `app.whenReady()` — Electron ready (handled in `index.ts`)
+1. `new MainApp({ plugins, windowManager })` — construct, enforce ordering applied
+2. `app.whenReady()` — Electron ready (in `index.ts`)
 3. `mainApp.start()`:
    - `pluginManager.configContributions(ctx)` — parallel — collect `Map<name, AnyRouter>`
-   - `buildRouter(routers)` — merge built-ins + plugin routers
-   - `new RPCHandler(router)` — ready to serve RPC
    - `pluginManager.activate(ctx)` — series — side-effect setup
    - `windowManager.createMainWindow()` — show UI
-4. `before-quit → mainApp.stop()` (in `index.ts`):
+4. Transport setup (in `index.ts`, after `start()`):
+   - `buildRouter(mainApp.pluginManager.contributions.routers)` — merge built-ins + plugin routers
+   - `new RPCHandler(router)` — ready to serve (Electron) or `WebSocketHandler` (Node/WS)
+   - Register `ipcMain.on("start-orpc-server", ...)` or WS listener
+5. `before-quit → mainApp.stop()` (in `index.ts`):
    - `pluginManager.deactivate()` — series
    - `windowManager.destroyAll()` — destroy all windows
    - `subscriptions.dispose()` — run cleanup handlers
-   - `acpConnectionManager.disconnectAll()` — disconnect ACP
