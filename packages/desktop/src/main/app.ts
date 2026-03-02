@@ -3,6 +3,7 @@ import { PluginManager } from "./core/plugin/plugin-manager";
 import { DisposableStore } from "./core/disposable";
 import type { IBrowserWindowManager, IMainApp } from "./core/types";
 import type { MainPlugin } from "./core/plugin/types";
+import { buildRouter } from "./router";
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];
@@ -13,6 +14,7 @@ export class MainApp implements IMainApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
   readonly windowManager: IBrowserWindowManager;
+  get router() { return buildRouter(this.pluginManager.contributions.routers); }
 
   constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
