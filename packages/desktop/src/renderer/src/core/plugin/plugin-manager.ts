@@ -48,25 +48,53 @@ export class PluginManager {
 
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
-    const results = await Promise.all(
-      this.plugins.map((plugin) => plugin.configContributions?.()),
+    const results = await this.applyParallel(
+      (plugin) => plugin.configContributions?.(),
     );
-    this.contributions = mergeContributions(
-      results.filter((r): r is PluginContributions => r != null),
-    );
+    this.contributions = mergeContributions(results);
   }
 
   /** Run activate hooks (series, enforce order) */
   async activate(ctx: PluginContext): Promise<void> {
-    for (const plugin of this.plugins) {
-      await plugin.activate?.(ctx);
-    }
+    await this.applySeries((plugin) => plugin.activate?.(ctx));
   }
 
   /** Run deactivate hooks (series) */
   async deactivate(): Promise<void> {
+    await this.applySeries((plugin) => plugin.deactivate?.());
+  }
+
+  // ─── Hook Runners ─────────────────────────────────────────────────
+
+  /** Run callback on first plugin that returns a non-null result */
+  private async applyFirst<T>(
+    fn: (plugin: RendererPlugin) => T | undefined,
+  ): Promise<NonNullable<Awaited<T>> | undefined> {
     for (const plugin of this.plugins) {
-      await plugin.deactivate?.();
+      const result = await fn(plugin);
+      if (result != null) {
+        return result as NonNullable<Awaited<T>>;
+      }
     }
+    return undefined;
+  }
+
+  /** Run callback sequentially on all plugins (enforce order) */
+  private async applySeries(
+    fn: (plugin: RendererPlugin) => void | Promise<void>,
+  ): Promise<void> {
+    for (const plugin of this.plugins) {
+      await fn(plugin);
+    }
+  }
+
+  /** Run callback on all plugins in parallel, collect non-null results */
+  private async applyParallel<T>(
+    fn: (plugin: RendererPlugin) => T | undefined,
+  ): Promise<NonNullable<Awaited<T>>[]> {
+    const results = await Promise.all(this.plugins.map(fn));
+    return results.filter(
+      (r): r is NonNullable<Awaited<T>> => r != null,
+    );
   }
 }
