@@ -167,11 +167,13 @@ Plugin types live in their own subdirectory mirroring `renderer/src/core/plugin/
 
 ```typescript
 // packages/desktop/src/main/core/plugin/types.ts
-import type { AnyRouter } from "@orpc/server";
+import type { AnyRouter, os } from "@orpc/server";
 import type { IMainApp } from "../types";
 
 export interface PluginContext {
   app: IMainApp;
+  /** Host's oRPC builder — use this instead of importing @orpc/server directly to avoid version mismatch */
+  orpcServer: typeof os;
 }
 
 export interface PluginContributions {
@@ -325,6 +327,7 @@ function makeCtx(): PluginContext {
         close: vi.fn(),
       },
     },
+    orpcServer: { router: vi.fn(), handler: vi.fn() } as any,
   };
 }
 
@@ -912,6 +915,7 @@ Expected: FAIL — cannot resolve `../app`
 
 ```typescript
 // packages/desktop/src/main/app.ts
+import { os } from "@orpc/server";
 import { PluginManager } from "./core/plugin/plugin-manager";
 import { DisposableStore } from "./core/disposable";
 import type { IBrowserWindowManager, IMainApp } from "./core/types";
@@ -933,7 +937,7 @@ export class MainApp implements IMainApp {
   }
 
   async start(): Promise<void> {
-    const ctx = { app: this };
+    const ctx = { app: this, orpcServer: os };
     await this.pluginManager.configContributions(ctx);
     await this.pluginManager.activate(ctx);
     this.windowManager.createMainWindow();
@@ -1045,50 +1049,15 @@ git commit -m "refactor: index.ts wires transport and Electron events, MainApp s
 
 ---
 
-### Task 12: Create system-info plugin with contract and tests
+### Task 12: Create system-info plugin with tests
 
 **Files:**
-- Create: `packages/desktop/src/shared/features/system-info/contract.ts`
-- Modify: `packages/desktop/src/shared/contract.ts`
 - Create: `packages/desktop/src/main/plugins/system-info/index.ts`
 - Test: `packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts`
 
-**Step 1: Write the shared contract**
+`systemInfo` is a plugin — its router registers at runtime via `configContributions`. It does **not** touch `packages/desktop/src/shared/contract.ts`. The root contract only contains built-ins (`ping`, `acp`). The plugin uses `os` from `@orpc/server` directly (uncontracted).
 
-```typescript
-// packages/desktop/src/shared/features/system-info/contract.ts
-import { oc, type } from "@orpc/contract";
-
-export type SystemInfo = {
-  platform: string;
-  arch: string;
-  nodeVersion: string;
-  electronVersion: string;
-  appVersion: string;
-};
-
-export const systemInfoContract = {
-  getInfo: oc.output(type<SystemInfo>()),
-};
-```
-
-**Step 2: Add systemInfo to root contract**
-
-Open `packages/desktop/src/shared/contract.ts`. Add:
-
-```typescript
-import { oc, type } from "@orpc/contract";
-import { acpContract } from "./features/acp/contract";
-import { systemInfoContract } from "./features/system-info/contract";
-
-export const contract = {
-  ping: oc.output(type<"pong">()),
-  acp: acpContract,
-  systemInfo: systemInfoContract,
-};
-```
-
-**Step 3: Write the failing plugin test**
+**Step 1: Write the failing test**
 
 ```typescript
 // packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
@@ -1111,6 +1080,7 @@ function makeCtx(): PluginContext {
         close: vi.fn(),
       },
     },
+    orpcServer: { router: vi.fn(), handler: vi.fn() } as any,
   };
 }
 
@@ -1149,27 +1119,23 @@ describe("system-info plugin", () => {
 });
 ```
 
-**Step 4: Run test to confirm it fails**
+**Step 2: Run test to confirm it fails**
 
 Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
 Expected: FAIL — cannot resolve `../index`
 
-**Step 5: Write the plugin**
+**Step 3: Write the plugin**
 
 ```typescript
 // packages/desktop/src/main/plugins/system-info/index.ts
-import { implement } from "@orpc/server";
 import { app } from "electron";
-import { contract } from "../../../shared/contract";
 import type { MainPlugin } from "../../core/plugin/types";
-
-const oi = implement(contract.systemInfo);
 
 export default {
   name: "systemInfo",
-  configContributions: () => ({
-    router: oi.router({
-      getInfo: oi.getInfo.handler(() => ({
+  configContributions: ({ orpcServer }) => ({
+    router: orpcServer.router({
+      getInfo: orpcServer.handler(() => ({
         platform: process.platform,
         arch: process.arch,
         nodeVersion: process.versions.node,
@@ -1181,21 +1147,21 @@ export default {
 } satisfies MainPlugin;
 ```
 
-**Step 6: Run plugin tests**
+**Step 4: Run plugin tests**
 
 Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
 Expected: all PASS
 
-**Step 7: Run full typecheck**
+**Step 5: Run full typecheck**
 
 Run: `cd packages/desktop && bunx tsc --noEmit -p tsconfig.node.json && bunx tsc --noEmit -p tsconfig.web.json`
 Expected: no errors
 
-**Step 8: Commit**
+**Step 6: Commit**
 
 ```bash
-git add packages/desktop/src/shared/features/system-info/contract.ts packages/desktop/src/shared/contract.ts packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
-git commit -m "feat: add system-info plugin with shared contract"
+git add packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
+git commit -m "feat: add system-info plugin"
 ```
 
 ---

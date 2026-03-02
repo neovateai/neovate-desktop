@@ -88,11 +88,13 @@ export interface IMainApp {
 
 ```typescript
 // core/plugin/types.ts
-import type { AnyRouter } from "@orpc/server";
+import type { AnyRouter, os } from "@orpc/server";
 import type { IMainApp } from "../types";
 
 export interface PluginContext {
   app: IMainApp;
+  /** Host's orpc builder — use this instead of importing @orpc/server directly to avoid version mismatch */
+  orpcServer: typeof os;
 }
 
 export interface PluginContributions {
@@ -112,7 +114,7 @@ export type MainPlugin = {
 ```
 
 Key decisions:
-- `PluginContext = { app: IMainApp }` — exact mirror of renderer's `{ app: IRendererApp }`
+- `PluginContext = { app: IMainApp, orpcServer }` — `orpcServer` is the host's oRPC builder, passed to avoid version mismatch in third-party plugins
 - `IMainApp` exposes `subscriptions` and `windowManager` — plugins can register cleanup and open windows
 - `IBrowserWindowManager` lives in `core/types.ts` so `IMainApp` can reference it without circular deps
 - `AppContext` is internal — used by `MainApp` to wire built-in acp router, never exposed to plugins via `IMainApp`
@@ -389,11 +391,11 @@ export class PluginManager {
 
   async configContributions(ctx: PluginContext): Promise<void> {
     const pluginsWithHook = this.#plugins.filter((p) => typeof p.configContributions === "function");
-    const results = await Promise.all(pluginsWithHook.map(async (p) => ({
+    const items = await Promise.all(pluginsWithHook.map(async (p) => ({
       name: p.name,
       ...(await p.configContributions!(ctx)),
     })));
-    this.contributions = buildContributions(results);
+    this.contributions = buildContributions(items);
   }
 
   async activate(ctx: PluginContext): Promise<void> { ... }
@@ -424,6 +426,8 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
 
 ```typescript
 // app.ts
+import { os } from "@orpc/server";
+
 export interface MainAppOptions {
   plugins?: MainPlugin[];
   windowManager: IBrowserWindowManager;
@@ -440,7 +444,7 @@ export class MainApp implements IMainApp {
   }
 
   async start(): Promise<void> {
-    const ctx = { app: this };
+    const ctx = { app: this, orpcServer: os };
     await this.pluginManager.configContributions(ctx);
     await this.pluginManager.activate(ctx);
     this.windowManager.createMainWindow();
@@ -547,11 +551,14 @@ export type { Disposable } from "./disposable";
 
 ```typescript
 // plugins/system-info/index.ts
+import { app } from "electron";
+import type { MainPlugin } from "../../core/plugin/types";
+
 export default {
   name: "systemInfo",
-  configContributions: () => ({
-    router: os.router({
-      getInfo: os.handler(() => ({
+  configContributions: ({ orpcServer }) => ({
+    router: orpcServer.router({
+      getInfo: orpcServer.handler(() => ({
         platform: process.platform,
         arch: process.arch,
         nodeVersion: process.versions.node,
