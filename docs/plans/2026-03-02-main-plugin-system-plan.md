@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Create a plugin system for the Electron main process that lets plugins register oRPC routers alongside built-in features. Built-in features (ping, acp) remain unchanged. Plugins extend the app with additional routes.
+**Goal:** Create a plugin system for the Electron main process that lets plugins register oRPC routers alongside built-in features. Built-in features (ping, acp) remain unchanged. Plugins extend the app with additional routes. A system-info plugin demonstrates the system end-to-end with unit tests, a renderer demo, and an e2e test.
 
-**Architecture:** Plugins are objects with `name`, `configContributions(ctx)`, `activate(ctx)`, and `deactivate()` hooks. A `PluginManager` (mirroring the renderer pattern) collects router contributions in parallel, then the root router merges built-in routes + plugin routes. Plugin routers use closure-based context (self-contained, no dependency on `AppContext`). A system-info plugin demonstrates the system.
+**Architecture:** Plugins are objects with `name`, `configContributions(ctx)`, `activate(ctx)`, and `deactivate()` hooks. A `PluginManager` (mirroring the renderer pattern) collects router contributions in parallel, then the root router merges built-in routes + plugin routes. Plugin routers use closure-based context (self-contained, no dependency on `AppContext`).
 
-**Tech Stack:** TypeScript, oRPC, Electron, Vitest
+**Tech Stack:** TypeScript, oRPC, Electron, Vitest, Playwright
 
 **Worktree:** `/Users/dinq/.vibest/worktrees/neovateai/neovate-desktop/feat-main-plugin-system`
 
@@ -439,56 +439,103 @@ git commit -m "feat: wire PluginManager into main entry point"
 
 ---
 
-### Task 5: Create system-info example plugin
+### Task 5: Create system-info plugin with contract and unit tests
 
 **Files:**
+- Create: `packages/desktop/src/shared/features/system-info/contract.ts`
 - Create: `packages/desktop/src/main/plugins/system-info/index.ts`
+- Modify: `packages/desktop/src/shared/contract.ts`
 - Test: `packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts`
+- Modify: `packages/desktop/src/main/index.ts`
 
-A simple plugin that exposes system information via oRPC — demonstrates the plugin system end-to-end.
+**Step 1: Write the shared contract for system-info**
 
-**Step 1: Write the failing test**
+```typescript
+// packages/desktop/src/shared/features/system-info/contract.ts
+import { oc, type } from "@orpc/contract";
+
+export type SystemInfo = {
+  platform: string;
+  arch: string;
+  nodeVersion: string;
+  electronVersion: string;
+  appVersion: string;
+};
+
+export const systemInfoContract = {
+  getInfo: oc.output(type<SystemInfo>()),
+};
+```
+
+**Step 2: Add systemInfo to the root contract**
+
+```typescript
+// packages/desktop/src/shared/contract.ts
+import { oc, type } from "@orpc/contract";
+import { acpContract } from "./features/acp/contract";
+import { systemInfoContract } from "./features/system-info/contract";
+
+export const contract = {
+  ping: oc.output(type<"pong">()),
+  acp: acpContract,
+  systemInfo: systemInfoContract,
+};
+```
+
+**Step 3: Write the failing test for the plugin**
 
 ```typescript
 // packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { call } from "@orpc/server";
-import systemInfoPlugin from "..";
 import type { PluginContext } from "../../../core/types";
 
+vi.mock("electron", () => ({
+  app: { getVersion: () => "1.0.0-test" },
+}));
+
 describe("system-info plugin", () => {
-  it("has name 'systemInfo'", () => {
-    expect(systemInfoPlugin.name).toBe("systemInfo");
+  // Re-import after mock is set up
+  async function loadPlugin() {
+    const mod = await import("..");
+    return mod.default;
+  }
+
+  it("has name 'systemInfo'", async () => {
+    const plugin = await loadPlugin();
+    expect(plugin.name).toBe("systemInfo");
   });
 
-  it("configContributions returns a router", async () => {
+  it("configContributions returns a router with getInfo", async () => {
+    const plugin = await loadPlugin();
     const ctx = { appContext: {} } as PluginContext;
-    const contributions = await systemInfoPlugin.configContributions!(ctx);
+    const contributions = await plugin.configContributions!(ctx);
     expect(contributions.router).toBeDefined();
   });
 
-  it("router.getInfo returns system info", async () => {
+  it("getInfo returns system info", async () => {
+    const plugin = await loadPlugin();
     const ctx = { appContext: {} } as PluginContext;
-    const contributions = await systemInfoPlugin.configContributions!(ctx);
+    const contributions = await plugin.configContributions!(ctx);
     const result = await call(contributions.router!.getInfo, undefined);
 
-    expect(result).toHaveProperty("platform");
-    expect(result).toHaveProperty("arch");
-    expect(result).toHaveProperty("nodeVersion");
-    expect(result).toHaveProperty("electronVersion");
-    expect(result).toHaveProperty("appVersion");
-    expect(typeof result.platform).toBe("string");
-    expect(typeof result.arch).toBe("string");
+    expect(result).toEqual({
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.versions.node,
+      electronVersion: process.versions.electron,
+      appVersion: "1.0.0-test",
+    });
   });
 });
 ```
 
-**Step 2: Run test to verify it fails**
+**Step 4: Run test to verify it fails**
 
 Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
 Expected: FAIL — cannot resolve `..`
 
-**Step 3: Write the plugin**
+**Step 5: Write the plugin**
 
 ```typescript
 // packages/desktop/src/main/plugins/system-info/index.ts
@@ -512,14 +559,9 @@ export default {
 } satisfies MainPlugin;
 ```
 
-**Step 4: Run test to verify it passes**
+**Step 6: Register the plugin in index.ts**
 
-Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
-Expected: all PASS (may need to mock `electron` — if `app.getVersion()` fails in test, mock it with `vi.mock("electron", ...)`)
-
-**Step 5: Register the plugin in index.ts**
-
-In `packages/desktop/src/main/index.ts`, add the import and register:
+In `packages/desktop/src/main/index.ts`, update:
 
 ```typescript
 import systemInfoPlugin from "./plugins/system-info";
@@ -527,36 +569,208 @@ import systemInfoPlugin from "./plugins/system-info";
 const pluginManager = new PluginManager([systemInfoPlugin]);
 ```
 
-**Step 6: Commit**
+**Step 7: Run tests**
 
-```bash
-git add packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts packages/desktop/src/main/index.ts
-git commit -m "feat: add system-info example plugin"
-```
+Run: `cd packages/desktop && bunx vitest run src/main/plugins/system-info/__tests__/index.test.ts`
+Expected: all PASS
 
----
-
-### Task 6: Verify full compatibility
-
-**Step 1: Run full typecheck (both node and web)**
+**Step 8: Run full typecheck**
 
 Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.node.json && bunx tsgo --noEmit -p tsconfig.web.json`
 Expected: no errors
 
-**Step 2: Run all tests**
-
-Run: `cd packages/desktop && bunx vitest run`
-Expected: all PASS
-
-**Step 3: Commit (only if any fixups were needed)**
+**Step 9: Commit**
 
 ```bash
-git commit -m "fix: ensure full compatibility with plugin system"
+git add packages/desktop/src/shared/features/system-info/contract.ts packages/desktop/src/shared/contract.ts packages/desktop/src/main/plugins/system-info/index.ts packages/desktop/src/main/plugins/system-info/__tests__/index.test.ts packages/desktop/src/main/index.ts
+git commit -m "feat: add system-info plugin with contract and unit tests"
 ```
 
 ---
 
-### Task 7: Create core/index.ts barrel export
+### Task 6: Add renderer demo for system-info plugin
+
+**Files:**
+- Create: `packages/desktop/src/renderer/src/features/system-info/system-info-demo.tsx`
+- Modify: `packages/desktop/src/renderer/src/App.tsx`
+
+A small component that calls the system-info plugin RPC and displays the result in the content panel. This demonstrates the full main→renderer flow through the plugin system.
+
+**Step 1: Write the demo component**
+
+```tsx
+// packages/desktop/src/renderer/src/features/system-info/system-info-demo.tsx
+import { useEffect, useState } from "react";
+import { client } from "../../orpc";
+
+type SystemInfo = {
+  platform: string;
+  arch: string;
+  nodeVersion: string;
+  electronVersion: string;
+  appVersion: string;
+};
+
+export function SystemInfoDemo() {
+  const [info, setInfo] = useState<SystemInfo | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    client.systemInfo
+      .getInfo()
+      .then(setInfo)
+      .catch((err: Error) => setError(err.message));
+  }, []);
+
+  if (error) {
+    return (
+      <div className="p-3" data-testid="system-info-error">
+        <p className="text-sm text-destructive">Failed to load system info: {error}</p>
+      </div>
+    );
+  }
+
+  if (!info) {
+    return (
+      <div className="p-3">
+        <p className="text-xs text-muted-foreground">Loading system info...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-3" data-testid="system-info">
+      <h2 className="text-xs font-semibold text-muted-foreground">System Info (Plugin Demo)</h2>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+        <dt className="text-muted-foreground">Platform</dt>
+        <dd data-testid="system-info-platform">{info.platform}</dd>
+        <dt className="text-muted-foreground">Arch</dt>
+        <dd data-testid="system-info-arch">{info.arch}</dd>
+        <dt className="text-muted-foreground">Node</dt>
+        <dd data-testid="system-info-node">{info.nodeVersion}</dd>
+        <dt className="text-muted-foreground">Electron</dt>
+        <dd data-testid="system-info-electron">{info.electronVersion}</dd>
+        <dt className="text-muted-foreground">App Version</dt>
+        <dd data-testid="system-info-app-version">{info.appVersion}</dd>
+      </dl>
+    </div>
+  );
+}
+```
+
+**Step 2: Add to App.tsx**
+
+In `packages/desktop/src/renderer/src/App.tsx`, replace the "Content" placeholder in `AppLayoutContentPanel`:
+
+Add import:
+```typescript
+import { SystemInfoDemo } from "./features/system-info/system-info-demo";
+```
+
+Replace the content panel placeholder:
+```tsx
+<AppLayoutContentPanel>
+  <SystemInfoDemo />
+</AppLayoutContentPanel>
+```
+
+**Step 3: Run typecheck**
+
+Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.web.json`
+Expected: no errors
+
+**Step 4: Commit**
+
+```bash
+git add packages/desktop/src/renderer/src/features/system-info/system-info-demo.tsx packages/desktop/src/renderer/src/App.tsx
+git commit -m "feat: add system-info renderer demo component"
+```
+
+---
+
+### Task 7: Add e2e test for system-info plugin
+
+**Files:**
+- Create: `packages/desktop/e2e/plugin-system-info.test.ts`
+
+This Playwright e2e test launches the Electron app, waits for the system-info demo to render, and verifies the plugin data flows from main→renderer.
+
+**Step 1: Write the e2e test**
+
+```typescript
+// packages/desktop/e2e/plugin-system-info.test.ts
+import { test, expect } from "./fixtures/electron";
+
+test("system-info plugin renders data from main process", async ({ window }) => {
+  const container = window.locator('[data-testid="system-info"]');
+  await expect(container).toBeVisible({ timeout: 10_000 });
+
+  const platform = window.locator('[data-testid="system-info-platform"]');
+  await expect(platform).not.toBeEmpty();
+
+  const arch = window.locator('[data-testid="system-info-arch"]');
+  await expect(arch).not.toBeEmpty();
+
+  const nodeVersion = window.locator('[data-testid="system-info-node"]');
+  await expect(nodeVersion).toContainText(".");
+
+  const electronVersion = window.locator('[data-testid="system-info-electron"]');
+  await expect(electronVersion).toContainText(".");
+
+  const appVersion = window.locator('[data-testid="system-info-app-version"]');
+  await expect(appVersion).not.toBeEmpty();
+});
+
+test("system-info plugin does not show error", async ({ window }) => {
+  // Wait for either success or error
+  const info = window.locator('[data-testid="system-info"]');
+  const error = window.locator('[data-testid="system-info-error"]');
+
+  await expect(info.or(error)).toBeVisible({ timeout: 10_000 });
+  await expect(error).not.toBeVisible();
+});
+```
+
+**Step 2: Run the e2e test**
+
+Run: `cd packages/desktop && bun run build && bunx playwright test e2e/plugin-system-info.test.ts`
+Expected: all PASS
+
+**Step 3: Commit**
+
+```bash
+git add packages/desktop/e2e/plugin-system-info.test.ts
+git commit -m "test: add e2e test for system-info plugin"
+```
+
+---
+
+### Task 8: Run all tests and verify
+
+**Step 1: Run unit tests**
+
+Run: `cd packages/desktop && bunx vitest run`
+Expected: all PASS
+
+**Step 2: Run full typecheck**
+
+Run: `cd packages/desktop && bunx tsgo --noEmit -p tsconfig.node.json && bunx tsgo --noEmit -p tsconfig.web.json`
+Expected: no errors
+
+**Step 3: Run e2e tests**
+
+Run: `cd packages/desktop && bun run build && bunx playwright test`
+Expected: all PASS (including existing smoke tests + new plugin test)
+
+**Step 4: Commit (only if any fixups were needed)**
+
+```bash
+git commit -m "fix: address test/typecheck issues"
+```
+
+---
+
+### Task 9: Create core/index.ts barrel export
 
 **Files:**
 - Create: `packages/desktop/src/main/core/index.ts`
