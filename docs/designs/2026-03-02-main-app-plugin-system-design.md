@@ -100,29 +100,94 @@ Key decisions:
 
 ## BrowserWindowManager
 
-Manages all `BrowserWindow` instances: the primary main window and any secondary windows opened by plugins or the app itself.
+Manages all `BrowserWindow` instances: the primary window and secondary windows opened by plugins or features.
+
+### Primary vs Secondary
+
+| | Primary | Secondary |
+|---|---|---|
+| Created by | `MainApp.start()` | plugins/features via `open()` |
+| macOS close | **hide** (not destroy) | destroy + remove from Map |
+| Dock icon click | `win.show()` to restore | — |
+| State persistence | bounds only (`electron-store`) | none |
+| Quantity | exactly one | unlimited, keyed by `windowId` |
+
+### State Persistence
+
+Uses `electron-store` to save/restore primary window bounds. Only bounds — no maximized state.
+
+```typescript
+import Store from "electron-store";
+
+type WindowStore = { bounds: Electron.Rectangle };
+const store = new Store<WindowStore>({ name: "window-state" });
+
+// save on close — getNormalBounds() returns non-maximized size even when maximized
+win.on("close", () => store.set("bounds", win.getNormalBounds()));
+
+// restore on create
+const saved = store.get("bounds");
+const bounds = saved ?? { width: 1200, height: 800 };
+```
+
+### macOS hide-on-close
+
+On macOS, pressing ✕ hides the primary window instead of destroying it. The dock icon click (`activate`) restores it via `win.show()`.
+
+```typescript
+win.on("close", (event) => {
+  if (process.platform === "darwin") {
+    event.preventDefault();
+    win.hide();
+  }
+});
+```
+
+On non-macOS, close destroys the window normally — `closed` fires, `#mainWindow` is nulled, and `window-all-closed` triggers app quit.
+
+### `activate` in `index.ts`
+
+```typescript
+app.on("activate", () => {
+  const win = mainApp.windowManager.mainWindow;
+  if (!win) {
+    mainApp.windowManager.createMainWindow(); // destroyed, re-create
+  } else {
+    win.show(); // hidden or minimized, restore
+  }
+});
+```
+
+`BrowserWindow.getAllWindows().length === 0` is the wrong check — the window exists but may be hidden. Use `mainWindow` getter instead.
+
+### Full Implementation
 
 ```typescript
 // browser-window-manager.ts
+import Store from "electron-store";
 import { join } from "path";
 import { shell, BrowserWindow } from "electron";
 import { is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import type { IBrowserWindowManager, OpenWindowOptions } from "./core/types";
 
+type WindowStore = { bounds: Electron.Rectangle };
+
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, BrowserWindow>();
+  #store = new Store<WindowStore>({ name: "window-state" });
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
   }
 
-  /** Create the primary app window */
   createMainWindow(): BrowserWindow {
+    const saved = this.#store.get("bounds");
+    const bounds = saved ?? { width: 1200, height: 800 };
+
     const win = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      ...bounds,
       minWidth: 900,
       minHeight: 600,
       show: false,
@@ -143,24 +208,29 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       return { action: "deny" };
     });
 
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-    } else {
-      win.loadFile(join(__dirname, "../renderer/index.html"));
-    }
+    // persist bounds on close (before hide/destroy)
+    win.on("close", (event) => {
+      this.#store.set("bounds", win.getNormalBounds());
+      if (process.platform === "darwin") {
+        event.preventDefault();
+        win.hide();
+      }
+    });
 
+    // only fires on non-macOS (macOS close is prevented above)
     win.on("closed", () => {
       this.#mainWindow = null;
     });
 
+    this.#loadURL(win);
     this.#mainWindow = win;
     return win;
   }
 
   /**
    * Open a secondary window by ID.
-   * If a window with the same ID is already open and not destroyed, focuses it instead.
-   * The renderer reads `windowType` from URL params to decide what to render.
+   * Focuses existing window if already open.
+   * Renderer reads `windowType` from URL params to decide what to render.
    */
   open(options: OpenWindowOptions): void {
     const { windowId, windowType, width = 800, height = 600, title, parent = false } = options;
@@ -186,21 +256,8 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
     win.on("ready-to-show", () => win.show());
 
-    const params = new URLSearchParams({
-      windowId,
-      windowType,
-      ...options.urlSearchParams,
-    });
-
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      const url = new URL(process.env["ELECTRON_RENDERER_URL"]);
-      url.search = params.toString();
-      win.loadURL(url.toString());
-    } else {
-      win.loadFile(join(__dirname, "../renderer/index.html"), {
-        search: params.toString(),
-      });
-    }
+    const params = new URLSearchParams({ windowId, windowType, ...options.urlSearchParams });
+    this.#loadURL(win, params);
 
     win.on("closed", () => this.#windows.delete(windowId));
     win.webContents.on("did-fail-load", () => {
@@ -211,13 +268,11 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     this.#windows.set(windowId, win);
   }
 
-  /** Close a secondary window by ID */
   close(windowId: string): void {
     const win = this.#windows.get(windowId);
     if (win && !win.isDestroyed()) win.close();
   }
 
-  /** Destroy all windows — called on app quit */
   destroyAll(): void {
     if (this.#mainWindow && !this.#mainWindow.isDestroyed()) {
       this.#mainWindow.destroy();
@@ -228,12 +283,22 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     }
     this.#windows.clear();
   }
+
+  #loadURL(win: BrowserWindow, params?: URLSearchParams): void {
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      const url = new URL(process.env["ELECTRON_RENDERER_URL"]);
+      if (params) url.search = params.toString();
+      win.loadURL(url.toString());
+    } else {
+      win.loadFile(join(__dirname, "../renderer/index.html"), {
+        ...(params ? { search: params.toString() } : {}),
+      });
+    }
+  }
 }
 ```
 
 ### Plugin usage example
-
-A plugin that opens a settings window from an IPC handler:
 
 ```typescript
 // plugins/settings/index.ts
@@ -377,8 +442,12 @@ app.whenReady().then(async () => {
   });
   await mainApp.start();
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    // macOS: window may exist but be hidden — show it, don't re-create
+    const win = mainApp.windowManager.mainWindow;
+    if (!win) {
       mainApp.windowManager.createMainWindow();
+    } else {
+      win.show();
     }
   });
 });
