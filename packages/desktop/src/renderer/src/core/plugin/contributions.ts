@@ -1,5 +1,7 @@
 import type React from "react";
 
+// ─── Contribution Types ─────────────────────────────────────────────
+
 export interface PluginContributions {
   activityBarItems?: ActivityBarItem[];
   secondarySidebarPanels?: SidebarPanel[];
@@ -47,33 +49,32 @@ export interface TitlebarItem {
   component: () => Promise<{ default: React.ComponentType }>;
 }
 
-export const EMPTY_CONTRIBUTIONS: Required<PluginContributions> = {
-  activityBarItems: [],
-  secondarySidebarPanels: [],
-  contentPanels: [],
-  primaryTitlebarItems: [],
-  secondaryTitlebarItems: [],
-};
+// ─── Merge ──────────────────────────────────────────────────────────
 
-export function mergeContributions(
-  items: PluginContributions[],
+/** Merge partial contributions from multiple plugins into a complete set */
+export function buildContributions(
+  items: (PluginContributions | null | undefined)[],
 ): Required<PluginContributions> {
+  const valid = items.filter(
+    (r): r is PluginContributions => r != null,
+  );
+
   const sortByOrder = <T extends { order?: number }>(list: T[]) =>
     list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
   return {
     activityBarItems: sortByOrder(
-      items.flatMap((r) => r.activityBarItems ?? []),
+      valid.flatMap((r) => r.activityBarItems ?? []),
     ),
-    secondarySidebarPanels: items.flatMap(
+    secondarySidebarPanels: valid.flatMap(
       (r) => r.secondarySidebarPanels ?? [],
     ),
-    contentPanels: items.flatMap((r) => r.contentPanels ?? []),
+    contentPanels: valid.flatMap((r) => r.contentPanels ?? []),
     primaryTitlebarItems: sortByOrder(
-      items.flatMap((r) => r.primaryTitlebarItems ?? []),
+      valid.flatMap((r) => r.primaryTitlebarItems ?? []),
     ),
     secondaryTitlebarItems: sortByOrder(
-      items.flatMap((r) => r.secondaryTitlebarItems ?? []),
+      valid.flatMap((r) => r.secondaryTitlebarItems ?? []),
     ),
   };
 }

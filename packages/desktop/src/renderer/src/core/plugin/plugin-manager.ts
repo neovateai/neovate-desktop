@@ -1,12 +1,12 @@
+import { buildContributions } from "./contributions";
 import type { PluginContributions } from "./contributions";
-import { EMPTY_CONTRIBUTIONS, mergeContributions } from "./contributions";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 type HookFn = (...args: unknown[]) => unknown;
 
 export class PluginManager {
   readonly #plugins: RendererPlugin[];
-  contributions: Required<PluginContributions> = EMPTY_CONTRIBUTIONS;
+  contributions: Required<PluginContributions> = buildContributions([]);
 
   constructor(rawPlugins: RendererPlugin[] = []) {
     this.#plugins = [
@@ -23,9 +23,7 @@ export class PluginManager {
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
     const results = await this.applyParallel("configContributions");
-    this.contributions = mergeContributions(
-      results.filter((r): r is PluginContributions => r != null),
-    );
+    this.contributions = buildContributions(results);
   }
 
   /** Run activate hooks (series, enforce order) */
