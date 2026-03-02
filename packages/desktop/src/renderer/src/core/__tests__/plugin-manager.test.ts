@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { PluginManager } from "../plugin/plugin-manager";
 import type { IRendererApp } from "../types";
-import type { RendererPlugin, SidebarPanel, ContentPanel } from "../plugin";
+import type { RendererPlugin } from "../plugin";
+import type { SidebarPanel, ContentPanel } from "../plugin/contributions";
 
 function createMockApp(): IRendererApp {
   return { subscriptions: { push: vi.fn() } };

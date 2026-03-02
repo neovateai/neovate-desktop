@@ -22,7 +22,7 @@ export class PluginManager {
 
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
-    const results = await this.applyParallel("configContributions");
+    const results = await this.applyParallel<PluginContributions>("configContributions");
     this.contributions = buildContributions(results);
   }
 
@@ -52,16 +52,16 @@ export class PluginManager {
   }
 
   /** Run hook on all plugins in parallel, collect results */
-  private async applyParallel(
+  private async applyParallel<T>(
     hook: keyof RendererPluginHooks,
     ...args: unknown[]
-  ): Promise<unknown[]> {
+  ): Promise<T[]> {
     const promises = this.#plugins
       .filter((plugin) => typeof plugin[hook] === "function")
       .map((plugin) => {
         const fn = plugin[hook] as HookFn;
         return fn.call(plugin, ...args);
       });
-    return Promise.all(promises);
+    return Promise.all(promises) as Promise<T[]>;
   }
 }
