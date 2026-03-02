@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+
+vi.mock("../../orpc", () => ({ client: {} }));
+
 import { RendererApp } from "../app";
 import { toDisposable } from "../disposable";
 

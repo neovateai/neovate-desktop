@@ -8,6 +8,10 @@ function createMockApp(): IRendererApp {
   return { subscriptions: { push: vi.fn() } };
 }
 
+function makeCtx() {
+  return { app: createMockApp(), orpcClient: {} };
+}
+
 const mockComponent: SecondarySidebarView["component"] = () =>
   Promise.resolve({ default: () => null });
 
@@ -107,8 +111,9 @@ describe("PluginManager", () => {
       const activateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", activate: activateFn }]);
       const mockApp = createMockApp();
-      await pm.activate({ app: mockApp });
-      expect(activateFn).toHaveBeenCalledWith({ app: mockApp });
+      const ctx = { app: mockApp, orpcClient: {} };
+      await pm.activate(ctx);
+      expect(activateFn).toHaveBeenCalledWith(ctx);
     });
 
     it("calls activate in enforce order", async () => {
@@ -136,7 +141,7 @@ describe("PluginManager", () => {
         },
       ];
       const pm = new PluginManager(plugins);
-      await pm.activate({ app: createMockApp() });
+      await pm.activate(makeCtx());
       expect(calls).toEqual(["pre", "normal", "post"]);
     });
 
@@ -146,7 +151,7 @@ describe("PluginManager", () => {
         { name: "no-hook" },
         { name: "has-hook", activate: activateFn },
       ]);
-      await pm.activate({ app: createMockApp() });
+      await pm.activate(makeCtx());
       expect(activateFn).toHaveBeenCalledOnce();
     });
   });

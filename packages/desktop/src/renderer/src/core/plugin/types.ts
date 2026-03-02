@@ -3,6 +3,7 @@ import type { IRendererApp } from "../types";
 
 export interface PluginContext {
   app: IRendererApp;
+  orpcClient: Record<string, unknown>;
 }
 
 export interface RendererPluginHooks {
