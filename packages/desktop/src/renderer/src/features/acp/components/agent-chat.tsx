@@ -67,7 +67,13 @@ export function AgentChat() {
       setActiveConnectionId(null);
       setAgentSessions([]);
     }
-  }, [activeProjectPath, setActiveSession, setActiveConnectionId, setAgentSessions, getConnectionForProject]);
+  }, [
+    activeProjectPath,
+    setActiveSession,
+    setActiveConnectionId,
+    setAgentSessions,
+    getConnectionForProject,
+  ]);
 
   // Auto-connect to "claude" when a project is active and no connection exists
   useEffect(() => {

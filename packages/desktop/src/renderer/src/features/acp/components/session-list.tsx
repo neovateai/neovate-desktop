@@ -151,7 +151,11 @@ export function SessionList() {
           connectionId,
           info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
-        const iterator = await client.acp.loadSession({ connectionId, sessionId, cwd: activeProject?.path });
+        const iterator = await client.acp.loadSession({
+          connectionId,
+          sessionId,
+          cwd: activeProject?.path,
+        });
         for await (const event of iterator) {
           appendChunk(sessionId, event);
         }
@@ -161,7 +165,15 @@ export function SessionList() {
         setRestoring(null);
       }
     },
-    [connectionId, sessions, setActiveSession, createSession, appendChunk, agentSessions, activeProject?.path],
+    [
+      connectionId,
+      sessions,
+      setActiveSession,
+      createSession,
+      appendChunk,
+      agentSessions,
+      activeProject?.path,
+    ],
   );
 
   if (!activeProject) {
@@ -182,7 +194,7 @@ export function SessionList() {
   const loadedIds = new Set(sessions.keys());
 
   // In-memory sessions filtered by project, excluding archived
-  const allInMemory = Array.from(sessions.values()).filter(
+  const allInMemory = (Array.from(sessions.values()) as AcpSession[]).filter(
     (s) => matchesProject(s.cwd) && !isArchived(s.sessionId),
   );
   const pinnedInMemory = allInMemory.filter((s) => isPinned(s.sessionId));

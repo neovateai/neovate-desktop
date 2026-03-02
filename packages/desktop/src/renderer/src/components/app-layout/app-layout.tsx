@@ -112,7 +112,12 @@ export function AppLayoutPrimaryTitleBar() {
         >
           <HugeiconsIcon icon={FolderIcon} size={14} strokeWidth={1.5} className="opacity-60" />
           <span className="truncate">{activeProject?.name ?? "No project"}</span>
-          <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.5} className="shrink-0 opacity-40" />
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            size={14}
+            strokeWidth={1.5}
+            className="shrink-0 opacity-40"
+          />
         </button>
       </ProjectSelector>
     </div>
