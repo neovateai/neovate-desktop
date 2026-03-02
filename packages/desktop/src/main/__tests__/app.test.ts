@@ -1,41 +1,49 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { MainPlugin } from "../core/plugin/types";
-import type { IBrowserWindowManager } from "../core/types";
 
-function makeWindowManager(): IBrowserWindowManager {
-  return {
-    mainWindow: null,
-    createMainWindow: vi.fn().mockReturnValue({}),
-    open: vi.fn(),
-    close: vi.fn(),
-    destroyAll: vi.fn(),
-  } as unknown as IBrowserWindowManager;
-}
+const { mockCreateMainWindow, mockDestroyAll } = vi.hoisted(() => ({
+  mockCreateMainWindow: vi.fn().mockReturnValue({}),
+  mockDestroyAll: vi.fn(),
+}));
+
+vi.mock("../core", () => ({
+  BrowserWindowManager: vi.fn().mockImplementation(function (this: Record<string, unknown>) {
+    this.mainWindow = null;
+    this.createMainWindow = mockCreateMainWindow;
+    this.open = vi.fn();
+    this.close = vi.fn();
+    this.destroyAll = mockDestroyAll;
+  }),
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCreateMainWindow.mockReturnValue({});
+});
 
 describe("MainApp", () => {
   it("exposes pluginManager", async () => {
     const { MainApp } = await import("../app");
-    const app = new MainApp({ windowManager: makeWindowManager() });
+    const app = new MainApp({});
     expect(app.pluginManager).toBeDefined();
   });
 
   it("exposes subscriptions", async () => {
     const { MainApp } = await import("../app");
-    const app = new MainApp({ windowManager: makeWindowManager() });
+    const app = new MainApp({});
     expect(typeof app.subscriptions.push).toBe("function");
   });
 
-  it("exposes windowManager (the injected instance)", async () => {
+  it("exposes windowManager", async () => {
     const { MainApp } = await import("../app");
-    const wm = makeWindowManager();
-    const app = new MainApp({ windowManager: wm });
-    expect(app.windowManager).toBe(wm);
+    const app = new MainApp({});
+    expect(app.windowManager).toBeDefined();
   });
 
   it("registers plugins passed in options", async () => {
     const { MainApp } = await import("../app");
     const plugin: MainPlugin = { name: "test" };
-    const app = new MainApp({ plugins: [plugin], windowManager: makeWindowManager() });
+    const app = new MainApp({ plugins: [plugin] });
     expect(app.pluginManager.getPlugins()).toContain(plugin);
   });
 
@@ -52,13 +60,12 @@ describe("MainApp", () => {
         order.push("activate");
       },
     };
-    const wm = makeWindowManager();
-    (wm.createMainWindow as ReturnType<typeof vi.fn>).mockImplementation(() => {
+    mockCreateMainWindow.mockImplementation(() => {
       order.push("createMainWindow");
       return {};
     });
 
-    const app = new MainApp({ plugins: [plugin], windowManager: wm });
+    const app = new MainApp({ plugins: [plugin] });
     await app.start();
 
     expect(order).toEqual(["config", "activate", "createMainWindow"]);
@@ -66,15 +73,14 @@ describe("MainApp", () => {
 
   it("stop() calls deactivate, destroyAll, and subscriptions.dispose", async () => {
     const { MainApp } = await import("../app");
-    const wm = makeWindowManager();
-    const app = new MainApp({ windowManager: wm });
+    const app = new MainApp({});
     const deactivateSpy = vi.spyOn(app.pluginManager, "deactivate");
     const disposeSpy = vi.spyOn(app.subscriptions, "dispose");
 
     await app.stop();
 
     expect(deactivateSpy).toHaveBeenCalled();
-    expect(wm.destroyAll).toHaveBeenCalled();
+    expect(mockDestroyAll).toHaveBeenCalled();
     expect(disposeSpy).toHaveBeenCalled();
   });
 });

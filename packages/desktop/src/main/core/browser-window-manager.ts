@@ -124,9 +124,10 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       if (params) url.search = params.toString();
       win.loadURL(url.toString());
     } else {
-      win.loadFile(join(__dirname, "../renderer/index.html"), {
-        ...(params ? { search: params.toString() } : {}),
-      });
+      win.loadFile(
+        join(__dirname, "../renderer/index.html"),
+        params ? { search: params.toString() } : {},
+      );
     }
   }
 }

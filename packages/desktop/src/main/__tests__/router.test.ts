@@ -24,6 +24,7 @@ describe("main router context wiring", () => {
   it("ping returns pong", async () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
+      projectStore: {} as unknown as AppDependencies["projectStore"],
     } satisfies AppDependencies;
     const result = await call(router.ping, undefined, { context });
     expect(result).toBe("pong");
