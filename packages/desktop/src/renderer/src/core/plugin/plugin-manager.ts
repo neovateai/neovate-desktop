@@ -1,5 +1,4 @@
 import { buildContributions } from "./contributions";
-import type { PluginContributions } from "./contributions";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 type HookFn = (...args: unknown[]) => unknown;
@@ -22,7 +21,7 @@ export class PluginManager {
 
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
-    const results = await this.applyParallel<PluginContributions>("configContributions");
+    const results = await this.applyParallel("configContributions");
     this.contributions = buildContributions(results);
   }
 
@@ -39,9 +38,9 @@ export class PluginManager {
   // ─── Hook Runners ─────────────────────────────────────────────────
 
   /** Run hook sequentially on all plugins (enforce order) */
-  private async applySeries(
-    hook: keyof RendererPluginHooks,
-    ...args: unknown[]
+  private async applySeries<K extends keyof RendererPluginHooks>(
+    hook: K,
+    ...args: Parameters<RendererPluginHooks[K]>
   ): Promise<void> {
     for (const plugin of this.#plugins) {
       const fn = plugin[hook] as HookFn | undefined;
@@ -52,16 +51,16 @@ export class PluginManager {
   }
 
   /** Run hook on all plugins in parallel, collect results */
-  private async applyParallel<T>(
-    hook: keyof RendererPluginHooks,
-    ...args: unknown[]
-  ): Promise<T[]> {
+  private async applyParallel<K extends keyof RendererPluginHooks>(
+    hook: K,
+    ...args: Parameters<RendererPluginHooks[K]>
+  ): Promise<Awaited<ReturnType<RendererPluginHooks[K]>>[]> {
     const promises = this.#plugins
       .filter((plugin) => typeof plugin[hook] === "function")
       .map((plugin) => {
         const fn = plugin[hook] as HookFn;
         return fn.call(plugin, ...args);
       });
-    return Promise.all(promises) as Promise<T[]>;
+    return Promise.all(promises) as Promise<Awaited<ReturnType<RendererPluginHooks[K]>>[]>;
   }
 }
