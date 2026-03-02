@@ -47,7 +47,7 @@ export function SessionList() {
           connectionId,
           info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
-        const iterator = await client.acp.loadSession({ connectionId, sessionId });
+        const iterator = await client.acp.loadSession({ connectionId, sessionId, cwd: activeProject?.path });
         for await (const event of iterator) {
           appendChunk(sessionId, event);
         }

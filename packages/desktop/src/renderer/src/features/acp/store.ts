@@ -44,12 +44,15 @@ type AcpState = {
   activeSessionId: string | null;
   activeConnectionId: string | null;
   agentSessions: SessionInfo[];
+  connectionsByProject: Map<string, string>;
   _nextMessageId: number;
 
   setAgents: (agents: AgentInfo[]) => void;
   setActiveSession: (sessionId: string | null) => void;
   setActiveConnectionId: (connectionId: string | null) => void;
   setAgentSessions: (sessions: SessionInfo[]) => void;
+  setConnectionForProject: (projectPath: string, connectionId: string) => void;
+  getConnectionForProject: (projectPath: string) => string | undefined;
   createSession: (
     sessionId: string,
     connectionId: string,
@@ -70,6 +73,7 @@ export const useAcpStore = create<AcpState>()(
     activeSessionId: null,
     activeConnectionId: null,
     agentSessions: [],
+    connectionsByProject: new Map(),
     _nextMessageId: 0,
 
     setAgents: (agents) => set({ agents }),
@@ -79,6 +83,16 @@ export const useAcpStore = create<AcpState>()(
     setActiveConnectionId: (activeConnectionId) => set({ activeConnectionId }),
 
     setAgentSessions: (agentSessions) => set({ agentSessions }),
+
+    setConnectionForProject: (projectPath, connectionId) => {
+      set((state) => {
+        state.connectionsByProject.set(projectPath, connectionId);
+      });
+    },
+
+    getConnectionForProject: (projectPath) => {
+      return useAcpStore.getState().connectionsByProject.get(projectPath);
+    },
 
     createSession: (sessionId, connectionId, meta) => {
       set((state) => {

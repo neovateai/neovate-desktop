@@ -25,6 +25,11 @@ export function AgentChat() {
   const activeConnectionId = useAcpStore((s) => s.activeConnectionId);
   const sessions = useAcpStore((s) => s.sessions);
 
+  const setActiveConnectionId = useAcpStore((s) => s.setActiveConnectionId);
+  const setAgentSessions = useAcpStore((s) => s.setAgentSessions);
+  const getConnectionForProject = useAcpStore((s) => s.getConnectionForProject);
+  const setConnectionForProject = useAcpStore((s) => s.setConnectionForProject);
+
   const { connect, connecting } = useAcpConnect();
   const { sendPrompt, cancel } = useAcpPrompt();
   const { resolvePermission } = useAcpPermission();
@@ -38,10 +43,30 @@ export function AgentChat() {
     client.acp.listAgents().then(setAgents);
   }, [setAgents]);
 
+  // On project switch: restore existing connection or clear for auto-connect
   useEffect(() => {
     if (activeProjectPath) setCwd(activeProjectPath);
     setActiveSession(null);
-  }, [activeProjectPath, setActiveSession]);
+
+    if (!activeProjectPath) {
+      setActiveConnectionId(null);
+      setAgentSessions([]);
+      return;
+    }
+
+    const existing = getConnectionForProject(activeProjectPath);
+    if (existing) {
+      setActiveConnectionId(existing);
+      // Re-fetch persisted sessions for the restored connection
+      client.acp
+        .listSessions({ connectionId: existing })
+        .then(setAgentSessions)
+        .catch(() => setAgentSessions([]));
+    } else {
+      setActiveConnectionId(null);
+      setAgentSessions([]);
+    }
+  }, [activeProjectPath, setActiveSession, setActiveConnectionId, setAgentSessions, getConnectionForProject]);
 
   // Auto-connect to "claude" when a project is active and no connection exists
   useEffect(() => {
@@ -51,12 +76,19 @@ export function AgentChat() {
     if (autoConnectedPathRef.current === activeProjectPath) return;
 
     autoConnectedPathRef.current = activeProjectPath;
-    connect("claude", activeProjectPath).catch(() => {});
-  }, [activeProjectPath, activeConnectionId, connecting, connect]);
+    connect("claude", activeProjectPath)
+      .then(({ connectionId }) => {
+        setConnectionForProject(activeProjectPath, connectionId);
+      })
+      .catch(() => {});
+  }, [activeProjectPath, activeConnectionId, connecting, connect, setConnectionForProject]);
 
   const handleConnect = async () => {
     if (!selectedAgentId) return;
-    await connect(selectedAgentId, cwd || undefined);
+    const result = await connect(selectedAgentId, cwd || undefined);
+    if (cwd && result) {
+      setConnectionForProject(cwd, result.connectionId);
+    }
   };
 
   const handleSend = (message: string) => {
