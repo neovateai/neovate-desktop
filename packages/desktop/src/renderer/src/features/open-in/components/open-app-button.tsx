@@ -126,11 +126,7 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
         disabled={!effectiveDefault}
       >
         {effectiveIcon ? (
-          <img
-            alt=""
-            className="pointer-events-none size-4 shrink-0"
-            src={effectiveIcon}
-          />
+          <img alt="" className="pointer-events-none size-4 shrink-0" src={effectiveIcon} />
         ) : (
           <span className="text-xs">Open</span>
         )}
@@ -138,11 +134,7 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
       <DropdownMenu onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger
           render={
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 rounded-l-none px-1"
-            >
+            <Button variant="outline" size="sm" className="h-7 rounded-l-none px-1">
               <ChevronDown className="size-3.5" />
             </Button>
           }
@@ -151,30 +143,19 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
           {isLoading ? (
             <div className="flex items-center justify-center px-4 py-2">
               <Loader2 className="mr-2 size-4 animate-spin" />
-              <span className="text-sm text-muted-foreground">
-                Detecting apps...
-              </span>
+              <span className="text-sm text-muted-foreground">Detecting apps...</span>
             </div>
           ) : apps.length === 0 ? (
             <div className="px-4 py-2">
-              <span className="text-sm text-muted-foreground">
-                No apps detected
-              </span>
+              <span className="text-sm text-muted-foreground">No apps detected</span>
             </div>
           ) : (
             apps.map((app) => {
               const iconSrc = APP_ICON_SRC[app];
               return (
-                <DropdownMenuItem
-                  key={app}
-                  onClick={() => handleSelectApp(app)}
-                >
+                <DropdownMenuItem key={app} onClick={() => handleSelectApp(app)}>
                   {iconSrc ? (
-                    <img
-                      alt=""
-                      className="pointer-events-none size-4 shrink-0"
-                      src={iconSrc}
-                    />
+                    <img alt="" className="pointer-events-none size-4 shrink-0" src={iconSrc} />
                   ) : (
                     <span className="size-4 shrink-0" />
                   )}
