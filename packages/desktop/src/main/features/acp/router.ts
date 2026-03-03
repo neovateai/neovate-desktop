@@ -123,13 +123,19 @@ export const acpRouter = os.acp.router({
     manager.setSessionRecord(input.connectionId, record);
     writeSessionRecord(record).catch(() => {});
 
+    const commands = conn.getAvailableCommands(result.sessionId);
     const elapsed = Math.round(performance.now() - t0);
     acpLog("newSession: success in %dms", elapsed, {
       connectionId: input.connectionId,
       sessionId: result.sessionId,
       agentSessionId: result.agentSessionId,
+      commands,
     });
-    return { sessionId: result.sessionId, agentSessionId: result.agentSessionId };
+    return {
+      sessionId: result.sessionId,
+      agentSessionId: result.agentSessionId,
+      commands: commands.length > 0 ? commands : undefined,
+    };
   }),
 
   listSessions: os.acp.listSessions.handler(async ({ input, context }) => {

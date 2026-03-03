@@ -9,6 +9,7 @@ import { EventPublisher } from "@orpc/server";
 import debug from "debug";
 import type { StreamEvent, LoadSessionResult } from "../../../shared/features/acp/types";
 
+const connLog = debug("neovate:acp-connection");
 const preloadLog = debug("neovate:acp-preload");
 
 /** Auto-cancel permission requests after 5 minutes of no UI response. */
@@ -19,6 +20,7 @@ function eventBelongsToSession(event: StreamEvent, sessionId: string): boolean {
     case "acpx_event":
       return event.event.session_id === sessionId;
     case "user_message":
+    case "available_commands":
       return event.sessionId === sessionId;
     case "permission_request":
       return event.data.sessionId === sessionId;
@@ -62,6 +64,7 @@ export class AcpConnection {
   private preloadedSessions = new Map<string, PreloadedSession>();
   private preloadPromises = new Map<string, Promise<void>>();
   private activePreload: string | null = null;
+  private commandsBySession = new Map<string, string[]>();
 
   constructor(id: string) {
     this.id = id;
@@ -79,6 +82,7 @@ export class AcpConnection {
   emitSessionUpdate(notification: SessionNotification): void {
     const update = notification.update;
     const sid = notification.sessionId;
+    connLog("[%s] sessionUpdate type=%s sid=%s", this.id, update.sessionUpdate, sid);
 
     if (update.sessionUpdate === "user_message_chunk" && update.content.type === "text") {
       this.publisher.publish("session", {
@@ -89,11 +93,29 @@ export class AcpConnection {
       return;
     }
 
+    if (update.sessionUpdate === "available_commands_update") {
+      const commands = update.availableCommands
+        .map((entry: { name: string }) => entry.name)
+        .filter((name: string) => typeof name === "string" && name.trim().length > 0);
+      connLog("[%s] available_commands_update sid=%s commands=%o", this.id, sid, commands);
+      this.commandsBySession.set(sid, commands);
+      this.publisher.publish("session", {
+        type: "available_commands",
+        sessionId: sid,
+        commands,
+      });
+      return;
+    }
+
     const drafts = sessionUpdateToEventDrafts(notification);
     for (const draft of drafts) {
       const event = createAcpxEvent({ sessionId: sid, seq: this.seq++ }, draft);
       this.publisher.publish("session", { type: "acpx_event", event });
     }
+  }
+
+  getAvailableCommands(sessionId: string): string[] {
+    return this.commandsBySession.get(sessionId) ?? [];
   }
 
   handlePermissionRequest(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {

@@ -13,6 +13,7 @@ export function useAcpPrompt() {
   const appendChunk = useAcpStore((s) => s.appendChunk);
   const setStreaming = useAcpStore((s) => s.setStreaming);
   const createSession = useAcpStore((s) => s.createSession);
+  const setAvailableCommands = useAcpStore((s) => s.setAvailableCommands);
   const addTiming = useAcpStore((s) => s.addTiming);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function useAcpPrompt() {
       if (!resolvedSessionId) {
         const sessionStart = performance.now();
         acpPromptLog("sendPrompt: creating session", { connectionId });
-        const { sessionId: newSessionId } = await client.acp.newSession({
+        const { sessionId: newSessionId, commands } = await client.acp.newSession({
           connectionId,
         });
         resolvedSessionId = newSessionId;
@@ -37,6 +38,7 @@ export function useAcpPrompt() {
         acpPromptLog("sendPrompt: session created in %dms", sessionElapsed, {
           connectionId,
           sessionId: resolvedSessionId,
+          commands,
         });
         addTiming({
           phase: "prompt",
@@ -51,6 +53,9 @@ export function useAcpPrompt() {
           connectionId,
           projectPath ? { cwd: projectPath } : undefined,
         );
+        if (commands?.length) {
+          setAvailableCommands(resolvedSessionId, commands);
+        }
       }
 
       acpPromptLog("sendPrompt: start", {
@@ -147,7 +152,7 @@ export function useAcpPrompt() {
         acpPromptLog("sendPrompt: cleanup", { connectionId, sessionId: resolvedSessionId });
       }
     },
-    [addUserMessage, appendChunk, setStreaming, createSession, addTiming],
+    [addUserMessage, appendChunk, setStreaming, createSession, setAvailableCommands, addTiming],
   );
 
   const cancel = useCallback(async (connectionId: string, sessionId: string) => {

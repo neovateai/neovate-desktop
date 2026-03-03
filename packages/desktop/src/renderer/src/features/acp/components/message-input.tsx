@@ -5,8 +5,9 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "../../../components/ui/button";
 import { SendHorizonal, Square, Paperclip } from "lucide-react";
-import { SlashCommandsExtension } from "./slash-commands-extension";
+import { createSlashCommandsExtension } from "./slash-commands-extension";
 import { createMentionExtension } from "./mention-extension";
+import { useAcpStore } from "../store";
 import type { JSONContent } from "@tiptap/react";
 
 type Props = {
@@ -60,6 +61,16 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
 
   const mentionExtension = useMemo(() => createMentionExtension(() => cwdRef.current), []);
 
+  const slashCommandsExtension = useMemo(
+    () =>
+      createSlashCommandsExtension(() => {
+        const { activeSessionId, sessions } = useAcpStore.getState();
+        if (!activeSessionId) return [];
+        return sessions.get(activeSessionId)?.availableCommands ?? [];
+      }),
+    [],
+  );
+
   const send = useCallback(() => {
     sendRef.current();
   }, []);
@@ -76,7 +87,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
         placeholder: "Type a message...",
       }),
       mentionExtension,
-      SlashCommandsExtension,
+      slashCommandsExtension,
       Extension.create({
         name: "chatKeymap",
         addProseMirrorPlugins() {

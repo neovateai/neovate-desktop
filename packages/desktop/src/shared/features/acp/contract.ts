@@ -25,7 +25,9 @@ export const acpContract = {
   newSession: oc
     .input(z.object({ connectionId: z.string(), cwd: z.string().optional() }))
     .errors(connectionNotFoundError)
-    .output(type<{ sessionId: string; agentSessionId?: string; modes?: string[] }>()),
+    .output(
+      type<{ sessionId: string; agentSessionId?: string; modes?: string[]; commands?: string[] }>(),
+    ),
 
   listSessions: oc
     .input(z.object({ connectionId: z.string() }))
