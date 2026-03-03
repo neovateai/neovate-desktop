@@ -23,7 +23,7 @@ export const SlashCommandsExtension = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-slash-command]' }];
+    return [{ tag: "span[data-slash-command]" }];
   },
 
   renderHTML({ node, HTMLAttributes }) {
