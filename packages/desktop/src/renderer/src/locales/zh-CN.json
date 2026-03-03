@@ -1,36 +1,6 @@
 {
-  "common.cancel": "取消",
-  "common.send": "发送",
-  "common.copy": "复制",
-  "common.open": "打开",
-
-  "agent.selectPlaceholder": "选择智能体...",
-
-  "session.inputPlaceholder": "输入消息...",
-  "session.restoring": "恢复中...",
-  "session.pinned": "已置顶",
-  "session.recent": "最近",
-  "session.history": "历史",
-  "session.pin": "置顶",
-  "session.unpin": "取消置顶",
-  "session.archive": "归档",
-  "session.copyId": "复制会话 ID",
-  "session.newChat": "新对话",
-  "session.selectProject": "选择项目",
-
-  "chat.startConversation": "开始对话",
-  "chat.connecting": "连接中...",
-  "chat.connect": "连接",
-  "chat.workdirPlaceholder": "工作目录（可选）",
-  "chat.permissionRequested": "权限请求：{{title}}",
-
   "layout.content": "内容",
   "layout.contentDesc": "终端、编辑器、浏览器",
 
-  "openIn.detecting": "正在检测应用...",
-  "openIn.noApps": "未检测到应用",
-  "openIn.copyPath": "复制路径",
-
-  "language.toggle": "切换到英文",
-  "language.current": "中文"
+  "language.toggle": "切换到英文"
 }
