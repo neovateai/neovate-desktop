@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { Project } from "../../../../shared/features/project/types";
+import { client } from "../../orpc";
 
 type ProjectState = {
   projects: Project[];
@@ -16,6 +17,7 @@ type ProjectState = {
   setLoading: (loading: boolean) => void;
   archiveSession: (projectPath: string, sessionId: string) => void;
   togglePinSession: (projectPath: string, sessionId: string) => void;
+  loadSessionPreferences: (projectPath: string) => Promise<void>;
 };
 
 export const useProjectStore = create<ProjectState>()(
@@ -30,6 +32,7 @@ export const useProjectStore = create<ProjectState>()(
     setActiveProject: (activeProject) => set({ activeProject }),
     setLoading: (loading) => set({ loading }),
     archiveSession: (projectPath, sessionId) => {
+      client.project.archiveSession({ projectPath, sessionId }).catch(() => {});
       set((state) => {
         const list = state.archivedSessions[projectPath] ?? [];
         if (!list.includes(sessionId)) {
@@ -43,6 +46,7 @@ export const useProjectStore = create<ProjectState>()(
       });
     },
     togglePinSession: (projectPath, sessionId) => {
+      client.project.togglePinSession({ projectPath, sessionId }).catch(() => {});
       set((state) => {
         const list = state.pinnedSessions[projectPath] ?? [];
         if (list.includes(sessionId)) {
@@ -50,6 +54,16 @@ export const useProjectStore = create<ProjectState>()(
         } else {
           state.pinnedSessions[projectPath] = [...list, sessionId];
         }
+      });
+    },
+    loadSessionPreferences: async (_projectPath) => {
+      const [archived, pinned] = await Promise.all([
+        client.project.getArchivedSessions(),
+        client.project.getPinnedSessions(),
+      ]);
+      set((state) => {
+        state.archivedSessions = archived;
+        state.pinnedSessions = pinned;
       });
     },
   })),

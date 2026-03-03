@@ -61,7 +61,22 @@ export function AgentChat() {
       // Re-fetch persisted sessions for the restored connection
       client.acp
         .listSessions({ connectionId: existing })
-        .then(setAgentSessions)
+        .then((sessions) => {
+          setAgentSessions(sessions);
+          // Preload sessions
+          if (sessions.length > 0) {
+            const sessionIds = [...sessions]
+              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              .map((s) => s.sessionId);
+            client.acp
+              .preloadSessions({
+                connectionId: existing,
+                sessionIds,
+                cwd: activeProjectPath,
+              })
+              .catch(() => {});
+          }
+        })
         .catch(() => setAgentSessions([]));
     } else {
       setActiveConnectionId(null);

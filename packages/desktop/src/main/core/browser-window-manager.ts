@@ -1,3 +1,5 @@
+import os from "node:os";
+import path from "node:path";
 import Store from "electron-store";
 import { join } from "path";
 import { shell, screen, BrowserWindow } from "electron";
@@ -10,7 +12,10 @@ type WindowStore = { bounds: Electron.Rectangle };
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, BrowserWindow>();
-  #store = new Store<WindowStore>({ name: "window-state" });
+  #store = new Store<WindowStore>({
+    name: "window-state",
+    cwd: path.join(os.homedir(), ".neovate-desktop"),
+  });
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;

@@ -18,4 +18,16 @@ export const projectContract = {
   getActive: oc.output(type<Project | null>()),
 
   pickDirectory: oc.output(type<{ path: string } | null>()),
+
+  getArchivedSessions: oc.output(type<Record<string, string[]>>()),
+
+  archiveSession: oc
+    .input(z.object({ projectPath: z.string(), sessionId: z.string() }))
+    .output(type<void>()),
+
+  getPinnedSessions: oc.output(type<Record<string, string[]>>()),
+
+  togglePinSession: oc
+    .input(z.object({ projectPath: z.string(), sessionId: z.string() }))
+    .output(type<void>()),
 };

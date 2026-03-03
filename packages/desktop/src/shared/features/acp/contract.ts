@@ -32,6 +32,17 @@ export const acpContract = {
     .errors(connectionNotFoundError)
     .output(type<SessionInfo[]>()),
 
+  preloadSessions: oc
+    .input(
+      z.object({
+        connectionId: z.string(),
+        sessionIds: z.array(z.string()),
+        cwd: z.string().optional(),
+      }),
+    )
+    .errors(connectionNotFoundError)
+    .output(type<void>()),
+
   loadSession: oc
     .input(
       z.object({

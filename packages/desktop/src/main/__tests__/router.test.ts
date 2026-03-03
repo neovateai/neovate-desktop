@@ -8,6 +8,7 @@ describe("main router context wiring", () => {
   it("listAgents returns built-in agents from acp registry", async () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
+      configStore: {} as unknown as AppDependencies["configStore"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
       mainApp: { windowManager: { mainWindow: null } } as any,
     } satisfies AppDependencies;
@@ -25,6 +26,7 @@ describe("main router context wiring", () => {
   it("ping returns pong", async () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
+      configStore: {} as unknown as AppDependencies["configStore"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
       mainApp: { windowManager: { mainWindow: null } } as any,
     } satisfies AppDependencies;

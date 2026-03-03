@@ -9,4 +9,8 @@ export type Project = {
 export type ProjectStore = {
   projects: Project[];
   activeProjectId: string | null;
+  /** projectPath → archived sessionIds */
+  archivedSessions: Record<string, string[]>;
+  /** projectPath → pinned sessionIds */
+  pinnedSessions: Record<string, string[]>;
 };

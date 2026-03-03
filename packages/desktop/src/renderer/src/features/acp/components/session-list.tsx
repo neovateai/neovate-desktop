@@ -134,8 +134,16 @@ export function SessionList() {
   const activeProject = useProjectStore((s) => s.activeProject);
   const archivedSessions = useProjectStore((s) => s.archivedSessions);
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
+  const loadSessionPreferences = useProjectStore((s) => s.loadSessionPreferences);
 
   const [restoring, setRestoring] = useState<string | null>(null);
+
+  // Hydrate archived/pinned state from main process on mount / project change
+  useEffect(() => {
+    if (activeProject?.path) {
+      loadSessionPreferences(activeProject.path);
+    }
+  }, [activeProject?.path, loadSessionPreferences]);
   const loadAbortRef = useRef<AbortController | null>(null);
 
   // Abort any in-flight load when the connection changes or on unmount

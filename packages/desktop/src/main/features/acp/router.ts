@@ -17,6 +17,9 @@ import { AGENT_OVERRIDES } from "./connection-manager";
 import type { AppContext } from "../../router";
 import type { AcpConnectionManager } from "./connection-manager";
 
+/** "all" (default) | "latest" | "false" */
+const PRELOAD_SESSION_MODE = process.env.NEOVATE_PRELOAD_SESSION ?? "all";
+
 const os = implement({ acp: acpContract }).$context<AppContext>();
 const acpLog = debug("neovate:acp-router");
 
@@ -162,6 +165,35 @@ export const acpRouter = os.acp.router({
     return sessions;
   }),
 
+  preloadSessions: os.acp.preloadSessions.handler(async ({ input, context }) => {
+    if (PRELOAD_SESSION_MODE === "false") return;
+
+    // Filter out archived sessions before preloading
+    const archivedMap = context.projectStore.getArchivedSessions();
+    const archivedSet = new Set(
+      input.cwd ? (archivedMap[input.cwd] ?? []) : Object.values(archivedMap).flat(),
+    );
+    const filtered = input.sessionIds.filter((id) => !archivedSet.has(id));
+    const ids = PRELOAD_SESSION_MODE === "latest" ? filtered.slice(0, 1) : filtered;
+
+    acpLog("preloadSessions: start (mode=%s, count=%d)", PRELOAD_SESSION_MODE, ids.length, {
+      connectionId: input.connectionId,
+    });
+
+    try {
+      const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
+      // Preload sequentially to avoid flooding the agent
+      for (const sessionId of ids) {
+        await conn.preloadSession(sessionId, input.cwd);
+      }
+    } catch (error) {
+      acpLog("preloadSessions: failed silently", {
+        connectionId: input.connectionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }),
+
   loadSession: os.acp.loadSession.handler(async function* ({ input, signal, context }) {
     const t0 = performance.now();
     let firstEventAt: number | undefined;
@@ -171,6 +203,19 @@ export const acpRouter = os.acp.router({
       cwd: input.cwd,
     });
     const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
+
+    // Check if this session was preloaded (waits for in-flight preload if any)
+    const cached = await conn.consumePreload(input.sessionId);
+    if (cached) {
+      acpLog("loadSession: serving from preload cache (%d events)", cached.events.length);
+      for (const event of cached.events) {
+        yield event;
+      }
+      const totalMs = performance.now() - t0;
+      yield timingEntry("loadSession", "time_to_first_event", 0);
+      yield timingEntry("loadSession", "total", totalMs);
+      return cached.result;
+    }
 
     const done = new AbortController();
     if (signal) {
@@ -293,7 +338,7 @@ export const acpRouter = os.acp.router({
       for await (const event of subscription) {
         eventCount += 1;
         if (!firstEventAt) firstEventAt = performance.now();
-        if (eventCount <= 10) {
+        if (eventCount <= 10 && acpLog.enabled) {
           acpLog("prompt: event", {
             connectionId: input.connectionId,
             sessionId: input.sessionId,

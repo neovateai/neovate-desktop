@@ -44,6 +44,15 @@ export function useAcpConnect() {
               timestamp: Date.now(),
             });
             setAgentSessions(sessions);
+
+            // Preload sessions so they're ready when the user clicks them
+            if (sessions.length > 0) {
+              const sessionIds = [...sessions]
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                .map((s) => s.sessionId);
+              connectLog("preloading %d sessions", sessionIds.length);
+              client.acp.preloadSessions({ connectionId, sessionIds, cwd }).catch(() => {});
+            }
           })
           .catch(() => {});
 

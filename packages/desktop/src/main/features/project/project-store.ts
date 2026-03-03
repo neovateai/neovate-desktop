@@ -1,3 +1,5 @@
+import os from "node:os";
+import path from "node:path";
 import Store from "electron-store";
 import type {
   Project,
@@ -10,9 +12,12 @@ export class ProjectStore {
   constructor() {
     this.store = new Store<ProjectStoreSchema>({
       name: "projects",
+      cwd: path.join(os.homedir(), ".neovate-desktop"),
       defaults: {
         projects: [],
         activeProjectId: null,
+        archivedSessions: {},
+        pinnedSessions: {},
       },
     });
   }
@@ -61,5 +66,40 @@ export class ProjectStore {
     const id = this.getActiveId();
     if (!id) return null;
     return this.get(id) ?? null;
+  }
+
+  getArchivedSessions(): Record<string, string[]> {
+    return this.store.get("archivedSessions");
+  }
+
+  archiveSession(projectPath: string, sessionId: string): void {
+    const archived = this.store.get("archivedSessions");
+    const list = archived[projectPath] ?? [];
+    if (!list.includes(sessionId)) {
+      archived[projectPath] = [...list, sessionId];
+      this.store.set("archivedSessions", archived);
+    }
+    // Also unpin if pinned
+    const pinned = this.store.get("pinnedSessions");
+    const pinnedList = pinned[projectPath];
+    if (pinnedList?.includes(sessionId)) {
+      pinned[projectPath] = pinnedList.filter((id) => id !== sessionId);
+      this.store.set("pinnedSessions", pinned);
+    }
+  }
+
+  getPinnedSessions(): Record<string, string[]> {
+    return this.store.get("pinnedSessions");
+  }
+
+  togglePinSession(projectPath: string, sessionId: string): void {
+    const pinned = this.store.get("pinnedSessions");
+    const list = pinned[projectPath] ?? [];
+    if (list.includes(sessionId)) {
+      pinned[projectPath] = list.filter((id) => id !== sessionId);
+    } else {
+      pinned[projectPath] = [...list, sessionId];
+    }
+    this.store.set("pinnedSessions", pinned);
   }
 }

@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { AcpClient, resolveAgentCommand, type SessionRecord } from "acpx";
 import { ORPCError } from "@orpc/server";
 import debug from "debug";
@@ -8,11 +10,20 @@ const cmLog = debug("neovate:acp-connection-manager");
 
 const MAX_STDERR_LINES = 100;
 
-// PERF: `npx -y` resolves and potentially downloads the package on every
-// invocation. This adds 5-15s+ to cold starts. Consider pre-installing the
-// package or caching the resolved binary path to eliminate this overhead.
+function resolveAgentBin(pkg: string, bin: string): string {
+  const require = createRequire(import.meta.url);
+  const pkgJson = require.resolve(`${pkg}/package.json`);
+  return join(dirname(pkgJson), bin);
+}
+
+// Canonical command strings used by acpx for session record matching.
 export const AGENT_OVERRIDES: Record<string, string> = {
   claude: "npx -y @zed-industries/claude-agent-acp",
+};
+
+// Fast local paths used for spawning (avoids npx resolution overhead).
+const AGENT_SPAWN_OVERRIDES: Record<string, string> = {
+  claude: `node ${resolveAgentBin("@zed-industries/claude-agent-acp", "dist/index.js")}`,
 };
 
 type ManagedConnection = {
@@ -49,13 +60,14 @@ export class AcpConnectionManager {
     };
 
     const agentCommand = resolveAgentCommand(agentName, AGENT_OVERRIDES);
-    cmLog("connect[%s]: agentCommand=%s", id, agentCommand);
+    const spawnCommand = AGENT_SPAWN_OVERRIDES[agentName] ?? agentCommand;
+    cmLog("connect[%s]: agentCommand=%s spawnCommand=%s", id, agentCommand, spawnCommand);
 
     const stderrLines: string[] = [];
     const connection = new AcpConnection(id);
 
     const client = new AcpClient({
-      agentCommand,
+      agentCommand: spawnCommand,
       cwd: cwd ?? process.cwd(),
       // TODO: implement configurable permission policies (approve-all, approve-reads, deny-all)
       permissionMode: "approve-reads",
