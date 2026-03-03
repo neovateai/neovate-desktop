@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pin, PinOff, Archive, Copy, Plus } from "lucide-react";
 import { useAcpStore } from "../store";
 import { useProjectStore } from "../../project/store";
@@ -127,6 +127,7 @@ export function SessionList() {
   const setActiveSession = useAcpStore((s) => s.setActiveSession);
   const agentSessions = useAcpStore((s) => s.agentSessions);
   const createSession = useAcpStore((s) => s.createSession);
+  const removeSession = useAcpStore((s) => s.removeSession);
   const appendChunk = useAcpStore((s) => s.appendChunk);
   const connectionId = useAcpStore((s) => s.activeConnectionId);
 
@@ -135,6 +136,15 @@ export function SessionList() {
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
 
   const [restoring, setRestoring] = useState<string | null>(null);
+  const loadAbortRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight load when the connection changes or on unmount
+  useEffect(() => {
+    return () => {
+      loadAbortRef.current?.abort();
+      loadAbortRef.current = null;
+    };
+  }, [connectionId]);
 
   const loadSession = useCallback(
     async (sessionId: string) => {
@@ -143,6 +153,12 @@ export function SessionList() {
         setActiveSession(sessionId);
         return;
       }
+
+      // Abort any previous in-flight load
+      loadAbortRef.current?.abort();
+      const ac = new AbortController();
+      loadAbortRef.current = ac;
+
       setRestoring(sessionId);
       try {
         const info = agentSessions.find((s) => s.sessionId === sessionId);
@@ -151,18 +167,20 @@ export function SessionList() {
           connectionId,
           info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
-        const iterator = await client.acp.loadSession({
-          connectionId,
-          sessionId,
-          cwd: activeProject?.path,
-        });
+        const iterator = await client.acp.loadSession(
+          { connectionId, sessionId, cwd: activeProject?.path },
+          { signal: ac.signal },
+        );
         for await (const event of iterator) {
           appendChunk(sessionId, event);
         }
       } catch {
-        // ignore
+        removeSession(sessionId);
       } finally {
-        setRestoring(null);
+        if (loadAbortRef.current === ac) {
+          loadAbortRef.current = null;
+        }
+        setRestoring((prev) => (prev === sessionId ? null : prev));
       }
     },
     [
@@ -170,6 +188,7 @@ export function SessionList() {
       sessions,
       setActiveSession,
       createSession,
+      removeSession,
       appendChunk,
       agentSessions,
       activeProject?.path,

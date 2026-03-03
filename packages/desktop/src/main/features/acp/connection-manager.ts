@@ -35,7 +35,11 @@ export class AcpConnectionManager {
 
     const shellEnvStart = performance.now();
     const shellEnv = await getShellEnvironment();
-    cmLog("connect[%s]: shellEnv resolved in %dms", id, Math.round(performance.now() - shellEnvStart));
+    cmLog(
+      "connect[%s]: shellEnv resolved in %dms",
+      id,
+      Math.round(performance.now() - shellEnvStart),
+    );
 
     const mergedPath = [shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
 
@@ -69,7 +73,11 @@ export class AcpConnectionManager {
 
     const clientStartTime = performance.now();
     await client.start();
-    cmLog("connect[%s]: client.start() completed in %dms", id, Math.round(performance.now() - clientStartTime));
+    cmLog(
+      "connect[%s]: client.start() completed in %dms",
+      id,
+      Math.round(performance.now() - clientStartTime),
+    );
 
     connection.setClient(client);
 

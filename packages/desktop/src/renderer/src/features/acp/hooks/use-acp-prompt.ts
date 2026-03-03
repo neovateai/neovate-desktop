@@ -34,8 +34,16 @@ export function useAcpPrompt() {
         });
         resolvedSessionId = newSessionId;
         const sessionElapsed = Math.round(performance.now() - sessionStart);
-        acpPromptLog("sendPrompt: session created in %dms", sessionElapsed, { connectionId, sessionId: resolvedSessionId });
-        addTiming({ phase: "prompt", label: "newSession", durationMs: sessionElapsed, timestamp: Date.now() });
+        acpPromptLog("sendPrompt: session created in %dms", sessionElapsed, {
+          connectionId,
+          sessionId: resolvedSessionId,
+        });
+        addTiming({
+          phase: "prompt",
+          label: "newSession",
+          durationMs: sessionElapsed,
+          timestamp: Date.now(),
+        });
 
         const projectPath = useProjectStore.getState().activeProject?.path;
         createSession(
@@ -64,8 +72,16 @@ export function useAcpPrompt() {
           { signal: ac.signal },
         );
         const rpcElapsed = Math.round(performance.now() - rpcStart);
-        acpPromptLog("sendPrompt: iterator ready in %dms", rpcElapsed, { connectionId, sessionId: resolvedSessionId });
-        addTiming({ phase: "prompt", label: "rpc_setup", durationMs: rpcElapsed, timestamp: Date.now() });
+        acpPromptLog("sendPrompt: iterator ready in %dms", rpcElapsed, {
+          connectionId,
+          sessionId: resolvedSessionId,
+        });
+        addTiming({
+          phase: "prompt",
+          label: "rpc_setup",
+          durationMs: rpcElapsed,
+          timestamp: Date.now(),
+        });
 
         let eventCount = 0;
         let firstEventAt: number | undefined;
@@ -76,7 +92,12 @@ export function useAcpPrompt() {
             firstEventAt = performance.now();
             const ttfe = Math.round(firstEventAt - promptStart);
             acpPromptLog("sendPrompt: first event after %dms", ttfe, { eventType: event.type });
-            addTiming({ phase: "prompt", label: "time_to_first_event", durationMs: ttfe, timestamp: Date.now() });
+            addTiming({
+              phase: "prompt",
+              label: "time_to_first_event",
+              durationMs: ttfe,
+              timestamp: Date.now(),
+            });
           }
           if (eventCount <= 10) {
             acpPromptLog("sendPrompt: event", {
@@ -93,7 +114,12 @@ export function useAcpPrompt() {
           connectionId,
           sessionId: resolvedSessionId,
         });
-        addTiming({ phase: "prompt", label: "total", durationMs: totalElapsed, timestamp: Date.now() });
+        addTiming({
+          phase: "prompt",
+          label: "total",
+          durationMs: totalElapsed,
+          timestamp: Date.now(),
+        });
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;

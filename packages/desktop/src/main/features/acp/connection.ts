@@ -11,6 +11,34 @@ import type { StreamEvent } from "../../../shared/features/acp/types";
 /** Auto-cancel permission requests after 5 minutes of no UI response. */
 export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 
+function eventBelongsToSession(event: StreamEvent, sessionId: string): boolean {
+  switch (event.type) {
+    case "acpx_event":
+      return event.event.session_id === sessionId;
+    case "user_message":
+      return event.sessionId === sessionId;
+    case "permission_request":
+      return event.data.sessionId === sessionId;
+    case "timing":
+      return true;
+  }
+}
+
+async function* filterStreamBySession(
+  source: AsyncGenerator<StreamEvent>,
+  sessionId: string,
+): AsyncGenerator<StreamEvent> {
+  try {
+    for await (const event of source) {
+      if (eventBelongsToSession(event, sessionId)) {
+        yield event;
+      }
+    }
+  } finally {
+    source.return(undefined);
+  }
+}
+
 type PendingPermission = {
   resolve: (response: RequestPermissionResponse) => void;
   timer: ReturnType<typeof setTimeout>;
@@ -39,11 +67,12 @@ export class AcpConnection {
 
   emitSessionUpdate(notification: SessionNotification): void {
     const update = notification.update;
+    const sid = notification.sessionId;
 
-    // Emit user messages as a dedicated event so the store can create separate messages
     if (update.sessionUpdate === "user_message_chunk" && update.content.type === "text") {
       this.publisher.publish("session", {
         type: "user_message",
+        sessionId: sid,
         text: update.content.text,
       });
       return;
@@ -51,7 +80,7 @@ export class AcpConnection {
 
     const drafts = sessionUpdateToEventDrafts(notification);
     for (const draft of drafts) {
-      const event = createAcpxEvent({ sessionId: this.id, seq: this.seq++ }, draft);
+      const event = createAcpxEvent({ sessionId: sid, seq: this.seq++ }, draft);
       this.publisher.publish("session", { type: "acpx_event", event });
     }
   }
@@ -81,8 +110,9 @@ export class AcpConnection {
     pending.resolve({ outcome: { outcome: "selected", optionId } });
   }
 
-  subscribeSession(signal?: AbortSignal): AsyncGenerator<StreamEvent> {
-    return this.publisher.subscribe("session", { signal });
+  subscribeSession(sessionId: string, signal?: AbortSignal): AsyncGenerator<StreamEvent> {
+    const raw = this.publisher.subscribe("session", { signal });
+    return filterStreamBySession(raw, sessionId);
   }
 
   dispose(): void {

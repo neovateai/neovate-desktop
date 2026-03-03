@@ -16,7 +16,7 @@ export type TimingEntry = {
 /** What the eventIterator yields to the renderer */
 export type StreamEvent =
   | { type: "acpx_event"; event: AcpxEvent }
-  | { type: "user_message"; text: string }
+  | { type: "user_message"; sessionId: string; text: string }
   | {
       type: "permission_request";
       requestId: string;

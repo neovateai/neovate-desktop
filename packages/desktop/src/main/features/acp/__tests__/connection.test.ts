@@ -91,11 +91,11 @@ describe("AcpConnection", () => {
 
     const conn = new AcpConnection("test-1");
     const ac = new AbortController();
-    const sub = conn.subscribeSession(ac.signal);
+    const sub = conn.subscribeSession("s1", ac.signal);
 
-    // Use a valid SessionNotification shape
     conn.emitSessionUpdate({
       method: "notifications/sessionUpdate",
+      sessionId: "s1",
       update: {
         sessionUpdate: "agent_message_chunk",
         content: { type: "text", text: "hello" },
@@ -108,7 +108,40 @@ describe("AcpConnection", () => {
     await sub.return(undefined);
 
     expect(value).toMatchObject({ type: "acpx_event" });
-    expect(value!.type === "acpx_event" && value!.event.session_id).toBe("test-1");
+    expect(value!.type === "acpx_event" && value!.event.session_id).toBe("s1");
+  });
+
+  it("subscribeSession filters events by session ID", async () => {
+    vi.useRealTimers();
+
+    const conn = new AcpConnection("test-1");
+    const ac = new AbortController();
+    const sub = conn.subscribeSession("s1", ac.signal);
+
+    conn.emitSessionUpdate({
+      method: "notifications/sessionUpdate",
+      sessionId: "s2",
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "text", text: "wrong session" },
+      },
+    } as any);
+
+    conn.emitSessionUpdate({
+      method: "notifications/sessionUpdate",
+      sessionId: "s1",
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "text", text: "right session" },
+      },
+    } as any);
+
+    const { value } = await sub.next();
+    ac.abort();
+    await sub.return(undefined);
+
+    expect(value).toMatchObject({ type: "acpx_event" });
+    expect(value!.type === "acpx_event" && value!.event.session_id).toBe("s1");
   });
 
   it("client getter throws if not initialized", () => {

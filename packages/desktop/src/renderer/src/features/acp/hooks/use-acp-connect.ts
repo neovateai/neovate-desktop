@@ -23,7 +23,12 @@ export function useAcpConnect() {
         const { connectionId } = await client.acp.connect({ agentId, cwd });
         const elapsed = Math.round(performance.now() - t0);
         connectLog("connect: success in %dms (connectionId=%s)", elapsed, connectionId);
-        addTiming({ phase: "connect", label: "rpc_roundtrip", durationMs: elapsed, timestamp: Date.now() });
+        addTiming({
+          phase: "connect",
+          label: "rpc_roundtrip",
+          durationMs: elapsed,
+          timestamp: Date.now(),
+        });
         setActiveConnectionId(connectionId);
 
         const listStart = performance.now();
@@ -32,7 +37,12 @@ export function useAcpConnect() {
           .then((sessions) => {
             const listElapsed = Math.round(performance.now() - listStart);
             connectLog("listSessions: success in %dms (count=%d)", listElapsed, sessions.length);
-            addTiming({ phase: "connect", label: "listSessions", durationMs: listElapsed, timestamp: Date.now() });
+            addTiming({
+              phase: "connect",
+              label: "listSessions",
+              durationMs: listElapsed,
+              timestamp: Date.now(),
+            });
             setAgentSessions(sessions);
           })
           .catch(() => {});

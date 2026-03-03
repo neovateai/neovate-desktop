@@ -72,14 +72,20 @@ export const acpRouter = os.acp.router({
     try {
       const connection = await context.acpConnectionManager.connect(input.agentId, input.cwd);
       const elapsed = Math.round(performance.now() - t0);
-      acpLog("connect: success in %dms", elapsed, { connectionId: connection.id, agentId: input.agentId });
+      acpLog("connect: success in %dms", elapsed, {
+        connectionId: connection.id,
+        agentId: input.agentId,
+      });
       return { connectionId: connection.id };
     } catch (error) {
       const message =
         error instanceof AgentSpawnError || error instanceof Error
           ? `Failed to start agent "${input.agentId}": ${error.message}`
           : `Failed to start agent "${input.agentId}"`;
-      acpLog("connect: failed after %dms", Math.round(performance.now() - t0), { agentId: input.agentId, error: message });
+      acpLog("connect: failed after %dms", Math.round(performance.now() - t0), {
+        agentId: input.agentId,
+        error: message,
+      });
       throw new ORPCError("BAD_GATEWAY", { defined: true, message });
     }
   }),
@@ -145,9 +151,14 @@ export const acpRouter = os.acp.router({
       createdAt: r.createdAt,
     }));
 
-    acpLog("listSessions: success in %dms (count=%d)", Math.round(performance.now() - t0), sessions.length, {
-      connectionId: input.connectionId,
-    });
+    acpLog(
+      "listSessions: success in %dms (count=%d)",
+      Math.round(performance.now() - t0),
+      sessions.length,
+      {
+        connectionId: input.connectionId,
+      },
+    );
     return sessions;
   }),
 
@@ -163,11 +174,18 @@ export const acpRouter = os.acp.router({
 
     const done = new AbortController();
     if (signal) {
-      signal.addEventListener("abort", () => done.abort(signal.reason), { once: true });
+      signal.addEventListener(
+        "abort",
+        () => {
+          conn.client.cancel(input.sessionId).catch(() => {});
+          done.abort(signal.reason);
+        },
+        { once: true },
+      );
     }
 
     // Subscribe before loadSession so we capture replayed events
-    const subscription = conn.subscribeSession(done.signal);
+    const subscription = conn.subscribeSession(input.sessionId, done.signal);
 
     let loadResult: { agentSessionId?: string } | undefined;
     let loadError: unknown;
@@ -213,11 +231,17 @@ export const acpRouter = os.acp.router({
 
     const totalMs = performance.now() - t0;
     const ttfe = firstEventAt ? firstEventAt - t0 : totalMs;
-    acpLog("loadSession: success in %dms (ttfe=%dms, events=%d)", Math.round(totalMs), Math.round(ttfe), eventCount, {
-      connectionId: input.connectionId,
-      sessionId: input.sessionId,
-      agentSessionId: loadResult?.agentSessionId,
-    });
+    acpLog(
+      "loadSession: success in %dms (ttfe=%dms, events=%d)",
+      Math.round(totalMs),
+      Math.round(ttfe),
+      eventCount,
+      {
+        connectionId: input.connectionId,
+        sessionId: input.sessionId,
+        agentSessionId: loadResult?.agentSessionId,
+      },
+    );
     yield timingEntry("loadSession", "time_to_first_event", ttfe);
     yield timingEntry("loadSession", "total", totalMs);
     return { sessionId: input.sessionId, agentSessionId: loadResult?.agentSessionId };
@@ -263,7 +287,7 @@ export const acpRouter = os.acp.router({
         done.abort("prompt_error");
       });
 
-    const subscription = conn.subscribeSession(done.signal);
+    const subscription = conn.subscribeSession(input.sessionId, done.signal);
 
     try {
       for await (const event of subscription) {
@@ -307,11 +331,17 @@ export const acpRouter = os.acp.router({
 
     const totalMs = performance.now() - t0;
     const ttfe = firstEventAt ? firstEventAt - t0 : totalMs;
-    acpLog("prompt: done in %dms (ttfe=%dms, events=%d)", Math.round(totalMs), Math.round(ttfe), eventCount, {
-      connectionId: input.connectionId,
-      sessionId: input.sessionId,
-      stopReason: stopReason ?? "end_turn",
-    });
+    acpLog(
+      "prompt: done in %dms (ttfe=%dms, events=%d)",
+      Math.round(totalMs),
+      Math.round(ttfe),
+      eventCount,
+      {
+        connectionId: input.connectionId,
+        sessionId: input.sessionId,
+        stopReason: stopReason ?? "end_turn",
+      },
+    );
     yield timingEntry("prompt", "time_to_first_event", ttfe);
     yield timingEntry("prompt", "total", totalMs);
     return { stopReason: stopReason ?? "end_turn" };
