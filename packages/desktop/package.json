@@ -32,7 +32,7 @@
     "@orpc/contract": "^1.13.5",
     "@orpc/server": "^1.13.5",
     "@zed-industries/claude-agent-acp": "^0.19.2",
-    "acpx": "github:neovateai/acpx#c26a94e",
+    "acpx": "github:neovateai/acpx#d9ca953",
     "debug": "^4.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",

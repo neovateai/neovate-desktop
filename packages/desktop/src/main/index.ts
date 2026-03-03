@@ -1,6 +1,9 @@
+import os from "node:os";
+import path from "node:path";
 import { app, ipcMain } from "electron";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
+import { setBaseDir } from "acpx";
 import debug from "debug";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
 import { getShellEnvironment } from "./features/acp/shell-env";
@@ -10,6 +13,8 @@ import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
 
 const log = debug("neovate:orpc");
+
+setBaseDir(path.join(os.homedir(), ".neovate-desktop"));
 
 if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
