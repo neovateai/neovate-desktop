@@ -1,6 +1,6 @@
 {
-  "layout.content": "内容",
-  "layout.contentDesc": "终端、编辑器、浏览器",
+  "workbench.contentPanel": "内容",
+  "workbench.contentPanelDesc": "终端、编辑器、浏览器",
 
   "language.toggle": "切换到英文"
 }

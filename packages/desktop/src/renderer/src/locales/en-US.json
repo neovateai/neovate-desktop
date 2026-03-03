@@ -1,6 +1,6 @@
 {
-  "layout.content": "Content",
-  "layout.contentDesc": "Terminal, editor, browser",
+  "workbench.contentPanel": "Content",
+  "workbench.contentPanelDesc": "Terminal, editor, browser",
 
   "language.toggle": "Switch to Chinese"
 }
