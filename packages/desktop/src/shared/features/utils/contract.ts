@@ -23,4 +23,14 @@ export const utilsContract = {
     .output(type<{ success: boolean }>()),
 
   detectApps: oc.output(type<{ apps: App[] }>()),
+
+  searchPaths: oc
+    .input(
+      z.object({
+        cwd: z.string(),
+        query: z.string(),
+        maxResults: z.number().optional(),
+      }),
+    )
+    .output(type<{ paths: string[]; truncated: boolean }>()),
 };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Extension, useEditor, EditorContent } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
@@ -6,7 +6,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "../../../components/ui/button";
 import { SendHorizonal, Square, Paperclip } from "lucide-react";
 import { SlashCommandsExtension } from "./slash-commands-extension";
-import { MentionExtension } from "./mention-extension";
+import { createMentionExtension } from "./mention-extension";
 import type { JSONContent } from "@tiptap/react";
 
 type Props = {
@@ -14,6 +14,7 @@ type Props = {
   onCancel: () => void;
   streaming: boolean;
   disabled?: boolean;
+  cwd: string;
 };
 
 function extractText(doc: JSONContent): string {
@@ -52,8 +53,12 @@ function extractText(doc: JSONContent): string {
   return parts.join("").trim();
 }
 
-export function MessageInput({ onSend, onCancel, streaming, disabled }: Props) {
+export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Props) {
   const sendRef = useRef<() => void>(() => {});
+  const cwdRef = useRef(cwd);
+  cwdRef.current = cwd;
+
+  const mentionExtension = useMemo(() => createMentionExtension(() => cwdRef.current), []);
 
   const send = useCallback(() => {
     sendRef.current();
@@ -70,7 +75,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled }: Props) {
       Placeholder.configure({
         placeholder: "Type a message...",
       }),
-      MentionExtension,
+      mentionExtension,
       SlashCommandsExtension,
       Extension.create({
         name: "chatKeymap",

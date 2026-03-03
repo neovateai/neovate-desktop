@@ -154,7 +154,7 @@ export function AgentChat() {
     return (
       <div className="flex h-full flex-col">
         <WelcomePanel />
-        <MessageInput onSend={handleSend} onCancel={() => {}} streaming={false} />
+        <MessageInput onSend={handleSend} onCancel={() => {}} streaming={false} cwd={cwd} />
       </div>
     );
   }
@@ -178,6 +178,7 @@ export function AgentChat() {
         onSend={handleSend}
         onCancel={handleCancel}
         streaming={activeSession.streaming}
+        cwd={cwd}
       />
     </div>
   );

@@ -2,7 +2,9 @@ import { Node, type Editor, mergeAttributes } from "@tiptap/react";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
 import { createRoot } from "react-dom/client";
 import { createElement, createRef } from "react";
+import { Terminal } from "lucide-react";
 import { SuggestionList, type SuggestionItem, type SuggestionListHandle } from "./suggestion-list";
+import { positionAboveInput } from "./suggestion-position";
 
 const COMMANDS: SuggestionItem[] = [
   { label: "/clear", description: "Clear conversation" },
@@ -71,7 +73,7 @@ export const SlashCommandsExtension = Node.create({
           return {
             onStart(props: SuggestionProps<SuggestionItem>) {
               container = document.createElement("div");
-              container.style.position = "absolute";
+              container.style.position = "fixed";
               container.style.zIndex = "50";
               container.dataset.suggestionPopup = "";
               document.body.appendChild(container);
@@ -81,9 +83,11 @@ export const SlashCommandsExtension = Node.create({
                   ref,
                   items: props.items,
                   command: props.command,
+                  header: "Commands",
+                  icon: createElement(Terminal, { className: "h-4 w-4" }),
                 }),
               );
-              updatePosition(props, container);
+              positionAboveInput(props.editor, container);
             },
             onUpdate(props: SuggestionProps<SuggestionItem>) {
               root?.render(
@@ -91,9 +95,11 @@ export const SlashCommandsExtension = Node.create({
                   ref,
                   items: props.items,
                   command: props.command,
+                  header: "Commands",
+                  icon: createElement(Terminal, { className: "h-4 w-4" }),
                 }),
               );
-              if (container) updatePosition(props, container);
+              if (container) positionAboveInput(props.editor, container);
             },
             onKeyDown(props: { event: KeyboardEvent }) {
               if (props.event.key === "Escape") {
@@ -127,11 +133,3 @@ export const SlashCommandsExtension = Node.create({
     ];
   },
 });
-
-function updatePosition(props: SuggestionProps<SuggestionItem>, container: HTMLDivElement) {
-  const rect = props.clientRect?.();
-  if (rect) {
-    container.style.left = `${rect.left}px`;
-    container.style.top = `${rect.bottom + 4}px`;
-  }
-}

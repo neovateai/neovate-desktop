@@ -1,65 +1,83 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState, type ReactNode } from "react";
 
 export type SuggestionItem = {
+  id?: string;
   label: string;
+  title?: string;
   description?: string;
 };
 
 type Props = {
   items: SuggestionItem[];
   command: (item: SuggestionItem) => void;
+  header?: string;
+  icon?: ReactNode;
 };
 
 export type SuggestionListHandle = {
   onKeyDown: (event: { event: KeyboardEvent }) => boolean;
 };
 
-export const SuggestionList = forwardRef<SuggestionListHandle, Props>(({ items, command }, ref) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export const SuggestionList = forwardRef<SuggestionListHandle, Props>(
+  ({ items, command, header, icon }, ref) => {
+    const [selectedIndex, setSelectedIndex] = useState(0);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [items]);
+    useEffect(() => {
+      setSelectedIndex(0);
+    }, [items]);
 
-  useImperativeHandle(ref, () => ({
-    onKeyDown: ({ event }) => {
-      if (event.key === "ArrowUp") {
-        setSelectedIndex((i) => (i + items.length - 1) % items.length);
-        return true;
-      }
-      if (event.key === "ArrowDown") {
-        setSelectedIndex((i) => (i + 1) % items.length);
-        return true;
-      }
-      if (event.key === "Enter" || event.key === "Tab") {
-        const item = items[selectedIndex];
-        if (item) command(item);
-        return true;
-      }
-      return false;
-    },
-  }));
+    useImperativeHandle(ref, () => ({
+      onKeyDown: ({ event }) => {
+        if (event.key === "ArrowUp") {
+          setSelectedIndex((i) => (i + items.length - 1) % items.length);
+          return true;
+        }
+        if (event.key === "ArrowDown") {
+          setSelectedIndex((i) => (i + 1) % items.length);
+          return true;
+        }
+        if (event.key === "Enter" || event.key === "Tab") {
+          const item = items[selectedIndex];
+          if (item) command(item);
+          return true;
+        }
+        return false;
+      },
+    }));
 
-  if (!items.length) return null;
+    if (!items.length) return null;
 
-  return (
-    <div className="border bg-popover text-popover-foreground rounded-lg shadow-md overflow-hidden p-1">
-      {items.map((item, index) => (
-        <button
-          key={item.label}
-          className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${
-            index === selectedIndex ? "bg-accent" : ""
-          }`}
-          onClick={() => command(item)}
-          onMouseEnter={() => setSelectedIndex(index)}
-          type="button"
-        >
-          <span className="font-medium">{item.label}</span>
-          {item.description && <span className="text-muted-foreground">{item.description}</span>}
-        </button>
-      ))}
-    </div>
-  );
-});
+    return (
+      <div className="border border-b-0 bg-popover text-popover-foreground rounded-t-lg shadow-md overflow-hidden max-h-[300px] flex flex-col">
+        {header && (
+          <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/50 shrink-0">
+            {header}
+          </div>
+        )}
+        <div className="p-1 overflow-y-auto">
+          {items.map((item, index) => (
+            <button
+              key={item.id ?? item.label}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${
+                index === selectedIndex ? "bg-accent" : ""
+              }`}
+              onClick={() => command(item)}
+              onMouseEnter={() => setSelectedIndex(index)}
+              type="button"
+            >
+              {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
+              <span className="truncate">{item.title ?? item.label}</span>
+              {item.description && (
+                <span className="ml-auto shrink-0 text-muted-foreground text-xs">
+                  {item.description}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  },
+);
 
 SuggestionList.displayName = "SuggestionList";
