@@ -19,6 +19,7 @@ const projectStore = new ProjectStore();
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
   projectStore,
+  mainWindow: null,
 };
 
 const mainApp = new MainApp({
@@ -33,6 +34,7 @@ app.whenReady().then(async () => {
   });
 
   await mainApp.start();
+  appContext.mainWindow = mainApp.windowManager.mainWindow;
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
   const handler = new RPCHandler(mainApp.router);
@@ -47,6 +49,7 @@ app.whenReady().then(async () => {
     const win = mainApp.windowManager.mainWindow;
     if (!win) {
       mainApp.windowManager.createMainWindow();
+      appContext.mainWindow = mainApp.windowManager.mainWindow;
     } else {
       win.show();
     }

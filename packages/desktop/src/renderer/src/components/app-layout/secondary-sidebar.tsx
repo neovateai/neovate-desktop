@@ -2,7 +2,8 @@ import { Activity, lazy, Suspense, useRef } from "react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { useRendererApp } from "../../core";
-import { useLayoutStore } from "./use-layout-store";
+import { APP_LAYOUT_GRID_AREA } from "./constants";
+import { usePanelState, useLayoutStore } from "./store";
 import type { SecondarySidebarView } from "../../core/plugin/contributions";
 
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 };
@@ -18,8 +19,8 @@ function useLazyComponents(views: SecondarySidebarView[]) {
 }
 
 export function AppLayoutSecondarySidebar() {
-  const collapsed = useLayoutStore((s) => s.panels.secondarySidebar.collapsed);
-  const activeView = useLayoutStore((s) => s.panels.secondarySidebar.activeView);
+  const { collapsed, width, isResizing } = usePanelState("secondarySidebar");
+  const activeView = useLayoutStore((s) => s.panels.secondarySidebar?.activeView);
   const app = useRendererApp();
   const views = app.pluginManager.contributions.secondarySidebarViews;
   const lazyComponents = useLazyComponents(views);
@@ -27,14 +28,16 @@ export function AppLayoutSecondarySidebar() {
   return (
     <motion.aside
       data-slot="secondary-sidebar"
+      style={{ gridArea: APP_LAYOUT_GRID_AREA.secondarySidebar }}
       className={cn(
         "h-full shrink-0 overflow-hidden rounded-lg bg-card",
         collapsed && "pointer-events-none",
       )}
-      animate={{ width: collapsed ? 0 : 240 }}
-      transition={SPRING}
+      initial={false}
+      animate={{ width: collapsed ? 0 : width }}
+      transition={isResizing ? { duration: 0 } : SPRING}
     >
-      <div className="h-full w-[240px] pb-2">
+      <div className="h-full pb-2" style={{ width }}>
         {views.map((view) => {
           const LazyComponent = lazyComponents.get(view.id)!;
           return (
