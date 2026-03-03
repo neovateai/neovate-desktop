@@ -22,6 +22,7 @@ function mockBrowserWindow(width: number, height: number, minWidth = 900, minHei
 function makeContext(mainWindow: ReturnType<typeof mockBrowserWindow>): AppDependencies {
   return {
     acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
+    projectStore: {} as unknown as AppDependencies["projectStore"],
     mainWindow: mainWindow as unknown as AppDependencies["mainWindow"],
   };
 }

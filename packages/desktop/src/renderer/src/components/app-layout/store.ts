@@ -37,6 +37,43 @@ const DEFAULT_PANELS: Record<PanelId, PanelState> = {
   secondarySidebar: { width: 240, collapsed: true, activeView: "git" },
 };
 
+/** Exported for testing. Validates and clamps persisted panel state. */
+export function mergePersisted<T extends { panels: Record<PanelId, PanelState> }>(
+  persisted: unknown,
+  current: T,
+): T {
+  const stored = persisted as { panels?: Record<string, unknown> } | undefined;
+  if (!stored?.panels || typeof stored.panels !== "object") return current;
+
+  const panels = { ...current.panels };
+
+  for (const [id, rawPanel] of Object.entries(stored.panels)) {
+    if (!isPanelId(id, panels)) continue;
+    if (!rawPanel || typeof rawPanel !== "object") continue;
+
+    const panel = rawPanel as Partial<PanelState>;
+    if (typeof panel.width !== "number" || !Number.isFinite(panel.width)) continue;
+    if (typeof panel.collapsed !== "boolean") continue;
+
+    // chatPanel is always visible; ignore stale zero-width snapshots
+    if (id === "chatPanel" && panel.width === 0) continue;
+
+    const desc = PANEL_DESCRIPTORS.find((d) => d.id === id);
+    const width = desc
+      ? Math.max(desc.min, Math.min(panel.width, desc.max))
+      : panel.width;
+
+    panels[id] = {
+      ...panels[id],
+      width,
+      collapsed: id === "chatPanel" ? false : panel.collapsed,
+      ...(typeof panel.activeView === "string" ? { activeView: panel.activeView } : {}),
+    };
+  }
+
+  return { ...current, panels };
+}
+
 const layoutStore = createStore<LayoutStore>()(
   subscribeWithSelector(
     persist(
@@ -54,12 +91,16 @@ const layoutStore = createStore<LayoutStore>()(
           }
 
           // Expand window first, then open panel into the available space
-          // Use Math.max because window.innerWidth may not reflect the new size yet
           const minWidth = computeMinWindowWidthWithPanel(panels, id);
-          await client.window.ensureWidth({ minWidth });
-          set((state) => ({
-            panels: openPanel(state.panels, id, Math.max(window.innerWidth, minWidth)),
-          }));
+          await client.window.ensureWidth({ minWidth }).catch(() => {});
+
+          // Re-check: panel may have been toggled again during await
+          set((state) => {
+            if (!state.panels[id].collapsed) return state;
+            return {
+              panels: openPanel(state.panels, id, Math.max(window.innerWidth, minWidth)),
+            };
+          });
         },
 
         startResize: (separatorIndex, clientX) =>
@@ -86,11 +127,11 @@ const layoutStore = createStore<LayoutStore>()(
             return;
           }
 
+          const wasCollapsed = sidebar.collapsed;
           let windowWidth = window.innerWidth;
-          if (sidebar.collapsed) {
-            // Expand window first, then open panel
+          if (wasCollapsed) {
             const minWidth = computeMinWindowWidthWithPanel(panels, "secondarySidebar");
-            await client.window.ensureWidth({ minWidth });
+            await client.window.ensureWidth({ minWidth }).catch(() => {});
             windowWidth = Math.max(window.innerWidth, minWidth);
           }
 
@@ -99,8 +140,9 @@ const layoutStore = createStore<LayoutStore>()(
               ...state.panels,
               secondarySidebar: { ...state.panels.secondarySidebar, activeView: viewId },
             };
+            // Re-check: use fresh state for collapsed check
             return {
-              panels: sidebar.collapsed
+              panels: state.panels.secondarySidebar.collapsed
                 ? openPanel(current, "secondarySidebar", windowWidth)
                 : current,
             };
@@ -110,38 +152,7 @@ const layoutStore = createStore<LayoutStore>()(
       {
         name: "neovate-layout",
         partialize: (state) => ({ panels: state.panels }),
-        merge: (persisted, current) => {
-          const stored = persisted as { panels?: Record<string, unknown> } | undefined;
-          if (!stored?.panels || typeof stored.panels !== "object") return current;
-
-          const panels = { ...current.panels };
-
-          for (const [id, rawPanel] of Object.entries(stored.panels)) {
-            if (!isPanelId(id, panels)) continue;
-            if (!rawPanel || typeof rawPanel !== "object") continue;
-
-            const panel = rawPanel as Partial<PanelState>;
-            if (typeof panel.width !== "number" || !Number.isFinite(panel.width)) continue;
-            if (typeof panel.collapsed !== "boolean") continue;
-
-            // chatPanel is always visible; ignore stale zero-width snapshots
-            if (id === "chatPanel" && panel.width === 0) continue;
-
-            const desc = PANEL_DESCRIPTORS.find((d) => d.id === id);
-            const width = desc
-              ? Math.max(desc.min, Math.min(panel.width, desc.max))
-              : panel.width;
-
-            panels[id] = {
-              ...panels[id],
-              width,
-              collapsed: id === "chatPanel" ? false : panel.collapsed,
-              ...(typeof panel.activeView === "string" ? { activeView: panel.activeView } : {}),
-            };
-          }
-
-          return { ...current, panels };
-        },
+        merge: (persisted, current) => mergePersisted(persisted, current),
       },
     ),
   ),

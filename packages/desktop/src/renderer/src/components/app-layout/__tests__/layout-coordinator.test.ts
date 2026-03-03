@@ -5,6 +5,7 @@ import {
   shrinkPanelsToFit,
   computeMinWindowWidth,
   applyDelta,
+  isSeparatorVisible,
 } from "../layout-coordinator";
 import { getDescriptor } from "../panel-descriptors";
 import type { PanelMap, LayoutContext } from "../types";
@@ -171,5 +172,80 @@ describe("applyDelta", () => {
     // separator 0: drag right — grow side (primarySidebar) is collapsed
     const result = applyDelta(panels, 0, 50);
     expect(result).toBe(panels);
+  });
+
+  it("drags across collapsed middle panel (right)", () => {
+    const panels = makePanels({
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 350, collapsed: true },
+      secondarySidebar: { width: 300, collapsed: false },
+    });
+    // sep 2 visible (bridges chat↔secondary), drag right grows chatPanel, shrinks secondarySidebar
+    const result = applyDelta(panels, 2, 50);
+    expect(result.chatPanel.width).toBe(550);
+    expect(result.secondarySidebar.width).toBe(250);
+    expect(result.contentPanel.width).toBe(350); // unchanged
+  });
+
+  it("drags across collapsed middle panel (left)", () => {
+    const panels = makePanels({
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 350, collapsed: true },
+      secondarySidebar: { width: 300, collapsed: false },
+    });
+    // sep 2, drag left grows secondarySidebar, shrinks chatPanel
+    const result = applyDelta(panels, 2, -50);
+    expect(result.secondarySidebar.width).toBe(350);
+    expect(result.chatPanel.width).toBe(450);
+    expect(result.contentPanel.width).toBe(350); // unchanged
+  });
+});
+
+describe("isSeparatorVisible", () => {
+  it("shows handle between adjacent expanded panels", () => {
+    const panels = makePanels();
+    expect(isSeparatorVisible(panels, 0)).toBe(true); // primary↔chat
+  });
+
+  it("hides handle when right panel is collapsed", () => {
+    const panels = makePanels();
+    expect(isSeparatorVisible(panels, 1)).toBe(false); // chat↔content (content collapsed)
+  });
+
+  it("shows handle across collapsed gap", () => {
+    const panels = makePanels({
+      contentPanel: { width: 300, collapsed: true },
+      secondarySidebar: { width: 240, collapsed: false },
+    });
+    // sep 2 bridges chat↔secondary across collapsed contentPanel
+    expect(isSeparatorVisible(panels, 2)).toBe(true);
+    // sep 1 should NOT be visible (content is collapsed on right)
+    expect(isSeparatorVisible(panels, 1)).toBe(false);
+  });
+
+  it("hides all handles when only one panel expanded", () => {
+    const panels = makePanels({
+      primarySidebar: { width: 300, collapsed: true },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 300, collapsed: true },
+      secondarySidebar: { width: 240, collapsed: true },
+    });
+    expect(isSeparatorVisible(panels, 0)).toBe(false);
+    expect(isSeparatorVisible(panels, 1)).toBe(false);
+    expect(isSeparatorVisible(panels, 2)).toBe(false);
+  });
+});
+
+describe("computeMinWindowWidth with non-adjacent panels", () => {
+  it("counts handles across collapsed gaps", () => {
+    const panels = makePanels({
+      contentPanel: { width: 300, collapsed: true },
+      secondarySidebar: { width: 240, collapsed: false },
+    });
+    // primary(exp), chat(exp), content(col), secondary(exp)
+    // 2 visible handles: primary↔chat, chat↔secondary (across collapsed content)
+    // fixed(48) + primary(250) + chat(320) + secondary(240) + 2 handles(10) = 868
+    const minWidth = computeMinWindowWidth(panels);
+    expect(minWidth).toBe(868);
   });
 });

@@ -14,7 +14,7 @@ function useSyncWindowMinWidth() {
         clearTimeout(timer);
         timer = setTimeout(() => {
           const required = computeMinWindowWidth(panels);
-          void client.window.ensureWidth({ minWidth: required });
+          void client.window.ensureWidth({ minWidth: required }).catch(() => {});
         }, 100);
       },
     );

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { shrinkPanelsToFit, computeMinWindowWidth, applyDelta } from "../layout-coordinator";
+import { shrinkPanelsToFit, computeMinWindowWidth, applyDelta, isSeparatorVisible } from "../layout-coordinator";
 import type { PanelMap } from "../types";
 
 describe("resize flow integration", () => {
@@ -65,5 +65,31 @@ describe("resize flow integration", () => {
     const after =
       result.primarySidebar.width + result.chatPanel.width + result.contentPanel.width + result.secondarySidebar.width;
     expect(after).toBe(before);
+  });
+
+  it("separator visibility and bulldozer are consistent across collapsed gap", () => {
+    const panels: PanelMap = {
+      primarySidebar: { width: 300, collapsed: false },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 350, collapsed: true },
+      secondarySidebar: { width: 300, collapsed: false },
+    };
+
+    // sep 2 should be visible (bridges chat↔secondary)
+    expect(isSeparatorVisible(panels, 2)).toBe(true);
+    // sep 1 should be hidden (content collapsed)
+    expect(isSeparatorVisible(panels, 1)).toBe(false);
+
+    // Drag right on sep 2 should grow chat, shrink secondary
+    const right = applyDelta(panels, 2, 30);
+    expect(right.chatPanel.width).toBe(530);
+    expect(right.secondarySidebar.width).toBe(270);
+
+    // Drag left on sep 2 should grow secondary, shrink chat
+    const left = applyDelta(panels, 2, -30);
+    expect(right.contentPanel.width).toBe(350); // unchanged
+    expect(left.secondarySidebar.width).toBe(330);
+    expect(left.chatPanel.width).toBe(470);
+    expect(left.contentPanel.width).toBe(350); // unchanged
   });
 });
