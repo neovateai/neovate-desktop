@@ -44,6 +44,12 @@ This prints logs to the terminal and saves them to `/tmp/dev.log` for searching 
 
 You can filter by namespace (e.g. `DEBUG=neovate:acp-router` for just the router).
 
+## Environment Variables
+
+| Variable                  | Default | Description                                                                         |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `NEOVATE_PRELOAD_SESSION` | `all`   | `all` = preload all sessions, `latest` = only the most recent, `false` = no preload |
+
 ## Code Style
 
 - Linting: [oxlint](https://oxc.rs/)

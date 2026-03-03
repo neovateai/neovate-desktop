@@ -6,7 +6,10 @@ import type {
   RequestPermissionResponse,
 } from "@agentclientprotocol/sdk";
 import { EventPublisher } from "@orpc/server";
-import type { StreamEvent } from "../../../shared/features/acp/types";
+import debug from "debug";
+import type { StreamEvent, LoadSessionResult } from "../../../shared/features/acp/types";
+
+const preloadLog = debug("neovate:acp-preload");
 
 /** Auto-cancel permission requests after 5 minutes of no UI response. */
 export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
@@ -44,6 +47,11 @@ type PendingPermission = {
   timer: ReturnType<typeof setTimeout>;
 };
 
+export type PreloadedSession = {
+  events: StreamEvent[];
+  result: LoadSessionResult;
+};
+
 export class AcpConnection {
   readonly id: string;
   private _client?: AcpClient;
@@ -51,6 +59,9 @@ export class AcpConnection {
   private pendingPermissions = new Map<string, PendingPermission>();
   private requestIdCounter = 0;
   private seq = 0;
+  private preloadedSessions = new Map<string, PreloadedSession>();
+  private preloadPromises = new Map<string, Promise<void>>();
+  private activePreload: string | null = null;
 
   constructor(id: string) {
     this.id = id;
@@ -113,6 +124,86 @@ export class AcpConnection {
   subscribeSession(sessionId: string, signal?: AbortSignal): AsyncGenerator<StreamEvent> {
     const raw = this.publisher.subscribe("session", { signal });
     return filterStreamBySession(raw, sessionId);
+  }
+
+  preloadSession(sessionId: string, cwd?: string): Promise<void> {
+    if (!this._client) return Promise.resolve();
+    if (this.preloadedSessions.has(sessionId)) return Promise.resolve();
+    if (this.preloadPromises.has(sessionId)) return this.preloadPromises.get(sessionId)!;
+
+    const promise = this.doPreload(sessionId, cwd).finally(() => {
+      this.preloadPromises.delete(sessionId);
+    });
+    this.preloadPromises.set(sessionId, promise);
+    return promise;
+  }
+
+  private async doPreload(sessionId: string, cwd?: string): Promise<void> {
+    this.activePreload = sessionId;
+    preloadLog("starting preload for session %s", sessionId);
+
+    const done = new AbortController();
+    const subscription = this.subscribeSession(sessionId, done.signal);
+    const events: StreamEvent[] = [];
+
+    try {
+      let loadError: unknown;
+      const loadPromise = this._client!.loadSession(sessionId, cwd)
+        .then((result) => {
+          done.abort("load_done");
+          return { sessionId, agentSessionId: result.agentSessionId };
+        })
+        .catch((error: unknown) => {
+          loadError = error;
+          done.abort("load_error");
+          return undefined;
+        });
+
+      try {
+        for await (const event of subscription) {
+          events.push(event);
+        }
+      } catch {
+        // subscription ends when done is aborted
+      } finally {
+        subscription.return(undefined);
+      }
+
+      const result = await loadPromise;
+      if (loadError || !result) {
+        preloadLog(
+          "preload skipped for session %s (agent rejected, likely empty session): %s",
+          sessionId,
+          JSON.stringify(loadError),
+        );
+        return;
+      }
+      // Only cache if this preload wasn't superseded
+      if (this.activePreload === sessionId) {
+        this.preloadedSessions.set(sessionId, { events, result });
+        preloadLog("cached %d events for session %s", events.length, sessionId);
+      }
+    } catch (error) {
+      preloadLog("preload failed for session %s: %s", sessionId, JSON.stringify(error));
+    } finally {
+      if (this.activePreload === sessionId) {
+        this.activePreload = null;
+      }
+    }
+  }
+
+  async consumePreload(sessionId: string): Promise<PreloadedSession | undefined> {
+    const inflight = this.preloadPromises.get(sessionId);
+    if (inflight) {
+      preloadLog("consumePreload: waiting for in-flight preload of session %s", sessionId);
+      await inflight;
+    }
+    const cached = this.preloadedSessions.get(sessionId);
+    if (cached) {
+      this.preloadedSessions.delete(sessionId);
+      preloadLog("consumed preload for session %s (%d events)", sessionId, cached.events.length);
+    }
+    return cached;
   }
 
   dispose(): void {
