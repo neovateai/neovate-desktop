@@ -47,9 +47,9 @@ export default function App() {
 
       <AppLayoutContentPanel>
         <div className="flex h-full flex-col p-3">
-          <h2 className="text-xs font-semibold text-muted-foreground">{t("workbench.contentPanel")}</h2>
+          <h2 className="text-xs font-semibold text-muted-foreground">{t("workbench.contentPanel.title")}</h2>
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-xs text-muted-foreground">{t("workbench.contentPanelDesc")}</p>
+            <p className="text-xs text-muted-foreground">{t("workbench.contentPanel.description")}</p>
           </div>
         </div>
       </AppLayoutContentPanel>
