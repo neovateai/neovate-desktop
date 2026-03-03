@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "neovate-desktop-monorepo",
+      "dependencies": {
+        "acpx": "^0.1.15",
+      },
       "devDependencies": {
         "@types/bun": "^1.3.9",
         "@typescript/native-preview": "7.0.0-dev.20260227.1",
@@ -569,7 +572,7 @@
 
     "abbrev": ["abbrev@3.0.1", "", {}, "sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg=="],
 
-    "acpx": ["acpx@github:neovateai/acpx#d9ca953", { "dependencies": { "@agentclientprotocol/sdk": "^0.14.1", "commander": "^13.0.0", "skillflag": "^0.1.4" }, "bin": { "acpx": "dist/cli.js" } }, "neovateai-acpx-d9ca953"],
+    "acpx": ["acpx@0.1.15", "", { "dependencies": { "@agentclientprotocol/sdk": "^0.14.1", "commander": "^13.0.0", "skillflag": "^0.1.4" }, "bin": { "acpx": "dist/cli.js" } }, "sha512-1r+tmPT9Oe2Ulv5b4r7O2hCCq5CHVru/H2tcPeTpZek9jR1zBQoBfZ/RcK+9sC9/mnDvWYO5R7Iae64v2LMO+A=="],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
@@ -1464,6 +1467,8 @@
     "minipass-pipeline/minipass": ["minipass@3.3.6", "", { "dependencies": { "yallist": "^4.0.0" } }, "sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw=="],
 
     "minipass-sized/minipass": ["minipass@3.3.6", "", { "dependencies": { "yallist": "^4.0.0" } }, "sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw=="],
+
+    "neovate-desktop/acpx": ["acpx@github:neovateai/acpx#d9ca953", { "dependencies": { "@agentclientprotocol/sdk": "^0.14.1", "commander": "^13.0.0", "skillflag": "^0.1.4" }, "bin": { "acpx": "dist/cli.js" } }, "neovateai-acpx-d9ca953"],
 
     "path-scurry/lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
 
