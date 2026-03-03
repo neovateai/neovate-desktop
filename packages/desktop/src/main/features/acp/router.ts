@@ -293,7 +293,7 @@ export const acpRouter = os.acp.router({
       for await (const event of subscription) {
         eventCount += 1;
         if (!firstEventAt) firstEventAt = performance.now();
-        if (eventCount <= 10) {
+        if (eventCount <= 10 && acpLog.enabled) {
           acpLog("prompt: event", {
             connectionId: input.connectionId,
             sessionId: input.sessionId,

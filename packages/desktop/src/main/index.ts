@@ -3,6 +3,7 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
+import { getShellEnvironment } from "./features/acp/shell-env";
 import { ProjectStore } from "./features/project/project-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
@@ -13,6 +14,9 @@ const log = debug("neovate:orpc");
 if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
 }
+
+// Eagerly warm the shell environment cache so it's ready before first connect
+getShellEnvironment();
 
 const connectionManager = new AcpConnectionManager();
 const projectStore = new ProjectStore();

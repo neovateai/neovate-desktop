@@ -31,6 +31,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@orpc/contract": "^1.13.5",
     "@orpc/server": "^1.13.5",
+    "@zed-industries/claude-agent-acp": "^0.19.2",
     "acpx": "github:neovateai/acpx#c26a94e",
     "debug": "^4.4.3",
     "electron-store": "^11.0.2",
