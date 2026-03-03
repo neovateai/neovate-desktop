@@ -1,10 +1,12 @@
 import { Moon01Icon, Sun01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useTheme } from "next-themes";
+import { useConfigStore } from "../../features/config/store";
 import { Button } from "./button";
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const setTheme = useConfigStore((s) => s.setTheme);
 
   return (
     <Button

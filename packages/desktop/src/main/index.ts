@@ -7,6 +7,7 @@ import { setBaseDir } from "acpx";
 import debug from "debug";
 import { AcpConnectionManager } from "./features/acp/connection-manager";
 import { getShellEnvironment } from "./features/acp/shell-env";
+import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
@@ -24,9 +25,11 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
 getShellEnvironment();
 
 const connectionManager = new AcpConnectionManager();
+const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
+  configStore,
   projectStore,
 };
 

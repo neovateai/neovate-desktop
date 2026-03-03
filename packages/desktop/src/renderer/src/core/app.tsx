@@ -1,6 +1,7 @@
-import { StrictMode, createContext, useContext } from "react";
+import { StrictMode, createContext, useContext, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
+import { useConfigStore } from "../features/config/store";
 import { DisposableStore } from "./disposable";
 import type { IRendererApp } from "./types";
 import type { RendererPlugin, PluginContext } from "./plugin";
@@ -24,6 +25,21 @@ export function usePluginContext(): PluginContext {
   return ctx;
 }
 
+/** Syncs persisted config theme → next-themes on load */
+function ThemeSync() {
+  const configTheme = useConfigStore((s) => s.theme);
+  const loaded = useConfigStore((s) => s.loaded);
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    if (loaded) {
+      setTheme(configTheme);
+    }
+  }, [configTheme, loaded, setTheme]);
+
+  return null;
+}
+
 const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin];
 
 export interface RendererAppOptions {
@@ -40,6 +56,7 @@ export class RendererApp implements IRendererApp {
 
   async start(): Promise<void> {
     const ctx: PluginContext = { app: this, orpcClient: client };
+    await useConfigStore.getState().load();
     await this.pluginManager.configContributions();
     await this.pluginManager.activate(ctx);
     await this.render(ctx);
@@ -59,6 +76,7 @@ export class RendererApp implements IRendererApp {
         <RendererAppContext.Provider value={this}>
           <PluginContextReact.Provider value={ctx}>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <ThemeSync />
               <App />
             </ThemeProvider>
           </PluginContextReact.Provider>

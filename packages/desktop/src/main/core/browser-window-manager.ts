@@ -12,7 +12,10 @@ type WindowStore = { bounds: Electron.Rectangle };
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, BrowserWindow>();
-  #store = new Store<WindowStore>({ name: "window-state", cwd: path.join(os.homedir(), ".neovate-desktop") });
+  #store = new Store<WindowStore>({
+    name: "window-state",
+    cwd: path.join(os.homedir(), ".neovate-desktop"),
+  });
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
