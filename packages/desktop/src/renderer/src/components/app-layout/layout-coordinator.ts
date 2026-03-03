@@ -3,6 +3,32 @@ import { APP_LAYOUT_FIXED_WIDTH, APP_LAYOUT_RESIZE_HANDLE_WIDTH, PANEL_ORDER } f
 import { getDescriptor, PANEL_DESCRIPTORS } from "./panel-descriptors";
 
 // ---------------------------------------------------------------------------
+// Separator visibility — shared between renderer and solver
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether a separator is visible. A handle appears between each pair of
+ * adjacent *expanded* panels; when a middle panel is collapsed the handle
+ * collapses with it and the flanking handle "jumps" to bridge the gap.
+ *
+ * The rule: separator `i` is visible iff
+ *   1. The panel to its right (PANEL_ORDER[i+1]) is expanded, AND
+ *   2. It is the closest separator to the nearest expanded panel on the left.
+ */
+export function isSeparatorVisible(panels: PanelMap, separatorIndex: number): boolean {
+  const rightId = PANEL_ORDER[separatorIndex + 1];
+  if (panels[rightId]?.collapsed) return false;
+
+  for (let i = separatorIndex; i >= 0; i--) {
+    if (!panels[PANEL_ORDER[i]]?.collapsed) {
+      const rightPanelIndex = PANEL_ORDER.indexOf(rightId);
+      return separatorIndex === rightPanelIndex - 1;
+    }
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Panel map helpers — immutable updates without spread noise
 // ---------------------------------------------------------------------------
 
@@ -22,14 +48,11 @@ function expandedDescriptors(panels: PanelMap) {
   return PANEL_DESCRIPTORS.filter((descriptor) => !panels[descriptor.id].collapsed);
 }
 
-/** Count visible resize handles (one between each pair of adjacent expanded panels). */
+/** Count visible resize handles using the shared visibility rule. */
 function countVisibleHandles(panels: PanelMap): number {
   let count = 0;
-  let prevExpanded = false;
-  for (const id of PANEL_ORDER) {
-    const expanded = !panels[id].collapsed;
-    if (expanded && prevExpanded) count++;
-    prevExpanded = expanded;
+  for (let i = 0; i < PANEL_ORDER.length - 1; i++) {
+    if (isSeparatorVisible(panels, i)) count++;
   }
   return count;
 }
@@ -111,23 +134,42 @@ export function shrinkPanelsToFit(panels: PanelMap, windowWidth: number): PanelM
 // ---------------------------------------------------------------------------
 
 /**
+ * Find the nearest expanded panel on each side of a separator.
+ * Returns the effective grow targets for a drag at this separator.
+ */
+function resolveEffectivePanels(
+  panels: PanelMap,
+  separatorIndex: number,
+): { leftId: PanelId | null; rightId: PanelId | null } {
+  let leftId: PanelId | null = null;
+  for (let i = separatorIndex; i >= 0; i--) {
+    if (!panels[PANEL_ORDER[i]].collapsed) { leftId = PANEL_ORDER[i]; break; }
+  }
+  let rightId: PanelId | null = null;
+  for (let i = separatorIndex + 1; i < PANEL_ORDER.length; i++) {
+    if (!panels[PANEL_ORDER[i]].collapsed) { rightId = PANEL_ORDER[i]; break; }
+  }
+  return { leftId, rightId };
+}
+
+/**
  * Apply a pixel delta from separator drag using bulldozer algorithm.
  * Separator `i` sits between PANEL_ORDER[i] and PANEL_ORDER[i+1].
- * Walks panels by physical position from the separator outward.
+ * Resolves effective expanded panels on each side (skipping collapsed gaps)
+ * then walks panels by physical position from the separator outward.
  */
 export function applyDelta(panels: PanelMap, separatorIndex: number, delta: number): PanelMap {
   if (delta === 0) return panels;
 
+  const { leftId, rightId } = resolveEffectivePanels(panels, separatorIndex);
   const absDelta = Math.abs(delta);
 
   if (delta > 0) {
-    // Drag right: shrink panels to the RIGHT, grow panel to the LEFT
-    const growId = PANEL_ORDER[separatorIndex];
-    const growPanel = panels[growId];
-    if (growPanel.collapsed) return panels;
+    // Drag right: grow left panel, shrink right panels
+    if (!leftId) return panels;
+    const growPanel = panels[leftId];
 
-    // Cap delta by how much the grow side can absorb
-    const growDesc = getDescriptor(growId);
+    const growDesc = getDescriptor(leftId);
     const growRoom = growDesc.max - growPanel.width;
     const cappedDelta = Math.min(absDelta, growRoom);
     if (cappedDelta <= 0) return panels;
@@ -135,7 +177,9 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     let result = panels;
     let remaining = cappedDelta;
 
-    for (let i = separatorIndex + 1; i < PANEL_ORDER.length; i++) {
+    // Shrink from the effective right panel outward
+    const rightStart = PANEL_ORDER.indexOf(leftId) + 1;
+    for (let i = rightStart; i < PANEL_ORDER.length; i++) {
       if (remaining <= 0) break;
       const id = PANEL_ORDER[i];
       const panel = result[id];
@@ -147,17 +191,15 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     }
     const consumed = cappedDelta - remaining;
     if (consumed > 0) {
-      result = setPanelWidth(result, growId, growPanel.width + consumed);
+      result = setPanelWidth(result, leftId, growPanel.width + consumed);
     }
     return result;
   } else {
-    // Drag left: shrink panels to the LEFT, grow panel to the RIGHT
-    const growId = PANEL_ORDER[separatorIndex + 1];
-    const growPanel = panels[growId];
-    if (growPanel.collapsed) return panels;
+    // Drag left: grow right panel, shrink left panels
+    if (!rightId) return panels;
+    const growPanel = panels[rightId];
 
-    // Cap delta by how much the grow side can absorb
-    const growDesc = getDescriptor(growId);
+    const growDesc = getDescriptor(rightId);
     const growRoom = growDesc.max - growPanel.width;
     const cappedDelta = Math.min(absDelta, growRoom);
     if (cappedDelta <= 0) return panels;
@@ -165,7 +207,9 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     let result = panels;
     let remaining = cappedDelta;
 
-    for (let i = separatorIndex; i >= 0; i--) {
+    // Shrink from the effective left panel outward
+    const leftStart = PANEL_ORDER.indexOf(rightId) - 1;
+    for (let i = leftStart; i >= 0; i--) {
       if (remaining <= 0) break;
       const id = PANEL_ORDER[i];
       const panel = result[id];
@@ -177,7 +221,7 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     }
     const consumed = cappedDelta - remaining;
     if (consumed > 0) {
-      result = setPanelWidth(result, growId, growPanel.width + consumed);
+      result = setPanelWidth(result, rightId, growPanel.width + consumed);
     }
     return result;
   }

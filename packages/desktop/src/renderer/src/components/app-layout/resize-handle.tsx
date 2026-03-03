@@ -1,39 +1,9 @@
 import { type CSSProperties, useRef, useCallback } from "react";
 import { cn } from "../../lib/utils";
 import { useLayoutStore } from "./store";
-import type { PanelMap, SeparatorId } from "./types";
-import { PANEL_ORDER, separatorIdToIndex } from "./constants";
-
-/**
- * Compute which separators are visible from the panel state.
- * One handle between each pair of adjacent expanded panels,
- * placed immediately left of the right panel.
- *
- * Example: [primary(exp), chat(exp), content(col), secondary(exp)]
- *   → sep 0 (primary↔chat), sep 2 (chat↔secondary)
- *   → sep 1 hidden (content collapsed, no gap between two handles)
- */
-function isSeparatorVisible(panels: PanelMap, separatorIndex: number): boolean {
-  // The right panel at this separator must be expanded
-  const rightId = PANEL_ORDER[separatorIndex + 1];
-  if (panels[rightId]?.collapsed) return false;
-
-  // Walk left from separatorIndex to find the nearest expanded panel.
-  // This separator is visible only if it's the one directly right of that panel
-  // (i.e. no other expanded panel sits between them and this separator).
-  for (let i = separatorIndex; i >= 0; i--) {
-    if (!panels[PANEL_ORDER[i]]?.collapsed) {
-      // Found the nearest expanded panel to the left.
-      // This separator is its handle only if no closer separator would claim it.
-      // The correct separator between panel i and the right panel is (rightPanelIndex - 1).
-      const rightPanelIndex = PANEL_ORDER.indexOf(rightId);
-      return separatorIndex === rightPanelIndex - 1;
-    }
-  }
-
-  // No expanded panel to the left at all
-  return false;
-}
+import type { SeparatorId } from "./types";
+import { separatorIdToIndex } from "./constants";
+import { isSeparatorVisible } from "./layout-coordinator";
 
 function useGradientTracker(separatorIndex: number) {
   const ref = useRef<HTMLDivElement>(null);
