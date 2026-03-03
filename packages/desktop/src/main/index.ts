@@ -20,11 +20,12 @@ const projectStore = new ProjectStore();
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
   projectStore,
+  mainWindow: null,
 };
 
 const handler = new RPCHandler(router);
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -58,6 +59,8 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  return mainWindow;
 }
 
 // This method will be called when Electron has finished
@@ -81,12 +84,15 @@ app.whenReady().then(() => {
     serverPort.start();
   });
 
-  createWindow();
+  // TODO refactor after we have window manager
+  appContext.mainWindow = createWindow();
 
   app.on("activate", function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      appContext.mainWindow = createWindow();
+    }
   });
 });
 

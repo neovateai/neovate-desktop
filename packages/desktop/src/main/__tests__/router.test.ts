@@ -7,6 +7,7 @@ describe("main router context wiring", () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
+      mainWindow: null,
     } satisfies AppDependencies;
 
     const agents = await call(router.acp.listAgents, undefined, { context });
