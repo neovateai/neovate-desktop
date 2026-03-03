@@ -1,4 +1,4 @@
-import { Extension, type Editor } from "@tiptap/react";
+import { Node, type Editor, mergeAttributes } from "@tiptap/react";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
 import { createRoot } from "react-dom/client";
 import { createElement, createRef } from "react";
@@ -10,8 +10,32 @@ const COMMANDS: SuggestionItem[] = [
   { label: "/help", description: "Show help" },
 ];
 
-export const SlashCommandsExtension = Extension.create({
-  name: "slashCommands",
+export const SlashCommandsExtension = Node.create({
+  name: "slashCommand",
+  group: "inline",
+  inline: true,
+  atom: true,
+
+  addAttributes() {
+    return {
+      label: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-slash-command]' }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        "data-slash-command": "",
+        class: "slash-command",
+      }),
+      node.attrs.label,
+    ];
+  },
 
   addOptions() {
     return {
@@ -33,7 +57,10 @@ export const SlashCommandsExtension = Extension.create({
             .chain()
             .focus()
             .deleteRange(range)
-            .insertContent(props.label + " ")
+            .insertContent([
+              { type: "slashCommand", attrs: { label: props.label } },
+              { type: "text", text: " " },
+            ])
             .run();
         },
         render: () => {

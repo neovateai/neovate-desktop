@@ -28,6 +28,10 @@ function extractText(doc: JSONContent): string {
       parts.push(`@${node.attrs?.id ?? node.attrs?.label ?? ""}`);
       return;
     }
+    if (node.type === "slashCommand") {
+      parts.push(node.attrs?.label ?? "");
+      return;
+    }
     if (node.type === "codeBlock") {
       const code = (node.content ?? []).map((c) => c.text ?? "").join("");
       parts.push("```\n" + code + "\n```");
