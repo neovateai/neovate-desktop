@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next'
 
 import enUS from '../../locales/en-US.json'
 import zhCN from '../../locales/zh-CN.json'
-import { DEFAULT_LOCALE, normalizeLocale, type Locales } from './locales'
+import { DEFAULT_LOCALE, locales, normalizeLocale, type Locales } from './locales'
 
 export class I18nManager {
   private instance: I18nInstance
@@ -13,7 +13,7 @@ export class I18nManager {
     this.instance = i18n.createInstance()
   }
 
-  get getInstance(): I18nInstance {
+  get i18n(): I18nInstance {
     return this.instance
   }
 
@@ -26,6 +26,7 @@ export class I18nManager {
           'en-US': { translation: enUS },
           'zh-CN': { translation: zhCN },
         },
+        supportedLngs: locales,
         fallbackLng: DEFAULT_LOCALE,
         load: 'currentOnly',
         keySeparator: false,
@@ -35,18 +36,31 @@ export class I18nManager {
           order: ['localStorage', 'navigator'],
           caches: ['localStorage'],
           lookupLocalStorage: 'neovate:locale',
+          convertDetectedLanguage: (lng) => normalizeLocale(lng),
         },
       })
+
+    const normalized = normalizeLocale(this.instance.resolvedLanguage ?? this.instance.language ?? DEFAULT_LOCALE)
+    await this.instance.changeLanguage(normalized)
+    this.persistLocale(normalized)
   }
 
   applyUILocale(locale: Locales): void {
     const normalized = normalizeLocale(locale)
-    this.instance.changeLanguage(normalized)
-    document.documentElement.lang = normalized
-    localStorage.setItem('neovate:locale', normalized)
+    void this.instance.changeLanguage(normalized)
+    this.persistLocale(normalized)
   }
 
   get currentLocale(): Locales {
-    return normalizeLocale(this.instance.language ?? DEFAULT_LOCALE)
+    return normalizeLocale(this.instance.resolvedLanguage ?? this.instance.language ?? DEFAULT_LOCALE)
+  }
+
+  private persistLocale(locale: Locales): void {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('neovate:locale', locale)
+    }
   }
 }

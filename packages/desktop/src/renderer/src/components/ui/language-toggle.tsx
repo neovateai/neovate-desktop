@@ -1,20 +1,20 @@
 import { useTranslation } from "react-i18next";
 import { useRendererApp } from "../../core/app";
-import { locales, type Locales } from "../../core/i18n";
+import { locales, normalizeLocale } from "../../core/i18n";
 import { Button } from "./button";
 
 export function LanguageToggle({ className }: { className?: string }) {
   const { i18nManager } = useRendererApp();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
-  const current = i18n.language as Locales;
+  const current = normalizeLocale(i18n.resolvedLanguage ?? i18n.language);
   const next = locales.find((l) => l !== current) ?? locales[0];
 
   return (
     <Button
       variant="ghost"
       size="icon-sm"
-      aria-label="Toggle language"
+      aria-label={t("language.toggle")}
       className={className}
       onClick={() => i18nManager.applyUILocale(next)}
     >

@@ -86,7 +86,7 @@ export class RendererApp implements IRendererApp {
     const { default: App } = await import("../App");
     ReactDOM.createRoot(root).render(
       <StrictMode>
-        <I18nextProvider i18n={this.i18nManager.getInstance}>
+        <I18nextProvider i18n={this.i18nManager.i18n}>
           <RendererAppContext.Provider value={this}>
             <PluginContextReact.Provider value={ctx}>
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

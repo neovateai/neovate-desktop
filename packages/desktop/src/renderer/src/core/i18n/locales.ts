@@ -16,7 +16,8 @@ export const localeOptions: LocaleOption[] = [
 
 /** Map a raw BCP-47 tag (e.g. "zh", "en-GB") to a supported Locales value. */
 export function normalizeLocale(raw: string): Locales {
-  if ((locales as readonly string[]).includes(raw)) return raw as Locales
-  if (raw.startsWith('zh')) return 'zh-CN'
+  const normalized = raw.trim().replace(/_/g, '-').toLowerCase()
+  if (normalized === 'en-us' || normalized.startsWith('en-')) return 'en-US'
+  if (normalized === 'zh-cn' || normalized.startsWith('zh-') || normalized === 'zh') return 'zh-CN'
   return DEFAULT_LOCALE
 }
