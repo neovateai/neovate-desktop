@@ -1,4 +1,5 @@
 import { oc, type } from "@orpc/contract";
+import { z } from "zod";
 import { acpContract } from "./features/acp/contract";
 import { configContract } from "./features/config/contract";
 import { projectContract } from "./features/project/contract";
@@ -10,4 +11,7 @@ export const contract = {
   config: configContract,
   project: projectContract,
   utils: utilsContract,
+  window: {
+    ensureWidth: oc.input(z.object({ minWidth: z.number() })),
+  },
 };

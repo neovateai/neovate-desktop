@@ -1,4 +1,4 @@
-export { useLayoutStore } from "./use-layout-store";
+export { useLayoutStore } from "./store";
 export {
   AppLayoutRoot,
   AppLayoutTitleBar,
@@ -18,3 +18,4 @@ export {
   AppLayoutContentPanelActivity,
   AppLayoutSecondarySidebarActivity,
 } from "./panel-activity";
+export { ResizeHandle } from "./resize-handle";

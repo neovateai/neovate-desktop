@@ -1,5 +1,5 @@
 import { Activity, type ReactNode, useEffect, useRef, useState } from "react";
-import { useLayoutStore } from "./use-layout-store";
+import { useLayoutStore } from "./store";
 
 type AppLayoutPanelActivityProps = {
   active: boolean;

@@ -27,15 +27,15 @@ getShellEnvironment();
 const connectionManager = new AcpConnectionManager();
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
+const mainApp = new MainApp({
+  plugins: [gitPlugin],
+});
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
   configStore,
   projectStore,
+  mainApp,
 };
-
-const mainApp = new MainApp({
-  plugins: [gitPlugin],
-});
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");

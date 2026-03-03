@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   ArrowDown01Icon,
   FolderIcon,
@@ -14,17 +14,25 @@ import { Button } from "../ui/button";
 import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
 import { OpenAppButton } from "../../features/open-in";
-import { useLayoutStore } from "./use-layout-store";
-
-const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
-const COLLAPSED_TITLEBAR_LEFT_MARGIN = 136;
+import { useLayoutStore } from "./store";
+import { ResizeHandle } from "./resize-handle";
+import { usePanelResize } from "./hooks";
+import {
+  APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
+  APP_LAYOUT_GRID,
+  APP_LAYOUT_GRID_AREA,
+} from "./constants";
+import type { SeparatorId } from "./types";
 
 export function AppLayoutRoot({ children }: { children: ReactNode }) {
+  usePanelResize();
+
   return (
     <div
       data-slot="app-layout-root"
       data-testid="app-root"
-      className="relative flex h-screen w-screen overflow-hidden"
+      className="relative grid h-screen w-screen overflow-hidden pb-2"
+      style={APP_LAYOUT_GRID}
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
       {children}
@@ -38,8 +46,9 @@ export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
   return (
     <motion.div
       data-slot="titlebar"
-      className="[-webkit-app-region:drag] flex h-11 shrink-0 select-none items-center"
-      animate={{ marginLeft: collapsed ? COLLAPSED_TITLEBAR_LEFT_MARGIN : 0 }}
+      className="[-webkit-app-region:drag] flex h-11 select-none items-center"
+      style={{ gridArea: APP_LAYOUT_GRID_AREA.titleBar }}
+      animate={{ marginLeft: collapsed ? APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN : 0 }}
       transition={{ type: "spring" as const, stiffness: 360, damping: 34 }}
     >
       {children}
@@ -51,7 +60,8 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   return (
     <div
       data-slot="chat-panel"
-      className="min-w-[320px] flex-1 overflow-hidden rounded-lg bg-card pb-2"
+      className="min-w-0 overflow-hidden rounded-lg bg-card pb-2"
+      style={{ gridArea: APP_LAYOUT_GRID_AREA.chatPanel }}
     >
       {children}
     </div>
@@ -62,6 +72,7 @@ export function AppLayoutTrafficLights() {
   const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const isOpen = !collapsed;
+  const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
 
   return (
     <div
@@ -158,14 +169,8 @@ export function AppLayoutSecondaryTitleBar() {
   );
 }
 
-export function AppLayoutPanelSeparator({
-  panelId,
-}: {
-  panelId: "primarySidebar" | "contentPanel" | "secondarySidebar";
-}) {
-  const collapsed = useLayoutStore((s) => s.panels[panelId].collapsed);
-  if (collapsed) return null;
-  return <div className="w-[5px] shrink-0" />;
+export function AppLayoutPanelSeparator({ id }: { id: SeparatorId }) {
+  return <ResizeHandle id={id} style={{ gridArea: APP_LAYOUT_GRID_AREA[id] }} />;
 }
 
 export function AppLayoutStatusBar() {
