@@ -41,7 +41,10 @@ export function separatorIndexToId(index: number): SeparatorId {
 }
 
 /** Grid area names for each layout element, keyed by PanelId, SeparatorId, or fixed element name. */
-export const APP_LAYOUT_GRID_AREA: Record<PanelId | SeparatorId | "titleBar" | "activityBar", string> = {
+export const APP_LAYOUT_GRID_AREA: Record<
+  PanelId | SeparatorId | "titleBar" | "activityBar",
+  string
+> = {
   primarySidebar: "primarySidebar",
   chatPanel: "chatPanel",
   contentPanel: "contentPanel",

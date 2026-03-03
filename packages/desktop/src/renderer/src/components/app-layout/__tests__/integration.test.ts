@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { shrinkPanelsToFit, computeMinWindowWidth, applyDelta, isSeparatorVisible } from "../layout-coordinator";
+import {
+  shrinkPanelsToFit,
+  computeMinWindowWidth,
+  applyDelta,
+  isSeparatorVisible,
+} from "../layout-coordinator";
 import type { PanelMap } from "../types";
 
 describe("resize flow integration", () => {
@@ -63,7 +68,10 @@ describe("resize flow integration", () => {
     // Verify conservation: total before == total after
     const before = 300 + 500 + 400 + 300;
     const after =
-      result.primarySidebar.width + result.chatPanel.width + result.contentPanel.width + result.secondarySidebar.width;
+      result.primarySidebar.width +
+      result.chatPanel.width +
+      result.contentPanel.width +
+      result.secondarySidebar.width;
     expect(after).toBe(before);
   });
 

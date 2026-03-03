@@ -59,9 +59,7 @@ export function mergePersisted<T extends { panels: Record<PanelId, PanelState> }
     if (id === "chatPanel" && panel.width === 0) continue;
 
     const desc = PANEL_DESCRIPTORS.find((d) => d.id === id);
-    const width = desc
-      ? Math.max(desc.min, Math.min(panel.width, desc.max))
-      : panel.width;
+    const width = desc ? Math.max(desc.min, Math.min(panel.width, desc.max)) : panel.width;
 
     panels[id] = {
       ...panels[id],
@@ -138,7 +136,10 @@ const layoutStore = createStore<LayoutStore>()(
           set((state) => {
             const current = {
               ...state.panels,
-              secondarySidebar: { ...state.panels.secondarySidebar, activeView: viewId },
+              secondarySidebar: {
+                ...state.panels.secondarySidebar,
+                activeView: viewId,
+              },
             };
             // Re-check: use fresh state for collapsed check
             return {

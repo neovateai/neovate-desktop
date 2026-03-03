@@ -63,7 +63,11 @@ export function computeTotalWidth(panels: PanelMap): number {
     (total, descriptor) => total + panels[descriptor.id].width,
     0,
   );
-  return APP_LAYOUT_FIXED_WIDTH + panelWidth + countVisibleHandles(panels) * APP_LAYOUT_RESIZE_HANDLE_WIDTH;
+  return (
+    APP_LAYOUT_FIXED_WIDTH +
+    panelWidth +
+    countVisibleHandles(panels) * APP_LAYOUT_RESIZE_HANDLE_WIDTH
+  );
 }
 
 /** Minimum window width so every expanded panel can sit at its min width. */
@@ -72,7 +76,11 @@ export function computeMinWindowWidth(panels: PanelMap): number {
     (total, descriptor) => total + descriptor.min,
     0,
   );
-  return APP_LAYOUT_FIXED_WIDTH + minPanelWidth + countVisibleHandles(panels) * APP_LAYOUT_RESIZE_HANDLE_WIDTH;
+  return (
+    APP_LAYOUT_FIXED_WIDTH +
+    minPanelWidth +
+    countVisibleHandles(panels) * APP_LAYOUT_RESIZE_HANDLE_WIDTH
+  );
 }
 
 /** Minimum window width if a given panel were expanded (for pre-expanding the window). */
@@ -143,11 +151,17 @@ function resolveEffectivePanels(
 ): { leftId: PanelId | null; rightId: PanelId | null } {
   let leftId: PanelId | null = null;
   for (let i = separatorIndex; i >= 0; i--) {
-    if (!panels[PANEL_ORDER[i]].collapsed) { leftId = PANEL_ORDER[i]; break; }
+    if (!panels[PANEL_ORDER[i]].collapsed) {
+      leftId = PANEL_ORDER[i];
+      break;
+    }
   }
   let rightId: PanelId | null = null;
   for (let i = separatorIndex + 1; i < PANEL_ORDER.length; i++) {
-    if (!panels[PANEL_ORDER[i]].collapsed) { rightId = PANEL_ORDER[i]; break; }
+    if (!panels[PANEL_ORDER[i]].collapsed) {
+      rightId = PANEL_ORDER[i];
+      break;
+    }
   }
   return { leftId, rightId };
 }
@@ -245,7 +259,10 @@ export function openPanel(panels: PanelMap, id: PanelId, windowWidth: number): P
 
   // 2. Constrain (against expanded state so available space accounts for this panel)
   const expanded = setPanelCollapsed(panels, id, false);
-  const width = constrainWidth(descriptor, proposed, { windowWidth, panels: expanded });
+  const width = constrainWidth(descriptor, proposed, {
+    windowWidth,
+    panels: expanded,
+  });
 
   // 3. Fit
   return shrinkPanelsToFit(setPanelWidth(expanded, id, width), windowWidth);

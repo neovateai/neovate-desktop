@@ -77,10 +77,7 @@ describe("persist merge", () => {
   });
 
   it("skips malformed panel entries", () => {
-    const result = mergePersisted(
-      { panels: { primarySidebar: "not an object" } },
-      current(),
-    );
+    const result = mergePersisted({ panels: { primarySidebar: "not an object" } }, current());
     expect(result.panels.primarySidebar).toEqual(defaults.primarySidebar);
   });
 
@@ -126,7 +123,15 @@ describe("persist merge", () => {
 
   it("preserves activeView from persisted state", () => {
     const result = mergePersisted(
-      { panels: { secondarySidebar: { width: 280, collapsed: false, activeView: "files" } } },
+      {
+        panels: {
+          secondarySidebar: {
+            width: 280,
+            collapsed: false,
+            activeView: "files",
+          },
+        },
+      },
       current(),
     );
     expect(result.panels.secondarySidebar.activeView).toBe("files");
