@@ -9,7 +9,7 @@ describe("main router context wiring", () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
-      mainWindow: null,
+      mainApp: { windowManager: { mainWindow: null } } as any,
     } satisfies AppDependencies;
 
     const agents = await call(router.acp.listAgents, undefined, { context });
@@ -26,7 +26,7 @@ describe("main router context wiring", () => {
     const context = {
       acpConnectionManager: {} as unknown as AppDependencies["acpConnectionManager"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
-      mainWindow: null,
+      mainApp: { windowManager: { mainWindow: null } } as any,
     } satisfies AppDependencies;
     const result = await call(router.ping, undefined, { context });
     expect(result).toBe("pong");

@@ -1,6 +1,6 @@
 import Store from "electron-store";
 import { join } from "path";
-import { shell, BrowserWindow } from "electron";
+import { shell, screen, BrowserWindow } from "electron";
 import { is } from "@electron-toolkit/utils";
 import icon from "../../../resources/icon.png?asset";
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
@@ -116,6 +116,20 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       if (!win.isDestroyed()) win.destroy();
     }
     this.#windows.clear();
+  }
+
+  ensureMinWidth(minWidth: number): void {
+    const mainWindow = this.mainWindow;
+    if (!mainWindow) return;
+    const display = screen.getDisplayMatching(mainWindow.getBounds());
+    const maxWidth = display.workAreaSize.width;
+    const capped = Math.min(minWidth, maxWidth);
+    const [currentWidth, currentHeight] = mainWindow.getSize();
+    const [, currentMinHeight] = mainWindow.getMinimumSize();
+    mainWindow.setMinimumSize(capped, currentMinHeight);
+    if (currentWidth < capped) {
+      mainWindow.setSize(capped, currentHeight);
+    }
   }
 
   #loadURL(win: BrowserWindow, params?: URLSearchParams): void {

@@ -24,7 +24,7 @@ function makeContext(overrides?: Partial<AppContext["acpConnectionManager"]>): A
       disconnectAll: vi.fn(),
       ...overrides,
     } as any,
-    mainWindow: null,
+    mainApp: { windowManager: { mainWindow: null } } as any,
   };
 }
 

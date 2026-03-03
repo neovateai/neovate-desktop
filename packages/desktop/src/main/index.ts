@@ -16,15 +16,14 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
 
 const connectionManager = new AcpConnectionManager();
 const projectStore = new ProjectStore();
-const appContext: AppContext = {
-  acpConnectionManager: connectionManager,
-  projectStore,
-  mainWindow: null,
-};
-
 const mainApp = new MainApp({
   plugins: [gitPlugin],
 });
+const appContext: AppContext = {
+  acpConnectionManager: connectionManager,
+  projectStore,
+  mainApp,
+};
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
@@ -34,7 +33,6 @@ app.whenReady().then(async () => {
   });
 
   await mainApp.start();
-  appContext.mainWindow = mainApp.windowManager.mainWindow;
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
   const handler = new RPCHandler(mainApp.router);
@@ -49,7 +47,6 @@ app.whenReady().then(async () => {
     const win = mainApp.windowManager.mainWindow;
     if (!win) {
       mainApp.windowManager.createMainWindow();
-      appContext.mainWindow = mainApp.windowManager.mainWindow;
     } else {
       win.show();
     }
