@@ -168,7 +168,13 @@ export const acpRouter = os.acp.router({
   preloadSessions: os.acp.preloadSessions.handler(async ({ input, context }) => {
     if (PRELOAD_SESSION_MODE === "false") return;
 
-    const ids = PRELOAD_SESSION_MODE === "latest" ? input.sessionIds.slice(0, 1) : input.sessionIds;
+    // Filter out archived sessions before preloading
+    const archivedMap = context.projectStore.getArchivedSessions();
+    const archivedSet = new Set(
+      input.cwd ? (archivedMap[input.cwd] ?? []) : Object.values(archivedMap).flat(),
+    );
+    const filtered = input.sessionIds.filter((id) => !archivedSet.has(id));
+    const ids = PRELOAD_SESSION_MODE === "latest" ? filtered.slice(0, 1) : filtered;
 
     acpLog("preloadSessions: start (mode=%s, count=%d)", PRELOAD_SESSION_MODE, ids.length, {
       connectionId: input.connectionId,

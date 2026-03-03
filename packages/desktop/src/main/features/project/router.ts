@@ -69,4 +69,20 @@ export const projectRouter = os.project.router({
     if (result.canceled || result.filePaths.length === 0) return null;
     return { path: result.filePaths[0] };
   }),
+
+  getArchivedSessions: os.project.getArchivedSessions.handler(({ context }) => {
+    return context.projectStore.getArchivedSessions();
+  }),
+
+  archiveSession: os.project.archiveSession.handler(({ input, context }) => {
+    context.projectStore.archiveSession(input.projectPath, input.sessionId);
+  }),
+
+  getPinnedSessions: os.project.getPinnedSessions.handler(({ context }) => {
+    return context.projectStore.getPinnedSessions();
+  }),
+
+  togglePinSession: os.project.togglePinSession.handler(({ input, context }) => {
+    context.projectStore.togglePinSession(input.projectPath, input.sessionId);
+  }),
 });
