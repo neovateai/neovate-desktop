@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AgentChat, SessionList } from "./features/acp";
 import {
   AppLayoutActivityBar,
@@ -13,8 +14,10 @@ import {
   AppLayoutTrafficLights,
 } from "./components/app-layout";
 import { ThemeToggle } from "./components/ui/theme-toggle";
+import { LanguageToggle } from "./components/ui/language-toggle";
 
 export default function App() {
+  const { t } = useTranslation();
   return (
     <AppLayoutRoot>
       <AppLayoutTrafficLights />
@@ -23,7 +26,8 @@ export default function App() {
         <div className="flex h-full flex-col p-3">
           <SessionList />
         </div>
-        <div className="mt-auto ml-auto px-1.5 pb-1.5">
+        <div className="mt-auto flex items-center gap-1 px-1.5 pb-1.5">
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </AppLayoutPrimarySidebar>
@@ -43,9 +47,9 @@ export default function App() {
 
       <AppLayoutContentPanel>
         <div className="flex h-full flex-col p-3">
-          <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
+          <h2 className="text-xs font-semibold text-muted-foreground">{t("layout.content")}</h2>
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
+            <p className="text-xs text-muted-foreground">{t("layout.contentDesc")}</p>
           </div>
         </div>
       </AppLayoutContentPanel>

@@ -1,0 +1,36 @@
+{
+  "common.cancel": "Cancel",
+  "common.send": "Send",
+  "common.copy": "Copy",
+  "common.open": "Open",
+
+  "agent.selectPlaceholder": "Select an agent...",
+
+  "session.inputPlaceholder": "Type a message...",
+  "session.restoring": "Restoring...",
+  "session.pinned": "Pinned",
+  "session.recent": "Recent",
+  "session.history": "History",
+  "session.pin": "Pin",
+  "session.unpin": "Unpin",
+  "session.archive": "Archive",
+  "session.copyId": "Copy session ID",
+  "session.newChat": "New Chat",
+  "session.selectProject": "Select a project",
+
+  "chat.startConversation": "Start a conversation",
+  "chat.connecting": "Connecting...",
+  "chat.connect": "Connect",
+  "chat.workdirPlaceholder": "Working directory (optional)",
+  "chat.permissionRequested": "Permission requested: {{title}}",
+
+  "layout.content": "Content",
+  "layout.contentDesc": "Terminal, editor, browser",
+
+  "openIn.detecting": "Detecting apps...",
+  "openIn.noApps": "No apps detected",
+  "openIn.copyPath": "Copy path",
+
+  "language.toggle": "切换中文",
+  "language.current": "English"
+}

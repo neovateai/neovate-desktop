@@ -1,11 +1,13 @@
 import { StrictMode, createContext, useContext, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider, useTheme } from "next-themes";
+import { I18nextProvider } from "react-i18next";
 import { useConfigStore } from "../features/config/store";
 import { DisposableStore } from "./disposable";
 import type { IRendererApp } from "./types";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import { PluginManager } from "./plugin";
+import { I18nManager } from "./i18n";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import { client } from "../orpc";
@@ -57,12 +59,15 @@ export interface RendererAppOptions {
 export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
+  readonly i18nManager: I18nManager;
 
   constructor(options: RendererAppOptions = {}) {
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
+    this.i18nManager = new I18nManager();
   }
 
   async start(): Promise<void> {
+    await this.i18nManager.init();
     const ctx: PluginContext = { app: this, orpcClient: client };
     await useConfigStore.getState().load();
     await this.pluginManager.configContributions();
@@ -81,14 +86,16 @@ export class RendererApp implements IRendererApp {
     const { default: App } = await import("../App");
     ReactDOM.createRoot(root).render(
       <StrictMode>
-        <RendererAppContext.Provider value={this}>
-          <PluginContextReact.Provider value={ctx}>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <ThemeSync />
-              <App />
-            </ThemeProvider>
-          </PluginContextReact.Provider>
-        </RendererAppContext.Provider>
+        <I18nextProvider i18n={this.i18nManager.getInstance}>
+          <RendererAppContext.Provider value={this}>
+            <PluginContextReact.Provider value={ctx}>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <ThemeSync />
+                <App />
+              </ThemeProvider>
+            </PluginContextReact.Provider>
+          </RendererAppContext.Provider>
+        </I18nextProvider>
       </StrictMode>,
     );
   }
