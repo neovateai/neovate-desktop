@@ -2,19 +2,19 @@ import { useCallback, useEffect, useRef } from "react";
 import { ORPCError } from "@orpc/client";
 import debug from "debug";
 import { client } from "../../../orpc";
-import { useClaudeStore } from "../store";
+import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 
-const promptLog = debug("neovate:claude-prompt");
+const promptLog = debug("neovate:agent-prompt");
 
 export function usePrompt() {
   const abortRef = useRef<AbortController | null>(null);
-  const addUserMessage = useClaudeStore((s) => s.addUserMessage);
-  const appendChunk = useClaudeStore((s) => s.appendChunk);
-  const setStreaming = useClaudeStore((s) => s.setStreaming);
-  const createSession = useClaudeStore((s) => s.createSession);
-  const setAvailableCommands = useClaudeStore((s) => s.setAvailableCommands);
-  const addTiming = useClaudeStore((s) => s.addTiming);
+  const addUserMessage = useAgentStore((s) => s.addUserMessage);
+  const appendChunk = useAgentStore((s) => s.appendChunk);
+  const setStreaming = useAgentStore((s) => s.setStreaming);
+  const createSession = useAgentStore((s) => s.createSession);
+  const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
+  const addTiming = useAgentStore((s) => s.addTiming);
 
   useEffect(() => {
     return () => {
@@ -32,7 +32,7 @@ export function usePrompt() {
       if (!resolvedSessionId) {
         const sessionStart = performance.now();
         promptLog("sendPrompt: creating session cwd=%s", cwd);
-        const { sessionId: newSessionId, commands } = await client.claude.newSession({ cwd });
+        const { sessionId: newSessionId, commands } = await client.agent.newSession({ cwd });
         resolvedSessionId = newSessionId;
         const sessionElapsed = Math.round(performance.now() - sessionStart);
         promptLog(
@@ -54,7 +54,7 @@ export function usePrompt() {
       }
 
       promptLog("sendPrompt: start sessionId=%s len=%d", resolvedSessionId, prompt.length);
-      useClaudeStore.getState().setPromptError(resolvedSessionId, null);
+      useAgentStore.getState().setPromptError(resolvedSessionId, null);
       addUserMessage(resolvedSessionId, prompt);
       setStreaming(resolvedSessionId, true);
 
@@ -63,7 +63,7 @@ export function usePrompt() {
 
       try {
         const rpcStart = performance.now();
-        const iterator = await client.claude.prompt(
+        const iterator = await client.agent.prompt(
           { sessionId: resolvedSessionId, prompt },
           { signal: ac.signal },
         );
@@ -123,7 +123,7 @@ export function usePrompt() {
           message,
           error,
         );
-        useClaudeStore.getState().setPromptError(resolvedSessionId, message);
+        useAgentStore.getState().setPromptError(resolvedSessionId, message);
       } finally {
         setStreaming(resolvedSessionId, false);
         abortRef.current = null;
@@ -135,7 +135,7 @@ export function usePrompt() {
   const cancel = useCallback(async (sessionId: string) => {
     promptLog("cancel: sessionId=%s", sessionId);
     abortRef.current?.abort();
-    await client.claude.cancel({ sessionId });
+    await client.agent.cancel({ sessionId });
     promptLog("cancel: done sessionId=%s", sessionId);
   }, []);
 

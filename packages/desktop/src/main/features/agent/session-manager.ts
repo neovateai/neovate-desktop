@@ -18,7 +18,7 @@ import type {
   StreamEvent,
   SessionInfo,
   SlashCommandInfo,
-} from "../../../shared/features/claude/types";
+} from "../../../shared/features/agent/types";
 import { getShellEnvironment } from "./shell-env";
 import { Pushable } from "./pushable";
 

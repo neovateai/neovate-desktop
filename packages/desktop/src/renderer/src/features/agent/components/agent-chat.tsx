@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import debug from "debug";
 import { client } from "../../../orpc";
-import { useClaudeStore } from "../store";
+import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 
-const chatLog = debug("neovate:claude-chat");
+const chatLog = debug("neovate:agent-chat");
 import { usePrompt } from "../hooks/use-prompt";
 import { usePermission } from "../hooks/use-permission";
 import { useNewSession } from "../hooks/use-new-session";
@@ -18,10 +18,10 @@ export function AgentChat() {
   const activeProjectPath = activeProject?.path ?? "";
   const [cwd, setCwd] = useState("");
 
-  const activeSessionId = useClaudeStore((s) => s.activeSessionId);
-  const setActiveSession = useClaudeStore((s) => s.setActiveSession);
-  const setAgentSessions = useClaudeStore((s) => s.setAgentSessions);
-  const sessions = useClaudeStore((s) => s.sessions);
+  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const setActiveSession = useAgentStore((s) => s.setActiveSession);
+  const setAgentSessions = useAgentStore((s) => s.setAgentSessions);
+  const sessions = useAgentStore((s) => s.sessions);
 
   const { sendPrompt, cancel } = usePrompt();
   const { resolvePermission } = usePermission();
@@ -55,7 +55,7 @@ export function AgentChat() {
     }
 
     chatLog("effect[project-switch]: listing sessions for cwd=%s", activeProjectPath);
-    client.claude
+    client.agent
       .listSessions({ cwd: activeProjectPath })
       .then((sessions) => {
         chatLog(

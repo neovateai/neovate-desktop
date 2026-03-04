@@ -6,10 +6,10 @@ import type {
   StreamEvent,
   TimingEntry,
   SlashCommandInfo,
-} from "../../../../shared/features/claude/types";
+} from "../../../../shared/features/agent/types";
 import debug from "debug";
 
-const storeLog = debug("neovate:claude-store");
+const storeLog = debug("neovate:agent-store");
 
 enableMapSet();
 
@@ -46,7 +46,7 @@ export type ChatSession = {
   availableCommands: SlashCommandInfo[];
 };
 
-type ClaudeState = {
+type AgentState = {
   sessions: Map<string, ChatSession>;
   activeSessionId: string | null;
   agentSessions: SessionInfo[];
@@ -70,7 +70,7 @@ type ClaudeState = {
   clearTimings: () => void;
 };
 
-export const useClaudeStore = create<ClaudeState>()(
+export const useAgentStore = create<AgentState>()(
   immer((set) => ({
     sessions: new Map(),
     activeSessionId: null,

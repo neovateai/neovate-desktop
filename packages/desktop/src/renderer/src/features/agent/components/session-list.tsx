@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pin, PinOff, Archive, Copy, Plus } from "lucide-react";
 import debug from "debug";
-import { useClaudeStore } from "../store";
+import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { client } from "../../../orpc";
 
-const listLog = debug("neovate:claude-session-list");
+const listLog = debug("neovate:agent-session-list");
 import { cn } from "../../../lib/utils";
 import {
   ContextMenu,
@@ -17,7 +17,7 @@ import {
 import { Button } from "../../../components/ui/button";
 import { useNewSession } from "../hooks/use-new-session";
 import type { ChatSession } from "../store";
-import type { SessionInfo } from "../../../../../shared/features/claude/types";
+import type { SessionInfo } from "../../../../../shared/features/agent/types";
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -126,13 +126,13 @@ function SessionItemRow({
 // --- SessionList ---
 
 export function SessionList() {
-  const sessions = useClaudeStore((s) => s.sessions);
-  const activeSessionId = useClaudeStore((s) => s.activeSessionId);
-  const setActiveSession = useClaudeStore((s) => s.setActiveSession);
-  const agentSessions = useClaudeStore((s) => s.agentSessions);
-  const createSession = useClaudeStore((s) => s.createSession);
-  const removeSession = useClaudeStore((s) => s.removeSession);
-  const appendChunk = useClaudeStore((s) => s.appendChunk);
+  const sessions = useAgentStore((s) => s.sessions);
+  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const setActiveSession = useAgentStore((s) => s.setActiveSession);
+  const agentSessions = useAgentStore((s) => s.agentSessions);
+  const createSession = useAgentStore((s) => s.createSession);
+  const removeSession = useAgentStore((s) => s.removeSession);
+  const appendChunk = useAgentStore((s) => s.appendChunk);
 
   const activeProject = useProjectStore((s) => s.activeProject);
   const archivedSessions = useProjectStore((s) => s.archivedSessions);
@@ -184,7 +184,7 @@ export function SessionList() {
           sessionId,
           info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
-        const iterator = await client.claude.loadSession(
+        const iterator = await client.agent.loadSession(
           { sessionId, cwd: activeProject?.path },
           { signal: ac.signal },
         );

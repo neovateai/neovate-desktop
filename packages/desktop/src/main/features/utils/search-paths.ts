@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readdir, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import debug from "debug";
-import { getShellEnvironment } from "../claude/shell-env";
+import { getShellEnvironment } from "../agent/shell-env";
 
 const log = debug("neovate:search-paths");
 const EXCLUDED_DIRS = new Set(["node_modules", ".git", "dist", "build"]);

@@ -7,7 +7,7 @@ import { Button } from "../../../components/ui/button";
 import { SendHorizonal, Square, Paperclip } from "lucide-react";
 import { createSlashCommandsExtension } from "./slash-commands-extension";
 import { createMentionExtension } from "./mention-extension";
-import { useClaudeStore } from "../store";
+import { useAgentStore } from "../store";
 import type { JSONContent } from "@tiptap/react";
 
 type Props = {
@@ -64,7 +64,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   const slashCommandsExtension = useMemo(
     () =>
       createSlashCommandsExtension(() => {
-        const { activeSessionId, sessions } = useClaudeStore.getState();
+        const { activeSessionId, sessions } = useAgentStore.getState();
         if (!activeSessionId) return [];
         return (sessions.get(activeSessionId)?.availableCommands ?? []).map((c) => c.name);
       }),

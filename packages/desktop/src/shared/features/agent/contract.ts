@@ -9,11 +9,11 @@ import type {
 } from "./types";
 
 const promptErrorDataSchema = type<{
-  source: "claude_agent";
+  source: "agent";
   message: string;
 }>();
 
-export const claudeContract = {
+export const agentContract = {
   listSessions: oc.input(z.object({ cwd: z.string().optional() })).output(type<SessionInfo[]>()),
 
   newSession: oc

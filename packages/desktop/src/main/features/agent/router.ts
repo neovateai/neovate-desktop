@@ -1,10 +1,10 @@
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
-import { claudeContract } from "../../../shared/features/claude/contract";
-import type { StreamEvent } from "../../../shared/features/claude/types";
+import { agentContract } from "../../../shared/features/agent/contract";
+import type { StreamEvent } from "../../../shared/features/agent/types";
 import type { AppContext } from "../../router";
 
-const claudeLog = debug("neovate:claude-router");
+const agentLog = debug("neovate:agent-router");
 
 function timingEntry(phase: string, label: string, durationMs: number): StreamEvent {
   return {
@@ -18,22 +18,22 @@ function timingEntry(phase: string, label: string, durationMs: number): StreamEv
   };
 }
 
-const os = implement({ claude: claudeContract }).$context<AppContext>();
+const os = implement({ agent: agentContract }).$context<AppContext>();
 
-export const claudeRouter = os.claude.router({
-  listSessions: os.claude.listSessions.handler(async ({ input, context }) => {
-    claudeLog("listSessions: cwd=%s", input.cwd);
+export const agentRouter = os.agent.router({
+  listSessions: os.agent.listSessions.handler(async ({ input, context }) => {
+    agentLog("listSessions: cwd=%s", input.cwd);
     const result = await context.sessionManager.listSessions(input.cwd);
-    claudeLog("listSessions: returned %d sessions", result.length);
+    agentLog("listSessions: returned %d sessions", result.length);
     return result;
   }),
 
-  newSession: os.claude.newSession.handler(async ({ input, context }) => {
+  newSession: os.agent.newSession.handler(async ({ input, context }) => {
     const t0 = performance.now();
-    claudeLog("newSession: START cwd=%s model=%s", input.cwd, input.model);
+    agentLog("newSession: START cwd=%s model=%s", input.cwd, input.model);
     try {
       const result = await context.sessionManager.createSession(input.cwd, input.model);
-      claudeLog(
+      agentLog(
         "newSession: DONE in %dms sessionId=%s commands=%d",
         Math.round(performance.now() - t0),
         result.sessionId,
@@ -42,7 +42,7 @@ export const claudeRouter = os.claude.router({
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session";
-      claudeLog(
+      agentLog(
         "newSession: FAILED after %dms error=%s stack=%s",
         Math.round(performance.now() - t0),
         message,
@@ -52,16 +52,16 @@ export const claudeRouter = os.claude.router({
     }
   }),
 
-  loadSession: os.claude.loadSession.handler(async function* ({ input, context }) {
+  loadSession: os.agent.loadSession.handler(async function* ({ input, context }) {
     const t0 = performance.now();
     let firstEventAt: number | undefined;
     let eventCount = 0;
     let permissionEventCount = 0;
-    claudeLog("loadSession: START sessionId=%s cwd=%s", input.sessionId, input.cwd);
+    agentLog("loadSession: START sessionId=%s cwd=%s", input.sessionId, input.cwd);
 
     const pendingPermissionEvents: StreamEvent[] = [];
     const emitter = (event: StreamEvent) => {
-      claudeLog("loadSession: permission emitter received event type=%s", event.type);
+      agentLog("loadSession: permission emitter received event type=%s", event.type);
       pendingPermissionEvents.push(event);
     };
 
@@ -74,7 +74,7 @@ export const claudeRouter = os.claude.router({
         eventCount += 1;
         if (!firstEventAt) {
           firstEventAt = performance.now();
-          claudeLog(
+          agentLog(
             "loadSession: first event after %dms type=%s",
             Math.round(firstEventAt - t0),
             event.type,
@@ -86,7 +86,7 @@ export const claudeRouter = os.claude.router({
         while (pendingPermissionEvents.length > 0) {
           const permEvent = pendingPermissionEvents.shift()!;
           permissionEventCount++;
-          claudeLog(
+          agentLog(
             "loadSession: flushing permission event #%d type=%s",
             permissionEventCount,
             permEvent.type,
@@ -95,7 +95,7 @@ export const claudeRouter = os.claude.router({
         }
       }
     } catch (error) {
-      claudeLog(
+      agentLog(
         "loadSession: FAILED sessionId=%s after %dms events=%d error=%s",
         input.sessionId,
         Math.round(performance.now() - t0),
@@ -107,7 +107,7 @@ export const claudeRouter = os.claude.router({
 
     const totalMs = performance.now() - t0;
     const ttfe = firstEventAt ? firstEventAt - t0 : totalMs;
-    claudeLog(
+    agentLog(
       "loadSession: DONE in %dms (ttfe=%dms, events=%d, permEvents=%d)",
       Math.round(totalMs),
       Math.round(ttfe),
@@ -119,12 +119,12 @@ export const claudeRouter = os.claude.router({
     return { sessionId: input.sessionId };
   }),
 
-  prompt: os.claude.prompt.handler(async function* ({ input, context }) {
+  prompt: os.agent.prompt.handler(async function* ({ input, context }) {
     const t0 = performance.now();
     let firstEventAt: number | undefined;
     let eventCount = 0;
     let permissionEventCount = 0;
-    claudeLog(
+    agentLog(
       "prompt: START sessionId=%s promptLen=%d prompt=%s",
       input.sessionId,
       input.prompt.length,
@@ -133,7 +133,7 @@ export const claudeRouter = os.claude.router({
 
     const pendingPermissionEvents: StreamEvent[] = [];
     const emitter = (event: StreamEvent) => {
-      claudeLog("prompt: permission emitter received event type=%s", event.type);
+      agentLog("prompt: permission emitter received event type=%s", event.type);
       pendingPermissionEvents.push(event);
     };
 
@@ -146,14 +146,14 @@ export const claudeRouter = os.claude.router({
         eventCount += 1;
         if (!firstEventAt) {
           firstEventAt = performance.now();
-          claudeLog(
+          agentLog(
             "prompt: first event after %dms type=%s",
             Math.round(firstEventAt - t0),
             event.type,
           );
         }
         if (eventCount <= 10) {
-          claudeLog("prompt: yielding event #%d type=%s", eventCount, event.type);
+          agentLog("prompt: yielding event #%d type=%s", eventCount, event.type);
         }
         yield event;
 
@@ -161,7 +161,7 @@ export const claudeRouter = os.claude.router({
         while (pendingPermissionEvents.length > 0) {
           const permEvent = pendingPermissionEvents.shift()!;
           permissionEventCount++;
-          claudeLog(
+          agentLog(
             "prompt: flushing permission event #%d type=%s",
             permissionEventCount,
             permEvent.type,
@@ -171,7 +171,7 @@ export const claudeRouter = os.claude.router({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Agent prompt failed";
-      claudeLog(
+      agentLog(
         "prompt: FAILED sessionId=%s after %dms events=%d error=%s stack=%s",
         input.sessionId,
         Math.round(performance.now() - t0),
@@ -182,13 +182,13 @@ export const claudeRouter = os.claude.router({
       throw new ORPCError("BAD_GATEWAY", {
         defined: true,
         message,
-        data: { source: "claude_agent" as const, message },
+        data: { source: "agent" as const, message },
       });
     }
 
     const totalMs = performance.now() - t0;
     const ttfe = firstEventAt ? firstEventAt - t0 : totalMs;
-    claudeLog(
+    agentLog(
       "prompt: DONE in %dms (ttfe=%dms, events=%d, permEvents=%d)",
       Math.round(totalMs),
       Math.round(ttfe),
@@ -200,13 +200,13 @@ export const claudeRouter = os.claude.router({
     return { stopReason: "end_turn" };
   }),
 
-  resolvePermission: os.claude.resolvePermission.handler(({ input, context }) => {
-    claudeLog("resolvePermission: requestId=%s allow=%s", input.requestId, input.allow);
+  resolvePermission: os.agent.resolvePermission.handler(({ input, context }) => {
+    agentLog("resolvePermission: requestId=%s allow=%s", input.requestId, input.allow);
     context.sessionManager.resolvePermission(input.requestId, input.allow);
   }),
 
-  cancel: os.claude.cancel.handler(async ({ input, context }) => {
-    claudeLog("cancel: sessionId=%s", input.sessionId);
+  cancel: os.agent.cancel.handler(async ({ input, context }) => {
+    agentLog("cancel: sessionId=%s", input.sessionId);
     await context.sessionManager.cancel(input.sessionId);
   }),
 });

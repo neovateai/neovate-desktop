@@ -1,19 +1,19 @@
 import { useCallback } from "react";
 import debug from "debug";
 import { client } from "../../../orpc";
-import { useClaudeStore } from "../store";
+import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 
-const newSessionLog = debug("neovate:claude-new-session");
+const newSessionLog = debug("neovate:agent-new-session");
 
 export function useNewSession() {
-  const createSession = useClaudeStore((s) => s.createSession);
-  const setAvailableCommands = useClaudeStore((s) => s.setAvailableCommands);
+  const createSession = useAgentStore((s) => s.createSession);
+  const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
 
   const createNewSession = useCallback(
     async (cwd: string) => {
       // Dedup guard: if active session is already new (empty), reuse it
-      const { activeSessionId, sessions } = useClaudeStore.getState();
+      const { activeSessionId, sessions } = useAgentStore.getState();
       if (activeSessionId) {
         const active = sessions.get(activeSessionId);
         if (active?.isNew) {
@@ -23,7 +23,7 @@ export function useNewSession() {
       }
 
       newSessionLog("createNewSession: creating session cwd=%s", cwd);
-      const { sessionId, commands } = await client.claude.newSession({ cwd });
+      const { sessionId, commands } = await client.agent.newSession({ cwd });
       newSessionLog("createNewSession: created %s", sessionId);
 
       const projectPath = useProjectStore.getState().activeProject?.path;
