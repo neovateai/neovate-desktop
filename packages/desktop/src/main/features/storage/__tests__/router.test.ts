@@ -22,7 +22,7 @@ beforeEach(() => {
   storage = new StorageService({ baseDir: TEST_DIR });
   context = {
     storage,
-    acpConnectionManager: {} as any,
+    sessionManager: {} as any,
     configStore: {} as any,
     projectStore: {} as any,
     mainApp: {} as any,

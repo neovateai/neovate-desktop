@@ -17,6 +17,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
     configStore: {} as any,
     projectStore: {} as any,
     mainApp: { windowManager: { mainWindow: null } } as any,
+    storage: {} as any,
     ...overrides,
   };
 }
