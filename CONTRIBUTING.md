@@ -47,7 +47,7 @@ You can filter by namespace (e.g. `DEBUG=neovate:acp-router` for just the router
 For renderer-side debug logs, set `localStorage.debug` in DevTools:
 
 ```js
-localStorage.debug = 'neovate:*'
+localStorage.debug = "neovate:*";
 ```
 
 ## Environment Variables
