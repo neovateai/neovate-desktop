@@ -1,3 +1,5 @@
+import { eventIterator } from "@orpc/server";
+import { z } from "zod";
 import type { PluginContext } from "../../core/plugin/types";
 import type { PtyManager } from "./pty-manager";
 
@@ -38,7 +40,7 @@ export function createTerminalRouter(
       ptyManager.kill(sessionId);
     }),
 
-    stream: orpcServer.handler(async function* ({ input, signal }) {
+    stream: orpcServer.output(eventIterator(z.string())).handler(async function* ({ input, signal }) {
       const { sessionId } = input as { sessionId: string };
       const session = ptyManager.getSession(sessionId);
       if (!session) return;
@@ -50,10 +52,15 @@ export function createTerminalRouter(
         ),
       );
 
-      for await (const chunk of session.publisher.subscribe("data", {
-        signal: combined,
-      })) {
-        yield chunk;
+      try {
+        for await (const chunk of session.publisher.subscribe("data", {
+          signal: combined,
+        })) {
+          yield chunk;
+        }
+      } catch (err) {
+        // AbortError from PTY exit or client disconnect — end stream cleanly
+        if ((err as Error)?.name !== "AbortError") throw err;
       }
     }),
   });
