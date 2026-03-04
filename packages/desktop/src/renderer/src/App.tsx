@@ -52,14 +52,7 @@ export default function App() {
 
       <AppLayoutPanelSeparator id="chatPanel:contentPanel" />
 
-      <AppLayoutContentPanel>
-        <div className="flex h-full flex-col p-3">
-          <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
-          </div>
-        </div>
-      </AppLayoutContentPanel>
+      <AppLayoutContentPanel />
 
       <AppLayoutPanelSeparator id="contentPanel:secondarySidebar" />
 

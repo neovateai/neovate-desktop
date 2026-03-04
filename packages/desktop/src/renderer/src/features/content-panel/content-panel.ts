@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
-import { Hookable, type HookCallback } from "hookable";
+import { Hookable } from "hookable";
 import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { Tab, ContentPanelStoreState } from "./types";
 import { createContentPanelStore } from "./store";
@@ -16,12 +16,19 @@ export interface ContentPanelHooks {
   closed: (context: ViewContext) => void | Promise<void>;
   activated: (context: ViewContext) => void;
   deactivated: (context: ViewContext) => void;
-  beforeClose: (context: ViewContext) => boolean | Promise<boolean>;
 }
 
+// beforeClose is handled separately via callHookWith + bailCaller
+// because hookable's HookCallback type only allows void returns.
+// We store beforeClose handlers in the same hook registry but bypass
+// the type system at the boundary.
+type BeforeCloseHandler = (
+  context: ViewContext,
+) => boolean | Promise<boolean>;
+
 async function bailCaller(
-  hooks: HookCallback[],
-  args: any[],
+  hooks: ((...args: any[]) => any)[],
+  args: unknown[],
 ): Promise<boolean> {
   for (const hook of hooks) {
     if ((await hook(...args)) === false) return false;
@@ -38,6 +45,11 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
     super();
     this.views = views;
     this.store = createContentPanelStore();
+  }
+
+  /** Register a beforeClose guard. Returns unsubscribe function. */
+  onBeforeClose(handler: BeforeCloseHandler): () => void {
+    return (this as any).hook("beforeClose", handler);
   }
 
   setProjectPath(path: string): void {
@@ -81,7 +93,7 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
     if (!tab) return;
 
     const context = { viewId: tab.viewId, instanceId };
-    const allowed = await this.callHookWith(bailCaller, "beforeClose", [
+    const allowed = await (this as any).callHookWith(bailCaller, "beforeClose", [
       context,
     ]);
     if (allowed === false) return;
