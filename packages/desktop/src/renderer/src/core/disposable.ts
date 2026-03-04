@@ -6,17 +6,19 @@ export function toDisposable(fn: () => void): Disposable {
   return { dispose: fn };
 }
 
-export class DisposableStore {
-  private items: Disposable[] = [];
+export type Unsubscribe = () => void;
 
-  push(...disposables: Disposable[]): void {
+export class DisposableStore {
+  private items: (Disposable | Unsubscribe)[] = [];
+
+  push(...disposables: (Disposable | Unsubscribe)[]): void {
     this.items.push(...disposables);
   }
 
   dispose(): void {
     const copy = this.items.splice(0);
     for (const item of copy) {
-      item.dispose();
+      typeof item === "function" ? item() : item.dispose();
     }
   }
 }
