@@ -9,6 +9,7 @@ import { ProjectStore } from "./features/project/project-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
+import filesPlugin from "./plugins/files";
 import { setupApplicationMenu } from "./core/menu";
 
 const log = debug("neovate:orpc");
@@ -24,7 +25,7 @@ const sessionManager = new SessionManager();
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
 const mainApp = new MainApp({
-  plugins: [gitPlugin],
+  plugins: [gitPlugin, filesPlugin],
 });
 const appContext: AppContext = {
   sessionManager,

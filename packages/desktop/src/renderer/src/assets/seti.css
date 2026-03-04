@@ -1,0 +1,118 @@
+@font-face {
+  font-family: "seti";
+  src: url("./fonts/seti.woff") format("woff");
+}
+
+.seti-icon {
+  font-family: "seti";
+  position: relative;
+  display: inline-block;
+}
+.seti-icon::before {
+  display: flex;
+  align-items: center;
+  color: #bfc2c1;
+  content: "\E023";
+}
+.seti-icon[data-lang="ts"]::before {
+  color: #519aba;
+  content: "\E099";
+}
+.seti-icon[data-lang="tsx"]::before {
+  color: #519aba;
+  content: "\E07D";
+}
+.seti-icon[data-lang="html"]::before {
+  color: #e37933;
+  content: "\E048";
+}
+.seti-icon[data-lang="json"]::before {
+  color: #cbcb41;
+  content: "\E055";
+}
+.seti-icon[data-lang="css"]::before,
+.seti-icon[data-lang="less"]::before {
+  color: #519aba;
+  content: "\E059";
+}
+.seti-icon[data-lang="javascript"]::before,
+.seti-icon[data-lang="mjs"]::before,
+.seti-icon[data-lang="cjs"]::before,
+.seti-icon[data-lang="js"]::before {
+  color: #cbcb41;
+  content: "\E051";
+}
+.seti-icon[data-lang="md"]::before {
+  color: #519aba;
+  content: "\E060";
+}
+.seti-icon[data-lang="sh"]::before {
+  color: #8dc149;
+  content: "\E089";
+}
+.seti-icon[data-lang="vue"]::before {
+  color: #8dc149;
+  content: "\E09D";
+}
+.seti-icon[data-lang="mcp"]::before {
+  color: #6d6d6d;
+  content: "\E0A0";
+}
+.seti-icon[data-lang="py"]::before {
+  color: #519aba;
+  content: "\E07B";
+}
+.seti-icon[data-lang="kt"]::before,
+.seti-icon[data-lang="kts"]::before {
+  color: #e37933;
+  content: "\E058";
+}
+.seti-icon[data-lang="java"]::before {
+  color: #cc3e44;
+  content: "\E050";
+}
+.seti-icon[data-lang="xml"]::before {
+  color: #e37933;
+  content: "\E0A5";
+}
+.seti-icon[data-lang="cpp"]::before {
+  color: #519aba;
+  content: "\E01A";
+}
+.seti-icon[data-lang="objectc"]::before {
+  color: #cbcb41;
+  content: "\E00C";
+}
+.seti-icon[data-lang="h"]::before {
+  color: #a074c4;
+  content: "\E00C";
+}
+.seti-icon[data-lang="ico"]::before {
+  color: #cbcb41;
+  content: "\E02F";
+}
+.seti-icon[data-lang="gitignore"]::before {
+  color: #3b4b52;
+  content: "\E034";
+}
+.seti-icon[data-lang="ipynb"]::before {
+  color: #498ba7;
+  content: "\E066";
+}
+.seti-icon[data-lang="editorconfig"]::before {
+  color: #627379;
+  content: "\E019";
+}
+.seti-icon[data-lang="yml"]::before {
+  color: #9068b0;
+  content: "\E0A7";
+}
+.seti-icon[data-lang="eslintignore"]::before {
+  color: #455155;
+  content: "\E02C";
+}
+
+.seti-icon[data-lang="wasm"]::before {
+  color: #a074c4;
+  content: "\E09E";
+}
