@@ -14,7 +14,11 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
         const tree = await getFileTree(cwd);
         return { tree };
       } catch (error) {
-        return { tree: [] };
+        return {
+          tree: [],
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        };
       }
     }),
     delete: orpcServer.handler(async ({ input }) => {
@@ -22,10 +26,10 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       try {
         const { path: filePath } = data || {};
         if (!filePath) {
-          return { success: false, error: 'Path is required' };
+          return { success: false, error: "Path is required" };
         }
         if (!fs.existsSync(filePath)) {
-          return { success: false, error: 'File does not exist' };
+          return { success: false, error: "File does not exist" };
         }
         const stats = fs.statSync(filePath);
         if (stats.isDirectory()) {
@@ -37,7 +41,8 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         };
       }
     }),
@@ -48,14 +53,14 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
         if (!oldPath || !newPath) {
           return {
             success: false,
-            error: 'Both oldPath and newPath are required',
+            error: "Both oldPath and newPath are required",
           };
         }
         if (!fs.existsSync(oldPath)) {
-          return { success: false, error: 'Source file does not exist' };
+          return { success: false, error: "Source file does not exist" };
         }
         if (fs.existsSync(newPath)) {
-          return { success: false, error: 'Target file already exists' };
+          return { success: false, error: "Target file already exists" };
         }
         const newDir = path.dirname(newPath);
         if (!fs.existsSync(newDir)) {
@@ -66,7 +71,8 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         };
       }
     }),

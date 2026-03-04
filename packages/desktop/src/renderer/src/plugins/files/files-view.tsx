@@ -98,6 +98,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const handleCreateFile = async (parentPath: string, name: string) => {
     try {
       alert('Coming soon');
+      console.log(parentPath, name);
       // const result = await client.files.createFile({
       //   path: parentPath,
       //   name,
@@ -117,6 +118,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const handleCreateFolder = async (parentPath: string, name: string) => {
     try {
       alert('Coming soon');
+      console.log(parentPath, name);
       // const result = await client.files.createFolder({
       //   path: parentPath,
       //   name,
