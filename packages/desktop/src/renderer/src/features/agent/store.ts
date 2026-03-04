@@ -135,10 +135,7 @@ export const useAgentStore = create<AgentState>()(
           availableCommands: [],
           sdkReady: true,
         });
-        storeLog(
-          "createBackgroundSession: totalSessions=%d (not activated)",
-          state.sessions.size,
-        );
+        storeLog("createBackgroundSession: totalSessions=%d (not activated)", state.sessions.size);
       });
     },
 

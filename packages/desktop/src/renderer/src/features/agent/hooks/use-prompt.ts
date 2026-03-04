@@ -66,7 +66,10 @@ export function usePrompt() {
       // Pre-warm next empty session in background after first message
       if (wasNew && cwd) {
         preWarmSession(cwd).catch((err) =>
-          promptLog("sendPrompt: preWarm failed error=%s", err instanceof Error ? err.message : String(err)),
+          promptLog(
+            "sendPrompt: preWarm failed error=%s",
+            err instanceof Error ? err.message : String(err),
+          ),
         );
       }
 
@@ -181,7 +184,15 @@ export function usePrompt() {
         }
       }
     },
-    [addUserMessage, appendChunk, setStreaming, createSession, setAvailableCommands, addTiming, preWarmSession],
+    [
+      addUserMessage,
+      appendChunk,
+      setStreaming,
+      createSession,
+      setAvailableCommands,
+      addTiming,
+      preWarmSession,
+    ],
   );
 
   const cancel = useCallback(async (sessionId: string) => {
