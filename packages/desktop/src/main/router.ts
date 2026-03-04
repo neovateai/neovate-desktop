@@ -4,6 +4,7 @@ import { contract } from "../shared/contract";
 import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
 import { projectRouter } from "./features/project/router";
+import { storageRouter } from "./features/storage/router";
 import { utilsRouter } from "./features/utils/router";
 import type { SessionManager } from "./features/agent/session-manager";
 import type { ConfigStore } from "./features/config/config-store";
@@ -29,6 +30,7 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
     agent: agentRouter,
     config: configRouter,
     project: projectRouter,
+    storage: storageRouter,
     utils: utilsRouter,
     window: {
       ensureWidth: os.window.ensureWidth.handler(({ input, context }) => {
