@@ -4,5 +4,8 @@ export default defineProject({
   test: {
     environment: "node",
     include: ["src/**/__tests__/**/*.test.ts", "test/**/*.test.ts"],
+    typecheck: {
+      enabled: true,
+    },
   },
 });

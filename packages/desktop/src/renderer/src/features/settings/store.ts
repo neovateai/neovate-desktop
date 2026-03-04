@@ -1,6 +1,11 @@
 import { create } from "zustand";
+import { createStore } from "zustand/vanilla";
+import { immer } from "zustand/middleware/immer";
+import { subscribeWithSelector } from "zustand/middleware";
+import type { SettingsSchema } from "../../../../shared/features/settings/schema";
 
-// Types
+// --- UI State (settings modal) ---
+
 export type SettingsMenuId =
   | "general"
   | "chat"
@@ -10,23 +15,29 @@ export type SettingsMenuId =
   | "about"
   | "mcp";
 
-interface SettingsState {
-  // UI State only
+interface SettingsUIState {
   showSettings: boolean;
   activeTab: SettingsMenuId;
 }
 
-interface SettingsActions {
+interface SettingsUIActions {
   setShowSettings: (show: boolean) => void;
   setActiveTab: (tab: SettingsMenuId) => void;
 }
 
-export const useSettingsStore = create<SettingsState & SettingsActions>()((set) => ({
-  // Initial State
+export const useSettingsStore = create<SettingsUIState & SettingsUIActions>()((set) => ({
   showSettings: false,
   activeTab: "general",
-
-  // Actions
   setShowSettings: (show) => set({ showSettings: show }),
   setActiveTab: (tab) => set({ activeTab: tab }),
 }));
+
+// --- Persistence Store (settings service) ---
+
+export type SettingsState = Partial<SettingsSchema>;
+
+export type SettingsStore = ReturnType<typeof createSettingsStore>;
+
+export function createSettingsStore() {
+  return createStore<SettingsState>()(subscribeWithSelector(immer(() => ({}))));
+}

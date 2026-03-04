@@ -12,6 +12,8 @@ import { PluginManager } from "./plugin";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import { client } from "../orpc";
+import { SettingsService } from "../features/settings/service";
+import type { SettingsSchema } from "../../../shared/features/settings/schema";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
 const RendererAppContext: React.Context<RendererApp | null> =
@@ -82,6 +84,15 @@ export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
   readonly subscriptions = new DisposableStore();
+  readonly settings = new SettingsService({
+    load: async () => {
+      const all = await client.storage.getAll({ namespace: "config" });
+      return ((all as Record<string, unknown>).settings as Partial<SettingsSchema>) ?? {};
+    },
+    save: (data) => {
+      return client.storage.set({ namespace: "config", key: "settings", value: data });
+    },
+  });
 
   constructor(options: RendererAppOptions = {}) {
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
@@ -94,6 +105,8 @@ export class RendererApp implements IRendererApp {
     await useConfigStore.getState().load();
     // Initialize i18n with locale from config store
     await this.i18nManager.init({ store: useConfigStore as any });
+    // TODO: hydrate blocks render — should run in background so UI renders immediately
+    await this.hydrate();
     await this.pluginManager.configContributions();
     await this.pluginManager.activate(ctx);
     await this.render(ctx);
@@ -101,7 +114,13 @@ export class RendererApp implements IRendererApp {
 
   async stop(): Promise<void> {
     await this.pluginManager.deactivate();
+    this.settings.dispose();
     this.subscriptions.dispose();
+  }
+
+  /** Hydrate all stores from persistent storage */
+  private async hydrate(): Promise<void> {
+    await this.settings.hydrate();
   }
 
   private async render(ctx: PluginContext): Promise<void> {

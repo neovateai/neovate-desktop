@@ -34,7 +34,7 @@ export default function App() {
         <div className="flex h-full flex-col p-3">
           <SessionList />
         </div>
-        <div className="mt-auto ml-auto px-1.5 pb-1.5">
+        <div className="mt-auto flex items-center justify-end px-1.5 pb-1.5">
           <ThemeToggle />
         </div>
       </AppLayoutPrimarySidebar>
