@@ -123,13 +123,19 @@ export const acpRouter = os.acp.router({
     manager.setSessionRecord(input.connectionId, record);
     writeSessionRecord(record).catch(() => {});
 
+    const commands = conn.getAvailableCommands(result.sessionId);
     const elapsed = Math.round(performance.now() - t0);
     acpLog("newSession: success in %dms", elapsed, {
       connectionId: input.connectionId,
       sessionId: result.sessionId,
       agentSessionId: result.agentSessionId,
+      commands,
     });
-    return { sessionId: result.sessionId, agentSessionId: result.agentSessionId };
+    return {
+      sessionId: result.sessionId,
+      agentSessionId: result.agentSessionId,
+      commands: commands.length > 0 ? commands : undefined,
+    };
   }),
 
   listSessions: os.acp.listSessions.handler(async ({ input, context }) => {
@@ -166,7 +172,19 @@ export const acpRouter = os.acp.router({
   }),
 
   preloadSessions: os.acp.preloadSessions.handler(async ({ input, context }) => {
-    if (PRELOAD_SESSION_MODE === "false") return;
+    acpLog(
+      "preloadSessions: received request connId=%s cwd=%s mode=%s inputCount=%d ids=%o",
+      input.connectionId,
+      input.cwd ?? "none",
+      PRELOAD_SESSION_MODE,
+      input.sessionIds.length,
+      input.sessionIds.map((id) => id.slice(0, 8)),
+    );
+
+    if (PRELOAD_SESSION_MODE === "false") {
+      acpLog("preloadSessions: disabled by NEOVATE_PRELOAD_SESSION=false");
+      return;
+    }
 
     // Filter out archived sessions before preloading
     const archivedMap = context.projectStore.getArchivedSessions();
@@ -174,20 +192,39 @@ export const acpRouter = os.acp.router({
       input.cwd ? (archivedMap[input.cwd] ?? []) : Object.values(archivedMap).flat(),
     );
     const filtered = input.sessionIds.filter((id) => !archivedSet.has(id));
+    const archivedCount = input.sessionIds.length - filtered.length;
     const ids = PRELOAD_SESSION_MODE === "latest" ? filtered.slice(0, 1) : filtered;
 
-    acpLog("preloadSessions: start (mode=%s, count=%d)", PRELOAD_SESSION_MODE, ids.length, {
-      connectionId: input.connectionId,
-    });
+    acpLog(
+      "preloadSessions: after filters archived=%d remaining=%d (mode=%s) final=%d ids=%o",
+      archivedCount,
+      filtered.length,
+      PRELOAD_SESSION_MODE,
+      ids.length,
+      ids.map((id) => id.slice(0, 8)),
+    );
 
     try {
       const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
       // Preload sequentially to avoid flooding the agent
-      for (const sessionId of ids) {
-        await conn.preloadSession(sessionId, input.cwd);
+      for (let i = 0; i < ids.length; i++) {
+        acpLog(
+          "preloadSessions: [%d/%d] starting session %s",
+          i + 1,
+          ids.length,
+          ids[i].slice(0, 8),
+        );
+        await conn.preloadSession(ids[i], input.cwd);
+        acpLog(
+          "preloadSessions: [%d/%d] finished session %s",
+          i + 1,
+          ids.length,
+          ids[i].slice(0, 8),
+        );
       }
+      acpLog("preloadSessions: all done (%d sessions)", ids.length);
     } catch (error) {
-      acpLog("preloadSessions: failed silently", {
+      acpLog("preloadSessions: failed", {
         connectionId: input.connectionId,
         error: error instanceof Error ? error.message : String(error),
       });

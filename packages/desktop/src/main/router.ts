@@ -8,11 +8,13 @@ import { utilsRouter } from "./features/utils/router";
 import type { AcpConnectionManager } from "./features/acp/connection-manager";
 import type { ConfigStore } from "./features/config/config-store";
 import type { ProjectStore } from "./features/project/project-store";
+import type { IMainApp } from "./core/types";
 
 export type AppContext = {
   acpConnectionManager: AcpConnectionManager;
   configStore: ConfigStore;
   projectStore: ProjectStore;
+  mainApp: IMainApp;
 };
 
 export type AppDependencies = AppContext;
@@ -26,6 +28,11 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
     config: configRouter,
     project: projectRouter,
     utils: utilsRouter,
+    window: {
+      ensureWidth: os.window.ensureWidth.handler(({ input, context }) => {
+        context.mainApp.windowManager.ensureMinWidth(input.minWidth);
+      }),
+    },
     ...Object.fromEntries(pluginRouters),
   };
 }

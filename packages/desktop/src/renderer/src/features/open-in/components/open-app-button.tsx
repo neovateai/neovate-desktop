@@ -9,6 +9,8 @@ import {
   DropdownMenuSeparator,
 } from "../../../components/ui/menu";
 import { client } from "../../../orpc";
+import { useConfigStore } from "../../config/store";
+import { DEFAULT_KEYBINDINGS, formatKeyForDisplay } from "../../../lib/keybindings";
 import type { App } from "../../../../../shared/features/utils/types";
 import antigravityIcon from "../../../assets/icons/antigravity.png";
 import cursorIcon from "../../../assets/icons/cursor.png";
@@ -64,6 +66,11 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored as App | null;
   });
+
+  // Get keybindings from config
+  const keybindings = useConfigStore((s) => s.keybindings);
+  const copyPathBinding = keybindings.copyPath ?? DEFAULT_KEYBINDINGS.copyPath;
+  const copyPathDisplay = formatKeyForDisplay(copyPathBinding);
 
   useEffect(() => {
     if (!defaultOpenApp && apps.length === 0) {
@@ -160,7 +167,9 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
           <DropdownMenuItem onClick={handleCopyPath} className="pl-3">
             <Copy className="size-4 shrink-0" />
             <span>Copy path</span>
-            <span className="ml-auto text-xs text-muted-foreground">⌘⇧C</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {copyPathDisplay.join("")}
+            </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -3,6 +3,7 @@ import { ORPCError } from "@orpc/client";
 import debug from "debug";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
+import { useProjectStore } from "../../project/store";
 
 const connectLog = debug("neovate:acp-connect");
 
@@ -36,7 +37,12 @@ export function useAcpConnect() {
           .listSessions({ connectionId })
           .then((sessions) => {
             const listElapsed = Math.round(performance.now() - listStart);
-            connectLog("listSessions: success in %dms (count=%d)", listElapsed, sessions.length);
+            connectLog(
+              "listSessions: success in %dms (count=%d) sessions=%o",
+              listElapsed,
+              sessions.length,
+              sessions.map((s) => ({ id: s.sessionId.slice(0, 8), cwd: s.cwd, title: s.title })),
+            );
             addTiming({
               phase: "connect",
               label: "listSessions",
@@ -45,13 +51,31 @@ export function useAcpConnect() {
             });
             setAgentSessions(sessions);
 
-            // Preload sessions so they're ready when the user clicks them
-            if (sessions.length > 0) {
-              const sessionIds = [...sessions]
-                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                .map((s) => s.sessionId);
-              connectLog("preloading %d sessions", sessionIds.length);
-              client.acp.preloadSessions({ connectionId, sessionIds, cwd }).catch(() => {});
+            // Preload sessions matching the connect cwd, excluding archived
+            if (cwd && sessions.length > 0) {
+              const archived = new Set(useProjectStore.getState().archivedSessions[cwd] ?? []);
+              const projectSessions = sessions.filter(
+                (s) => s.cwd?.startsWith(cwd) && !archived.has(s.sessionId),
+              );
+              connectLog(
+                "preload: total=%d cwdMatch=%d archived=%d final=%d cwd=%s",
+                sessions.length,
+                sessions.filter((s) => s.cwd?.startsWith(cwd)).length,
+                archived.size,
+                projectSessions.length,
+                cwd,
+              );
+              if (projectSessions.length > 0) {
+                const sessionIds = [...projectSessions]
+                  .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                  .map((s) => s.sessionId);
+                connectLog(
+                  "preload: requesting %d sessions ids=%o",
+                  sessionIds.length,
+                  sessionIds.map((id) => id.slice(0, 8)),
+                );
+                client.acp.preloadSessions({ connectionId, sessionIds, cwd }).catch(() => {});
+              }
             }
           })
           .catch(() => {});

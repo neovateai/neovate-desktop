@@ -6,7 +6,12 @@ import { Button } from "./button";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme } = useTheme();
-  const setTheme = useConfigStore((s) => s.setTheme);
+  const setConfig = useConfigStore((s) => s.setConfig);
+
+  const handleToggle = () => {
+    const newTheme = resolvedTheme === "dark" ? "light" : "dark";
+    setConfig("theme", newTheme);
+  };
 
   return (
     <Button
@@ -14,7 +19,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       size="icon-sm"
       aria-label="Toggle theme"
       className={className}
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      onClick={handleToggle}
     >
       {resolvedTheme === "dark" ? (
         <HugeiconsIcon icon={Sun01Icon} aria-hidden={true} />

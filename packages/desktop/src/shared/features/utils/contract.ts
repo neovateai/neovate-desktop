@@ -23,4 +23,18 @@ export const utilsContract = {
     .output(type<{ success: boolean }>()),
 
   detectApps: oc.output(type<{ apps: App[] }>()),
+
+  setLoginItem: oc
+    .input(z.object({ openAtLogin: z.boolean() }))
+    .output(type<{ success: boolean }>()),
+
+  searchPaths: oc
+    .input(
+      z.object({
+        cwd: z.string(),
+        query: z.string(),
+        maxResults: z.number().optional(),
+      }),
+    )
+    .output(type<{ paths: string[]; truncated: boolean }>()),
 };

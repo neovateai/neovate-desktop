@@ -134,4 +134,45 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--ring);
   }
+
+  /* Tiptap editor styles */
+  .tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: var(--muted-foreground);
+    pointer-events: none;
+    height: 0;
+  }
+
+  .tiptap .mention {
+    background: --alpha(var(--primary) / 15%);
+    color: var(--primary);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .tiptap .slash-command {
+    background: rgba(20, 184, 166, 0.15);
+    color: #14b8a6;
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.875em;
+    font-weight: 500;
+  }
+
+  .tiptap pre {
+    background: var(--muted);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    margin: 0.25rem 0;
+  }
+
+  .tiptap pre code {
+    background: none;
+    color: inherit;
+    font-size: 0.8125rem;
+    padding: 0;
+  }
 }

@@ -22,7 +22,8 @@ export type StreamEvent =
       requestId: string;
       data: RequestPermissionRequest;
     }
-  | { type: "timing"; entry: TimingEntry };
+  | { type: "timing"; entry: TimingEntry }
+  | { type: "available_commands"; sessionId: string; commands: string[] };
 
 /** Lightweight session metadata for the sidebar list */
 export type SessionInfo = {

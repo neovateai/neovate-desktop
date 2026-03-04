@@ -12,7 +12,13 @@ window.addEventListener("message", (event) => {
   }
 });
 
-const api = {};
+// API for renderer process (menu commands, etc.)
+const api = {
+  onOpenSettings: (callback: () => void) => {
+    ipcRenderer.on("menu:open-settings", callback);
+    return () => ipcRenderer.removeListener("menu:open-settings", callback);
+  },
+};
 
 if (process.contextIsolated) {
   try {

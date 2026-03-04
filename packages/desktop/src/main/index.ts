@@ -12,6 +12,7 @@ import { ProjectStore } from "./features/project/project-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
+import { setupApplicationMenu } from "./core/menu";
 
 const log = debug("neovate:orpc");
 
@@ -27,15 +28,15 @@ getShellEnvironment();
 const connectionManager = new AcpConnectionManager();
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
+const mainApp = new MainApp({
+  plugins: [gitPlugin],
+});
 const appContext: AppContext = {
   acpConnectionManager: connectionManager,
   configStore,
   projectStore,
+  mainApp,
 };
-
-const mainApp = new MainApp({
-  plugins: [gitPlugin],
-});
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
@@ -45,6 +46,9 @@ app.whenReady().then(async () => {
   });
 
   await mainApp.start();
+
+  // Setup application menu (for menu items, shortcuts handled in renderer)
+  setupApplicationMenu(mainApp.windowManager.mainWindow);
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
   const handler = new RPCHandler(mainApp.router);

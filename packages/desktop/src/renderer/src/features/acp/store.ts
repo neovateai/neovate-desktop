@@ -8,6 +8,9 @@ import type {
   TimingEntry,
 } from "../../../../shared/features/acp/types";
 import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
+import debug from "debug";
+
+const storeLog = debug("neovate:acp-store");
 
 enableMapSet();
 
@@ -41,6 +44,7 @@ export type AcpSession = {
   streaming: boolean;
   promptError: string | null;
   pendingPermission: PendingPermission | null;
+  availableCommands: string[];
 };
 
 type AcpState = {
@@ -69,6 +73,7 @@ type AcpState = {
   setStreaming: (sessionId: string, streaming: boolean) => void;
   setPromptError: (sessionId: string, error: string | null) => void;
   setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
+  setAvailableCommands: (sessionId: string, commands: string[]) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
   addTiming: (entry: TimingEntry) => void;
   clearTimings: () => void;
@@ -116,6 +121,7 @@ export const useAcpStore = create<AcpState>()(
           streaming: false,
           promptError: null,
           pendingPermission: null,
+          availableCommands: [],
         });
         state.activeSessionId = sessionId;
       });
@@ -167,6 +173,14 @@ export const useAcpStore = create<AcpState>()(
       });
     },
 
+    setAvailableCommands: (sessionId, commands) => {
+      storeLog("setAvailableCommands sid=%s commands=%o", sessionId, commands);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.availableCommands = commands;
+      });
+    },
+
     addTiming: (entry) => {
       set((state) => {
         state.timings.push(entry);
@@ -190,6 +204,12 @@ export const useAcpStore = create<AcpState>()(
             requestId: event.requestId,
             data: event.data,
           };
+          return;
+        }
+
+        if (event.type === "available_commands") {
+          storeLog("appendChunk: available_commands sid=%s commands=%o", sessionId, event.commands);
+          session.availableCommands = event.commands;
           return;
         }
 

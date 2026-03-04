@@ -1,10 +1,15 @@
 import { spawn, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import debug from "debug";
+import { app } from "electron";
 import { implement } from "@orpc/server";
 import { utilsContract } from "../../../shared/features/utils/contract";
 import type { App } from "../../../shared/features/utils/types";
 import type { AppContext } from "../../router";
 import { getShellEnvironment } from "../acp/shell-env";
+import { searchPaths } from "./search-paths";
+
+const log = debug("neovate:utils-router");
 
 const os = implement({ utils: utilsContract }).$context<AppContext>();
 
@@ -96,5 +101,19 @@ export const utilsRouter = os.utils.router({
     const shellEnv = await getShellEnvironment();
     const apps = ALL_APPS.filter((app) => checkApp(app, shellEnv));
     return { apps };
+  }),
+
+  searchPaths: os.utils.searchPaths.handler(async ({ input }) => {
+    log("searchPaths request cwd=%s query=%s", input.cwd, input.query);
+    return searchPaths(input.cwd, input.query, input.maxResults);
+  }),
+
+  setLoginItem: os.utils.setLoginItem.handler(async ({ input }) => {
+    const { openAtLogin } = input;
+    app.setLoginItemSettings({
+      openAtLogin,
+      openAsHidden: true,
+    });
+    return { success: true };
   }),
 });

@@ -1,4 +1,6 @@
 import { AgentChat, SessionList } from "./features/acp";
+import { useSettingsStore } from "./features/settings";
+import { SettingsPage } from "./features/settings/components/settings-page";
 import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
@@ -13,8 +15,17 @@ import {
   AppLayoutTrafficLights,
 } from "./components/app-layout";
 import { ThemeToggle } from "./components/ui/theme-toggle";
+import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
 export default function App() {
+  useGlobalKeybindings();
+  const showSettings = useSettingsStore((state) => state.showSettings);
+
+  // Show Settings page when settings mode is active
+  if (showSettings) {
+    return <SettingsPage />;
+  }
+
   return (
     <AppLayoutRoot>
       <AppLayoutTrafficLights />
@@ -28,42 +39,32 @@ export default function App() {
         </div>
       </AppLayoutPrimarySidebar>
 
-      <AppLayoutPanelSeparator panelId="primarySidebar" />
+      <AppLayoutPanelSeparator id="primarySidebar:chatPanel" />
 
-      {/* Right container: titlebar + panels + status bar */}
-      <div className="mb-2 flex min-w-0 flex-1 flex-col">
-        <AppLayoutTitleBar>
-          <AppLayoutPrimaryTitleBar />
-          <AppLayoutSecondaryTitleBar />
-        </AppLayoutTitleBar>
+      <AppLayoutTitleBar>
+        <AppLayoutPrimaryTitleBar />
+        <AppLayoutSecondaryTitleBar />
+      </AppLayoutTitleBar>
 
-        <div className="flex min-h-0 flex-1">
-          <div className="flex min-h-0 flex-1">
-            <AppLayoutChatPanel>
-              <AgentChat />
-            </AppLayoutChatPanel>
+      <AppLayoutChatPanel>
+        <AgentChat />
+      </AppLayoutChatPanel>
 
-            <AppLayoutPanelSeparator panelId="contentPanel" />
+      <AppLayoutPanelSeparator id="chatPanel:contentPanel" />
 
-            <AppLayoutContentPanel>
-              <div className="flex h-full flex-col p-3">
-                <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
-                <div className="flex flex-1 items-center justify-center">
-                  <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
-                </div>
-              </div>
-            </AppLayoutContentPanel>
-
-            <AppLayoutPanelSeparator panelId="secondarySidebar" />
-
-            <AppLayoutSecondarySidebar />
+      <AppLayoutContentPanel>
+        <div className="flex h-full flex-col p-3">
+          <h2 className="text-xs font-semibold text-muted-foreground">Content</h2>
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-xs text-muted-foreground">Terminal, editor, browser</p>
           </div>
-
-          <AppLayoutActivityBar />
         </div>
+      </AppLayoutContentPanel>
 
-        {/* <AppLayoutStatusBar /> */}
-      </div>
+      <AppLayoutPanelSeparator id="contentPanel:secondarySidebar" />
+
+      <AppLayoutSecondarySidebar />
+      <AppLayoutActivityBar />
     </AppLayoutRoot>
   );
 }
