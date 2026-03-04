@@ -1,7 +1,7 @@
-import type { AcpMessage, ToolCallState } from "../store";
+import type { ChatMessage, ToolCallState } from "../store";
 
 type Props = {
-  messages: AcpMessage[];
+  messages: ChatMessage[];
   toolCalls: Map<string, ToolCallState>;
 };
 
@@ -46,7 +46,7 @@ export function MessageList({ messages, toolCalls }: Props) {
                       : "bg-yellow-500"
                 }`}
               />
-              <span className="font-medium">{tc.title}</span>
+              <span className="font-medium">{tc.name}</span>
               <span className="text-muted-foreground/60">{tc.status}</span>
             </div>
           ))}

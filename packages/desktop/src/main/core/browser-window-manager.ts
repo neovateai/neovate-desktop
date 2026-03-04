@@ -61,6 +61,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       this.#mainWindow = null;
     });
 
+    this.#pipeConsole(win);
     this.#loadURL(win);
     this.#mainWindow = win;
     return win;
@@ -104,6 +105,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       if (!win.isDestroyed()) win.close();
     });
 
+    this.#pipeConsole(win);
     this.#windows.set(windowId, win);
   }
 
@@ -135,6 +137,15 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     if (currentWidth < capped) {
       mainWindow.setSize(capped, currentHeight);
     }
+  }
+
+  static #levels = ["verbose", "info", "warning", "error"] as const;
+
+  #pipeConsole(win: BrowserWindow): void {
+    win.webContents.on("console-message", (_e, level, message) => {
+      const tag = BrowserWindowManager.#levels[level] ?? "log";
+      process.stderr.write(`[renderer:${tag}] ${message}\n`);
+    });
   }
 
   #loadURL(win: BrowserWindow, params?: URLSearchParams): void {

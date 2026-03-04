@@ -1,4 +1,4 @@
-import { AgentChat, SessionList } from "./features/acp";
+import { AgentChat, SessionList } from "./features/agent";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
 import {

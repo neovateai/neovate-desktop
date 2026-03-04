@@ -1,9 +1,9 @@
 import type { BrowserWindow } from "electron";
-import type { AcpConnectionManager } from "../features/acp/connection-manager";
+import type { SessionManager } from "../features/agent/session-manager";
 import type { Disposable } from "./disposable";
 
 export type AppContext = {
-  acpConnectionManager: AcpConnectionManager;
+  sessionManager: SessionManager;
 };
 
 export interface OpenWindowOptions {

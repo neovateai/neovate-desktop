@@ -1,27 +1,42 @@
+import { accessSync, chmodSync, constants } from "node:fs";
 import { execFile } from "node:child_process";
-import { readdir, stat } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join, relative } from "node:path";
 import debug from "debug";
-import { getShellEnvironment } from "../acp/shell-env";
 
 const log = debug("neovate:search-paths");
-const EXCLUDED_DIRS = new Set(["node_modules", ".git", "dist", "build"]);
+const require = createRequire(import.meta.url);
 
-let cachedRgPath: string | null | undefined; // undefined = not yet resolved
+let cachedRgPath: string | undefined;
 
-async function findRg(): Promise<string | null> {
-  if (cachedRgPath !== undefined) return cachedRgPath;
+function ensureExecutable(filePath: string) {
+  try {
+    accessSync(filePath, constants.X_OK);
+  } catch {
+    chmodSync(filePath, 0o755);
+  }
+}
 
-  const shellEnv = await getShellEnvironment();
-  const env = { ...process.env, ...shellEnv };
+function resolveRgPath(): string {
+  if (cachedRgPath) return cachedRgPath;
 
-  return new Promise((resolve) => {
-    execFile("which", ["rg"], { env }, (err, stdout) => {
-      cachedRgPath = err ? null : stdout.trim();
-      log("rg lookup: %s", cachedRgPath ?? "not found, using fallback");
-      resolve(cachedRgPath);
-    });
-  });
+  const sdkDir = join(
+    require.resolve("@anthropic-ai/claude-agent-sdk/package.json"),
+    "..",
+    "vendor",
+    "ripgrep",
+    `${process.arch}-${process.platform}`,
+  );
+  const binary = process.platform === "win32" ? "rg.exe" : "rg";
+  const rgPath = join(sdkDir, binary);
+
+  if (process.platform !== "win32") {
+    ensureExecutable(rgPath);
+  }
+
+  cachedRgPath = rgPath;
+  log("rg resolved: %s", rgPath);
+  return rgPath;
 }
 
 function rgSearch(rgPath: string, cwd: string, query: string): Promise<string[]> {
@@ -58,61 +73,14 @@ function rgSearch(rgPath: string, cwd: string, query: string): Promise<string[]>
   });
 }
 
-async function fallbackSearch(cwd: string, query: string, maxResults: number): Promise<string[]> {
-  const results: string[] = [];
-  const lowerQuery = query.toLowerCase();
-
-  async function walk(dir: string) {
-    if (results.length > maxResults) return;
-
-    let entries;
-    try {
-      entries = await readdir(dir);
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (results.length > maxResults) return;
-      if (EXCLUDED_DIRS.has(entry)) continue;
-
-      const fullPath = join(dir, entry);
-      let info;
-      try {
-        info = await stat(fullPath);
-      } catch {
-        continue;
-      }
-
-      if (info.isDirectory()) {
-        await walk(fullPath);
-      } else {
-        const relPath = relative(cwd, fullPath);
-        if (relPath.toLowerCase().includes(lowerQuery)) {
-          results.push(relPath);
-        }
-      }
-    }
-  }
-
-  await walk(cwd);
-  return results;
-}
-
 export async function searchPaths(
   cwd: string,
   query: string,
   maxResults = 100,
 ): Promise<{ paths: string[]; truncated: boolean }> {
   log("searchPaths cwd=%s query=%s maxResults=%d", cwd, query, maxResults);
-  const rgPath = await findRg();
 
-  let paths: string[];
-  if (rgPath) {
-    paths = await rgSearch(rgPath, cwd, query);
-  } else {
-    paths = await fallbackSearch(cwd, query, maxResults);
-  }
+  let paths = await rgSearch(resolveRgPath(), cwd, query);
 
   const truncated = paths.length > maxResults;
   if (truncated) paths = paths.slice(0, maxResults);
