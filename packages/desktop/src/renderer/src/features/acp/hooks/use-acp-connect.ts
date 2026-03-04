@@ -53,9 +53,7 @@ export function useAcpConnect() {
 
             // Preload sessions matching the connect cwd, excluding archived
             if (cwd && sessions.length > 0) {
-              const archived = new Set(
-                useProjectStore.getState().archivedSessions[cwd] ?? [],
-              );
+              const archived = new Set(useProjectStore.getState().archivedSessions[cwd] ?? []);
               const projectSessions = sessions.filter(
                 (s) => s.cwd?.startsWith(cwd) && !archived.has(s.sessionId),
               );

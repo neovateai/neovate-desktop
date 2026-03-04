@@ -208,9 +208,19 @@ export const acpRouter = os.acp.router({
       const conn = context.acpConnectionManager.getOrThrow(input.connectionId);
       // Preload sequentially to avoid flooding the agent
       for (let i = 0; i < ids.length; i++) {
-        acpLog("preloadSessions: [%d/%d] starting session %s", i + 1, ids.length, ids[i].slice(0, 8));
+        acpLog(
+          "preloadSessions: [%d/%d] starting session %s",
+          i + 1,
+          ids.length,
+          ids[i].slice(0, 8),
+        );
         await conn.preloadSession(ids[i], input.cwd);
-        acpLog("preloadSessions: [%d/%d] finished session %s", i + 1, ids.length, ids[i].slice(0, 8));
+        acpLog(
+          "preloadSessions: [%d/%d] finished session %s",
+          i + 1,
+          ids.length,
+          ids[i].slice(0, 8),
+        );
       }
       acpLog("preloadSessions: all done (%d sessions)", ids.length);
     } catch (error) {

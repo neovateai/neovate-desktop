@@ -105,7 +105,11 @@ export const useAcpStore = create<AcpState>()(
     },
 
     getConnectionForProject: (projectPath) => {
-      console.log('getConnectionForProject', projectPath, useAcpStore.getState().connectionsByProject.get(projectPath));
+      console.log(
+        "getConnectionForProject",
+        projectPath,
+        useAcpStore.getState().connectionsByProject.get(projectPath),
+      );
       return useAcpStore.getState().connectionsByProject.get(projectPath);
     },
 

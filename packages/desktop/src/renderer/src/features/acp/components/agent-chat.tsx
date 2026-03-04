@@ -59,7 +59,11 @@ export function AgentChat() {
     }
 
     const existing = getConnectionForProject(activeProjectPath);
-    chatLog("project-switch: projectPath=%s existingConn=%s", activeProjectPath, existing ?? "none");
+    chatLog(
+      "project-switch: projectPath=%s existingConn=%s",
+      activeProjectPath,
+      existing ?? "none",
+    );
     if (existing) {
       setActiveConnectionId(existing);
       // Re-fetch persisted sessions for the restored connection
