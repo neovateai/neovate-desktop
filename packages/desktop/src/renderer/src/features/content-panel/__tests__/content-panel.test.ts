@@ -102,7 +102,7 @@ describe("closeView", () => {
   });
 
   it("respects beforeClose returning false", async () => {
-    panel.hook("beforeClose", () => false);
+    panel.onBeforeClose(() => false);
     const id = await panel.openView("terminal");
     await panel.closeView(id);
     expect(
@@ -111,7 +111,7 @@ describe("closeView", () => {
   });
 
   it("closes when beforeClose returns true", async () => {
-    panel.hook("beforeClose", () => true);
+    panel.onBeforeClose(() => true);
     const id = await panel.openView("terminal");
     await panel.closeView(id);
     expect(

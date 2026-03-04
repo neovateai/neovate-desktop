@@ -1,12 +1,12 @@
 import { motion } from "motion/react";
-import { type ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
 import { usePanelState } from "./store";
+import { ContentPanelTabs } from "./content-panel-tabs";
 
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 };
 
-export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
+export function AppLayoutContentPanel() {
   const { collapsed, width, isResizing } = usePanelState("contentPanel");
 
   return (
@@ -22,7 +22,7 @@ export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
       transition={isResizing ? { duration: 0 } : SPRING}
     >
       <div className="h-full pb-2" style={{ width }}>
-        {children}
+        <ContentPanelTabs />
       </div>
     </motion.div>
   );
