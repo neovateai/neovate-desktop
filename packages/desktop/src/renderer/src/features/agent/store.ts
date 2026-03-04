@@ -61,6 +61,10 @@ type AgentState = {
     sessionId: string,
     meta?: { title?: string; createdAt?: string; cwd?: string; isNew?: boolean },
   ) => void;
+  createBackgroundSession: (
+    sessionId: string,
+    meta?: { title?: string; createdAt?: string; cwd?: string; isNew?: boolean },
+  ) => void;
   removeSession: (sessionId: string) => void;
   addUserMessage: (sessionId: string, content: string) => void;
   setStreaming: (sessionId: string, streaming: boolean) => void;
@@ -111,6 +115,30 @@ export const useAgentStore = create<AgentState>()(
         });
         state.activeSessionId = sessionId;
         storeLog("createSession: totalSessions=%d active=%s", state.sessions.size, sessionId);
+      });
+    },
+
+    createBackgroundSession: (sessionId, meta) => {
+      storeLog("createBackgroundSession: sid=%s meta=%o", sessionId, meta);
+      set((state) => {
+        state.sessions.set(sessionId, {
+          sessionId,
+          cwd: meta?.cwd,
+          title: meta?.title,
+          createdAt: meta?.createdAt ?? new Date().toISOString(),
+          isNew: meta?.isNew ?? false,
+          messages: [],
+          toolCalls: new Map(),
+          streaming: false,
+          promptError: null,
+          pendingPermission: null,
+          availableCommands: [],
+          sdkReady: true,
+        });
+        storeLog(
+          "createBackgroundSession: totalSessions=%d (not activated)",
+          state.sessions.size,
+        );
       });
     },
 
