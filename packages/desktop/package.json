@@ -42,6 +42,7 @@
     "debug": "^4.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",
+    "hookable": "^6.0.1",
     "immer": "^11.1.4",
     "motion": "^12.34.3",
     "zod": "^4.3.6"
