@@ -3,6 +3,10 @@ import debug from "debug";
 import { agentContract } from "../../../shared/features/agent/contract";
 import type { StreamEvent } from "../../../shared/features/agent/types";
 import type { AppContext } from "../../router";
+import {
+  loadSessionCache as readSessionCache,
+  saveSessionCache as writeSessionCache,
+} from "./session-cache";
 
 const agentLog = debug("neovate:agent-router");
 
@@ -70,6 +74,7 @@ export const agentRouter = os.agent.router({
         input.sessionId,
         input.cwd,
         emitter,
+        input.skipReplay,
       )) {
         eventCount += 1;
         if (!firstEventAt) {
@@ -198,6 +203,16 @@ export const agentRouter = os.agent.router({
     yield timingEntry("prompt", "time_to_first_event", ttfe);
     yield timingEntry("prompt", "total", totalMs);
     return { stopReason: "end_turn" };
+  }),
+
+  getSessionCache: os.agent.getSessionCache.handler(async ({ input }) => {
+    agentLog("getSessionCache: sessionId=%s", input.sessionId);
+    return readSessionCache(input.sessionId);
+  }),
+
+  saveSessionCache: os.agent.saveSessionCache.handler(async ({ input }) => {
+    agentLog("saveSessionCache: sessionId=%s msgs=%d", input.sessionId, input.data.messages.length);
+    writeSessionCache(input.sessionId, input.data);
   }),
 
   resolvePermission: os.agent.resolvePermission.handler(({ input, context }) => {

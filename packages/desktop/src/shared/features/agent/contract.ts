@@ -6,6 +6,7 @@ import type {
   LoadSessionResult,
   PromptResult,
   SlashCommandInfo,
+  CachedSession,
 } from "./types";
 
 const promptErrorDataSchema = type<{
@@ -21,8 +22,22 @@ export const agentContract = {
     .output(type<{ sessionId: string; commands?: SlashCommandInfo[] }>()),
 
   loadSession: oc
-    .input(z.object({ sessionId: z.string(), cwd: z.string().optional() }))
+    .input(
+      z.object({
+        sessionId: z.string(),
+        cwd: z.string().optional(),
+        skipReplay: z.boolean().optional(),
+      }),
+    )
     .output(eventIterator(type<StreamEvent>(), type<LoadSessionResult>())),
+
+  getSessionCache: oc
+    .input(z.object({ sessionId: z.string() }))
+    .output(type<CachedSession | null>()),
+
+  saveSessionCache: oc
+    .input(type<{ sessionId: string; data: CachedSession }>())
+    .output(type<void>()),
 
   prompt: oc
     .input(z.object({ sessionId: z.string(), prompt: z.string() }))

@@ -22,9 +22,21 @@ export function useNewSession() {
         }
       }
 
+      const startActiveId = activeSessionId;
       newSessionLog("createNewSession: creating session cwd=%s", cwd);
       const { sessionId, commands } = await client.agent.newSession({ cwd });
       newSessionLog("createNewSession: created %s", sessionId);
+
+      // Guard: if user navigated to another session during the async gap, don't steal focus
+      const currentActiveId = useAgentStore.getState().activeSessionId;
+      if (currentActiveId !== startActiveId && currentActiveId !== null) {
+        newSessionLog(
+          "createNewSession: user navigated away (was=%s now=%s), skipping activation",
+          startActiveId,
+          currentActiveId,
+        );
+        return sessionId;
+      }
 
       const projectPath = useProjectStore.getState().activeProject?.path;
       createSession(sessionId, {

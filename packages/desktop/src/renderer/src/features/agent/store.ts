@@ -6,6 +6,7 @@ import type {
   StreamEvent,
   TimingEntry,
   SlashCommandInfo,
+  CachedSession,
 } from "../../../../shared/features/agent/types";
 import debug from "debug";
 
@@ -44,6 +45,7 @@ export type ChatSession = {
   promptError: string | null;
   pendingPermission: PendingPermission | null;
   availableCommands: SlashCommandInfo[];
+  sdkReady: boolean;
 };
 
 type AgentState = {
@@ -66,6 +68,8 @@ type AgentState = {
   setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
+  restoreFromCache: (sessionId: string, cached: CachedSession) => void;
+  setSdkReady: (sessionId: string, ready: boolean) => void;
   addTiming: (entry: TimingEntry) => void;
   clearTimings: () => void;
 };
@@ -103,6 +107,7 @@ export const useAgentStore = create<AgentState>()(
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
+          sdkReady: true,
         });
         state.activeSessionId = sessionId;
         storeLog("createSession: totalSessions=%d active=%s", state.sessions.size, sessionId);
@@ -203,6 +208,37 @@ export const useAgentStore = create<AgentState>()(
     },
 
     clearTimings: () => set({ timings: [] }),
+
+    restoreFromCache: (sessionId, cached) => {
+      storeLog(
+        "restoreFromCache: sid=%s msgs=%d title=%s",
+        sessionId,
+        cached.messages.length,
+        cached.title,
+      );
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) {
+          storeLog("restoreFromCache: WARNING session not found sid=%s", sessionId);
+          return;
+        }
+        session.messages = cached.messages.map((m) => {
+          state._nextMessageId += 1;
+          return { ...m, id: String(state._nextMessageId) };
+        });
+        if (cached.title) session.title = cached.title;
+        if (cached.cwd) session.cwd = cached.cwd;
+        session.sdkReady = false;
+      });
+    },
+
+    setSdkReady: (sessionId, ready) => {
+      storeLog("setSdkReady: sid=%s ready=%s", sessionId, ready);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.sdkReady = ready;
+      });
+    },
 
     appendChunk: (sessionId, event) => {
       set((state) => {

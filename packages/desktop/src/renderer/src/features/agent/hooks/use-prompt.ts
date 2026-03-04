@@ -58,6 +58,27 @@ export function usePrompt() {
       addUserMessage(resolvedSessionId, prompt);
       setStreaming(resolvedSessionId, true);
 
+      // Wait for SDK to be ready (may be resuming in background)
+      const currentSession = useAgentStore.getState().sessions.get(resolvedSessionId);
+      if (currentSession && !currentSession.sdkReady) {
+        promptLog("sendPrompt: waiting for SDK ready sid=%s", resolvedSessionId);
+        await new Promise<void>((resolve) => {
+          const unsub = useAgentStore.subscribe((state) => {
+            const s = state.sessions.get(resolvedSessionId!);
+            if (s?.sdkReady) {
+              unsub();
+              resolve();
+            }
+          });
+          // Check again in case it became ready between our check and subscribe
+          if (useAgentStore.getState().sessions.get(resolvedSessionId!)?.sdkReady) {
+            unsub();
+            resolve();
+          }
+        });
+        promptLog("sendPrompt: SDK now ready sid=%s", resolvedSessionId);
+      }
+
       const ac = new AbortController();
       abortRef.current = ac;
 
@@ -127,6 +148,25 @@ export function usePrompt() {
       } finally {
         setStreaming(resolvedSessionId, false);
         abortRef.current = null;
+
+        // Save session cache for instant restore on next load
+        const session = useAgentStore.getState().sessions.get(resolvedSessionId!);
+        if (session && session.messages.length > 0) {
+          client.agent.saveSessionCache({
+            sessionId: resolvedSessionId!,
+            data: {
+              messages: session.messages.map((m) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                thinking: m.thinking,
+              })),
+              title: session.title,
+              cwd: session.cwd,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        }
       }
     },
     [addUserMessage, appendChunk, setStreaming, createSession, setAvailableCommands, addTiming],
