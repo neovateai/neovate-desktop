@@ -103,7 +103,11 @@ describe("Storage router E2E", () => {
 
     it("preserves existing top-level keys not in the merged object", async () => {
       await call(storageRouter.set, { namespace: NS, key: "existing", value: "keep" }, { context });
-      await call(storageRouter.shallowMerge, { namespace: NS, object: { added: "new" } }, { context });
+      await call(
+        storageRouter.shallowMerge,
+        { namespace: NS, object: { added: "new" } },
+        { context },
+      );
 
       const data = readJsonFile(NS);
       expect(data).toEqual({ existing: "keep", added: "new" });
@@ -111,7 +115,11 @@ describe("Storage router E2E", () => {
 
     it("overwrites a top-level key when the merged object includes it", async () => {
       await call(storageRouter.set, { namespace: NS, key: "theme", value: "light" }, { context });
-      await call(storageRouter.shallowMerge, { namespace: NS, object: { theme: "dark" } }, { context });
+      await call(
+        storageRouter.shallowMerge,
+        { namespace: NS, object: { theme: "dark" } },
+        { context },
+      );
 
       const data = readJsonFile(NS);
       expect(data.theme).toBe("dark");
