@@ -23,6 +23,7 @@ const DEFAULT_CONFIG: AppConfig = {
   keybindings: {},
 };
 
+// TODO: migrate to StorageService — this predates the unified storage layer
 export class ConfigStore {
   private store: Store<AppConfig>;
 

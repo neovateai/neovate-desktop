@@ -7,7 +7,8 @@ import type { SecondarySidebarView, ContentPanelView } from "../plugin/contribut
 function createMockApp(): IRendererApp {
   return {
     subscriptions: { push: vi.fn() },
-    i18nManager: {} as any,
+    i18nManager: {} as IRendererApp["i18nManager"],
+    settings: {} as IRendererApp["settings"],
   };
 }
 

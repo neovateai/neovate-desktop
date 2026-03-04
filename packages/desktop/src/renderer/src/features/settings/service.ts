@@ -1,18 +1,22 @@
-import { useStore } from "zustand";
 import { shallow } from "zustand/shallow";
-import type { SettingsSchema } from "../../../../shared/features/settings/schema";
+import {
+  settingsSchema,
+  DEFAULT_SETTINGS,
+  type SettingsSchema,
+} from "../../../../shared/features/settings/schema";
 import type { ISettingsService, IScopedSettings } from "../../core/types";
 import { createSettingsStore, type SettingsStore, type SettingsState } from "./store";
 
 const FLUSH_DELAY = 500;
 
 export interface SettingsServiceOptions {
-  load: () => Promise<Record<string, unknown>>;
-  save: (data: Record<string, unknown>) => void;
+  load: () => Promise<SettingsState>;
+  save: (data: SettingsState) => Promise<void> | void;
 }
 
 export class SettingsService implements ISettingsService {
   readonly store: SettingsStore;
+  private readonly _scopedCache = new Map<string, ScopedSettings<any>>();
   private readonly save: SettingsServiceOptions["save"];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -23,9 +27,11 @@ export class SettingsService implements ISettingsService {
     this.save = options.save;
   }
 
+  // TODO: deep merge raw with DEFAULT_SETTINGS before safeParse so partial data preserves user values
   async hydrate(): Promise<void> {
-    const data = await this.options.load();
-    this.store.setState(data);
+    const raw = await this.options.load();
+    const result = settingsSchema.safeParse(raw);
+    this.store.setState(result.success ? result.data : DEFAULT_SETTINGS);
     this.observe();
   }
 
@@ -42,25 +48,31 @@ export class SettingsService implements ISettingsService {
     );
   }
 
+  // TODO: make flush async, await save, only clear dirty on success; make dispose async to guarantee last write lands
   private flush(): void {
     this.flushTimer = null;
     if (this.dirty) {
       this.dirty = false;
-      this.save(this.store.getState());
+      Promise.resolve(this.save(this.store.getState())).catch(console.error);
     }
   }
 
   scoped<K extends string & keyof SettingsSchema>(
     namespace: K,
   ): IScopedSettings<SettingsSchema[K]> {
-    return new ScopedSettings(this.store, namespace) as IScopedSettings<SettingsSchema[K]>;
-  }
-
-  useStore<T>(selector: (state: SettingsState) => T): T {
-    return useStore(this.store, selector);
+    let instance = this._scopedCache.get(namespace);
+    if (!instance) {
+      instance = new ScopedSettings(this.store, namespace);
+      this._scopedCache.set(namespace, instance);
+    }
+    return instance as IScopedSettings<SettingsSchema[K]>;
   }
 
   dispose(): void {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
     this.flush();
     this.unsubscribe?.();
   }
@@ -80,6 +92,7 @@ class ScopedSettings<T extends Record<string, unknown>> implements IScopedSettin
     return this.scopedData()[key];
   }
 
+  // TODO: add runtime validation via namespace zod schema on set boundary
   set<K extends string & keyof T>(key: K, value: T[K]): void {
     this.store.setState((state) => ({
       [this.namespace]: { ...(state[this.namespace] as object), [key]: value },
@@ -94,6 +107,7 @@ class ScopedSettings<T extends Record<string, unknown>> implements IScopedSettin
     return this.store.subscribe(
       (state) => ((state[this.namespace] as T) ?? {}) as Partial<T>,
       listener,
+      { equalityFn: shallow },
     );
   }
 }

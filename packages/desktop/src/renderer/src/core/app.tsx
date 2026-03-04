@@ -13,6 +13,7 @@ import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import { client } from "../orpc";
 import { SettingsService } from "../features/settings/service";
+import type { SettingsSchema } from "../../../shared/features/settings/schema";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
 const RendererAppContext: React.Context<RendererApp | null> =
@@ -86,10 +87,10 @@ export class RendererApp implements IRendererApp {
   readonly settings = new SettingsService({
     load: async () => {
       const all = await client.storage.getAll({ namespace: "config" });
-      return ((all as Record<string, unknown>).settings ?? {}) as Record<string, unknown>;
+      return ((all as Record<string, unknown>).settings as Partial<SettingsSchema>) ?? {};
     },
     save: (data) => {
-      client.storage.set({ namespace: "config", key: "settings", value: data });
+      return client.storage.set({ namespace: "config", key: "settings", value: data });
     },
   });
 

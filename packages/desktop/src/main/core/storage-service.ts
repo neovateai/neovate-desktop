@@ -23,16 +23,19 @@ export class StorageService implements IStorageService {
     if (/(?:^|[\\/])\.\.(?:[\\/]|$)/.test(namespace)) {
       throw new Error("namespace must not contain path traversal");
     }
-    let store = this.instances.get(namespace);
+    const dir = path.dirname(namespace);
+    const name = path.basename(namespace);
+    const cwd = dir === "." ? this.baseDir : path.join(this.baseDir, dir);
+    const resolved = path.resolve(cwd);
+    const relative = path.relative(this.baseDir, resolved);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+      throw new Error("namespace resolved outside base directory");
+    }
+    const cacheKey = path.join(this.baseDir, namespace);
+    let store = this.instances.get(cacheKey);
     if (!store) {
-      const dir = path.dirname(namespace);
-      const name = path.basename(namespace);
-      const cwd = dir === "." ? this.baseDir : path.join(this.baseDir, dir);
-      if (!path.resolve(cwd).startsWith(this.baseDir)) {
-        throw new Error("namespace resolved outside base directory");
-      }
       store = new Store({ name, cwd });
-      this.instances.set(namespace, store);
+      this.instances.set(cacheKey, store);
     }
     return store;
   }

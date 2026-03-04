@@ -18,3 +18,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   fontSize: 14,
   count: 0,
 };
+
+export const DEFAULT_SETTINGS: SettingsSchema = {
+  preferences: DEFAULT_PREFERENCES,
+};
