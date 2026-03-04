@@ -2,6 +2,7 @@ import type { Disposable, Unsubscribe } from "./disposable";
 import type { I18nManager } from "./i18n";
 import type { SettingsSchema } from "../../../shared/features/settings/schema";
 import type { SettingsStore } from "../features/settings/store";
+import type { ContentPanel } from "../features/content-panel/content-panel";
 
 export interface IScopedSettings<T extends Record<string, unknown> = Record<string, unknown>> {
   get<K extends string & keyof T>(key: K): T[K] | undefined;
@@ -15,6 +16,10 @@ export interface ISettingsService extends Disposable {
   scoped<K extends string & keyof SettingsSchema>(namespace: K): IScopedSettings<SettingsSchema[K]>;
 }
 
+export interface IWorkbench {
+  readonly contentPanel: ContentPanel;
+}
+
 /** Abstract app interface — plugins depend on this, RendererApp implements it */
 export interface IRendererApp {
   readonly i18nManager: I18nManager;
@@ -22,4 +27,5 @@ export interface IRendererApp {
     push(...disposables: (Disposable | Unsubscribe)[]): void;
   };
   readonly settings: ISettingsService;
+  readonly workbench: IWorkbench;
 }

@@ -6,9 +6,10 @@ import { useConfigStore } from "../features/config/store";
 import { useSettingsStore } from "../features/settings/store";
 import { DisposableStore } from "./disposable";
 import { ToastProvider } from "../components/ui/toast";
-import type { IRendererApp } from "./types";
+import type { IRendererApp, IWorkbench } from "./types";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import { PluginManager } from "./plugin";
+import { ContentPanel } from "../features/content-panel/content-panel";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import { client } from "../orpc";
@@ -93,10 +94,18 @@ export class RendererApp implements IRendererApp {
       return client.storage.set({ namespace: "config", key: "settings", value: data });
     },
   });
+  workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
     this.i18nManager = new I18nManager();
+  }
+
+  initWorkbench(): void {
+    const views = this.pluginManager.contributions.contentPanelViews;
+    this.workbench = {
+      contentPanel: new ContentPanel(views),
+    };
   }
 
   async start(): Promise<void> {
@@ -108,6 +117,15 @@ export class RendererApp implements IRendererApp {
     // TODO: hydrate blocks render — should run in background so UI renders immediately
     await this.hydrate();
     await this.pluginManager.configContributions();
+    this.initWorkbench();
+
+    const persistence = {
+      load: (key: string) => client.state.load({ key }),
+      save: (key: string, data: unknown) => client.state.save({ key, data }),
+    };
+    await this.workbench.contentPanel.hydrate(persistence);
+    this.subscriptions.push(this.workbench.contentPanel.persist(persistence));
+
     await this.pluginManager.activate(ctx);
     await this.render(ctx);
   }
