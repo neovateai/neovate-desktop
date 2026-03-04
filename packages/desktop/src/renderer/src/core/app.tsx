@@ -9,6 +9,7 @@ import { PluginManager } from "./plugin";
 import { ContentPanel } from "../features/content-panel/content-panel";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
+import terminalPlugin from "../plugins/terminal";
 import { client } from "../orpc";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
@@ -49,7 +50,7 @@ function ThemeSync() {
   return null;
 }
 
-const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin];
+const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin, terminalPlugin];
 
 export interface RendererAppOptions {
   plugins?: RendererPlugin[];
