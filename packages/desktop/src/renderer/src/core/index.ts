@@ -8,5 +8,5 @@ export type {
   PluginContributions,
 } from "./plugin";
 export { PluginManager } from "./plugin";
-export type { Disposable } from "./disposable";
+export type { Disposable, Unsubscribe } from "./disposable";
 export { DisposableStore, toDisposable } from "./disposable";

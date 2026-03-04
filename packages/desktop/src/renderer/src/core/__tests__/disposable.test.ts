@@ -29,4 +29,22 @@ describe("DisposableStore", () => {
     store.dispose(); // second call should not re-invoke
     expect(fn).toHaveBeenCalledOnce();
   });
+
+  it("accepts plain functions via push", () => {
+    const store = new DisposableStore();
+    const fn = vi.fn();
+    store.push(fn);
+    store.dispose();
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it("accepts mixed Disposable and () => void", () => {
+    const store = new DisposableStore();
+    const fn1 = vi.fn();
+    const fn2 = vi.fn();
+    store.push(toDisposable(fn1), fn2);
+    store.dispose();
+    expect(fn1).toHaveBeenCalledOnce();
+    expect(fn2).toHaveBeenCalledOnce();
+  });
 });
