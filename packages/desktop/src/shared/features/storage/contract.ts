@@ -24,9 +24,9 @@ export const storageContract = {
   /**
    * Shallow-merge an object into the namespace.
    * Top-level keys in `object` overwrite existing values; all other keys are preserved.
-   * Does NOT deep-merge nested objects — use `set` with dot-notation for that.
+   * Nested objects are replaced entirely — use `set` with dot-notation for deep writes.
    */
-  merge: oc
+  shallowMerge: oc
     .input(type<{ namespace: string; object: Record<string, unknown> }>())
     .output(type<void>()),
 

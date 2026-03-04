@@ -89,10 +89,10 @@ describe("Storage router E2E", () => {
     });
   });
 
-  describe("merge → persisted to disk", () => {
+  describe("shallowMerge → persisted to disk", () => {
     it("writes multiple top-level keys at once", async () => {
       await call(
-        storageRouter.merge,
+        storageRouter.shallowMerge,
         { namespace: NS, object: { theme: "dark", fontSize: 14 } },
         { context },
       );
@@ -103,7 +103,7 @@ describe("Storage router E2E", () => {
 
     it("preserves existing top-level keys not in the merged object", async () => {
       await call(storageRouter.set, { namespace: NS, key: "existing", value: "keep" }, { context });
-      await call(storageRouter.merge, { namespace: NS, object: { added: "new" } }, { context });
+      await call(storageRouter.shallowMerge, { namespace: NS, object: { added: "new" } }, { context });
 
       const data = readJsonFile(NS);
       expect(data).toEqual({ existing: "keep", added: "new" });
@@ -111,7 +111,7 @@ describe("Storage router E2E", () => {
 
     it("overwrites a top-level key when the merged object includes it", async () => {
       await call(storageRouter.set, { namespace: NS, key: "theme", value: "light" }, { context });
-      await call(storageRouter.merge, { namespace: NS, object: { theme: "dark" } }, { context });
+      await call(storageRouter.shallowMerge, { namespace: NS, object: { theme: "dark" } }, { context });
 
       const data = readJsonFile(NS);
       expect(data.theme).toBe("dark");
@@ -127,7 +127,7 @@ describe("Storage router E2E", () => {
 
       // merge with a partial nested object — only contains fontSize
       await call(
-        storageRouter.merge,
+        storageRouter.shallowMerge,
         { namespace: NS, object: { prefs: { fontSize: 16 } } },
         { context },
       );
