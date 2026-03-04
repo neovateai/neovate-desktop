@@ -10,6 +10,7 @@ import { StateStore } from "./features/state/state-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
+import terminalPlugin from "./plugins/terminal";
 import { setupApplicationMenu } from "./core/menu";
 
 const log = debug("neovate:orpc");
@@ -26,7 +27,7 @@ const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
 const stateStore = new StateStore();
 const mainApp = new MainApp({
-  plugins: [gitPlugin],
+  plugins: [gitPlugin, terminalPlugin],
 });
 
 const appContext: AppContext = {
