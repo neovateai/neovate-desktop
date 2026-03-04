@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { matchesBinding, DEFAULT_KEYBINDINGS } from "../lib/keybindings";
 import { useSettingsStore } from "../features/settings/store";
 import { useConfigStore } from "../features/config/store";
-import { useAcpStore } from "../features/acp/store";
+import { useAgentStore } from "../features/agent/store";
 import { useProjectStore } from "../features/project/store";
 import { useTheme } from "next-themes";
 import { toastManager } from "../components/ui/toast";
@@ -40,7 +40,7 @@ export function useGlobalKeybindings(): void {
       // New Chat
       if (matchesBinding(e, keybindings.newChat)) {
         e.preventDefault();
-        useAcpStore.getState().setActiveSession(null);
+        useAgentStore.getState().setActiveSession(null);
         // Dispatch focus event for ChatInput
         window.dispatchEvent(new CustomEvent("chat-input:focus"));
         return;
