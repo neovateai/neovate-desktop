@@ -1,10 +1,4 @@
-import type { AcpxEvent } from "acpx";
-import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
-
-export type AgentInfo = {
-  id: string;
-  name: string;
-};
+export type AgentInfo = { id: string; name: string };
 
 export type TimingEntry = {
   phase: string;
@@ -13,23 +7,25 @@ export type TimingEntry = {
   timestamp: number;
 };
 
+export type SlashCommandInfo = { name: string; description?: string };
+
 /** What the eventIterator yields to the renderer */
 export type StreamEvent =
-  | { type: "acpx_event"; event: AcpxEvent }
+  | { type: "text_delta"; sessionId: string; text: string }
+  | { type: "thinking_delta"; sessionId: string; text: string }
+  | { type: "tool_use"; sessionId: string; toolId: string; name: string; status: string }
   | { type: "user_message"; sessionId: string; text: string }
-  | {
-      type: "permission_request";
-      requestId: string;
-      data: RequestPermissionRequest;
-    }
+  | { type: "result"; sessionId: string; stopReason: string }
+  | { type: "permission_request"; requestId: string; toolName: string; input: unknown }
+  | { type: "available_commands"; sessionId: string; commands: SlashCommandInfo[] }
   | { type: "timing"; entry: TimingEntry }
-  | { type: "available_commands"; sessionId: string; commands: string[] };
+  | { type: "status"; sessionId: string; message: string };
 
 /** Lightweight session metadata for the sidebar list */
 export type SessionInfo = {
   sessionId: string;
   title?: string;
-  cwd: string;
+  cwd?: string;
   updatedAt: string;
   createdAt: string;
 };
@@ -37,7 +33,6 @@ export type SessionInfo = {
 /** Final return value when loadSession replay completes */
 export type LoadSessionResult = {
   sessionId: string;
-  agentSessionId?: string;
 };
 
 /** Final return value when prompt completes */

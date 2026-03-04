@@ -26,7 +26,7 @@
     "test:e2e:no-build": "playwright test"
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "^0.14.1",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.62",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@orpc/contract": "^1.13.5",
@@ -37,8 +37,6 @@
     "@tiptap/react": "^3.20.0",
     "@tiptap/starter-kit": "^3.20.0",
     "@tiptap/suggestion": "^3.20.0",
-    "@zed-industries/claude-agent-acp": "^0.19.2",
-    "acpx": "github:neovateai/acpx#d9ca953",
     "debug": "^4.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",

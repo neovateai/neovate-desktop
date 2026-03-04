@@ -5,7 +5,7 @@ import { implement } from "@orpc/server";
 import { utilsContract } from "../../../shared/features/utils/contract";
 import type { App } from "../../../shared/features/utils/types";
 import type { AppContext } from "../../router";
-import { getShellEnvironment } from "../acp/shell-env";
+import { getShellEnvironment } from "../claude/shell-env";
 import { searchPaths } from "./search-paths";
 
 const log = debug("neovate:utils-router");

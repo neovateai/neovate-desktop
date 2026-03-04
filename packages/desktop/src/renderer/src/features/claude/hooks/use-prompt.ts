@@ -2,19 +2,19 @@ import { useCallback, useEffect, useRef } from "react";
 import { ORPCError } from "@orpc/client";
 import debug from "debug";
 import { client } from "../../../orpc";
-import { useAcpStore } from "../store";
+import { useClaudeStore } from "../store";
 import { useProjectStore } from "../../project/store";
 
-const acpPromptLog = debug("neovate:acp-prompt");
+const promptLog = debug("neovate:claude-prompt");
 
-export function useAcpPrompt() {
+export function usePrompt() {
   const abortRef = useRef<AbortController | null>(null);
-  const addUserMessage = useAcpStore((s) => s.addUserMessage);
-  const appendChunk = useAcpStore((s) => s.appendChunk);
-  const setStreaming = useAcpStore((s) => s.setStreaming);
-  const createSession = useAcpStore((s) => s.createSession);
-  const setAvailableCommands = useAcpStore((s) => s.setAvailableCommands);
-  const addTiming = useAcpStore((s) => s.addTiming);
+  const addUserMessage = useClaudeStore((s) => s.addUserMessage);
+  const appendChunk = useClaudeStore((s) => s.appendChunk);
+  const setStreaming = useClaudeStore((s) => s.setStreaming);
+  const createSession = useClaudeStore((s) => s.createSession);
+  const setAvailableCommands = useClaudeStore((s) => s.setAvailableCommands);
+  const addTiming = useClaudeStore((s) => s.addTiming);
 
   useEffect(() => {
     return () => {
@@ -23,23 +23,23 @@ export function useAcpPrompt() {
   }, []);
 
   const sendPrompt = useCallback(
-    async (connectionId: string, sessionId: string | undefined, prompt: string) => {
+    async (sessionId: string | undefined, prompt: string) => {
       const promptStart = performance.now();
       let resolvedSessionId = sessionId;
+      const projectPath = useProjectStore.getState().activeProject?.path;
+      const cwd = projectPath ?? process.cwd?.() ?? "";
 
       if (!resolvedSessionId) {
         const sessionStart = performance.now();
-        acpPromptLog("sendPrompt: creating session", { connectionId });
-        const { sessionId: newSessionId, commands } = await client.acp.newSession({
-          connectionId,
-        });
+        promptLog("sendPrompt: creating session cwd=%s", cwd);
+        const { sessionId: newSessionId, commands } = await client.claude.newSession({ cwd });
         resolvedSessionId = newSessionId;
         const sessionElapsed = Math.round(performance.now() - sessionStart);
-        acpPromptLog("sendPrompt: session created in %dms", sessionElapsed, {
-          connectionId,
-          sessionId: resolvedSessionId,
-          commands,
-        });
+        promptLog(
+          "sendPrompt: session created in %dms sessionId=%s",
+          sessionElapsed,
+          resolvedSessionId,
+        );
         addTiming({
           phase: "prompt",
           label: "newSession",
@@ -47,23 +47,14 @@ export function useAcpPrompt() {
           timestamp: Date.now(),
         });
 
-        const projectPath = useProjectStore.getState().activeProject?.path;
-        createSession(
-          resolvedSessionId,
-          connectionId,
-          projectPath ? { cwd: projectPath } : undefined,
-        );
+        createSession(resolvedSessionId, { cwd: projectPath });
         if (commands?.length) {
           setAvailableCommands(resolvedSessionId, commands);
         }
       }
 
-      acpPromptLog("sendPrompt: start", {
-        connectionId,
-        sessionId: resolvedSessionId,
-        promptLength: prompt.length,
-      });
-      useAcpStore.getState().setPromptError(resolvedSessionId, null);
+      promptLog("sendPrompt: start sessionId=%s len=%d", resolvedSessionId, prompt.length);
+      useClaudeStore.getState().setPromptError(resolvedSessionId, null);
       addUserMessage(resolvedSessionId, prompt);
       setStreaming(resolvedSessionId, true);
 
@@ -72,15 +63,12 @@ export function useAcpPrompt() {
 
       try {
         const rpcStart = performance.now();
-        const iterator = await client.acp.prompt(
-          { connectionId, sessionId: resolvedSessionId, prompt },
+        const iterator = await client.claude.prompt(
+          { sessionId: resolvedSessionId, prompt },
           { signal: ac.signal },
         );
         const rpcElapsed = Math.round(performance.now() - rpcStart);
-        acpPromptLog("sendPrompt: iterator ready in %dms", rpcElapsed, {
-          connectionId,
-          sessionId: resolvedSessionId,
-        });
+        promptLog("sendPrompt: iterator ready in %dms", rpcElapsed);
         addTiming({
           phase: "prompt",
           label: "rpc_setup",
@@ -96,7 +84,7 @@ export function useAcpPrompt() {
           if (!firstEventAt) {
             firstEventAt = performance.now();
             const ttfe = Math.round(firstEventAt - promptStart);
-            acpPromptLog("sendPrompt: first event after %dms", ttfe, { eventType: event.type });
+            promptLog("sendPrompt: first event after %dms", ttfe, { eventType: event.type });
             addTiming({
               phase: "prompt",
               label: "time_to_first_event",
@@ -104,21 +92,10 @@ export function useAcpPrompt() {
               timestamp: Date.now(),
             });
           }
-          if (eventCount <= 10) {
-            acpPromptLog("sendPrompt: event", {
-              connectionId,
-              sessionId: resolvedSessionId,
-              eventType: event.type,
-              eventCount,
-            });
-          }
           appendChunk(resolvedSessionId, event);
         }
         const totalElapsed = Math.round(performance.now() - promptStart);
-        acpPromptLog("sendPrompt: completed in %dms (events=%d)", totalElapsed, eventCount, {
-          connectionId,
-          sessionId: resolvedSessionId,
-        });
+        promptLog("sendPrompt: completed in %dms (events=%d)", totalElapsed, eventCount);
         addTiming({
           phase: "prompt",
           label: "total",
@@ -140,24 +117,26 @@ export function useAcpPrompt() {
           message = "Agent request failed. Please try again.";
         }
 
-        useAcpStore.getState().setPromptError(resolvedSessionId, message);
-        console.error("[acp-prompt] sendPrompt failed", {
-          connectionId,
-          sessionId: resolvedSessionId,
+        promptLog(
+          "sendPrompt: ERROR sessionId=%s message=%s error=%o",
+          resolvedSessionId,
+          message,
           error,
-        });
+        );
+        useClaudeStore.getState().setPromptError(resolvedSessionId, message);
       } finally {
         setStreaming(resolvedSessionId, false);
         abortRef.current = null;
-        acpPromptLog("sendPrompt: cleanup", { connectionId, sessionId: resolvedSessionId });
       }
     },
     [addUserMessage, appendChunk, setStreaming, createSession, setAvailableCommands, addTiming],
   );
 
-  const cancel = useCallback(async (connectionId: string, sessionId: string) => {
+  const cancel = useCallback(async (sessionId: string) => {
+    promptLog("cancel: sessionId=%s", sessionId);
     abortRef.current?.abort();
-    await client.acp.cancel({ connectionId, sessionId });
+    await client.claude.cancel({ sessionId });
+    promptLog("cancel: done sessionId=%s", sessionId);
   }, []);
 
   return { sendPrompt, cancel };

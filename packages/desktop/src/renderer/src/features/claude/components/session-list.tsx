@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pin, PinOff, Archive, Copy, Plus } from "lucide-react";
-import { useAcpStore } from "../store";
+import debug from "debug";
+import { useClaudeStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { client } from "../../../orpc";
+
+const listLog = debug("neovate:claude-session-list");
 import { cn } from "../../../lib/utils";
 import {
   ContextMenu,
@@ -12,9 +15,9 @@ import {
   ContextMenuSeparator,
 } from "../../../components/ui/context-menu";
 import { Button } from "../../../components/ui/button";
-import { useAcpNewSession } from "../hooks/use-acp-new-session";
-import type { AcpSession } from "../store";
-import type { SessionInfo } from "../../../../../shared/features/acp/types";
+import { useNewSession } from "../hooks/use-new-session";
+import type { ChatSession } from "../store";
+import type { SessionInfo } from "../../../../../shared/features/claude/types";
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -29,7 +32,7 @@ function timeAgo(iso: string): string {
   return `${months}mo ago`;
 }
 
-// ─── SessionItemRow ─────────────────────────────────────────────────
+// --- SessionItemRow ---
 
 function SessionItemRow({
   sessionId,
@@ -120,24 +123,23 @@ function SessionItemRow({
   );
 }
 
-// ─── SessionList ────────────────────────────────────────────────────
+// --- SessionList ---
 
 export function SessionList() {
-  const sessions = useAcpStore((s) => s.sessions);
-  const activeSessionId = useAcpStore((s) => s.activeSessionId);
-  const setActiveSession = useAcpStore((s) => s.setActiveSession);
-  const agentSessions = useAcpStore((s) => s.agentSessions);
-  const createSession = useAcpStore((s) => s.createSession);
-  const removeSession = useAcpStore((s) => s.removeSession);
-  const appendChunk = useAcpStore((s) => s.appendChunk);
-  const connectionId = useAcpStore((s) => s.activeConnectionId);
+  const sessions = useClaudeStore((s) => s.sessions);
+  const activeSessionId = useClaudeStore((s) => s.activeSessionId);
+  const setActiveSession = useClaudeStore((s) => s.setActiveSession);
+  const agentSessions = useClaudeStore((s) => s.agentSessions);
+  const createSession = useClaudeStore((s) => s.createSession);
+  const removeSession = useClaudeStore((s) => s.removeSession);
+  const appendChunk = useClaudeStore((s) => s.appendChunk);
 
   const activeProject = useProjectStore((s) => s.activeProject);
   const archivedSessions = useProjectStore((s) => s.archivedSessions);
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
   const loadSessionPreferences = useProjectStore((s) => s.loadSessionPreferences);
 
-  const { createNewSession } = useAcpNewSession();
+  const { createNewSession } = useNewSession();
   const [restoring, setRestoring] = useState<string | null>(null);
 
   // Hydrate archived/pinned state from main process on mount / project change
@@ -148,18 +150,18 @@ export function SessionList() {
   }, [activeProject?.path, loadSessionPreferences]);
   const loadAbortRef = useRef<AbortController | null>(null);
 
-  // Abort any in-flight load when the connection changes or on unmount
+  // Abort any in-flight load on unmount
   useEffect(() => {
     return () => {
       loadAbortRef.current?.abort();
       loadAbortRef.current = null;
     };
-  }, [connectionId]);
+  }, []);
 
   const loadSession = useCallback(
     async (sessionId: string) => {
-      if (!connectionId) return;
       if (sessions.has(sessionId)) {
+        listLog("loadSession: already loaded sid=%s, switching", sessionId.slice(0, 8));
         setActiveSession(sessionId);
         return;
       }
@@ -169,22 +171,41 @@ export function SessionList() {
       const ac = new AbortController();
       loadAbortRef.current = ac;
 
+      listLog("loadSession: START sid=%s cwd=%s", sessionId.slice(0, 8), activeProject?.path);
+      const t0 = performance.now();
       setRestoring(sessionId);
       try {
         const info = agentSessions.find((s) => s.sessionId === sessionId);
+        listLog(
+          "loadSession: info=%o",
+          info ? { title: info.title, cwd: info.cwd } : "not found in agentSessions",
+        );
         createSession(
           sessionId,
-          connectionId,
           info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
-        const iterator = await client.acp.loadSession(
-          { connectionId, sessionId, cwd: activeProject?.path },
+        const iterator = await client.claude.loadSession(
+          { sessionId, cwd: activeProject?.path },
           { signal: ac.signal },
         );
+        let eventCount = 0;
         for await (const event of iterator) {
+          eventCount++;
           appendChunk(sessionId, event);
         }
-      } catch {
+        listLog(
+          "loadSession: DONE sid=%s in %dms events=%d",
+          sessionId.slice(0, 8),
+          Math.round(performance.now() - t0),
+          eventCount,
+        );
+      } catch (error) {
+        listLog(
+          "loadSession: FAILED sid=%s in %dms error=%s",
+          sessionId.slice(0, 8),
+          Math.round(performance.now() - t0),
+          error instanceof Error ? error.message : String(error),
+        );
         removeSession(sessionId);
       } finally {
         if (loadAbortRef.current === ac) {
@@ -194,7 +215,6 @@ export function SessionList() {
       }
     },
     [
-      connectionId,
       sessions,
       setActiveSession,
       createSession,
@@ -223,7 +243,7 @@ export function SessionList() {
   const loadedIds = new Set(sessions.keys());
 
   // In-memory sessions filtered by project, excluding archived
-  const allInMemory = (Array.from(sessions.values()) as AcpSession[]).filter(
+  const allInMemory = (Array.from(sessions.values()) as ChatSession[]).filter(
     (s) => matchesProject(s.cwd) && !isArchived(s.sessionId) && !s.isNew,
   );
   const pinnedInMemory = allInMemory.filter((s) => isPinned(s.sessionId));
@@ -240,7 +260,7 @@ export function SessionList() {
   const hasRegular = regularInMemory.length > 0;
   const hasHistory = regularPersisted.length > 0;
 
-  const renderInMemory = (session: AcpSession) => (
+  const renderInMemory = (session: ChatSession) => (
     <SessionItemRow
       key={session.sessionId}
       sessionId={session.sessionId}
@@ -276,8 +296,8 @@ export function SessionList() {
         size="sm"
         className="mt-1 w-full"
         onClick={() => {
-          if (connectionId) {
-            createNewSession(connectionId);
+          if (projectPath) {
+            createNewSession(projectPath);
           }
         }}
       >
