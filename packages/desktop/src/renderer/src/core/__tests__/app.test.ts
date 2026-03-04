@@ -34,6 +34,8 @@ describe("RendererApp", () => {
     const app = new RendererApp({
       plugins: [{ name: "test", deactivate: deactivateFn }],
     });
+    await app.pluginManager.configContributions();
+    app.initWorkbench();
     app.subscriptions.push(toDisposable(disposeFn));
     await app.stop();
     expect(deactivateFn).toHaveBeenCalledOnce();

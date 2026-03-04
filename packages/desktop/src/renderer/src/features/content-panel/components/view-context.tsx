@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useStore, type StoreApi } from "zustand";
-import type { ContentPanelStoreState } from "./types";
+import type { ContentPanelStoreState } from "../types";
 
 interface ViewContextValue {
   store: StoreApi<ContentPanelStoreState>;

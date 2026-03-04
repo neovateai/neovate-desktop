@@ -12,7 +12,7 @@ export type ProjectTabState = {
 
 export interface ContentPanelStoreState {
   projects: Record<string, ProjectTabState>;
-  addTab(projectPath: string, tab: Tab): void;
+  addTab(projectPath: string, tab: Tab, activate?: boolean): void;
   removeTab(projectPath: string, tabId: string): void;
   setActiveTab(projectPath: string, tabId: string | null): void;
   updateTab(projectPath: string, tabId: string, patch: { name?: string }): void;

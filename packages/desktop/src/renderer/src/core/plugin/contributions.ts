@@ -28,7 +28,7 @@ export interface ContentPanelView {
   name: string;
   icon?: React.ComponentType<{ className?: string }>;
   singleton?: boolean; // default true; per-project scope
-  deactivation?: "hidden" | "activity" | "unmount"; // default "hidden"
+  deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
   component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }
 

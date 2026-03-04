@@ -9,10 +9,11 @@ import { ToastProvider } from "../components/ui/toast";
 import type { IRendererApp, IWorkbench } from "./types";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import { PluginManager } from "./plugin";
-import { ContentPanel } from "../features/content-panel/content-panel";
+import { ContentPanel } from "../features/content-panel";
+import type { ProjectTabState } from "../features/content-panel";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
-import terminalPlugin from "../plugins/terminal";
+import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 import { client } from "../orpc";
 import { SettingsService } from "../features/settings/service";
 import type { SettingsSchema } from "../../../shared/features/settings/schema";
@@ -76,7 +77,7 @@ function MenuCommandHandler() {
   return null;
 }
 
-const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin, terminalPlugin];
+const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin, contentPanelDemoPlugin];
 
 export interface RendererAppOptions {
   plugins?: RendererPlugin[];
@@ -105,7 +106,14 @@ export class RendererApp implements IRendererApp {
   initWorkbench(): void {
     const views = this.pluginManager.contributions.contentPanelViews;
     this.workbench = {
-      contentPanel: new ContentPanel(views),
+      contentPanel: new ContentPanel({
+        views,
+        load: async () => {
+          const data = await client.storage.get({ namespace: "contentPanel", key: "projects" });
+          return (data as Record<string, ProjectTabState>) ?? {};
+        },
+        save: (data) => client.storage.set({ namespace: "contentPanel", key: "projects", value: data }),
+      }),
     };
   }
 
@@ -120,12 +128,7 @@ export class RendererApp implements IRendererApp {
     await this.pluginManager.configContributions();
     this.initWorkbench();
 
-    const persistence = {
-      load: (key: string) => client.state.load({ key }),
-      save: (key: string, data: unknown) => client.state.save({ key, data }),
-    };
-    await this.workbench.contentPanel.hydrate(persistence);
-    this.subscriptions.push(this.workbench.contentPanel.persist(persistence));
+    await this.workbench.contentPanel.hydrate();
 
     await this.pluginManager.activate(ctx);
     await this.render(ctx);
@@ -133,6 +136,7 @@ export class RendererApp implements IRendererApp {
 
   async stop(): Promise<void> {
     await this.pluginManager.deactivate();
+    this.workbench.contentPanel.dispose();
     this.settings.dispose();
     this.subscriptions.dispose();
   }

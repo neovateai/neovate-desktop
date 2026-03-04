@@ -6,7 +6,7 @@ import {
   ViewContextProvider,
   useInstanceId,
   useViewState,
-} from "../view-context";
+} from "../components/view-context";
 import { ContentPanel } from "../content-panel";
 import type { ContentPanelView } from "../../../core/plugin/contributions";
 
@@ -23,7 +23,11 @@ const VIEWS: ContentPanelView[] = [
 let panel: ContentPanel;
 
 beforeEach(() => {
-  panel = new ContentPanel(VIEWS);
+  panel = new ContentPanel({
+    views: VIEWS,
+    load: async () => ({}),
+    save: async () => {},
+  });
   panel.setProjectPath(PROJECT);
   panel.store.getState().addTab(PROJECT, {
     id: "tab-1",

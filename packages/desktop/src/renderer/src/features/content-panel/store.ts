@@ -9,12 +9,12 @@ export function createContentPanelStore() {
     immer((set, get) => ({
       projects: {},
 
-      addTab(projectPath, tab) {
+      addTab(projectPath, tab, activate = true) {
         set((s) => {
           if (!s.projects[projectPath])
             s.projects[projectPath] = { tabs: [], activeTabId: null };
           s.projects[projectPath].tabs.push(tab);
-          s.projects[projectPath].activeTabId = tab.id;
+          if (activate) s.projects[projectPath].activeTabId = tab.id;
         });
       },
 

@@ -36,65 +36,68 @@ async function bailCaller(
   return true;
 }
 
-interface StatePersistence {
-  load(key: string): Promise<unknown>;
-  save(key: string, data: unknown): Promise<void>;
+export interface ContentPanelOptions {
+  views: ContentPanelView[];
+  load: () => Promise<Record<string, ProjectTabState>>;
+  save: (data: Record<string, ProjectTabState>) => Promise<void> | void;
 }
 
-const PERSIST_KEY = "contentPanel";
 const DEBOUNCE_MS = 100;
 
 export class ContentPanel extends Hookable<ContentPanelHooks> {
   private views: ContentPanelView[];
   private projectPath: string = "";
+  private options: ContentPanelOptions;
+  private dirty = false;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private unsubscribe: (() => void) | null = null;
   readonly store: StoreApi<ContentPanelStoreState>;
 
-  constructor(views: ContentPanelView[]) {
+  constructor(options: ContentPanelOptions) {
     super();
-    this.views = views;
+    this.options = options;
+    this.views = options.views;
     this.store = createContentPanelStore();
   }
 
-  /** Load persisted tab state from the state store. Call before activate(). */
-  async hydrate(persistence: StatePersistence): Promise<void> {
-    const data = await persistence.load(PERSIST_KEY);
+  async hydrate(): Promise<void> {
+    const data = await this.options.load();
     if (data && typeof data === "object" && !Array.isArray(data)) {
-      this.store.setState({ projects: data as Record<string, ProjectTabState> });
+      this.store.setState({ projects: data });
+    }
+    this.observe();
+  }
+
+  /** Returns the set of registered view IDs. */
+  get registeredViewIds(): Set<string> {
+    return new Set(this.views.map((v) => v.id));
+  }
+
+  private observe(): void {
+    if (this.unsubscribe) return;
+    this.unsubscribe = this.store.subscribe(() => {
+      this.dirty = true;
+      if (this.flushTimer) clearTimeout(this.flushTimer);
+      this.flushTimer = setTimeout(() => this.flush(), DEBOUNCE_MS);
+    });
+  }
+
+  private flush(): void {
+    this.flushTimer = null;
+    if (this.dirty) {
+      this.dirty = false;
+      const { projects } = this.store.getState();
+      Promise.resolve(this.options.save(projects)).catch(console.error);
     }
   }
 
-  /**
-   * Subscribe to store changes and debounce-persist to the state store.
-   * Returns an unsubscribe function. Also flushes on beforeunload.
-   */
-  persist(persistence: StatePersistence): () => void {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const flush = () => {
-      if (timer !== null) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      const { projects } = this.store.getState();
-      persistence.save(PERSIST_KEY, projects);
-    };
-
-    const unsubscribe = this.store.subscribe(() => {
-      if (timer !== null) clearTimeout(timer);
-      timer = setTimeout(flush, DEBOUNCE_MS);
-    });
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("beforeunload", flush);
+  dispose(): void {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
     }
-
-    return () => {
-      if (timer !== null) clearTimeout(timer);
-      if (typeof window !== "undefined") {
-        window.removeEventListener("beforeunload", flush);
-      }
-      unsubscribe();
-    };
+    this.flush();
+    this.unsubscribe?.();
   }
 
   /** Register a beforeClose guard. Returns unsubscribe function. */
@@ -108,19 +111,20 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
 
   async openView(
     viewId: string,
-    options?: { name?: string; props?: Record<string, unknown> },
+    options?: { name?: string; props?: Record<string, unknown>; activate?: boolean },
   ): Promise<string> {
     const view = this.views.find((v) => v.id === viewId);
     if (!view) throw new Error(`Unknown view: ${viewId}`);
 
     const store = this.store.getState();
     const props = options?.props ?? {};
+    const activate = options?.activate !== false;
 
     // Singleton (default true): activate existing if present (per-project)
     if (view.singleton !== false) {
       const existing = store.findTabByViewId(this.projectPath, viewId);
       if (existing) {
-        this.activateView(existing.id);
+        if (activate) this.activateView(existing.id);
         return existing.id;
       }
     }
@@ -132,7 +136,7 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
       state: {},
     };
 
-    store.addTab(this.projectPath, tab);
+    store.addTab(this.projectPath, tab, activate);
     await this.callHook("opened", { viewId, instanceId: tab.id, props });
     return tab.id;
   }

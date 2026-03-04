@@ -1,4 +1,5 @@
 import { AgentChat, SessionList } from "./features/agent";
+import { ContentPanelRenderer } from "./features/content-panel";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
 import {
@@ -52,7 +53,9 @@ export default function App() {
 
       <AppLayoutPanelSeparator id="chatPanel:contentPanel" />
 
-      <AppLayoutContentPanel />
+      <AppLayoutContentPanel>
+        <ContentPanelRenderer />
+      </AppLayoutContentPanel>
 
       <AppLayoutPanelSeparator id="contentPanel:secondarySidebar" />
 
