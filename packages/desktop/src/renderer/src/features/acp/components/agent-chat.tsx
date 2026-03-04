@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import debug from "debug";
 import { client } from "../../../orpc";
 import { useAcpStore } from "../store";
 import { useProjectStore } from "../../project/store";
+
+const chatLog = debug("neovate:acp-chat");
 import { useAcpConnect } from "../hooks/use-acp-connect";
 import { useAcpPrompt } from "../hooks/use-acp-prompt";
 import { useAcpPermission } from "../hooks/use-acp-permission";
@@ -56,18 +59,44 @@ export function AgentChat() {
     }
 
     const existing = getConnectionForProject(activeProjectPath);
+    chatLog("project-switch: projectPath=%s existingConn=%s", activeProjectPath, existing ?? "none");
     if (existing) {
       setActiveConnectionId(existing);
       // Re-fetch persisted sessions for the restored connection
       client.acp
         .listSessions({ connectionId: existing })
         .then((sessions) => {
+          chatLog(
+            "listSessions: total=%d sessions=%o",
+            sessions.length,
+            sessions.map((s) => ({ id: s.sessionId.slice(0, 8), cwd: s.cwd, title: s.title })),
+          );
           setAgentSessions(sessions);
-          // Preload sessions
-          if (sessions.length > 0) {
-            const sessionIds = [...sessions]
+          // Preload only sessions belonging to this project, excluding archived
+          const archived = new Set(
+            useProjectStore.getState().archivedSessions[activeProjectPath] ?? [],
+          );
+          const projectSessions = sessions.filter(
+            (s) => s.cwd?.startsWith(activeProjectPath) && !archived.has(s.sessionId),
+          );
+          chatLog(
+            "preload: total=%d cwdMatch=%d archived=%d final=%d cwd=%s",
+            sessions.length,
+            sessions.filter((s) => s.cwd?.startsWith(activeProjectPath)).length,
+            archived.size,
+            projectSessions.length,
+            activeProjectPath,
+          );
+          if (projectSessions.length > 0) {
+            const sessionIds = [...projectSessions]
               .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
               .map((s) => s.sessionId);
+            chatLog(
+              "preload: requesting %d sessions connId=%s ids=%o",
+              sessionIds.length,
+              existing,
+              sessionIds.map((id) => id.slice(0, 8)),
+            );
             client.acp
               .preloadSessions({
                 connectionId: existing,
@@ -75,6 +104,8 @@ export function AgentChat() {
                 cwd: activeProjectPath,
               })
               .catch(() => {});
+          } else {
+            chatLog("preload: no sessions to preload for cwd=%s", activeProjectPath);
           }
         })
         .catch(() => setAgentSessions([]));

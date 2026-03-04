@@ -149,9 +149,27 @@ export class AcpConnection {
   }
 
   preloadSession(sessionId: string, cwd?: string): Promise<void> {
-    if (!this._client) return Promise.resolve();
-    if (this.preloadedSessions.has(sessionId)) return Promise.resolve();
-    if (this.preloadPromises.has(sessionId)) return this.preloadPromises.get(sessionId)!;
+    if (!this._client) {
+      preloadLog("preloadSession: skip %s (no client)", sessionId.slice(0, 8));
+      return Promise.resolve();
+    }
+    if (this.preloadedSessions.has(sessionId)) {
+      preloadLog("preloadSession: skip %s (already cached)", sessionId.slice(0, 8));
+      return Promise.resolve();
+    }
+    if (this.preloadPromises.has(sessionId)) {
+      preloadLog("preloadSession: skip %s (already in-flight)", sessionId.slice(0, 8));
+      return this.preloadPromises.get(sessionId)!;
+    }
+
+    preloadLog(
+      "preloadSession: queueing %s cwd=%s (cached=%d inflight=%d activePreload=%s)",
+      sessionId.slice(0, 8),
+      cwd ?? "none",
+      this.preloadedSessions.size,
+      this.preloadPromises.size,
+      this.activePreload?.slice(0, 8) ?? "none",
+    );
 
     const promise = this.doPreload(sessionId, cwd).finally(() => {
       this.preloadPromises.delete(sessionId);
@@ -162,7 +180,8 @@ export class AcpConnection {
 
   private async doPreload(sessionId: string, cwd?: string): Promise<void> {
     this.activePreload = sessionId;
-    preloadLog("starting preload for session %s", sessionId);
+    const t0 = performance.now();
+    preloadLog("doPreload: START session=%s cwd=%s", sessionId.slice(0, 8), cwd ?? "none");
 
     const done = new AbortController();
     const subscription = this.subscribeSession(sessionId, done.signal);
@@ -172,11 +191,23 @@ export class AcpConnection {
       let loadError: unknown;
       const loadPromise = this._client!.loadSession(sessionId, cwd)
         .then((result) => {
+          preloadLog(
+            "doPreload: agent loadSession resolved session=%s agentSessionId=%s elapsed=%dms",
+            sessionId.slice(0, 8),
+            result.agentSessionId?.slice(0, 8) ?? "none",
+            Math.round(performance.now() - t0),
+          );
           done.abort("load_done");
           return { sessionId, agentSessionId: result.agentSessionId };
         })
         .catch((error: unknown) => {
           loadError = error;
+          preloadLog(
+            "doPreload: agent loadSession rejected session=%s elapsed=%dms error=%s",
+            sessionId.slice(0, 8),
+            Math.round(performance.now() - t0),
+            JSON.stringify(error),
+          );
           done.abort("load_error");
           return undefined;
         });
@@ -194,19 +225,37 @@ export class AcpConnection {
       const result = await loadPromise;
       if (loadError || !result) {
         preloadLog(
-          "preload skipped for session %s (agent rejected, likely empty session): %s",
-          sessionId,
-          JSON.stringify(loadError),
+          "doPreload: SKIP session=%s (agent rejected, likely empty session) elapsed=%dms",
+          sessionId.slice(0, 8),
+          Math.round(performance.now() - t0),
         );
         return;
       }
       // Only cache if this preload wasn't superseded
       if (this.activePreload === sessionId) {
         this.preloadedSessions.set(sessionId, { events, result });
-        preloadLog("cached %d events for session %s", events.length, sessionId);
+        preloadLog(
+          "doPreload: CACHED session=%s events=%d elapsed=%dms totalCached=%d",
+          sessionId.slice(0, 8),
+          events.length,
+          Math.round(performance.now() - t0),
+          this.preloadedSessions.size,
+        );
+      } else {
+        preloadLog(
+          "doPreload: SUPERSEDED session=%s (activePreload=%s) elapsed=%dms",
+          sessionId.slice(0, 8),
+          this.activePreload?.slice(0, 8) ?? "none",
+          Math.round(performance.now() - t0),
+        );
       }
     } catch (error) {
-      preloadLog("preload failed for session %s: %s", sessionId, JSON.stringify(error));
+      preloadLog(
+        "doPreload: FAIL session=%s elapsed=%dms error=%s",
+        sessionId.slice(0, 8),
+        Math.round(performance.now() - t0),
+        JSON.stringify(error),
+      );
     } finally {
       if (this.activePreload === sessionId) {
         this.activePreload = null;
@@ -217,13 +266,20 @@ export class AcpConnection {
   async consumePreload(sessionId: string): Promise<PreloadedSession | undefined> {
     const inflight = this.preloadPromises.get(sessionId);
     if (inflight) {
-      preloadLog("consumePreload: waiting for in-flight preload of session %s", sessionId);
+      preloadLog("consumePreload: waiting for in-flight preload session=%s", sessionId.slice(0, 8));
       await inflight;
     }
     const cached = this.preloadedSessions.get(sessionId);
     if (cached) {
       this.preloadedSessions.delete(sessionId);
-      preloadLog("consumed preload for session %s (%d events)", sessionId, cached.events.length);
+      preloadLog(
+        "consumePreload: HIT session=%s events=%d remainingCached=%d",
+        sessionId.slice(0, 8),
+        cached.events.length,
+        this.preloadedSessions.size,
+      );
+    } else {
+      preloadLog("consumePreload: MISS session=%s", sessionId.slice(0, 8));
     }
     return cached;
   }
