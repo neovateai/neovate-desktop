@@ -116,13 +116,6 @@ describe("MainApp", () => {
     expect(order).toEqual(["config", "activate", "createMainWindow"]);
   });
 
-  it("exposes settings", async () => {
-    const { MainApp } = await import("../app");
-    const app = new MainApp({});
-    expect(app.settings).toBeDefined();
-    expect(typeof app.settings.scoped).toBe("function");
-  });
-
   it("stop() calls deactivate, destroyAll, and subscriptions.dispose", async () => {
     const { MainApp } = await import("../app");
     const app = new MainApp({});

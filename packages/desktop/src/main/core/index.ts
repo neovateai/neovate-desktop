@@ -12,5 +12,3 @@ export type {
 } from "./plugin";
 export { StorageService } from "./storage-service";
 export type { IStorageService, IScopedStorage } from "./storage-service";
-export { SettingsService } from "./settings-service";
-export type { ISettingsService, IScopedSettings } from "./settings-service";

@@ -6,15 +6,16 @@
 
 1. **electron-store 实例分散** — ProjectStore、ConfigStore、BrowserWindowManager 各自 `new Store()`，`cwd` 等配置重复，没有统一管理
 2. **插件没有持久化能力** — 插件想存数据没有 API
-3. **没有 settings 基础设施** — 用户/插件设置没有统一的读写机制
+3. **没有 settings 基础设施** — 用户设置没有统一的读写机制
 4. **Renderer 没有通用存储 RPC** — 每个 feature 各写一套 contract + router + Zustand store
 
 ## Overview
 
 统一的存储基础设施，提供两层能力：
 
-- **StorageService** — core 层通用 KV 存储引擎，管理多个 electron-store 实例（每个 namespace 一个 JSON 文件），解决问题 1、2、4
-- **SettingsService** — 基于 StorageService 封装，专门管理用户/插件设置，读写 config.json 的 `settings` 字段，解决问题 3
+- **StorageService**（main/core）— 通用 KV 存储引擎，管理多个 electron-store 实例（每个 namespace 一个 JSON 文件），解决问题 1、2、4
+- **Storage RPC**（shared + main/features）— 通用 ORPC 接口，Renderer 通过 `client.storage.get/set/getAll` 访问任意 namespace
+- **SettingsService**（renderer/features）— 基于 Storage RPC 封装，Zustand 缓存 + optimistic update，专门管理 config.json 的 `settings` 字段，解决问题 3
 
 ## 决策记录
 
@@ -23,8 +24,9 @@
 - **写盘策略**: MVP 每次 set 直接写盘
 - **settings 存储**: 放在 config.json 的 `settings` 字段下，按 namespace key 隔离
 - **插件 storage**（后续）: 每个插件独立文件（`~/.neovate-desktop/plugin-data/{pluginName}.json`），PluginManager 预绑定前缀，MVP 不实现
-- **PluginContext 划分原则**: app 级共享能力挂 `ctx.app`，插件专属/工具能力挂 `ctx`
-- **Renderer**: settings 走 Zustand 缓存 + subscribe（高频响应式），storage 走纯 RPC（低频）
+- **Main 插件 settings**: MVP 不提供，后续按需添加
+- **Renderer settings**: SettingsService 在 features 层封装，接口在 core/types.ts 定义
+- **Storage RPC**: 通用 KV 接口，不区分 settings 还是其他数据
 - **迁移**: 渐进式，现有 ConfigStore/ProjectStore 暂不动，后续逐步迁移
 
 ## 文件存储结构
@@ -47,7 +49,7 @@
   "theme": "system",
   "settings": {
     "preferences": { "theme": "dark", "fontSize": 14 },
-    "git": { "autoFetch": true, "_v": 1 }
+    "git": { "autoFetch": true }
   }
 }
 ```
@@ -60,30 +62,28 @@
 ```
 main/core/
   storage-service.ts       # StorageService — 管理 electron-store 实例
-  settings-service.ts      # SettingsService — 基于 StorageService 封装
-  types.ts                 # IMainApp（加 settings）
+  types.ts                 # IMainApp
 
 main/features/storage/
-  router.ts                # storage + settings ORPC handlers
+  router.ts                # 通用 storage ORPC handlers
 
 shared/features/storage/
-  contract.ts              # ORPC contract
-  types.ts
+  contract.ts              # ORPC contract（通用 KV）
+  types.ts                 # Preferences 类型
 
 renderer/src/core/
-  storage/
-    settings-service.ts    # RendererSettingsService
-    storage-client.ts      # RendererStorageClient（纯 RPC）
+  types.ts                 # IRendererApp（含 ISettingsService 接口）
 
 renderer/src/features/settings/
-  store.ts                 # settings Zustand store
+  settings-service.ts      # SettingsService 实现
+  store.ts                 # Zustand store
   hooks/use-settings.ts
   index.ts
 ```
 
 ## Main 侧 — StorageService（core 基础设施）
 
-内部代码使用，不暴露给插件。管理多个 electron-store 实例，按 namespace 懒创建。
+管理多个 electron-store 实例，按 namespace 懒创建。支持子目录 namespace（如 `plugin-data/git`）。
 
 ```typescript
 // main/core/storage-service.ts
@@ -100,198 +100,111 @@ interface IScopedStorage {
 }
 
 class StorageService implements IStorageService {
+  private static readonly BASE_DIR = path.join(os.homedir(), ".neovate-desktop");
   private instances = new Map<string, Store>();
 
   scoped(namespace: string): IScopedStorage {
-    // 懒创建 electron-store 实例
-    if (!this.instances.has(namespace)) {
-      this.instances.set(
-        namespace,
-        new Store({
-          name: namespace,
-          cwd: path.join(os.homedir(), ".neovate-desktop"),
-        }),
-      );
+    // 懒创建，支持子目录（plugin-data/git → cwd: BASE_DIR/plugin-data, name: git）
+    let store = this.instances.get(namespace);
+    if (!store) {
+      const dir = path.dirname(namespace);
+      const name = path.basename(namespace);
+      store = new Store({
+        name,
+        cwd: dir === "." ? StorageService.BASE_DIR : path.join(StorageService.BASE_DIR, dir),
+      });
+      this.instances.set(namespace, store);
     }
-    return new ScopedStorage(this.instances.get(namespace)!);
+    return new ScopedStorage(store);
   }
 
   dispose(): void {
     this.instances.clear();
   }
 }
-
-class ScopedStorage implements IScopedStorage {
-  constructor(private store: Store) {}
-
-  get<T = unknown>(key: string): T | undefined {
-    return this.store.get(key) as T | undefined;
-  }
-
-  set(key: string, value: unknown): void {
-    if (value === undefined) {
-      this.store.delete(key);
-    } else {
-      this.store.set(key, value);
-    }
-  }
-
-  getAll(): Record<string, unknown> {
-    return this.store.store as Record<string, unknown>;
-  }
-}
 ```
 
-## Main 侧 — SettingsService（挂 IMainApp）
-
-基于 StorageService 封装，读写 config.json 的 `settings` 字段。插件通过 `ctx.app.settings.scoped("git")` 访问。
-
-```typescript
-// main/core/settings-service.ts
-
-interface ISettingsService {
-  scoped(namespace: string): IScopedSettings;
-}
-
-interface IScopedSettings {
-  get<T = unknown>(key: string): T | undefined;
-  set(key: string, value: unknown): void;
-  getAll(): Record<string, unknown>;
-}
-
-class SettingsService implements ISettingsService {
-  private configStore: IScopedStorage;
-
-  constructor(storageService: IStorageService) {
-    this.configStore = storageService.scoped("config");
-  }
-
-  scoped(namespace: string): IScopedSettings {
-    return new ScopedSettings(this.configStore, namespace);
-  }
-}
-
-class ScopedSettings implements IScopedSettings {
-  constructor(
-    private configStore: IScopedStorage,
-    private namespace: string,
-  ) {}
-
-  get<T = unknown>(key: string): T | undefined {
-    return this.configStore.get<T>(`settings.${this.namespace}.${key}`);
-  }
-
-  set(key: string, value: unknown): void {
-    this.configStore.set(`settings.${this.namespace}.${key}`, value);
-  }
-
-  getAll(): Record<string, unknown> {
-    return this.configStore.get<Record<string, unknown>>(`settings.${this.namespace}`) ?? {};
-  }
-}
-```
-
-## IMainApp + PluginContext
+## IMainApp + MainApp
 
 ```typescript
 // main/core/types.ts
 interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
-  readonly settings: ISettingsService; // 新增，app 级共享能力
 }
 
-// main/core/plugin/types.ts
-interface PluginContext {
-  app: IMainApp;
-  orpcServer: typeof os;
-  storage: IScopedStorage; // 后续，插件专属（已绑定 plugin-{pluginName}）
-}
-```
-
-```typescript
-// MainApp 实现
+// main/app.ts
 class MainApp implements IMainApp {
-  private storageService: StorageService; // 内部完整版
-  readonly settings: ISettingsService;
+  private readonly storage: StorageService;
 
   constructor() {
-    this.storageService = new StorageService();
-    this.settings = new SettingsService(this.storageService);
+    this.storage = new StorageService();
   }
 
-  // 后续：给插件创建受限 storage
-  createPluginStorage(pluginName: string): IScopedStorage {
-    return this.storageService.scoped(`plugin-data/${pluginName}`);
-  }
-}
-```
-
-```typescript
-// PluginManager 构造 ctx（MVP 不含 storage）
-const ctx: PluginContext = {
-  app: mainApp,
-  orpcServer: os,
-  // storage: mainApp.createPluginStorage(plugin.name),  // 后续
-};
-```
-
-## 插件用法
-
-```typescript
-// git plugin 示例
-activate(ctx) {
-  // settings — config.json → settings.git.*
-  const s = ctx.app.settings.scoped("git");
-  const autoFetch = s.get<boolean>("autoFetch") ?? true;
-  s.set("autoFetch", false);
-
-  // storage（后续）— plugin-data/git.json（插件专属）
-  // ctx.storage.set("lastFetch", Date.now());
-}
-```
-
-## 插件迁移 — 自行处理
-
-与 VSCode/Obsidian 一致，插件在 `activate()` 自行迁移。
-
-```typescript
-activate(ctx) {
-  const s = ctx.app.settings.scoped("git");
-  const v = s.get<number>("_v") ?? 0;
-  if (v < 1) {
-    const old = s.get<boolean>("auto_fetch");
-    if (old !== undefined) {
-      s.set("autoFetch", old);
-      s.set("auto_fetch", undefined);
-    }
-    s.set("_v", 1);
+  // 暴露给 AppContext（router 用），不在 IMainApp 上
+  getStorage(): StorageService {
+    return this.storage;
   }
 }
 ```
 
-## ORPC Contract
+## ORPC Contract — 通用 KV
 
 ```typescript
 // shared/features/storage/contract.ts
 export const storageContract = {
-  // 通用 storage RPC
-  get: oc.input(z.object({ ns: z.string(), key: z.string() })).output(type<unknown>()),
+  get: oc
+    .input(z.object({ namespace: z.string(), key: z.string() }))
+    .output(type<unknown>()),
   set: oc
-    .input(z.object({ ns: z.string(), key: z.string(), value: z.unknown() }))
+    .input(z.object({ namespace: z.string(), key: z.string(), value: z.unknown() }))
     .output(type<void>()),
-  getAll: oc.input(z.object({ ns: z.string() })).output(type<Record<string, unknown>>()),
-
-  // settings 便捷 RPC（读写 config.json → settings.*）
-  settings: {
-    getAll: oc.output(type<Record<string, unknown>>()),
-    get: oc.input(z.object({ key: z.string() })).output(type<unknown>()),
-    set: oc.input(z.object({ key: z.string(), value: z.unknown() })).output(type<void>()),
-  },
+  getAll: oc
+    .input(z.object({ namespace: z.string() }))
+    .output(type<Record<string, unknown>>()),
 };
 ```
 
-## Renderer 侧 — Settings（Zustand 缓存 + 响应式）
+## Storage Router
+
+```typescript
+// main/features/storage/router.ts
+export const storageRouter = os.storage.router({
+  get: os.storage.get.handler(({ input, context }) => {
+    return context.storage.scoped(input.namespace).get(input.key);
+  }),
+  set: os.storage.set.handler(({ input, context }) => {
+    context.storage.scoped(input.namespace).set(input.key, input.value);
+  }),
+  getAll: os.storage.getAll.handler(({ input, context }) => {
+    return context.storage.scoped(input.namespace).getAll();
+  }),
+});
+```
+
+## Renderer 侧 — SettingsService（features 层）
+
+接口定义在 `core/types.ts`，实现在 `features/settings/`。基于 Zustand store 缓存 + Storage RPC。
+
+```typescript
+// renderer/src/core/types.ts
+interface ISettingsService {
+  scoped(namespace: string): IScopedSettings;
+}
+
+interface IScopedSettings {
+  get<T>(key: string): T | undefined;
+  set(key: string, value: unknown): Promise<void>;
+  getAll(): Record<string, unknown>;
+  subscribe(listener: (data: Record<string, unknown>) => void): () => void;
+}
+
+interface IRendererApp {
+  readonly settings: ISettingsService;
+}
+```
+
+### Zustand Store
 
 ```typescript
 // renderer/src/features/settings/store.ts
@@ -304,60 +217,30 @@ type SettingsState = {
 };
 ```
 
-- `fetch()`: mount 时调一次，从 main 拉 settings 全量
-- `set()`: 乐观更新内存，同时 ORPC 调 main 写盘
+- `fetch()`: mount 时调一次，从 main 拉 `config` namespace 的 `settings` 字段
+- `set()`: 乐观更新内存，同时通过 Storage RPC 写盘
 - `get()`: 从内存读，可能返回 `undefined`，调用方兜底默认值
 
-### RendererSettingsService（挂 IRendererApp）
+### SettingsService 实现
 
 ```typescript
-interface IRendererSettingsService {
-  scoped(namespace: string): IScopedRendererSettings;
+// renderer/src/features/settings/settings-service.ts
+class SettingsService implements ISettingsService {
+  scoped(namespace: string): IScopedSettings {
+    return new ScopedSettings(namespace);
+  }
 }
 
-interface IScopedRendererSettings {
-  get<T>(key: string): T | undefined;
-  set(key: string, value: unknown): Promise<void>;
-  getAll(): Record<string, unknown>;
-  subscribe(listener: (data: Record<string, unknown>) => void): () => void;
-}
-```
-
-## Renderer 侧 — Storage（纯 RPC，不缓存）
-
-```typescript
-interface IScopedRendererStorage {
-  get<T>(key: string): Promise<T | undefined>;
-  set(key: string, value: unknown): Promise<void>;
-  getAll(): Promise<Record<string, unknown>>;
-}
-```
-
-### Renderer IRendererApp + PluginContext
-
-```typescript
-interface IRendererApp {
-  readonly settings: IRendererSettingsService; // 挂 app
-}
-
-interface RendererPluginContext {
-  app: IRendererApp;
-  orpcClient: Record<string, unknown>;
-  storage: IScopedRendererStorage; // 后续，挂 ctx，已绑定 plugin-{pluginName}
-}
+// ScopedSettings 内部自动拼 namespace 前缀，委托给 Zustand store
 ```
 
 ### Renderer 插件用法
 
 ```typescript
 activate(ctx) {
-  // settings（Zustand 缓存，响应式）
   const s = ctx.app.settings.scoped("git");
   const autoFetch = s.get<boolean>("autoFetch") ?? true;
   s.subscribe((data) => { /* UI 更新 */ });
-
-  // storage（后续，纯 RPC）
-  // const lastFetch = await ctx.storage.get("lastFetch");
 }
 ```
 
@@ -366,24 +249,24 @@ activate(ctx) {
 ```
 MainApp.constructor()
   → new StorageService()
-  → new SettingsService(storageService)
 
 MainApp.start()
   → pluginManager.configContributions(ctx)
-  → pluginManager.activate(ctx)              // 插件可读写 settings
+  → pluginManager.activate(ctx)
   → buildRouter()
   → createMainWindow()
 
 Renderer mount
-  → client.storage.settings.getAll()         // ORPC 拉 settings
-  → Zustand store 缓存
+  → client.storage.getAll({ namespace: "config" })  // 拉 config 全量
+  → 提取 settings 字段 → Zustand store 缓存
 ```
 
 ## 迁移策略（渐进式）
 
 **MVP 阶段：**
 
-- 新建 StorageService + SettingsService
+- 新建 StorageService + 通用 Storage RPC
+- Renderer SettingsService 封装 settings 读写
 - ConfigStore 暂时保留，config.json 里新增 `settings` 字段
 - 现有 `config.theme` 不动
 
@@ -392,15 +275,15 @@ Renderer mount
 1. `config.theme` → `settings.preferences.theme`，删除 ConfigStore
 2. ProjectStore 内部改为委托 StorageService，删除 ProjectStore
 3. BrowserWindowManager 内部改用 StorageService
+4. Main 插件 settings API（按需）
+5. 插件专属 storage（`ctx.storage`）
 
 ## 约束
 
 - `get()` 可能返回 `undefined`，调用方负责兜底默认值
-- `set(key, undefined)` 语义为删除该 key
 - 插件 settings 无编译期类型安全，插件自行断言类型
 - 内置 preferences 可定义静态类型
-- 插件迁移在 `activate()` 自行处理（`_v` 版本号）
-- 通用 storage RPC 需要权限控制：Renderer 插件只能访问 `plugin-{name}` namespace
+- 通用 storage RPC 需要权限控制（后续）：Renderer 插件只能访问 `plugin-{name}` namespace
 
 ## 变更事件（后续）
 

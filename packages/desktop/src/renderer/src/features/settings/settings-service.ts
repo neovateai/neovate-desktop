@@ -1,23 +1,13 @@
-import { useSettingsStore } from "../../features/settings/store";
+import type { IScopedSettings, ISettingsService } from "../../core/types";
+import { useSettingsStore } from "./store";
 
-export interface IScopedRendererSettings {
-  get<T = unknown>(key: string): T | undefined;
-  set(key: string, value: unknown): Promise<void>;
-  getAll(): Record<string, unknown>;
-  subscribe(listener: (data: Record<string, unknown>) => void): () => void;
-}
-
-export interface IRendererSettingsService {
-  scoped(namespace: string): IScopedRendererSettings;
-}
-
-export class RendererSettingsService implements IRendererSettingsService {
-  scoped(namespace: string): IScopedRendererSettings {
-    return new ScopedRendererSettings(namespace);
+export class SettingsService implements ISettingsService {
+  scoped(namespace: string): IScopedSettings {
+    return new ScopedSettings(namespace);
   }
 }
 
-class ScopedRendererSettings implements IScopedRendererSettings {
+class ScopedSettings implements IScopedSettings {
   constructor(private namespace: string) {}
 
   private prefixed(key: string): string {

@@ -5,20 +5,15 @@ import type { AppContext } from "../../router";
 const os = implement({ storage: storageContract }).$context<AppContext>();
 
 export const storageRouter = os.storage.router({
-  settings: os.storage.settings.router({
-    getAll: os.storage.settings.getAll.handler(({ context }) => {
-      const config = context.storage.scoped("config");
-      return config.get<Record<string, unknown>>("settings") ?? {};
-    }),
+  get: os.storage.get.handler(({ input, context }) => {
+    return context.storage.scoped(input.namespace).get(input.key);
+  }),
 
-    get: os.storage.settings.get.handler(({ input, context }) => {
-      const config = context.storage.scoped("config");
-      return config.get(`settings.${input.key}`);
-    }),
+  set: os.storage.set.handler(({ input, context }) => {
+    context.storage.scoped(input.namespace).set(input.key, input.value);
+  }),
 
-    set: os.storage.settings.set.handler(({ input, context }) => {
-      const config = context.storage.scoped("config");
-      config.set(`settings.${input.key}`, input.value);
-    }),
+  getAll: os.storage.getAll.handler(({ input, context }) => {
+    return context.storage.scoped(input.namespace).getAll();
   }),
 });

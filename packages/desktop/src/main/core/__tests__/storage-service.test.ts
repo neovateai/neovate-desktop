@@ -80,13 +80,6 @@ describe("StorageService", () => {
     expect(all).toEqual({ theme: "dark", fontSize: 14 });
   });
 
-  it("scoped set(key, undefined) deletes the key", () => {
-    const config = service.scoped("config");
-    config.set("theme", "dark");
-    config.set("theme", undefined);
-    expect(config.get("theme")).toBeUndefined();
-  });
-
   it("different namespaces are isolated", () => {
     const config = service.scoped("config");
     const projects = service.scoped("projects");

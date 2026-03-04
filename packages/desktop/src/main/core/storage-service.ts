@@ -44,11 +44,7 @@ class ScopedStorage implements IScopedStorage {
   }
 
   set(key: string, value: unknown): void {
-    if (value === undefined) {
-      this.store.delete(key);
-    } else {
-      this.store.set(key, value);
-    }
+    this.store.set(key, value);
   }
 
   getAll(): Record<string, unknown> {

@@ -7,8 +7,6 @@ import type { MainPlugin } from "./core/plugin/types";
 import { buildRouter } from "./router";
 import { BrowserWindowManager } from "./core";
 import { StorageService } from "./core/storage-service";
-import { SettingsService } from "./core/settings-service";
-import type { ISettingsService } from "./core/settings-service";
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];
@@ -19,7 +17,6 @@ export class MainApp implements IMainApp {
   readonly subscriptions = new DisposableStore();
   readonly windowManager: IBrowserWindowManager;
   private readonly storage: StorageService;
-  readonly settings: ISettingsService;
   #router: AnyRouter | null = null;
 
   get router(): AnyRouter {
@@ -31,7 +28,6 @@ export class MainApp implements IMainApp {
     this.pluginManager = new PluginManager(options.plugins ?? []);
     this.windowManager = new BrowserWindowManager();
     this.storage = new StorageService();
-    this.settings = new SettingsService(this.storage);
   }
 
   getStorage(): StorageService {
