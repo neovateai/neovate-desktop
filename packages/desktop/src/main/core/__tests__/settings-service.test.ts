@@ -39,9 +39,13 @@ vi.mock("electron-store", () => {
         if (current != null) delete current[parts[parts.length - 1]];
       };
       Object.defineProperty(this, "store", {
-        get() { return data; },
+        get() {
+          return data;
+        },
       });
-      this.clear = function () { data = {}; };
+      this.clear = function () {
+        data = {};
+      };
     }),
   };
 });

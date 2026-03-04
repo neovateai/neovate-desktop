@@ -42,10 +42,6 @@ class ScopedSettings implements IScopedSettings {
   }
 
   getAll(): Record<string, unknown> {
-    return (
-      this.configStore.get<Record<string, unknown>>(
-        `settings.${this.namespace}`,
-      ) ?? {}
-    );
+    return this.configStore.get<Record<string, unknown>>(`settings.${this.namespace}`) ?? {};
   }
 }

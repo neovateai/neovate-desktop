@@ -4,9 +4,7 @@ export interface IScopedRendererSettings {
   get<T = unknown>(key: string): T | undefined;
   set(key: string, value: unknown): Promise<void>;
   getAll(): Record<string, unknown>;
-  subscribe(
-    listener: (data: Record<string, unknown>) => void,
-  ): () => void;
+  subscribe(listener: (data: Record<string, unknown>) => void): () => void;
 }
 
 export interface IRendererSettingsService {
@@ -39,12 +37,9 @@ class ScopedRendererSettings implements IScopedRendererSettings {
     return (data[this.namespace] as Record<string, unknown>) ?? {};
   }
 
-  subscribe(
-    listener: (data: Record<string, unknown>) => void,
-  ): () => void {
+  subscribe(listener: (data: Record<string, unknown>) => void): () => void {
     return useSettingsStore.subscribe(
-      (state) =>
-        (state.data[this.namespace] as Record<string, unknown>) ?? {},
+      (state) => (state.data[this.namespace] as Record<string, unknown>) ?? {},
       listener,
     );
   }

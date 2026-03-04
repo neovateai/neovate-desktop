@@ -105,10 +105,13 @@ class StorageService implements IStorageService {
   scoped(namespace: string): IScopedStorage {
     // 懒创建 electron-store 实例
     if (!this.instances.has(namespace)) {
-      this.instances.set(namespace, new Store({
-        name: namespace,
-        cwd: path.join(os.homedir(), ".neovate-desktop"),
-      }));
+      this.instances.set(
+        namespace,
+        new Store({
+          name: namespace,
+          cwd: path.join(os.homedir(), ".neovate-desktop"),
+        }),
+      );
     }
     return new ScopedStorage(this.instances.get(namespace)!);
   }
@@ -195,21 +198,21 @@ class ScopedSettings implements IScopedSettings {
 interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
-  readonly settings: ISettingsService;  // 新增，app 级共享能力
+  readonly settings: ISettingsService; // 新增，app 级共享能力
 }
 
 // main/core/plugin/types.ts
 interface PluginContext {
   app: IMainApp;
   orpcServer: typeof os;
-  storage: IScopedStorage;  // 后续，插件专属（已绑定 plugin-{pluginName}）
+  storage: IScopedStorage; // 后续，插件专属（已绑定 plugin-{pluginName}）
 }
 ```
 
 ```typescript
 // MainApp 实现
 class MainApp implements IMainApp {
-  private storageService: StorageService;   // 内部完整版
+  private storageService: StorageService; // 内部完整版
   readonly settings: ISettingsService;
 
   constructor() {
@@ -274,7 +277,9 @@ activate(ctx) {
 export const storageContract = {
   // 通用 storage RPC
   get: oc.input(z.object({ ns: z.string(), key: z.string() })).output(type<unknown>()),
-  set: oc.input(z.object({ ns: z.string(), key: z.string(), value: z.unknown() })).output(type<void>()),
+  set: oc
+    .input(z.object({ ns: z.string(), key: z.string(), value: z.unknown() }))
+    .output(type<void>()),
   getAll: oc.input(z.object({ ns: z.string() })).output(type<Record<string, unknown>>()),
 
   // settings 便捷 RPC（读写 config.json → settings.*）
@@ -332,13 +337,13 @@ interface IScopedRendererStorage {
 
 ```typescript
 interface IRendererApp {
-  readonly settings: IRendererSettingsService;  // 挂 app
+  readonly settings: IRendererSettingsService; // 挂 app
 }
 
 interface RendererPluginContext {
   app: IRendererApp;
   orpcClient: Record<string, unknown>;
-  storage: IScopedRendererStorage;  // 后续，挂 ctx，已绑定 plugin-{pluginName}
+  storage: IScopedRendererStorage; // 后续，挂 ctx，已绑定 plugin-{pluginName}
 }
 ```
 
@@ -377,11 +382,13 @@ Renderer mount
 ## 迁移策略（渐进式）
 
 **MVP 阶段：**
+
 - 新建 StorageService + SettingsService
 - ConfigStore 暂时保留，config.json 里新增 `settings` 字段
 - 现有 `config.theme` 不动
 
 **后续迁移：**
+
 1. `config.theme` → `settings.preferences.theme`，删除 ConfigStore
 2. ProjectStore 内部改为委托 StorageService，删除 ProjectStore
 3. BrowserWindowManager 内部改用 StorageService
@@ -402,7 +409,9 @@ MVP 不实现，预留方向：
 ```typescript
 // Main 侧
 interface IScopedSettings {
-  onDidChange(listener: (e: { key: string; value: unknown; previousValue: unknown }) => void): Unsubscribe;
+  onDidChange(
+    listener: (e: { key: string; value: unknown; previousValue: unknown }) => void,
+  ): Unsubscribe;
 }
 ```
 
