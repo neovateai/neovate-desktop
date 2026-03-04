@@ -10,8 +10,16 @@ import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import { client } from "../orpc";
 
-const RendererAppContext = createContext<RendererApp | null>(null);
-const PluginContextReact = createContext<PluginContext | null>(null);
+// Preserve context identity across HMR to prevent provider/consumer mismatch
+const RendererAppContext: React.Context<RendererApp | null> = import.meta.hot?.data
+  ?.RendererAppContext ?? createContext<RendererApp | null>(null);
+const PluginContextReact: React.Context<PluginContext | null> = import.meta.hot?.data
+  ?.PluginContextReact ?? createContext<PluginContext | null>(null);
+
+if (import.meta.hot) {
+  import.meta.hot.data.RendererAppContext = RendererAppContext;
+  import.meta.hot.data.PluginContextReact = PluginContextReact;
+}
 
 export function useRendererApp(): RendererApp {
   const app = useContext(RendererAppContext);

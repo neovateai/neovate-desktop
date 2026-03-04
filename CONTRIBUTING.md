@@ -44,6 +44,12 @@ This prints logs to the terminal and saves them to `/tmp/dev.log` for searching 
 
 You can filter by namespace (e.g. `DEBUG=neovate:acp-router` for just the router).
 
+For renderer-side debug logs, set `localStorage.debug` in DevTools:
+
+```js
+localStorage.debug = 'neovate:*'
+```
+
 ## Environment Variables
 
 | Variable                  | Default | Description                                                                         |
