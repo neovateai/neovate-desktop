@@ -1,5 +1,6 @@
 import { implement } from "@orpc/server";
 import { configContract } from "../../../shared/features/config/contract";
+import type { AppConfig } from "../../../shared/features/config/types";
 import type { AppContext } from "../../router";
 
 const os = implement({ config: configContract }).$context<AppContext>();
@@ -10,6 +11,6 @@ export const configRouter = os.config.router({
   }),
 
   set: os.config.set.handler(({ input, context }) => {
-    context.configStore.set(input.key, input.value);
+    context.configStore.set(input.key, input.value as AppConfig[typeof input.key]);
   }),
 });

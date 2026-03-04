@@ -3,6 +3,26 @@ import path from "node:path";
 import Store from "electron-store";
 import type { AppConfig } from "../../../shared/features/config/types";
 
+const DEFAULT_CONFIG: AppConfig = {
+  // General Settings
+  theme: "system",
+  locale: "en-US",
+  runOnStartup: false,
+  multiProjectSupport: false,
+  terminalFontSize: 12,
+  terminalFont: "",
+  developerMode: false,
+
+  // Chat Settings
+  sendMessageWith: "enter",
+  agentLanguage: "English",
+  approvalMode: "default",
+  notificationSound: "default",
+
+  // Keybindings
+  keybindings: {},
+};
+
 export class ConfigStore {
   private store: Store<AppConfig>;
 
@@ -10,16 +30,13 @@ export class ConfigStore {
     this.store = new Store<AppConfig>({
       name: "config",
       cwd: path.join(os.homedir(), ".neovate-desktop"),
-      defaults: {
-        theme: "system",
-      },
+      defaults: DEFAULT_CONFIG,
     });
   }
 
   getAll(): AppConfig {
-    return {
-      theme: this.store.get("theme"),
-    };
+    // Use spread to get all values with defaults applied
+    return { ...DEFAULT_CONFIG, ...this.store.store };
   }
 
   get<K extends keyof AppConfig>(key: K): AppConfig[K] {

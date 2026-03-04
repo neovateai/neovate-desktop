@@ -1,4 +1,6 @@
 import { AgentChat, SessionList } from "./features/acp";
+import { useSettingsStore } from "./features/settings";
+import { SettingsPage } from "./features/settings/components/settings-page";
 import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
@@ -13,8 +15,17 @@ import {
   AppLayoutTrafficLights,
 } from "./components/app-layout";
 import { ThemeToggle } from "./components/ui/theme-toggle";
+import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
 export default function App() {
+  useGlobalKeybindings();
+  const showSettings = useSettingsStore((state) => state.showSettings);
+
+  // Show Settings page when settings mode is active
+  if (showSettings) {
+    return <SettingsPage />;
+  }
+
   return (
     <AppLayoutRoot>
       <AppLayoutTrafficLights />

@@ -23,6 +23,7 @@ import {
   APP_LAYOUT_GRID_AREA,
 } from "./constants";
 import type { SeparatorId } from "./types";
+import { useSettingsStore } from "../../features/settings";
 
 export function AppLayoutRoot({ children }: { children: ReactNode }) {
   usePanelResize();
@@ -139,6 +140,7 @@ export function AppLayoutSecondaryTitleBar() {
   const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const setShowSettings = useSettingsStore((s) => s.setShowSettings);
 
   return (
     <div
@@ -148,7 +150,13 @@ export function AppLayoutSecondaryTitleBar() {
       <div className="flex-1" />
       <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-2">
         {activeProject && <OpenAppButton cwd={activeProject.path} />}
-        <Button variant="ghost" size="icon-sm" className="size-7" title="Settings">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-7"
+          title="Settings"
+          onClick={() => setShowSettings(true)}
+        >
           <HugeiconsIcon icon={Settings01Icon} size={16} strokeWidth={1.5} />
         </Button>
         <Button

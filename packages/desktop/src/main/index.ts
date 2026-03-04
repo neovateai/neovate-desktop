@@ -12,6 +12,7 @@ import { ProjectStore } from "./features/project/project-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
+import { setupApplicationMenu } from "./core/menu";
 
 const log = debug("neovate:orpc");
 
@@ -45,6 +46,9 @@ app.whenReady().then(async () => {
   });
 
   await mainApp.start();
+
+  // Setup application menu (for menu items, shortcuts handled in renderer)
+  setupApplicationMenu(mainApp.windowManager.mainWindow);
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
   const handler = new RPCHandler(mainApp.router);

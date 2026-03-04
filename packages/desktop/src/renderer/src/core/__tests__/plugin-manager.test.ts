@@ -5,7 +5,10 @@ import type { RendererPlugin } from "../plugin";
 import type { SecondarySidebarView, ContentPanelView } from "../plugin/contributions";
 
 function createMockApp(): IRendererApp {
-  return { subscriptions: { push: vi.fn() } };
+  return {
+    subscriptions: { push: vi.fn() },
+    i18nManager: {} as any,
+  };
 }
 
 function makeCtx() {

@@ -33,4 +33,8 @@ export const utilsContract = {
       }),
     )
     .output(type<{ paths: string[]; truncated: boolean }>()),
+
+  setLoginItem: oc
+    .input(z.object({ openAtLogin: z.boolean() }))
+    .output(type<{ success: boolean }>()),
 };
