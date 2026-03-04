@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { minimatch } from 'minimatch';
+import fs from "node:fs";
+import path from "node:path";
+import { minimatch } from "minimatch";
 
 export interface FileTreeNode {
   fileName: string;
@@ -12,13 +12,13 @@ export interface FileTreeNode {
 }
 
 const EXCLUDE_FILE_TYPE_PATTERN = [
-  '**/node_modules',
-  '**/node_modules/**',
+  "**/node_modules",
+  "**/node_modules/**",
   /** 编译产物忽略 */
-  '**/dist',
-  '**/dist/**',
-  '**/.*/**',
-  '**/.*',
+  "**/dist",
+  "**/dist/**",
+  "**/.*/**",
+  "**/.*",
 ];
 
 function getExcludePatterns(): string[] {
@@ -27,10 +27,7 @@ function getExcludePatterns(): string[] {
   return [...new Set(allPatterns)];
 }
 
-export async function getFileTree(
-  parent: string,
-  root?: string,
-): Promise<FileTreeNode[]> {
+export async function getFileTree(parent: string, root?: string): Promise<FileTreeNode[]> {
   const includePatterns: string[] = [];
   const actualRoot = root || parent;
 
@@ -48,13 +45,9 @@ export async function getFileTree(
 
       try {
         const stats = await fs.promises.stat(filePath);
-        const relativePath = path
-          .relative(actualRoot, filePath)
-          .replace(/\\/g, '/');
+        const relativePath = path.relative(actualRoot, filePath).replace(/\\/g, "/");
 
-        const isExcluded = excludePatterns.some((pattern) =>
-          minimatch(relativePath, pattern),
-        );
+        const isExcluded = excludePatterns.some((pattern) => minimatch(relativePath, pattern));
 
         if (isExcluded) {
           return null;
@@ -73,7 +66,7 @@ export async function getFileTree(
             includePatterns.length === 0 ||
             includePatterns.some((pattern) => minimatch(relativePath, pattern));
           if (!isIncluded) return null;
-          node.languageId = file.split('.').pop();
+          node.languageId = file.split(".").pop();
         } else {
           node.children = await getFileTree(filePath, actualRoot);
         }
@@ -112,10 +105,7 @@ export async function getFileTree(
 
     return nodes.sort(compareNodes).map((node) => ({
       ...node,
-      children:
-        node.children && node.children.length > 0
-          ? sortFileTree(node.children)
-          : [],
+      children: node.children && node.children.length > 0 ? sortFileTree(node.children) : [],
     }));
   };
 

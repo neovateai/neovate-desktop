@@ -28,7 +28,7 @@ interface TreeNodeProps {
 }
 
 function FileLangIcon(props: { path: string; size?: number }) {
-  const { path = '', size = 16 } = props;
+  const { path = "", size = 16 } = props;
   const filename = path.split("/").pop() || path;
   const suffix = filename.split(".").pop();
 
@@ -59,9 +59,7 @@ export function TreeNode({
   const [isEditing, setIsEditing] = useState(false);
   const [editingName, setEditingName] = useState(fileName);
   const [isCreating, setIsCreating] = useState(false);
-  const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(
-    null,
-  );
+  const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
   const [creatingName, setCreatingName] = useState("");
   const [isHovered, setIsHovered] = useState(false);
 
@@ -97,25 +95,25 @@ export function TreeNode({
     {
       label: t("files.contextMenu.newFile"),
       icon: <FilePlus size={14} />,
-      action: () => handleCreateFile()
+      action: () => handleCreateFile(),
     },
     {
       label: t("files.contextMenu.newFolder"),
       icon: <FolderPlus size={14} />,
-      action: () => handleCreateFolder()
+      action: () => handleCreateFolder(),
     },
     ...(item.relPath !== ""
       ? [
           {
             label: t("files.contextMenu.rename"),
             icon: <Edit size={14} />,
-            action: () => handleStartRename()
+            action: () => handleStartRename(),
           },
           {
             label: t("files.contextMenu.delete"),
             icon: <Trash2 size={14} />,
             action: () => handleDelete(),
-            variant: "destructive" as const
+            variant: "destructive" as const,
           },
         ]
       : []),
@@ -128,10 +126,7 @@ export function TreeNode({
 
   const handleFinishRename = () => {
     if (editingName && editingName !== fileName && onRename) {
-      const parentPath = item.fullPath.substring(
-        0,
-        item.fullPath.length - fileName.length,
-      );
+      const parentPath = item.fullPath.substring(0, item.fullPath.length - fileName.length);
       const newPath = parentPath + editingName;
       onRename(item.fullPath, newPath);
     }
@@ -231,10 +226,7 @@ export function TreeNode({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span
-                className="flex-1 text-xs ml-1 cursor-pointer truncate"
-                title={item.fullPath}
-              >
+              <span className="flex-1 text-xs ml-1 cursor-pointer truncate" title={item.fullPath}>
                 {fileName}
               </span>
             )}
@@ -255,10 +247,7 @@ export function TreeNode({
           {menuItems.map((menuItem, index) => (
             <div key={index}>
               {index === 2 && <ContextMenuSeparator />}
-              <ContextMenuItem
-                onClick={menuItem.action}
-                data-variant={menuItem.variant}
-              >
+              <ContextMenuItem onClick={menuItem.action} data-variant={menuItem.variant}>
                 {menuItem.icon}
                 {menuItem.label}
               </ContextMenuItem>
@@ -279,7 +268,11 @@ export function TreeNode({
           <span className="flex-1 text-xs ml-1 cursor-pointer">
             <input
               type="text"
-              placeholder={creatingType === "file" ? t("files.newFilePlaceholder") : t("files.newFolderPlaceholder")}
+              placeholder={
+                creatingType === "file"
+                  ? t("files.newFilePlaceholder")
+                  : t("files.newFolderPlaceholder")
+              }
               value={creatingName}
               onChange={(e) => setCreatingName(e.target.value)}
               onBlur={handleFinishCreate}

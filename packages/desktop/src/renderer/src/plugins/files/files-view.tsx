@@ -85,7 +85,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       const result = await client.files.rename({ oldPath, newPath });
       if (result.success) {
-        await loadFileTree();  // TODO:后续刷新逻辑应该是基于监听推送而不是主动刷新
+        await loadFileTree(); // TODO:后续刷新逻辑应该是基于监听推送而不是主动刷新
       } else {
         alert(`重命名失败: ${result.error}`);
       }
@@ -97,7 +97,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   // TODO: 待实现
   const handleCreateFile = async (parentPath: string, name: string) => {
     try {
-      alert('Coming soon');
+      alert("Coming soon");
       console.log(parentPath, name);
       // const result = await client.files.createFile({
       //   path: parentPath,
@@ -117,7 +117,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   // TODO: 待实现
   const handleCreateFolder = async (parentPath: string, name: string) => {
     try {
-      alert('Coming soon');
+      alert("Coming soon");
       console.log(parentPath, name);
       // const result = await client.files.createFolder({
       //   path: parentPath,
@@ -201,4 +201,3 @@ export default function FilesView() {
   const activeProject = useProjectStore((state) => state.activeProject);
   return <FilesViewComponent project={activeProject} />;
 }
-
