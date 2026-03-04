@@ -1,7 +1,7 @@
 import type { StoreApi } from "zustand/vanilla";
 import { Hookable } from "hookable";
 import type { ContentPanelView } from "../../core/plugin/contributions";
-import type { Tab, ContentPanelStoreState } from "./types";
+import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
 import { createContentPanelStore } from "./store";
 
 interface ViewContext {
@@ -36,6 +36,14 @@ async function bailCaller(
   return true;
 }
 
+interface StatePersistence {
+  load(key: string): Promise<unknown>;
+  save(key: string, data: unknown): Promise<void>;
+}
+
+const PERSIST_KEY = "contentPanel";
+const DEBOUNCE_MS = 100;
+
 export class ContentPanel extends Hookable<ContentPanelHooks> {
   private views: ContentPanelView[];
   private projectPath: string = "";
@@ -45,6 +53,48 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
     super();
     this.views = views;
     this.store = createContentPanelStore();
+  }
+
+  /** Load persisted tab state from the state store. Call before activate(). */
+  async hydrate(persistence: StatePersistence): Promise<void> {
+    const data = await persistence.load(PERSIST_KEY);
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      this.store.setState({ projects: data as Record<string, ProjectTabState> });
+    }
+  }
+
+  /**
+   * Subscribe to store changes and debounce-persist to the state store.
+   * Returns an unsubscribe function. Also flushes on beforeunload.
+   */
+  persist(persistence: StatePersistence): () => void {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = () => {
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      const { projects } = this.store.getState();
+      persistence.save(PERSIST_KEY, projects);
+    };
+
+    const unsubscribe = this.store.subscribe(() => {
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(flush, DEBOUNCE_MS);
+    });
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", flush);
+    }
+
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("beforeunload", flush);
+      }
+      unsubscribe();
+    };
   }
 
   /** Register a beforeClose guard. Returns unsubscribe function. */

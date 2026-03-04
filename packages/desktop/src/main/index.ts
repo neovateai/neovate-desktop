@@ -9,6 +9,7 @@ import { AcpConnectionManager } from "./features/acp/connection-manager";
 import { getShellEnvironment } from "./features/acp/shell-env";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
+import { StateStore } from "./features/state/state-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
@@ -27,6 +28,7 @@ getShellEnvironment();
 const connectionManager = new AcpConnectionManager();
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
+const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin],
 });
@@ -34,6 +36,7 @@ const appContext: AppContext = {
   acpConnectionManager: connectionManager,
   configStore,
   projectStore,
+  stateStore,
   mainApp,
 };
 

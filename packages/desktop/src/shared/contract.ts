@@ -3,6 +3,7 @@ import { z } from "zod";
 import { acpContract } from "./features/acp/contract";
 import { configContract } from "./features/config/contract";
 import { projectContract } from "./features/project/contract";
+import { stateContract } from "./features/state/contract";
 import { utilsContract } from "./features/utils/contract";
 
 export const contract = {
@@ -10,6 +11,7 @@ export const contract = {
   acp: acpContract,
   config: configContract,
   project: projectContract,
+  state: stateContract,
   utils: utilsContract,
   window: {
     ensureWidth: oc.input(z.object({ minWidth: z.number() })),

@@ -9,6 +9,7 @@ function makeContext(overrides?: Partial<AppContext["acpConnectionManager"]>): A
   return {
     configStore: {} as any,
     projectStore: {} as any,
+    stateStore: {} as any,
     acpConnectionManager: {
       connect: vi.fn(),
       get: vi.fn(),
