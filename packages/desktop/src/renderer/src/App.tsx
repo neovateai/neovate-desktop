@@ -16,6 +16,7 @@ import {
 } from "./components/app-layout";
 import { ThemeToggle } from "./components/ui/theme-toggle";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
+import { Counter } from "./features/settings/counter";
 
 export default function App() {
   useGlobalKeybindings();
@@ -34,7 +35,8 @@ export default function App() {
         <div className="flex h-full flex-col p-3">
           <SessionList />
         </div>
-        <div className="mt-auto ml-auto px-1.5 pb-1.5">
+        <div className="mt-auto flex items-center justify-between px-1.5 pb-1.5">
+          <Counter />
           <ThemeToggle />
         </div>
       </AppLayoutPrimarySidebar>
