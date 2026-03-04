@@ -11,4 +11,4 @@ export type {
   PluginContext,
 } from "./plugin";
 export { StorageService } from "./storage-service";
-export type { IStorageService, IScopedStorage } from "./storage-service";
+export type { IStorageService } from "./storage-service";

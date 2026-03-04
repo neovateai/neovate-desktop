@@ -36,6 +36,16 @@ vi.mock("electron-store", () => {
       }
       if (current != null) delete current[parts[parts.length - 1]];
     };
+    this.has = function (key: string) {
+      const parts = key.split(".");
+      let current: any = data;
+      for (const part of parts) {
+        if (current == null || typeof current !== "object") return false;
+        if (!(part in current)) return false;
+        current = current[part];
+      }
+      return true;
+    };
     this.clear = function () {
       data = {};
     };
@@ -72,12 +82,11 @@ describe("StorageService", () => {
     expect(Store.mock.calls.length).toBe(countBefore + 2);
   });
 
-  it("scoped getAll returns all data", () => {
+  it("scoped .store returns all data", () => {
     const config = service.scoped("config");
     config.set("theme", "dark");
     config.set("fontSize", 14);
-    const all = config.getAll();
-    expect(all).toEqual({ theme: "dark", fontSize: 14 });
+    expect(config.store).toEqual({ theme: "dark", fontSize: 14 });
   });
 
   it("different namespaces are isolated", () => {
@@ -85,6 +94,39 @@ describe("StorageService", () => {
     const projects = service.scoped("projects");
     config.set("theme", "dark");
     expect(projects.get("theme")).toBeUndefined();
+  });
+
+  it("has returns true for existing keys", () => {
+    const config = service.scoped("config");
+    config.set("theme", "dark");
+    expect(config.has("theme")).toBe(true);
+    expect(config.has("missing")).toBe(false);
+  });
+
+  it("delete removes a key", () => {
+    const config = service.scoped("config");
+    config.set("theme", "dark");
+    config.delete("theme");
+    expect(config.get("theme")).toBeUndefined();
+    expect(config.has("theme")).toBe(false);
+  });
+
+  it("set with object sets multiple keys", () => {
+    const config = service.scoped("config");
+    config.set({ theme: "dark", fontSize: 14 });
+    expect(config.get("theme")).toBe("dark");
+    expect(config.get("fontSize")).toBe(14);
+  });
+
+  it("throws on empty namespace", () => {
+    expect(() => service.scoped("")).toThrow("namespace must not be empty");
+  });
+
+  it("throws on path traversal namespace", () => {
+    expect(() => service.scoped("../etc")).toThrow("namespace must not contain path traversal");
+    expect(() => service.scoped("foo/../../bar")).toThrow(
+      "namespace must not contain path traversal",
+    );
   });
 
   it("supports subdirectory namespaces", async () => {

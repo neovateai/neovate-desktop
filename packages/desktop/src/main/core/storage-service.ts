@@ -2,52 +2,42 @@ import os from "node:os";
 import path from "node:path";
 import Store from "electron-store";
 
-export interface IScopedStorage {
-  get<T = unknown>(key: string): T | undefined;
-  set(key: string, value: unknown): void;
-  getAll(): Record<string, unknown>;
-}
+const DEFAULT_BASE_DIR = path.join(os.homedir(), ".neovate-desktop");
 
+// TODO: support generic type parameter for dot-notation type safety — scoped<T>(namespace) → Store<T>
 export interface IStorageService {
-  scoped(namespace: string): IScopedStorage;
+  scoped(namespace: string): Store;
   dispose(): void;
 }
 
 export class StorageService implements IStorageService {
-  private static readonly BASE_DIR = path.join(os.homedir(), ".neovate-desktop");
+  private readonly baseDir: string;
   private instances = new Map<string, Store>();
 
-  scoped(namespace: string): IScopedStorage {
+  constructor(options: { baseDir?: string } = {}) {
+    this.baseDir = options.baseDir ?? DEFAULT_BASE_DIR;
+  }
+
+  scoped(namespace: string): Store {
+    if (!namespace) throw new Error("namespace must not be empty");
+    if (/(?:^|[\\/])\.\.(?:[\\/]|$)/.test(namespace)) {
+      throw new Error("namespace must not contain path traversal");
+    }
     let store = this.instances.get(namespace);
     if (!store) {
       const dir = path.dirname(namespace);
       const name = path.basename(namespace);
-      store = new Store({
-        name,
-        cwd: dir === "." ? StorageService.BASE_DIR : path.join(StorageService.BASE_DIR, dir),
-      });
+      const cwd = dir === "." ? this.baseDir : path.join(this.baseDir, dir);
+      if (!path.resolve(cwd).startsWith(this.baseDir)) {
+        throw new Error("namespace resolved outside base directory");
+      }
+      store = new Store({ name, cwd });
       this.instances.set(namespace, store);
     }
-    return new ScopedStorage(store);
+    return store;
   }
 
   dispose(): void {
     this.instances.clear();
-  }
-}
-
-class ScopedStorage implements IScopedStorage {
-  constructor(private store: Store) {}
-
-  get<T = unknown>(key: string): T | undefined {
-    return this.store.get(key) as T | undefined;
-  }
-
-  set(key: string, value: unknown): void {
-    this.store.set(key, value);
-  }
-
-  getAll(): Record<string, unknown> {
-    return this.store.store as Record<string, unknown>;
   }
 }

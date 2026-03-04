@@ -36,7 +36,6 @@ const appContext: AppContext = {
   storage: mainApp.getStorage(),
 };
 
-
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
 

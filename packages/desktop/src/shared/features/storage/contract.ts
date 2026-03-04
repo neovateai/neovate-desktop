@@ -1,14 +1,17 @@
 import { oc, type } from "@orpc/contract";
-import { z } from "zod";
 
 export const storageContract = {
   get: oc
-    .input(z.object({ namespace: z.string(), key: z.string() }))
+    .input(type<{ namespace: string; key: string; defaultValue?: unknown }>())
     .output(type<unknown>()),
-  set: oc
-    .input(z.object({ namespace: z.string(), key: z.string(), value: z.unknown() }))
+  set: oc.input(type<{ namespace: string; key: string; value: unknown }>()).output(type<void>()),
+  setMany: oc
+    .input(type<{ namespace: string; object: Record<string, unknown> }>())
     .output(type<void>()),
-  getAll: oc
-    .input(z.object({ namespace: z.string() }))
-    .output(type<Record<string, unknown>>()),
+  has: oc.input(type<{ namespace: string; key: string }>()).output(type<boolean>()),
+  delete: oc.input(type<{ namespace: string; key: string }>()).output(type<void>()),
+  appendToArray: oc
+    .input(type<{ namespace: string; key: string; value: unknown }>())
+    .output(type<void>()),
+  getAll: oc.input(type<{ namespace: string }>()).output(type<Record<string, unknown>>()),
 };

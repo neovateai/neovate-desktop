@@ -153,15 +153,11 @@ class MainApp implements IMainApp {
 ```typescript
 // shared/features/storage/contract.ts
 export const storageContract = {
-  get: oc
-    .input(z.object({ namespace: z.string(), key: z.string() }))
-    .output(type<unknown>()),
+  get: oc.input(z.object({ namespace: z.string(), key: z.string() })).output(type<unknown>()),
   set: oc
     .input(z.object({ namespace: z.string(), key: z.string(), value: z.unknown() }))
     .output(type<void>()),
-  getAll: oc
-    .input(z.object({ namespace: z.string() }))
-    .output(type<Record<string, unknown>>()),
+  getAll: oc.input(z.object({ namespace: z.string() })).output(type<Record<string, unknown>>()),
 };
 ```
 
