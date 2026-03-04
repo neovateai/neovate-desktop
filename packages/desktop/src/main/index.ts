@@ -23,15 +23,19 @@ getShellEnvironment();
 const sessionManager = new SessionManager();
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
+
 const mainApp = new MainApp({
   plugins: [gitPlugin],
 });
+
 const appContext: AppContext = {
   sessionManager,
   configStore,
   projectStore,
   mainApp,
+  storage: mainApp.getStorage(),
 };
+
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");

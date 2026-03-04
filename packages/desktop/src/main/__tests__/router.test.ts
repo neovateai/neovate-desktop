@@ -11,6 +11,7 @@ describe("main router context wiring", () => {
       configStore: {} as unknown as AppDependencies["configStore"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
       mainApp: { windowManager: { mainWindow: null } } as any,
+      storage: {} as unknown as AppDependencies["storage"],
     } satisfies AppDependencies;
     const result = await call(router.ping, undefined, { context });
     expect(result).toBe("pong");

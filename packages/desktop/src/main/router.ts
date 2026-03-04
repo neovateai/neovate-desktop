@@ -9,12 +9,14 @@ import type { SessionManager } from "./features/agent/session-manager";
 import type { ConfigStore } from "./features/config/config-store";
 import type { ProjectStore } from "./features/project/project-store";
 import type { IMainApp } from "./core/types";
+import type { StorageService } from "./core/storage-service";
 
 export type AppContext = {
   sessionManager: SessionManager;
   configStore: ConfigStore;
   projectStore: ProjectStore;
   mainApp: IMainApp;
+  storage: StorageService;
 };
 
 export type AppDependencies = AppContext;

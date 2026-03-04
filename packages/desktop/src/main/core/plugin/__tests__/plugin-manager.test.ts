@@ -14,6 +14,7 @@ function makeCtx(): PluginContext {
         destroyAll: vi.fn(),
         ensureMinWidth: vi.fn(),
       },
+      settings: { scoped: vi.fn(), getAllSettings: vi.fn() },
     },
     orpcServer: { router: vi.fn(), handler: vi.fn() } as any,
   };
