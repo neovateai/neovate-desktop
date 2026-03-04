@@ -3,7 +3,7 @@ export type SendMessageWith = "enter" | "cmdEnter";
 export type Locales = "en-US" | "zh-CN";
 export type ApprovalMode = "default" | "autoEdit" | "yolo";
 export type NotificationSound = "off" | "default" | "Glass" | "Ping" | "Pop" | "Funk";
-export type AgentLanguage = "English" | "Chinese" | "Japanese" | "Korean" | "Spanish" | "French";
+export type AgentLanguage = "English" | "Chinese";
 
 export type AppConfig = {
   // General Settings

@@ -22,10 +22,6 @@ import { SettingsRow } from "../settings-row";
 const agentLanguageKeys: Record<AgentLanguage, string> = {
   English: "settings.chat.agentLanguage.english",
   Chinese: "settings.chat.agentLanguage.chinese",
-  Japanese: "settings.chat.agentLanguage.japanese",
-  Korean: "settings.chat.agentLanguage.korean",
-  Spanish: "settings.chat.agentLanguage.spanish",
-  French: "settings.chat.agentLanguage.french",
 };
 
 const approvalModeKeys: Record<ApprovalMode, string> = {
@@ -110,10 +106,6 @@ export const ChatPanel = () => {
             <SelectPopup>
               <SelectItem value="English">{t("settings.chat.agentLanguage.english")}</SelectItem>
               <SelectItem value="Chinese">{t("settings.chat.agentLanguage.chinese")}</SelectItem>
-              <SelectItem value="Japanese">{t("settings.chat.agentLanguage.japanese")}</SelectItem>
-              <SelectItem value="Korean">{t("settings.chat.agentLanguage.korean")}</SelectItem>
-              <SelectItem value="Spanish">{t("settings.chat.agentLanguage.spanish")}</SelectItem>
-              <SelectItem value="French">{t("settings.chat.agentLanguage.french")}</SelectItem>
             </SelectPopup>
           </Select>
         </SettingsRow>
