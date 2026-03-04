@@ -1,9 +1,9 @@
-import type enUS from '../../locales/en-US.json'
+import type enUS from "../../locales/en-US.json";
 
-declare module 'i18next' {
+declare module "i18next" {
   interface CustomTypeOptions {
     resources: {
-      translation: typeof enUS
-    }
+      translation: typeof enUS;
+    };
   }
 }
