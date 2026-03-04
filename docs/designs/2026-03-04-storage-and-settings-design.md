@@ -1,48 +1,48 @@
 # Storage & Settings Module Design
 
-## 问题
+## Problem
 
-当前存储层存在以下问题：
+The current storage layer has the following issues:
 
-1. **electron-store 实例分散** — ProjectStore、ConfigStore、BrowserWindowManager 各自 `new Store()`，`cwd` 等配置重复，没有统一管理
-2. **插件没有持久化能力** — 插件想存数据没有 API
-3. **没有 settings 基础设施** — 用户设置没有统一的读写机制
-4. **Renderer 没有通用存储 RPC** — 每个 feature 各写一套 contract + router + Zustand store
+1. **Scattered electron-store instances** — `ProjectStore`, `ConfigStore`, and `BrowserWindowManager` each call `new Store()` independently, duplicating `cwd` and other config with no central management
+2. **No persistence API for plugins** — plugins have no way to store data
+3. **No settings infrastructure** — no unified read/write mechanism for user settings
+4. **No generic storage RPC in the renderer** — each feature writes its own contract + router + Zustand store
 
 ## Overview
 
-统一的存储基础设施，提供两层能力：
+A unified storage infrastructure providing two layers of capability:
 
-- **StorageService**（main/core）— 通用 KV 存储引擎，管理多个 electron-store 实例（每个 namespace 一个 JSON 文件），解决问题 1、2、4
-- **Storage RPC**（shared + main/features）— 通用 ORPC 接口，Renderer 通过 `client.storage.get/set/getAll` 访问任意 namespace
-- **SettingsService**（renderer/features）— 基于 Storage RPC 封装，Zustand 缓存 + optimistic update，专门管理 config.json 的 `settings` 字段，解决问题 3
+- **StorageService** (`main/core`) — generic KV storage engine, manages multiple `electron-store` instances (one JSON file per namespace), addresses issues 1, 2, 4
+- **Storage RPC** (`shared` + `main/features`) — generic ORPC interface, renderer accesses any namespace via `client.storage.get/set/getAll`
+- **SettingsService** (`renderer/features`) — wraps Storage RPC with a Zustand cache + optimistic updates, manages the `settings` key in `config.json`, addresses issue 3
 
-## 决策记录
+## Decision Log
 
-- **存储引擎**: electron-store，每个 namespace 一个 JSON 文件，懒创建
-- **存储位置**: `~/.neovate-desktop/`（与现有一致）
-- **写盘策略**: MVP 每次 set 直接写盘
-- **settings 存储**: 放在 config.json 的 `settings` 字段下，按 namespace key 隔离
-- **插件 storage**（后续）: 每个插件独立文件（`~/.neovate-desktop/plugin-data/{pluginName}.json`），PluginManager 预绑定前缀，MVP 不实现
-- **Main 插件 settings**: MVP 不提供，后续按需添加
-- **Renderer settings**: SettingsService 在 features 层封装，接口在 core/types.ts 定义
-- **Storage RPC**: 通用 KV 接口，不区分 settings 还是其他数据
-- **迁移**: 渐进式，现有 ConfigStore/ProjectStore 暂不动，后续逐步迁移
+- **Storage engine**: `electron-store`, one JSON file per namespace, lazily created
+- **Storage location**: `~/.neovate-desktop/` (consistent with existing)
+- **Write strategy**: MVP writes to disk on every `set` call
+- **Settings storage**: stored under the `settings` key in `config.json`, isolated by namespace key
+- **Plugin storage** (future): one file per plugin (`~/.neovate-desktop/plugin-data/{pluginName}.json`), prefix pre-bound by `PluginManager` — not implemented in MVP
+- **Main-side plugin settings**: not provided in MVP, added on demand later
+- **Renderer settings**: `SettingsService` implemented in the features layer, interface defined in `core/types.ts`
+- **Storage RPC**: generic KV interface, agnostic to whether data is settings or something else
+- **Migration**: incremental — existing `ConfigStore`/`ProjectStore` are left untouched for now
 
-## 文件存储结构
+## File Storage Layout
 
 ```
 ~/.neovate-desktop/
-  config.json          # 系统配置 + settings
-  projects.json        # 项目数据（现有）
-  window-state.json    # 窗口状态（现有）
-  plugin-data/         # 插件专属存储（后续）
+  config.json          # app config + settings
+  projects.json        # project data (existing)
+  window-state.json    # window state (existing)
+  plugin-data/         # plugin-specific storage (future)
     git.json
     acp.json
     ...
 ```
 
-### config.json 内部结构
+### config.json internal structure
 
 ```json
 {
@@ -54,36 +54,36 @@
 }
 ```
 
-- 现有 `theme` 字段暂时保留（渐进迁移到 `settings.preferences.theme`）
-- `settings` 字段下按 namespace 隔离
+- The existing `theme` key is kept for now (will migrate to `settings.preferences.theme` incrementally)
+- Keys under `settings` are isolated by namespace
 
-## 代码布局
+## Code Layout
 
 ```
 main/core/
-  storage-service.ts       # StorageService — 管理 electron-store 实例
+  storage-service.ts       # StorageService — manages electron-store instances
   types.ts                 # IMainApp
 
 main/features/storage/
-  router.ts                # 通用 storage ORPC handlers
+  router.ts                # generic storage ORPC handlers
 
 shared/features/storage/
-  contract.ts              # ORPC contract（通用 KV）
-  types.ts                 # Preferences 类型
+  contract.ts              # ORPC contract (generic KV)
+  types.ts                 # Preferences types
 
 renderer/src/core/
-  types.ts                 # IRendererApp（含 ISettingsService 接口）
+  types.ts                 # IRendererApp (includes ISettingsService interface)
 
 renderer/src/features/settings/
-  settings-service.ts      # SettingsService 实现
+  settings-service.ts      # SettingsService implementation
   store.ts                 # Zustand store
   hooks/use-settings.ts
   index.ts
 ```
 
-## Main 侧 — StorageService（core 基础设施）
+## Main Process — StorageService (core infrastructure)
 
-管理多个 electron-store 实例，按 namespace 懒创建。支持子目录 namespace（如 `plugin-data/git`）。
+Manages multiple `electron-store` instances, lazily created per namespace. Supports subdirectory namespaces (e.g. `plugin-data/git`).
 
 ```typescript
 // main/core/storage-service.ts
@@ -104,7 +104,7 @@ class StorageService implements IStorageService {
   private instances = new Map<string, Store>();
 
   scoped(namespace: string): IScopedStorage {
-    // 懒创建，支持子目录（plugin-data/git → cwd: BASE_DIR/plugin-data, name: git）
+    // lazily created; supports subdirectories (plugin-data/git → cwd: BASE_DIR/plugin-data, name: git)
     let store = this.instances.get(namespace);
     if (!store) {
       const dir = path.dirname(namespace);
@@ -141,14 +141,14 @@ class MainApp implements IMainApp {
     this.storage = new StorageService();
   }
 
-  // 暴露给 AppContext（router 用），不在 IMainApp 上
+  // exposed to AppContext (for router use), not part of IMainApp
   getStorage(): StorageService {
     return this.storage;
   }
 }
 ```
 
-## ORPC Contract — 通用 KV
+## ORPC Contract — Generic KV
 
 ```typescript
 // shared/features/storage/contract.ts
@@ -178,9 +178,9 @@ export const storageRouter = os.storage.router({
 });
 ```
 
-## Renderer 侧 — SettingsService（features 层）
+## Renderer — SettingsService (features layer)
 
-接口定义在 `core/types.ts`，实现在 `features/settings/`。基于 Zustand store 缓存 + Storage RPC。
+Interface defined in `core/types.ts`, implementation in `features/settings/`. Backed by a Zustand cache + Storage RPC.
 
 ```typescript
 // renderer/src/core/types.ts
@@ -213,11 +213,11 @@ type SettingsState = {
 };
 ```
 
-- `fetch()`: mount 时调一次，从 main 拉 `config` namespace 的 `settings` 字段
-- `set()`: 乐观更新内存，同时通过 Storage RPC 写盘
-- `get()`: 从内存读，可能返回 `undefined`，调用方兜底默认值
+- `fetch()`: called once on mount, pulls the `settings` key from the `config` namespace in the main process
+- `set()`: optimistically updates in-memory state, then writes to disk via Storage RPC
+- `get()`: reads from memory, may return `undefined` — callers provide their own defaults
 
-### SettingsService 实现
+### SettingsService Implementation
 
 ```typescript
 // renderer/src/features/settings/settings-service.ts
@@ -227,20 +227,20 @@ class SettingsService implements ISettingsService {
   }
 }
 
-// ScopedSettings 内部自动拼 namespace 前缀，委托给 Zustand store
+// ScopedSettings automatically prefixes keys with the namespace and delegates to the Zustand store
 ```
 
-### Renderer 插件用法
+### Renderer Plugin Usage
 
 ```typescript
 activate(ctx) {
   const s = ctx.app.settings.scoped("git");
   const autoFetch = s.get<boolean>("autoFetch") ?? true;
-  s.subscribe((data) => { /* UI 更新 */ });
+  s.subscribe((data) => { /* update UI */ });
 }
 ```
 
-## 启动流程
+## Startup Flow
 
 ```
 MainApp.constructor()
@@ -253,40 +253,40 @@ MainApp.start()
   → createMainWindow()
 
 Renderer mount
-  → client.storage.getAll({ namespace: "config" })  // 拉 config 全量
-  → 提取 settings 字段 → Zustand store 缓存
+  → client.storage.getAll({ namespace: "config" })  // fetch full config
+  → extract settings key → populate Zustand store cache
 ```
 
-## 迁移策略（渐进式）
+## Migration Strategy (incremental)
 
-**MVP 阶段：**
+**MVP:**
 
-- 新建 StorageService + 通用 Storage RPC
-- Renderer SettingsService 封装 settings 读写
-- ConfigStore 暂时保留，config.json 里新增 `settings` 字段
-- 现有 `config.theme` 不动
+- Add `StorageService` + generic Storage RPC
+- Renderer `SettingsService` wraps settings read/write
+- `ConfigStore` kept as-is; `settings` key added to `config.json`
+- Existing `config.theme` left untouched
 
-**后续迁移：**
+**Follow-up migrations:**
 
-1. `config.theme` → `settings.preferences.theme`，删除 ConfigStore
-2. ProjectStore 内部改为委托 StorageService，删除 ProjectStore
-3. BrowserWindowManager 内部改用 StorageService
-4. Main 插件 settings API（按需）
-5. 插件专属 storage（`ctx.storage`）
+1. `config.theme` → `settings.preferences.theme`, remove `ConfigStore`
+2. `ProjectStore` delegates internally to `StorageService`, then remove `ProjectStore`
+3. `BrowserWindowManager` switches to `StorageService` internally
+4. Main-side plugin settings API (on demand)
+5. Plugin-specific storage (`ctx.storage`)
 
-## 约束
+## Constraints
 
-- `get()` 可能返回 `undefined`，调用方负责兜底默认值
-- 插件 settings 无编译期类型安全，插件自行断言类型
-- 内置 preferences 可定义静态类型
-- 通用 storage RPC 需要权限控制（后续）：Renderer 插件只能访问 `plugin-{name}` namespace
+- `get()` may return `undefined` — callers are responsible for providing default values
+- Plugin settings have no compile-time type safety — plugins assert types themselves
+- Built-in preferences can define static types
+- Generic storage RPC will need access control later: renderer plugins should only access their own `plugin-{name}` namespace
 
-## 变更事件（后续）
+## Change Events (future)
 
-MVP 不实现，预留方向：
+Not implemented in MVP. Intended direction:
 
 ```typescript
-// Main 侧
+// main process
 interface IScopedSettings {
   onDidChange(
     listener: (e: { key: string; value: unknown; previousValue: unknown }) => void,
@@ -294,4 +294,4 @@ interface IScopedSettings {
 }
 ```
 
-Renderer 侧 MVP 已支持 `subscribe`（基于 Zustand subscribe）。
+Renderer-side `subscribe` is already supported in MVP (via Zustand subscribe).
