@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ContentPanel } from "../content-panel";
 import type { ContentPanelView } from "../../../core/plugin/contributions";
 
@@ -166,5 +166,85 @@ describe("getViewState / updateViewState", () => {
     panel.updateViewState(id, { cwd: "/foo" });
     panel.updateViewState(id, { env: "prod" });
     expect(panel.getViewState(id)).toEqual({ cwd: "/foo", env: "prod" });
+  });
+});
+
+// --- Persistence ---
+
+function makePersistence() {
+  const data = new Map<string, unknown>();
+  return {
+    load: vi.fn((key: string) => Promise.resolve(data.get(key) ?? null)),
+    save: vi.fn((key: string, value: unknown) => {
+      data.set(key, value);
+      return Promise.resolve();
+    }),
+    data,
+  };
+}
+
+describe("hydrate", () => {
+  it("restores projects state from persistence", async () => {
+    const persistence = makePersistence();
+    const saved = {
+      [PROJECT]: {
+        tabs: [{ id: "t1", viewId: "terminal", name: "Term", state: {} }],
+        activeTabId: "t1",
+      },
+    };
+    persistence.data.set("contentPanel", saved);
+
+    await panel.hydrate(persistence);
+
+    const state = panel.store.getState().getProjectState(PROJECT);
+    expect(state.tabs).toHaveLength(1);
+    expect(state.tabs[0].id).toBe("t1");
+    expect(state.activeTabId).toBe("t1");
+  });
+
+  it("does nothing when persistence returns null", async () => {
+    const persistence = makePersistence();
+    await panel.hydrate(persistence);
+    expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(0);
+  });
+});
+
+describe("persist", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("debounces saves on store changes", async () => {
+    vi.useFakeTimers();
+    const persistence = makePersistence();
+    const unsub = panel.persist(persistence);
+
+    await panel.openView("terminal");
+    await panel.openView("terminal");
+
+    // Not saved yet (debounced)
+    expect(persistence.save).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(100);
+    expect(persistence.save).toHaveBeenCalledTimes(1);
+    expect(persistence.save).toHaveBeenCalledWith(
+      "contentPanel",
+      panel.store.getState().projects,
+    );
+
+    unsub();
+  });
+
+  it("unsubscribe stops further saves", async () => {
+    vi.useFakeTimers();
+    const persistence = makePersistence();
+    const unsub = panel.persist(persistence);
+
+    unsub();
+
+    await panel.openView("terminal");
+    vi.advanceTimersByTime(200);
+
+    expect(persistence.save).not.toHaveBeenCalled();
   });
 });
