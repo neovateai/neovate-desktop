@@ -89,10 +89,10 @@ describe("Storage router E2E", () => {
     });
   });
 
-  describe("setMany → persisted to disk", () => {
+  describe("merge → persisted to disk", () => {
     it("writes multiple keys at once", async () => {
       await call(
-        storageRouter.setMany,
+        storageRouter.merge,
         { namespace: NS, object: { theme: "dark", fontSize: 14 } },
         { context },
       );
@@ -103,7 +103,7 @@ describe("Storage router E2E", () => {
 
     it("merges with existing data", async () => {
       await call(storageRouter.set, { namespace: NS, key: "existing", value: "keep" }, { context });
-      await call(storageRouter.setMany, { namespace: NS, object: { added: "new" } }, { context });
+      await call(storageRouter.merge, { namespace: NS, object: { added: "new" } }, { context });
 
       const data = readJsonFile(NS);
       expect(data).toEqual({ existing: "keep", added: "new" });

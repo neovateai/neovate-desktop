@@ -13,7 +13,7 @@ export const storageRouter = os.storage.router({
     context.storage.scoped(input.namespace).set(input.key, input.value);
   }),
 
-  setMany: os.storage.setMany.handler(({ input, context }) => {
+  merge: os.storage.merge.handler(({ input, context }) => {
     context.storage.scoped(input.namespace).set(input.object);
   }),
 
