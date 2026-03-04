@@ -10,18 +10,18 @@ export type SettingsMenuId =
   | "about"
   | "mcp";
 
-interface SettingsState {
+interface SettingsUIState {
   // UI State only
   showSettings: boolean;
   activeTab: SettingsMenuId;
 }
 
-interface SettingsActions {
+interface SettingsUIActions {
   setShowSettings: (show: boolean) => void;
   setActiveTab: (tab: SettingsMenuId) => void;
 }
 
-export const useSettingsStore = create<SettingsState & SettingsActions>()((set) => ({
+export const useSettingsStore = create<SettingsUIState & SettingsUIActions>()((set) => ({
   // Initial State
   showSettings: false,
   activeTab: "general",
