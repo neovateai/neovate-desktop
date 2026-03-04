@@ -12,6 +12,8 @@ import { PluginManager } from "./plugin";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import { client } from "../orpc";
+import { useSettingsStore } from "../features/settings/store";
+import { RendererSettingsService } from "./storage/settings-service";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
 const RendererAppContext: React.Context<RendererApp | null> =
@@ -82,6 +84,7 @@ export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
   readonly subscriptions = new DisposableStore();
+  readonly settings = new RendererSettingsService();
 
   constructor(options: RendererAppOptions = {}) {
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
