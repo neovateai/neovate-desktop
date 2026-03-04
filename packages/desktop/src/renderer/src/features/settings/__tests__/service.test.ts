@@ -11,7 +11,7 @@ describe("SettingsService", () => {
     vi.useFakeTimers();
     load = vi
       .fn<SettingsServiceOptions["load"]>()
-      .mockResolvedValue({ preferences: { theme: "system", fontSize: 14, count: 5 } });
+      .mockResolvedValue({ preferences: { theme: "system", fontSize: 14 } });
     save = vi.fn<SettingsServiceOptions["save"]>();
     service = new SettingsService({ load, save });
   });
@@ -25,7 +25,7 @@ describe("SettingsService", () => {
     it("populates store from load()", async () => {
       await service.hydrate();
       expect(service.store.getState()).toEqual({
-        preferences: { theme: "system", fontSize: 14, count: 5 },
+        preferences: { theme: "system", fontSize: 14 },
       });
     });
 
@@ -41,14 +41,14 @@ describe("SettingsService", () => {
       await service.hydrate();
 
       const prefs = service.scoped("preferences");
-      prefs.set("count", 1);
-      prefs.set("count", 2);
-      prefs.set("count", 3);
+      prefs.set("fontSize", 12);
+      prefs.set("fontSize", 14);
+      prefs.set("fontSize", 16);
 
       vi.advanceTimersByTime(500);
       expect(save).toHaveBeenCalledTimes(1);
       expect(save).toHaveBeenCalledWith(
-        expect.objectContaining({ preferences: expect.objectContaining({ count: 3 }) }),
+        expect.objectContaining({ preferences: expect.objectContaining({ fontSize: 16 }) }),
       );
     });
 
@@ -56,7 +56,7 @@ describe("SettingsService", () => {
       await service.hydrate();
 
       const prefs = service.scoped("preferences");
-      prefs.set("count", 10);
+      prefs.set("fontSize", 20);
 
       vi.advanceTimersByTime(499);
       expect(save).not.toHaveBeenCalled();
@@ -71,13 +71,13 @@ describe("SettingsService", () => {
       await service.hydrate();
 
       const prefs = service.scoped("preferences");
-      prefs.set("count", 99);
+      prefs.set("fontSize", 20);
 
       // dispose before timer fires
       service.dispose();
       expect(save).toHaveBeenCalledTimes(1);
       expect(save).toHaveBeenCalledWith(
-        expect.objectContaining({ preferences: expect.objectContaining({ count: 99 }) }),
+        expect.objectContaining({ preferences: expect.objectContaining({ fontSize: 20 }) }),
       );
     });
 
@@ -99,9 +99,9 @@ describe("SettingsService", () => {
       await service.hydrate();
       const prefs = service.scoped("preferences");
 
-      expect(prefs.get("count")).toBe(5);
-      prefs.set("count", 10);
-      expect(prefs.get("count")).toBe(10);
+      expect(prefs.get("fontSize")).toBe(14);
+      prefs.set("fontSize", 20);
+      expect(prefs.get("fontSize")).toBe(20);
     });
 
     it("subscribe does not fire when value is unchanged (shallow equality)", async () => {
@@ -110,10 +110,10 @@ describe("SettingsService", () => {
       const listener = vi.fn();
       prefs.subscribe(listener);
 
-      prefs.set("count", 5); // same value as hydrated
+      prefs.set("fontSize", 14); // same value as hydrated
       expect(listener).not.toHaveBeenCalled();
 
-      prefs.set("count", 99);
+      prefs.set("fontSize", 20);
       expect(listener).toHaveBeenCalledTimes(1);
     });
 
@@ -122,10 +122,10 @@ describe("SettingsService", () => {
       const prefs = service.scoped("preferences");
       const all = prefs.getAll();
 
-      expect(all).toEqual({ theme: "system", fontSize: 14, count: 5 });
+      expect(all).toEqual({ theme: "system", fontSize: 14 });
       // mutating the copy does not affect store
-      (all as Record<string, unknown>).count = 999;
-      expect(prefs.get("count")).toBe(5);
+      (all as Record<string, unknown>).fontSize = 999;
+      expect(prefs.get("fontSize")).toBe(14);
     });
   });
 
@@ -150,7 +150,7 @@ describe("SettingsService", () => {
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       await service.hydrate();
-      service.scoped("preferences").set("count", 1);
+      service.scoped("preferences").set("fontSize", 20);
       vi.advanceTimersByTime(500);
 
       // flush is sync but the promise rejection is async
