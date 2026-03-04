@@ -90,7 +90,7 @@ describe("Storage router E2E", () => {
   });
 
   describe("merge → persisted to disk", () => {
-    it("writes multiple keys at once", async () => {
+    it("writes multiple top-level keys at once", async () => {
       await call(
         storageRouter.merge,
         { namespace: NS, object: { theme: "dark", fontSize: 14 } },
@@ -101,12 +101,41 @@ describe("Storage router E2E", () => {
       expect(data).toEqual({ theme: "dark", fontSize: 14 });
     });
 
-    it("merges with existing data", async () => {
+    it("preserves existing top-level keys not in the merged object", async () => {
       await call(storageRouter.set, { namespace: NS, key: "existing", value: "keep" }, { context });
       await call(storageRouter.merge, { namespace: NS, object: { added: "new" } }, { context });
 
       const data = readJsonFile(NS);
       expect(data).toEqual({ existing: "keep", added: "new" });
+    });
+
+    it("overwrites a top-level key when the merged object includes it", async () => {
+      await call(storageRouter.set, { namespace: NS, key: "theme", value: "light" }, { context });
+      await call(storageRouter.merge, { namespace: NS, object: { theme: "dark" } }, { context });
+
+      const data = readJsonFile(NS);
+      expect(data.theme).toBe("dark");
+    });
+
+    it("SHALLOW merge: replaces nested object entirely, does not deep-merge", async () => {
+      // Store a nested object with two keys
+      await call(
+        storageRouter.set,
+        { namespace: NS, key: "prefs", value: { fontSize: 14, theme: "light" } },
+        { context },
+      );
+
+      // merge with a partial nested object — only contains fontSize
+      await call(
+        storageRouter.merge,
+        { namespace: NS, object: { prefs: { fontSize: 16 } } },
+        { context },
+      );
+
+      const data = readJsonFile(NS);
+      // shallow merge replaces prefs entirely: theme is lost
+      expect(data.prefs).toEqual({ fontSize: 16 });
+      expect((data.prefs as any).theme).toBeUndefined();
     });
   });
 
