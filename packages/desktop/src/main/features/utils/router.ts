@@ -1,5 +1,5 @@
 import { spawn, execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync, rmSync, unlinkSync } from "node:fs";
 import debug from "debug";
 import { app } from "electron";
 import { implement } from "@orpc/server";
@@ -115,5 +115,28 @@ export const utilsRouter = os.utils.router({
       openAsHidden: true,
     });
     return { success: true };
+  }),
+  removeFile: os.utils.removeFile.handler(async ({ input }) => {
+    const { path } = input;
+    try {
+      if (!path) {
+        return { success: false, error: "Path is required" };
+      }
+      if (!existsSync(path)) {
+        return { success: false, error: "File does not exist" };
+      }
+      const stats = statSync(path);
+      if (stats.isDirectory()) {
+        rmSync(path, { recursive: true, force: true });
+      } else {
+        unlinkSync(path);
+      }
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
   }),
 });

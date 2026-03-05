@@ -1,3 +1,17 @@
 {
-  "git.title": "源代码管理"
+  "git.title": "源代码管理",
+  "git.notAGitRepository": "不是 Git 仓库",
+  "git.status": "状态",
+  "git.noProject": "未选择项目",
+  "git.loadingStatus": "正在加载 Git 状态...",
+  "git.noChanges": "没有更改",
+  "git.stagedChanges": "暂存的更改",
+  "git.workingChanges": "工作区更改",
+  "git.refreshStatus": "刷新 Git 状态",
+  "git.addToStage": "添加到暂存区",
+  "git.removeFromStage": "从暂存区移除",
+  "git.revertFile": "还原文件",
+  "git.addAllToStage": "暂存所有更改",
+  "git.removeAllFromStage": "取消所有暂存",
+  "git.revertAllFiles": "还原所有更改"
 }
