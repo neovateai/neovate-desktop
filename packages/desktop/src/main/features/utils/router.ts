@@ -8,6 +8,7 @@ import type { App } from "../../../shared/features/utils/types";
 import type { AppContext } from "../../router";
 import { getShellEnvironment } from "../agent/shell-env";
 import { searchPaths } from "./search-paths";
+import { searchWithContent } from "./search-content";
 
 const log = debug("neovate:utils-router");
 
@@ -106,6 +107,23 @@ export const utilsRouter = os.utils.router({
   searchPaths: os.utils.searchPaths.handler(async ({ input }) => {
     log("searchPaths request cwd=%s query=%s", input.cwd, input.query);
     return searchPaths(input.cwd, input.query, input.maxResults);
+  }),
+
+  searchWithContent: os.utils.searchWithContent.handler(async ({ input }) => {
+    log(
+      "searchWithContent request cwd=%s query=%s caseSensitive=%s exactMatch=%s",
+      input.cwd,
+      input.query,
+      input.caseSensitive,
+      input.exactMatch,
+    );
+    return searchWithContent(
+      input.cwd,
+      input.query,
+      input.caseSensitive,
+      input.exactMatch,
+      input.maxResults,
+    );
   }),
 
   setLoginItem: os.utils.setLoginItem.handler(async ({ input }) => {

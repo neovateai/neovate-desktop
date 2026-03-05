@@ -14,6 +14,7 @@ import type { ProjectTabState } from "../features/content-panel";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import terminalPlugin from "../plugins/terminal";
+import searchPlugin from "../plugins/search";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 
 import { client } from "../orpc";
@@ -83,6 +84,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   filesPlugin,
   gitPlugin,
   terminalPlugin,
+  searchPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
 ];

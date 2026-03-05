@@ -1,0 +1,17 @@
+{
+  "title": "Search",
+  "searchPlaceholder": "Search files...",
+  "noResults": "No results found",
+  "searching": "Searching...",
+  "resultsCount": "{{count}} result(s)",
+  "truncated": "Results truncated. Showing first {{count}} results.",
+  "noProject": "No project selected",
+  "error": {
+    "searchFailed": "Search failed: {{error}}"
+  },
+  "caseSensitive": "Case sensitive",
+  "exactMatch": "Whole word",
+  "matchesCount": "{{count}} matches",
+  "resultsFound": "{{count}} results found",
+  "performanceWarning": "Please enter at least 2 characters for better search performance"
+}
