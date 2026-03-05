@@ -29,7 +29,7 @@ export function usePrompt() {
       const promptStart = performance.now();
       let resolvedSessionId = sessionId;
       const projectPath = useProjectStore.getState().activeProject?.path;
-      const cwd = projectPath ?? process.cwd?.() ?? "";
+      const cwd = projectPath ?? "";
 
       if (!resolvedSessionId) {
         const sessionStart = performance.now();
