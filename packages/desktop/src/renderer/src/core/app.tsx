@@ -13,7 +13,8 @@ import { ContentPanel } from "../features/content-panel";
 import type { ProjectTabState } from "../features/content-panel";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
-import contentPanelDemoPlugin from "../plugins/content-panel-demo";
+import terminalPlugin from "../plugins/terminal";
+
 import { client } from "../orpc";
 import { SettingsService } from "../features/settings/service";
 import type { SettingsSchema } from "../../../shared/features/settings/schema";
@@ -80,6 +81,7 @@ function MenuCommandHandler() {
 const BUILTIN_PLUGINS: RendererPlugin[] = [
   filesPlugin,
   gitPlugin,
+  terminalPlugin,
   // contentPanelDemoPlugin
 ];
 

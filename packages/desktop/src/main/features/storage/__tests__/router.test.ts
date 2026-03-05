@@ -26,6 +26,7 @@ beforeEach(() => {
     configStore: {} as any,
     projectStore: {} as any,
     mainApp: {} as any,
+    stateStore: {} as any,
   };
 });
 

@@ -4,9 +4,10 @@ import { cn } from "../../lib/utils";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
 import { usePanelState } from "./store";
 
+
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 };
 
-export function AppLayoutContentPanel({ children }: { children: ReactNode }) {
+export function AppLayoutContentPanel({ children }: { children?: ReactNode }) {
   const { collapsed, width, isResizing } = usePanelState("contentPanel");
 
   return (
