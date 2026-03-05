@@ -6,10 +6,10 @@ import { EventPublisher } from "@orpc/server";
 // 防抖函数
 function debounce<T extends (...args: any[]) => any>(
   func: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout | null = null;
-  
+
   return (...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -44,7 +44,7 @@ export function watchWorkspace(
   }
   const watcher = chokidar.watch(dir, {
     ignored: [
-      /(^|[\/\\])\../, // 隐藏文件
+      /(^|[\\])\../, // 隐藏文件
       /node_modules/,
       "**/package-lock.json",
       "**/yarn.lock",
@@ -70,9 +70,9 @@ export function watchWorkspace(
   }>();
   cwdPublishers.set(dir, publisher);
   cwdWatchers.set(dir, watcher);
-  
+
   const debouncedOnFsChange = debounce(onFsChange, 300);
-  
+
   watcher
     .on("add", (e) => {
       console.log("add", e);
@@ -112,7 +112,7 @@ export function unwatchWorkspace(dir: string) {
     watcher.close();
     cwdWatchers.delete(dir);
   }
-  
+
   const publisher = cwdPublishers.get(dir);
   if (publisher) {
     cwdPublishers.delete(dir);

@@ -166,13 +166,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (!project) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">
-          {t("files.title")}
-        </h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-muted-foreground">
-            {t("files.noProject")}
-          </p>
+          <p className="text-xs text-muted-foreground">{t("files.noProject")}</p>
         </div>
       </div>
     );
@@ -181,9 +177,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (loading) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">
-          {t("files.title")}
-        </h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
         <div className="flex flex-1 items-center justify-center">
           <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
         </div>
@@ -194,17 +188,13 @@ function FilesViewComponent({ project }: FilesViewProps) {
   return (
     <div className="flex h-full flex-col p-3 overflow-hidden">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">
-          {t("files.title")}
-        </h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
       </div>
 
       <div className="flex-1 overflow-auto">
         {treeData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-xs text-muted-foreground">
-              {t("files.emptyDirectory")}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("files.emptyDirectory")}</p>
           </div>
         ) : (
           <div className="space-y-1">
