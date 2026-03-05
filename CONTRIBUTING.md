@@ -50,11 +50,32 @@ For renderer-side debug logs, set `localStorage.debug` in DevTools:
 localStorage.debug = "neovate:*";
 ```
 
+## AI Elements Playground
+
+A dev-only playground for previewing all `ai-elements` components with sample data.
+
+**Option 1 — env var (auto-loads on startup):**
+
+```sh
+VITE_AI_ELEMENTS_PLAYGROUND=1 bun dev
+```
+
+**Option 2 — hash navigation (works in a running dev session):**
+
+Open the app and navigate to `#playground` in the URL bar, or run in DevTools:
+
+```js
+window.location.hash = "#playground";
+```
+
+The playground is only available in dev mode (`import.meta.env.DEV`) and is excluded from production builds.
+
 ## Environment Variables
 
-| Variable                  | Default | Description                                                                         |
-| ------------------------- | ------- | ----------------------------------------------------------------------------------- |
-| `NEOVATE_PRELOAD_SESSION` | `all`   | `all` = preload all sessions, `latest` = only the most recent, `false` = no preload |
+| Variable                      | Default | Description                                                                         |
+| ----------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `NEOVATE_PRELOAD_SESSION`     | `all`   | `all` = preload all sessions, `latest` = only the most recent, `false` = no preload |
+| `VITE_AI_ELEMENTS_PLAYGROUND` | —       | Set to `1` to launch directly into the AI Elements playground on startup            |
 
 ## Code Style
 
