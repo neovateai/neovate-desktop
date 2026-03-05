@@ -19,6 +19,17 @@ export class PluginManager {
     return this.#plugins;
   }
 
+  /** Collect i18n contributions and register lazy namespaces */
+  async configI18n(ctx: PluginContext): Promise<void> {
+    const configs = this.#plugins
+      .filter((p) => typeof p.configI18n === "function")
+      .map((p) => p.configI18n!());
+
+    if (configs.length) {
+      ctx.app.i18nManager.setupLazyNamespaces(configs);
+    }
+  }
+
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
     const results = await this.applyParallel("configContributions");
