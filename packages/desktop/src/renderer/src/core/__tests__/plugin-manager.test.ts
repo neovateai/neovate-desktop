@@ -169,4 +169,35 @@ describe("PluginManager", () => {
       expect(deactivateFn).toHaveBeenCalledOnce();
     });
   });
+
+  describe("configI18n", () => {
+    it("returns contributions from plugins that have configI18n", async () => {
+      const pm = new PluginManager([
+        {
+          name: "plugin-test",
+          configI18n() {
+            return {
+              namespace: "plugin-test",
+              loader: async (locale) => {
+                if (locale === "en-US") return { "test.hello": "Hello" };
+                return { "test.hello": "你好" };
+              },
+            };
+          },
+        },
+        { name: "plugin-no-i18n" },
+      ]);
+
+      const configs = await pm.configI18n();
+
+      expect(configs).toHaveLength(1);
+      expect(configs[0].namespace).toBe("plugin-test");
+    });
+
+    it("returns empty array when no plugins have configI18n", async () => {
+      const pm = new PluginManager([{ name: "plugin-no-i18n" }]);
+      const configs = await pm.configI18n();
+      expect(configs).toHaveLength(0);
+    });
+  });
 });
