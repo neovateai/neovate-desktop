@@ -1,4 +1,5 @@
 import { buildContributions, PluginContributions } from "./contributions";
+import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 type HookFn = (...args: unknown[]) => unknown;
@@ -19,12 +20,9 @@ export class PluginManager {
     return this.#plugins;
   }
 
-  /** Collect i18n contributions and register lazy namespaces */
-  async configI18n(ctx: PluginContext): Promise<void> {
-    const configs = await this.applyParallel("configI18n");
-    if (configs.length) {
-      ctx.app.i18nManager.setupLazyNamespaces(configs);
-    }
+  /** Collect i18n contributions from all plugins */
+  async configI18n(): Promise<I18nContributions[]> {
+    return this.applyParallel("configI18n");
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */

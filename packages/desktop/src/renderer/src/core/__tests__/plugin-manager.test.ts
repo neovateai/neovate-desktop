@@ -171,14 +171,7 @@ describe("PluginManager", () => {
   });
 
   describe("configI18n", () => {
-    it("calls setupLazyNamespaces with contributions from plugins that have configI18n", async () => {
-      const setupLazyNamespaces = vi.fn();
-      const app = {
-        ...createMockApp(),
-        i18nManager: { setupLazyNamespaces } as unknown as IRendererApp["i18nManager"],
-      };
-      const ctx = { app, orpcClient: {} };
-
+    it("returns contributions from plugins that have configI18n", async () => {
       const pm = new PluginManager([
         {
           name: "plugin-test",
@@ -195,26 +188,16 @@ describe("PluginManager", () => {
         { name: "plugin-no-i18n" },
       ]);
 
-      await pm.configI18n(ctx);
+      const configs = await pm.configI18n();
 
-      expect(setupLazyNamespaces).toHaveBeenCalledOnce();
-      const [configs] = setupLazyNamespaces.mock.calls[0];
       expect(configs).toHaveLength(1);
       expect(configs[0].namespace).toBe("plugin-test");
     });
 
-    it("skips plugins without configI18n", async () => {
-      const setupLazyNamespaces = vi.fn();
-      const app = {
-        ...createMockApp(),
-        i18nManager: { setupLazyNamespaces } as unknown as IRendererApp["i18nManager"],
-      };
-      const ctx = { app, orpcClient: {} };
-
+    it("returns empty array when no plugins have configI18n", async () => {
       const pm = new PluginManager([{ name: "plugin-no-i18n" }]);
-      await pm.configI18n(ctx);
-
-      expect(setupLazyNamespaces).not.toHaveBeenCalled();
+      const configs = await pm.configI18n();
+      expect(configs).toHaveLength(0);
     });
   });
 });
