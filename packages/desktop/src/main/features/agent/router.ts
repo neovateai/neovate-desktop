@@ -10,9 +10,15 @@ import {
 
 const agentLog = debug("neovate:agent-router");
 
-function timingEntry(phase: string, label: string, durationMs: number): StreamEvent {
+function timingEntry(
+  sessionId: string,
+  phase: string,
+  label: string,
+  durationMs: number,
+): StreamEvent {
   return {
     type: "timing",
+    sessionId,
     entry: {
       phase,
       label,
@@ -119,8 +125,8 @@ export const agentRouter = os.agent.router({
       eventCount,
       permissionEventCount,
     );
-    yield timingEntry("loadSession", "time_to_first_event", ttfe);
-    yield timingEntry("loadSession", "total", totalMs);
+    yield timingEntry(input.sessionId, "loadSession", "time_to_first_event", ttfe);
+    yield timingEntry(input.sessionId, "loadSession", "total", totalMs);
     return { sessionId: input.sessionId };
   }),
 
@@ -208,8 +214,8 @@ export const agentRouter = os.agent.router({
       eventCount,
       permissionEventCount,
     );
-    yield timingEntry("prompt", "time_to_first_event", ttfe);
-    yield timingEntry("prompt", "total", totalMs);
+    yield timingEntry(input.sessionId, "prompt", "time_to_first_event", ttfe);
+    yield timingEntry(input.sessionId, "prompt", "total", totalMs);
     return { stopReason: "end_turn" };
   }),
 

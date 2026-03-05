@@ -20,13 +20,65 @@ export type TimingEntry = {
 export type SlashCommandInfo = { name: string; description?: string };
 
 // ---------------------------------------------------------------------------
+// Stop Reason Types
+// ---------------------------------------------------------------------------
+
+/** SDK result stop reasons - discriminated by result subtype */
+export type StopReason =
+  | "end_turn"
+  | "error"
+  | "error_during_execution"
+  | "error_max_turns"
+  | "error_max_budget_usd"
+  | "error_max_structured_output_retries"
+  | "tool_use"
+  | "stop_sequence"
+  | string; // Fallback for unknown reasons
+
+// ---------------------------------------------------------------------------
+// Rate Limit Types
+// ---------------------------------------------------------------------------
+
+export type RateLimitStatus = "allowed" | "allowed_warning" | "rejected";
+
+export type RateLimitType =
+  | "five_hour"
+  | "seven_day"
+  | "seven_day_opus"
+  | "seven_day_sonnet"
+  | "overage";
+
+export type RateLimitInfo = {
+  status: RateLimitStatus;
+  resetsAt?: number;
+  rateLimitType?: RateLimitType;
+  utilization?: number;
+};
+
+// ---------------------------------------------------------------------------
+// File Persistence Types
+// ---------------------------------------------------------------------------
+
+export type PersistedFile = {
+  filename: string;
+  fileId: string;
+};
+
+export type FailedFile = {
+  filename: string;
+  error: string;
+};
+
+// ---------------------------------------------------------------------------
 // Stream Events (main → renderer via oRPC eventIterator)
 // ---------------------------------------------------------------------------
 
 /** What the eventIterator yields to the renderer */
 export type StreamEvent =
+  // ── Content events ──
   | { type: "text_delta"; sessionId: string; text: string }
   | { type: "thinking_delta"; sessionId: string; text: string }
+  | { type: "user_message"; sessionId: string; text: string }
   /**
    * @deprecated Use `tool_input_available` / `tool_output_available` / `tool_output_error` instead.
    * Kept for backward compatibility during migration.
@@ -45,19 +97,40 @@ export type StreamEvent =
       text: string;
       images?: Array<{ mediaType: string; base64: string }>;
     }
+  // ── Structured tool events ──
+  | {
+      type: "tool_input_available";
+      sessionId: string;
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      parentToolUseId?: string;
+    }
+  | { type: "tool_output_available"; sessionId: string; toolCallId: string; output: string }
+  | { type: "tool_output_error"; sessionId: string; toolCallId: string; errorText: string }
+  // ── Session lifecycle events ──
   | {
       type: "result";
       sessionId: string;
-      stopReason: string;
+      stopReason: StopReason;
       costUsd?: number;
       durationMs?: number;
       inputTokens?: number;
       outputTokens?: number;
+      isError?: boolean;
+      errors?: string[];
     }
-  | { type: "permission_request"; requestId: string; toolName: string; input: unknown }
+  | {
+      type: "permission_request";
+      sessionId: string;
+      requestId: string;
+      toolName: string;
+      input: unknown;
+    }
   | { type: "available_commands"; sessionId: string; commands: SlashCommandInfo[] }
-  | { type: "timing"; entry: TimingEntry }
   | { type: "status"; sessionId: string; message: string }
+  | { type: "timing"; sessionId: string; entry: TimingEntry }
+  // ── Task/subagent events ──
   | {
       type: "task_started";
       sessionId: string;
@@ -80,6 +153,29 @@ export type StreamEvent =
       taskId: string;
       status: "completed" | "failed" | "stopped";
       summary: string;
+    }
+  // ── Rate limiting ──
+  | {
+      type: "rate_limit";
+      sessionId: string;
+      rateLimitInfo: RateLimitInfo;
+    }
+  // ── Session management ──
+  | {
+      type: "compact_boundary";
+      sessionId: string;
+      trigger: "manual" | "auto";
+      preTokens: number;
+    }
+  // ── User feedback ──
+  | { type: "local_command_output"; sessionId: string; content: string }
+  | { type: "prompt_suggestion"; sessionId: string; suggestion: string }
+  // ── File operations ──
+  | {
+      type: "files_persisted";
+      sessionId: string;
+      files: PersistedFile[];
+      failed: FailedFile[];
     }
   // ── New structured tool events ──
   | {
@@ -165,7 +261,7 @@ export type LoadSessionResult = {
 
 /** Final return value when prompt completes */
 export type PromptResult = {
-  stopReason: string;
+  stopReason: StopReason;
 };
 
 // ---------------------------------------------------------------------------

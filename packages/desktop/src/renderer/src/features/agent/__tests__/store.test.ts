@@ -132,6 +132,7 @@ describe("AgentStore", () => {
 
     useAgentStore.getState().appendChunk("s1", {
       type: "permission_request",
+      sessionId: "s1",
       requestId: "req1",
       toolName: "Edit",
       input: { file: "test.ts" },

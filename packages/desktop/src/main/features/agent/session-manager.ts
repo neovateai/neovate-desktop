@@ -46,6 +46,8 @@ export class SessionManager {
   private pendingPermissions = new Map<string, PendingPermission>();
   private requestIdCounter = 0;
   private permissionEmitter: PermissionEmitter | null = null;
+  /** Current active session ID for permission requests */
+  private activeSessionId: string | null = null;
 
   private async buildOptions(cwd: string, model?: string): Promise<Options> {
     const t0 = performance.now();
@@ -115,17 +117,18 @@ export class SessionManager {
         });
 
         // Emit permission request event for the renderer
-        if (this.permissionEmitter) {
+        if (this.permissionEmitter && this.activeSessionId) {
           log("canUseTool: emitting permission_request to renderer requestId=%s", requestId);
           this.permissionEmitter({
             type: "permission_request",
+            sessionId: this.activeSessionId,
             requestId,
             toolName,
             input,
           });
         } else {
           log(
-            "canUseTool: WARNING no permissionEmitter set, requestId=%s will hang until timeout",
+            "canUseTool: WARNING no permissionEmitter or activeSessionId set, requestId=%s will hang until timeout",
             requestId,
           );
         }
@@ -221,7 +224,8 @@ export class SessionManager {
       );
     }
 
-    // Set permission emitter so canUseTool can forward events
+    // Set active session and permission emitter so canUseTool can forward events
+    this.activeSessionId = sessionId;
     this.permissionEmitter = emitter;
     let eventCount = 0;
     let sdkMsgCount = 0;
@@ -308,6 +312,7 @@ export class SessionManager {
       );
       throw error;
     } finally {
+      this.activeSessionId = null;
       this.permissionEmitter = null;
       log(
         "prompt: DONE sessionId=%s in %dms sdkMsgs=%d events=%d",
@@ -339,6 +344,8 @@ export class SessionManager {
     const q = query({ prompt: input, options: { ...options, resume: sessionId } });
     this.sessions.set(sessionId, { query: q, input, cwd: resolvedCwd });
 
+    // Set active session and permission emitter
+    this.activeSessionId = sessionId;
     if (emitter) {
       this.permissionEmitter = emitter;
     }
@@ -383,6 +390,7 @@ export class SessionManager {
       );
       throw error;
     } finally {
+      this.activeSessionId = null;
       if (emitter) {
         this.permissionEmitter = null;
       }
@@ -763,6 +771,8 @@ export class SessionManager {
           durationMs: msg.duration_ms,
           inputTokens: msg.usage?.input_tokens,
           outputTokens: msg.usage?.output_tokens,
+          isError: msg.is_error,
+          errors: "errors" in msg ? (msg as any).errors : undefined,
         };
         break;
       }
@@ -847,7 +857,87 @@ export class SessionManager {
               yield { type: "available_commands", sessionId, commands };
             }
           }
+          if (msg.subtype === "compact_boundary") {
+            const compactMsg = msg as Extract<
+              SDKMessage,
+              { type: "system"; subtype: "compact_boundary" }
+            >;
+            log(
+              "convert:   compact_boundary trigger=%s preTokens=%d",
+              compactMsg.compact_metadata?.trigger,
+              compactMsg.compact_metadata?.pre_tokens,
+            );
+            yield {
+              type: "compact_boundary",
+              sessionId,
+              trigger: compactMsg.compact_metadata?.trigger ?? "auto",
+              preTokens: compactMsg.compact_metadata?.pre_tokens ?? 0,
+            };
+          }
+          if (msg.subtype === "local_command_output") {
+            const localMsg = msg as Extract<
+              SDKMessage,
+              { type: "system"; subtype: "local_command_output" }
+            >;
+            log("convert:   local_command_output len=%d", localMsg.content?.length ?? 0);
+            yield {
+              type: "local_command_output",
+              sessionId,
+              content: localMsg.content ?? "",
+            };
+          }
+          if (msg.subtype === "files_persisted") {
+            const filesMsg = msg as Extract<
+              SDKMessage,
+              { type: "system"; subtype: "files_persisted" }
+            >;
+            log(
+              "convert:   files_persisted files=%d failed=%d",
+              filesMsg.files?.length ?? 0,
+              filesMsg.failed?.length ?? 0,
+            );
+            yield {
+              type: "files_persisted",
+              sessionId,
+              files: (filesMsg.files ?? []).map((f: any) => ({
+                filename: f.filename,
+                fileId: f.file_id,
+              })),
+              failed: (filesMsg.failed ?? []).map((f: any) => ({
+                filename: f.filename,
+                error: f.error,
+              })),
+            };
+          }
         }
+        break;
+      }
+
+      case "rate_limit_event": {
+        const rateLimitMsg = msg as Extract<SDKMessage, { type: "rate_limit_event" }>;
+        const info = rateLimitMsg.rate_limit_info;
+        log("convert: rate_limit_event status=%s type=%s", info?.status, info?.rateLimitType);
+        yield {
+          type: "rate_limit",
+          sessionId,
+          rateLimitInfo: {
+            status: info?.status ?? "allowed",
+            resetsAt: info?.resetsAt,
+            rateLimitType: info?.rateLimitType,
+            utilization: info?.utilization,
+          },
+        };
+        break;
+      }
+
+      case "prompt_suggestion": {
+        const suggestionMsg = msg as Extract<SDKMessage, { type: "prompt_suggestion" }>;
+        log("convert: prompt_suggestion len=%d", suggestionMsg.suggestion?.length ?? 0);
+        yield {
+          type: "prompt_suggestion",
+          sessionId,
+          suggestion: suggestionMsg.suggestion,
+        };
         break;
       }
 
