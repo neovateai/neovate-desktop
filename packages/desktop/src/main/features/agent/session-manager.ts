@@ -141,6 +141,7 @@ export class SessionManager {
       env,
       canUseTool,
       permissionMode: "default",
+      settingSources: ["user", "project", "local"],
     };
   }
 
