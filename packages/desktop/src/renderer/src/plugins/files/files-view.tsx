@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ContractRouterClient } from "@orpc/contract";
+import { consumeEventIterator } from "@orpc/client";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
@@ -29,6 +30,23 @@ function FilesViewComponent({ project }: FilesViewProps) {
     if (project) {
       loadFileTree();
     }
+  }, [project]);
+
+  useEffect(() => {
+    if (!project) return;
+
+    const cancel = consumeEventIterator(client.files.watch({ cwd: project.path }), {
+      onEvent: (event) => {
+        console.log("[files:watch]", event);
+      },
+      onError: (err) => {
+        console.error("[files:watch] error:", err);
+      },
+    });
+
+    return () => {
+      cancel();
+    };
   }, [project]);
 
   const loadFileTree = async () => {

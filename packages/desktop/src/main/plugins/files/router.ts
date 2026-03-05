@@ -1,7 +1,37 @@
 import type { PluginContext } from "../../core/plugin/types";
+import type { FileWatchEvent } from "../../../shared/plugins/files/contract";
+import { EventPublisher } from "@orpc/server";
 import fs from "fs";
 import path from "path";
 import { getFileTree } from "./tree";
+
+export const filesPublisher = new EventPublisher<{
+  "file-changed": FileWatchEvent;
+}>();
+
+// Simulate periodic events for testing the push channel
+let mockInterval: ReturnType<typeof setInterval> | undefined;
+
+export function startMockFileEvents(cwd: string) {
+  stopMockFileEvents();
+  const types: FileWatchEvent["type"][] = ["create", "update", "delete"];
+  let tick = 0;
+  mockInterval = setInterval(() => {
+    filesPublisher.publish("file-changed", {
+      type: types[tick % types.length],
+      path: `${cwd}/mock-file-${tick}.txt`,
+      timestamp: Date.now(),
+    });
+    tick++;
+  }, 3000);
+}
+
+export function stopMockFileEvents() {
+  if (mockInterval) {
+    clearInterval(mockInterval);
+    mockInterval = undefined;
+  }
+}
 
 export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
   return orpcServer.router({
@@ -71,6 +101,13 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
           success: false,
           error: error instanceof Error ? error.message : "Unknown error occurred",
         };
+      }
+    }),
+    watch: orpcServer.handler(async function* ({ input, signal }) {
+      const { cwd } = input as { cwd: string };
+      startMockFileEvents(cwd);
+      for await (const event of filesPublisher.subscribe("file-changed", { signal })) {
+        yield event;
       }
     }),
   });
