@@ -72,11 +72,7 @@ export function setupApplicationMenu(mainWindow: BrowserWindow | null): void {
         { role: "minimize" },
         { role: "close" },
         ...(isMac
-          ? [
-              { role: "zoom" as const },
-              { type: "separator" as const },
-              { role: "front" as const },
-            ]
+          ? [{ role: "zoom" as const }, { type: "separator" as const }, { role: "front" as const }]
           : []),
       ],
     },
