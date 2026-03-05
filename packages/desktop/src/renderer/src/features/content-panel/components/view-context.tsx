@@ -1,46 +1,55 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { useStore, type StoreApi } from "zustand";
+import { useStore } from "zustand";
+import { useRendererApp } from "../../../core";
 import type { ContentPanelStoreState } from "../types";
 
-interface ViewContextValue {
-  store: StoreApi<ContentPanelStoreState>;
-  instanceId: string;
-  projectPath: string;
-}
+const ViewIdContext = createContext<string | null>(null);
 
-const ViewContext = createContext<ViewContextValue | null>(null);
-
-export function ViewContextProvider({
-  store,
-  instanceId,
-  projectPath,
+export function ContentPanelViewContextProvider({
+  viewId,
   children,
 }: {
-  store: StoreApi<ContentPanelStoreState>;
-  instanceId: string;
-  projectPath: string;
+  viewId: string;
   children: ReactNode;
 }) {
   return (
-    <ViewContext.Provider value={{ store, instanceId, projectPath }}>
-      {children}
-    </ViewContext.Provider>
+    <ViewIdContext.Provider value={viewId}>{children}</ViewIdContext.Provider>
   );
 }
 
-export function useInstanceId(): string {
-  const context = useContext(ViewContext);
-  if (!context)
-    throw new Error("useInstanceId must be used within ViewContextProvider");
-  return context.instanceId;
+export interface ContentPanelViewContextValue {
+  viewId: string;
+  viewState: Record<string, unknown>;
+  isActive: boolean;
 }
 
-export function useViewState(): Record<string, unknown> {
-  const context = useContext(ViewContext);
-  if (!context)
-    throw new Error("useViewState must be used within ViewContextProvider");
-  return useStore(
-    context.store,
-    (s) => s.getTab(context.projectPath, context.instanceId)?.state ?? {},
-  );
+const EMPTY_STATE: Record<string, unknown> = {};
+
+export function useContentPanelViewContext(): ContentPanelViewContextValue {
+  const viewId = useContext(ViewIdContext);
+  if (!viewId)
+    throw new Error(
+      "useContentPanelViewContext must be used within ContentPanelViewContextProvider",
+    );
+
+  const app = useRendererApp();
+  const contentPanel = app.workbench.contentPanel;
+
+  const viewState = useStore(contentPanel.store, (s: ContentPanelStoreState) => {
+    for (const [, ps] of Object.entries(s.projects)) {
+      const tab = ps.tabs.find((t) => t.id === viewId);
+      if (tab) return tab.state;
+    }
+    return EMPTY_STATE;
+  });
+
+  const isActive = useStore(contentPanel.store, (s: ContentPanelStoreState) => {
+    for (const [, ps] of Object.entries(s.projects)) {
+      const tab = ps.tabs.find((t) => t.id === viewId);
+      if (tab) return ps.activeTabId === viewId;
+    }
+    return false;
+  });
+
+  return { viewId, viewState, isActive };
 }

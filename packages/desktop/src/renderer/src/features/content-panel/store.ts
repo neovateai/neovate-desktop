@@ -69,9 +69,9 @@ export function createContentPanelStore() {
         return get().projects[projectPath] ?? EMPTY_PROJECT;
       },
 
-      findTabByViewId(projectPath, viewId) {
+      findTabByViewType(projectPath, viewType) {
         return get().projects[projectPath]?.tabs.find(
-          (t) => t.viewId === viewId,
+          (t) => t.viewType === viewType,
         );
       },
 

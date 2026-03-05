@@ -25,7 +25,6 @@ describe("RendererApp", () => {
     expect(app.workbench).toBeDefined();
     expect(app.workbench.contentPanel).toBeDefined();
     expect(typeof app.workbench.contentPanel.openView).toBe("function");
-    expect(typeof app.workbench.contentPanel.hook).toBe("function");
   });
 
   it("stop() deactivates plugins and disposes subscriptions", async () => {

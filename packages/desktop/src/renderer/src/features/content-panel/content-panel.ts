@@ -1,40 +1,7 @@
 import type { StoreApi } from "zustand/vanilla";
-import { Hookable } from "hookable";
 import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
 import { createContentPanelStore } from "./store";
-
-interface ViewContext {
-  viewId: string;
-  instanceId: string;
-}
-
-export interface ContentPanelHooks {
-  opened: (
-    context: ViewContext & { props: Record<string, unknown> },
-  ) => void | Promise<void>;
-  closed: (context: ViewContext) => void | Promise<void>;
-  activated: (context: ViewContext) => void;
-  deactivated: (context: ViewContext) => void;
-}
-
-// beforeClose is handled separately via callHookWith + bailCaller
-// because hookable's HookCallback type only allows void returns.
-// We store beforeClose handlers in the same hook registry but bypass
-// the type system at the boundary.
-type BeforeCloseHandler = (
-  context: ViewContext,
-) => boolean | Promise<boolean>;
-
-async function bailCaller(
-  hooks: ((...args: any[]) => any)[],
-  args: unknown[],
-): Promise<boolean> {
-  for (const hook of hooks) {
-    if ((await hook(...args)) === false) return false;
-  }
-  return true;
-}
 
 export interface ContentPanelOptions {
   views: ContentPanelView[];
@@ -44,7 +11,7 @@ export interface ContentPanelOptions {
 
 const DEBOUNCE_MS = 100;
 
-export class ContentPanel extends Hookable<ContentPanelHooks> {
+export class ContentPanel {
   private views: ContentPanelView[];
   private projectPath: string = "";
   private options: ContentPanelOptions;
@@ -54,7 +21,6 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
   readonly store: StoreApi<ContentPanelStoreState>;
 
   constructor(options: ContentPanelOptions) {
-    super();
     this.options = options;
     this.views = options.views;
     this.store = createContentPanelStore();
@@ -68,9 +34,9 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
     this.observe();
   }
 
-  /** Returns the set of registered view IDs. */
-  get registeredViewIds(): Set<string> {
-    return new Set(this.views.map((v) => v.id));
+  /** Returns the set of registered view types. */
+  get registeredViewTypes(): Set<string> {
+    return new Set(this.views.map((v) => v.viewType));
   }
 
   private observe(): void {
@@ -100,29 +66,23 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
     this.unsubscribe?.();
   }
 
-  /** Register a beforeClose guard. Returns unsubscribe function. */
-  onBeforeClose(handler: BeforeCloseHandler): () => void {
-    return (this as any).hook("beforeClose", handler);
-  }
-
   setProjectPath(path: string): void {
     this.projectPath = path;
   }
 
-  async openView(
-    viewId: string,
-    options?: { name?: string; props?: Record<string, unknown>; activate?: boolean },
-  ): Promise<string> {
-    const view = this.views.find((v) => v.id === viewId);
-    if (!view) throw new Error(`Unknown view: ${viewId}`);
+  openView(
+    viewType: string,
+    options?: { name?: string; activate?: boolean },
+  ): string {
+    const view = this.views.find((v) => v.viewType === viewType);
+    if (!view) throw new Error(`Unknown view: ${viewType}`);
 
     const store = this.store.getState();
-    const props = options?.props ?? {};
     const activate = options?.activate !== false;
 
     // Singleton (default true): activate existing if present (per-project)
     if (view.singleton !== false) {
-      const existing = store.findTabByViewId(this.projectPath, viewId);
+      const existing = store.findTabByViewType(this.projectPath, viewType);
       if (existing) {
         if (activate) this.activateView(existing.id);
         return existing.id;
@@ -131,70 +91,39 @@ export class ContentPanel extends Hookable<ContentPanelHooks> {
 
     const tab: Tab = {
       id: crypto.randomUUID(),
-      viewId,
+      viewType,
       name: options?.name ?? view.name,
       state: {},
     };
 
     store.addTab(this.projectPath, tab, activate);
-    await this.callHook("opened", { viewId, instanceId: tab.id, props });
     return tab.id;
   }
 
-  async closeView(instanceId: string): Promise<void> {
-    const store = this.store.getState();
-    const tab = store.getTab(this.projectPath, instanceId);
-    if (!tab) return;
-
-    const context = { viewId: tab.viewId, instanceId };
-    const allowed = await (this as any).callHookWith(bailCaller, "beforeClose", [
-      context,
-    ]);
-    if (allowed === false) return;
-
-    store.removeTab(this.projectPath, instanceId);
-    await this.callHook("closed", context);
+  closeView(viewId: string): void {
+    this.store.getState().removeTab(this.projectPath, viewId);
   }
 
-  activateView(instanceId: string): void {
-    const store = this.store.getState();
-    const projectState = store.getProjectState(this.projectPath);
-    const prevId = projectState.activeTabId;
-    const prevTab = prevId
-      ? store.getTab(this.projectPath, prevId)
-      : undefined;
-    const nextTab = store.getTab(this.projectPath, instanceId);
-
-    if (prevTab && prevTab.id !== instanceId) {
-      this.callHook("deactivated", {
-        viewId: prevTab.viewId,
-        instanceId: prevTab.id,
-      });
-    }
-
-    store.setActiveTab(this.projectPath, instanceId);
-
-    if (nextTab) {
-      this.callHook("activated", { viewId: nextTab.viewId, instanceId });
-    }
+  activateView(viewId: string): void {
+    this.store.getState().setActiveTab(this.projectPath, viewId);
   }
 
-  updateView(instanceId: string, patch: { name?: string }): void {
-    this.store.getState().updateTab(this.projectPath, instanceId, patch);
+  updateView(viewId: string, patch: { name?: string }): void {
+    this.store.getState().updateTab(this.projectPath, viewId, patch);
   }
 
-  getViewState(instanceId: string): Record<string, unknown> {
+  getViewState(viewId: string): Record<string, unknown> {
     return (
-      this.store.getState().getTab(this.projectPath, instanceId)?.state ?? {}
+      this.store.getState().getTab(this.projectPath, viewId)?.state ?? {}
     );
   }
 
   updateViewState(
-    instanceId: string,
+    viewId: string,
     patch: Record<string, unknown>,
   ): void {
     this.store
       .getState()
-      .updateTabState(this.projectPath, instanceId, patch);
+      .updateTabState(this.projectPath, viewId, patch);
   }
 }

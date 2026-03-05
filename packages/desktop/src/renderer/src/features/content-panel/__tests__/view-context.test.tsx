@@ -1,26 +1,32 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
 import {
-  ViewContextProvider,
-  useInstanceId,
-  useViewState,
+  ContentPanelViewContextProvider,
+  useContentPanelViewContext,
 } from "../components/view-context";
 import { ContentPanel } from "../content-panel";
 import type { ContentPanelView } from "../../../core/plugin/contributions";
 
+// Mock useRendererApp to return our test contentPanel
+let panel: ContentPanel;
+
+vi.mock("../../../core", () => ({
+  useRendererApp: () => ({
+    workbench: { contentPanel: panel },
+  }),
+}));
+
 const PROJECT = "/test/project";
 const VIEWS: ContentPanelView[] = [
   {
-    id: "terminal",
+    viewType: "terminal",
     name: "Terminal",
     singleton: false,
     component: () => Promise.resolve({ default: () => null }),
   },
 ];
-
-let panel: ContentPanel;
 
 beforeEach(() => {
   panel = new ContentPanel({
@@ -31,38 +37,51 @@ beforeEach(() => {
   panel.setProjectPath(PROJECT);
   panel.store.getState().addTab(PROJECT, {
     id: "tab-1",
-    viewId: "terminal",
+    viewType: "terminal",
     name: "Terminal",
     state: { cwd: "/home" },
   });
+  panel.store.getState().setActiveTab(PROJECT, "tab-1");
 });
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <ViewContextProvider
-      store={panel.store}
-      instanceId="tab-1"
-      projectPath={PROJECT}
-    >
+    <ContentPanelViewContextProvider viewId="tab-1">
       {children}
-    </ViewContextProvider>
+    </ContentPanelViewContextProvider>
   );
 }
 
-describe("useInstanceId", () => {
-  it("returns the instance id from context", () => {
-    const { result } = renderHook(() => useInstanceId(), { wrapper });
-    expect(result.current).toBe("tab-1");
+describe("useContentPanelViewContext", () => {
+  it("returns viewId from context", () => {
+    const { result } = renderHook(() => useContentPanelViewContext(), { wrapper });
+    expect(result.current.viewId).toBe("tab-1");
+  });
+
+  it("returns viewState from store", () => {
+    const { result } = renderHook(() => useContentPanelViewContext(), { wrapper });
+    expect(result.current.viewState).toEqual({ cwd: "/home" });
+  });
+
+  it("returns isActive when tab is active", () => {
+    const { result } = renderHook(() => useContentPanelViewContext(), { wrapper });
+    expect(result.current.isActive).toBe(true);
+  });
+
+  it("returns isActive false when tab is not active", () => {
+    panel.store.getState().addTab(PROJECT, {
+      id: "tab-2",
+      viewType: "terminal",
+      name: "Terminal 2",
+      state: {},
+    });
+    panel.store.getState().setActiveTab(PROJECT, "tab-2");
+
+    const { result } = renderHook(() => useContentPanelViewContext(), { wrapper });
+    expect(result.current.isActive).toBe(false);
   });
 
   it("throws outside provider", () => {
-    expect(() => renderHook(() => useInstanceId())).toThrow();
-  });
-});
-
-describe("useViewState", () => {
-  it("returns the tab state from store", () => {
-    const { result } = renderHook(() => useViewState(), { wrapper });
-    expect(result.current).toEqual({ cwd: "/home" });
+    expect(() => renderHook(() => useContentPanelViewContext())).toThrow();
   });
 });

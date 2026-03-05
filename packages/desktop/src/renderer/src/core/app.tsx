@@ -77,7 +77,11 @@ function MenuCommandHandler() {
   return null;
 }
 
-const BUILTIN_PLUGINS: RendererPlugin[] = [filesPlugin, gitPlugin, contentPanelDemoPlugin];
+const BUILTIN_PLUGINS: RendererPlugin[] = [
+  filesPlugin,
+  gitPlugin,
+  // contentPanelDemoPlugin
+];
 
 export interface RendererAppOptions {
   plugins?: RendererPlugin[];
@@ -112,7 +116,8 @@ export class RendererApp implements IRendererApp {
           const data = await client.storage.get({ namespace: "contentPanel", key: "projects" });
           return (data as Record<string, ProjectTabState>) ?? {};
         },
-        save: (data) => client.storage.set({ namespace: "contentPanel", key: "projects", value: data }),
+        save: (data) =>
+          client.storage.set({ namespace: "contentPanel", key: "projects", value: data }),
       }),
     };
   }

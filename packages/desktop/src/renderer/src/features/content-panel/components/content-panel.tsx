@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { useRendererApp } from "../../../core";
 import { useProjectStore } from "../../project/store";
 import { cn } from "../../../lib/utils";
-import { ViewContextProvider } from "./view-context";
+import { ContentPanelViewContextProvider } from "./view-context";
 import { TabBar } from "./tab-bar";
 import type { ContentPanelView } from "../../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../types";
@@ -13,8 +13,8 @@ function useLazyComponents(views: ContentPanelView[]) {
     new Map<string, React.LazyExoticComponent<React.ComponentType>>(),
   );
   for (const view of views) {
-    if (!cache.current.has(view.id)) {
-      cache.current.set(view.id, lazy(view.component));
+    if (!cache.current.has(view.viewType)) {
+      cache.current.set(view.viewType, lazy(view.component));
     }
   }
   return cache.current;
@@ -104,7 +104,7 @@ export function ContentPanelRenderer() {
       <TabBar
         tabs={tabs}
         activeTabId={activeTabId}
-        registeredViewIds={contentPanel.registeredViewIds}
+        registeredViewTypes={contentPanel.registeredViewTypes}
       />
 
       <div className="relative min-h-0 flex-1">
@@ -115,8 +115,8 @@ export function ContentPanelRenderer() {
             return (
               <div key={path} style={{ display: isActiveProject ? "contents" : "none" }}>
                 {state.tabs.map((tab) => {
-                  const view = views.find((v) => v.id === tab.viewId);
-                  const LazyComponent = view ? lazyComponents.get(tab.viewId) : undefined;
+                  const view = views.find((v) => v.viewType === tab.viewType);
+                  const LazyComponent = view ? lazyComponents.get(tab.viewType) : undefined;
                   if (!view || !LazyComponent) return null;
                   return (
                     <TabViewWithActivity
@@ -125,13 +125,9 @@ export function ContentPanelRenderer() {
                       deactivation={view.deactivation}
                     >
                       <Suspense>
-                        <ViewContextProvider
-                          store={contentPanel.store}
-                          instanceId={tab.id}
-                          projectPath={path}
-                        >
+                        <ContentPanelViewContextProvider viewId={tab.id}>
                           <LazyComponent />
-                        </ViewContextProvider>
+                        </ContentPanelViewContextProvider>
                       </Suspense>
                     </TabViewWithActivity>
                   );

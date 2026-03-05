@@ -24,7 +24,7 @@ export interface SecondarySidebarView {
 }
 
 export interface ContentPanelView {
-  id: string;
+  viewType: string;
   name: string;
   icon?: React.ComponentType<{ className?: string }>;
   singleton?: boolean; // default true; per-project scope

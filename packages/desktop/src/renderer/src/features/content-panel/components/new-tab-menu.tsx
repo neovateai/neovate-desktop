@@ -5,7 +5,9 @@ import { useRendererApp } from "../../../core";
 import { useProjectStore } from "../../project/store";
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/menu";
 import { Button } from "../../../components/ui/button";
-import type { ContentPanelStoreState } from "../types";
+import type { ContentPanelStoreState, Tab } from "../types";
+
+const EMPTY_TABS: Tab[] = [];
 
 export function NewTabMenu() {
   const app = useRendererApp();
@@ -15,9 +17,9 @@ export function NewTabMenu() {
 
   const tabs = useStore(
     contentPanel.store,
-    (s: ContentPanelStoreState) => s.projects[projectPath]?.tabs ?? [],
+    (s: ContentPanelStoreState) => s.projects[projectPath]?.tabs ?? EMPTY_TABS,
   );
-  const openViewIds = useMemo(() => new Set(tabs.map((t) => t.viewId)), [tabs]);
+  const openViewTypes = useMemo(() => new Set(tabs.map((t) => t.viewType)), [tabs]);
 
   return (
     <Menu>
@@ -30,12 +32,12 @@ export function NewTabMenu() {
       </MenuTrigger>
       <MenuPopup side="bottom" align="start">
         {views.map((view) => {
-          const disabled = view.singleton !== false && openViewIds.has(view.id);
+          const disabled = view.singleton !== false && openViewTypes.has(view.viewType);
           return (
             <MenuItem
-              key={view.id}
+              key={view.viewType}
               disabled={disabled}
-              onClick={() => contentPanel.openView(view.id)}
+              onClick={() => contentPanel.openView(view.viewType)}
             >
               {view.icon && <view.icon className="size-3.5" />}
               {view.name}

@@ -6,11 +6,11 @@ import { NewTabMenu } from "./new-tab-menu";
 export function TabBar({
   tabs,
   activeTabId,
-  registeredViewIds,
+  registeredViewTypes,
 }: {
   tabs: Tab[];
   activeTabId: string | null;
-  registeredViewIds: Set<string>;
+  registeredViewTypes: Set<string>;
 }) {
   return (
     <div className="flex items-center border-b border-border px-1.5 py-1">
@@ -21,7 +21,7 @@ export function TabBar({
               key={tab.id}
               tab={tab}
               isActive={activeTabId === tab.id}
-              isOrphan={!registeredViewIds.has(tab.viewId)}
+              isOrphan={!registeredViewTypes.has(tab.viewType)}
             />
           ))}
         </div>

@@ -14,7 +14,8 @@ function TabButton({
   isActive: boolean;
   isOrphan: boolean;
 }) {
-  const contentPanel = useRendererApp().workbench.contentPanel;
+  const app = useRendererApp();
+  const contentPanel = app.workbench.contentPanel;
 
   return (
     <div

@@ -1,6 +1,6 @@
 export type Tab = {
   id: string; // stable crypto.randomUUID()
-  viewId: string; // references ContentPanelView.id
+  viewType: string; // references ContentPanelView.viewType
   name: string; // displayed in tab bar
   state: Record<string, unknown>; // plugin-managed restorable state, persisted with tab
 };
@@ -23,6 +23,6 @@ export interface ContentPanelStoreState {
   ): void;
   getTab(projectPath: string, tabId: string): Tab | undefined;
   getProjectState(projectPath: string): ProjectTabState;
-  findTabByViewId(projectPath: string, viewId: string): Tab | undefined;
+  findTabByViewType(projectPath: string, viewType: string): Tab | undefined;
   removeProject(projectPath: string): void;
 }

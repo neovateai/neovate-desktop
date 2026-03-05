@@ -17,14 +17,14 @@ const plugin: RendererPlugin = {
     return {
       contentPanelViews: [
         {
-          id: "demo-singleton",
+          viewType: "demo-singleton",
           name: "Demo (Singleton)",
           singleton: true,
           icon: SingletonIcon,
           component: () => import("./demo-view"),
         },
         {
-          id: "demo-multi",
+          viewType: "demo-multi",
           name: "Demo (Multi)",
           singleton: false,
           icon: MultiIcon,
