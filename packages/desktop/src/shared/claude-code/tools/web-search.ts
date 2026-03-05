@@ -1,9 +1,7 @@
-import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
-import { type UIToolInvocation } from "ai";
+import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const WebSearch = createProviderToolFactoryWithOutputSchema({
-  id: "claude-code.WebSearch",
+export const WebSearch = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#websearch
   inputSchema: z.object({
     /**
@@ -21,6 +19,6 @@ export const WebSearch = createProviderToolFactoryWithOutputSchema({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#websearch-2
   outputSchema: z.string(),
-})({});
+});
 
 export type WebSearchUIToolInvocation = UIToolInvocation<typeof WebSearch>;

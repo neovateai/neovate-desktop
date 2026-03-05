@@ -1,9 +1,7 @@
-import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
-import { type UIToolInvocation } from "ai";
+import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const BashOutput = createProviderToolFactoryWithOutputSchema({
-  id: "claude-code.BashOutput",
+export const BashOutput = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bashoutput
   inputSchema: z.object({
     /**
@@ -17,6 +15,6 @@ export const BashOutput = createProviderToolFactoryWithOutputSchema({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bashoutput-2
   outputSchema: z.string(),
-})({});
+});
 
 export type BashOutputUIToolInvocation = UIToolInvocation<typeof BashOutput>;

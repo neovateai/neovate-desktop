@@ -1,8 +1,7 @@
-import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { tool } from "ai";
 import { z } from "zod";
 
-export const ReadMcpResource = createProviderToolFactoryWithOutputSchema({
-  id: "claude-code.ReadMcpResource",
+export const ReadMcpResource = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#readmcpresource
   inputSchema: z.object({
     /**
@@ -32,4 +31,4 @@ export const ReadMcpResource = createProviderToolFactoryWithOutputSchema({
      */
     server: z.string(),
   }),
-})({});
+});

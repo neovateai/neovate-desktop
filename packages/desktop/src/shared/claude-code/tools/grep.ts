@@ -1,9 +1,7 @@
-import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
-import { type UIToolInvocation } from "ai";
+import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Grep = createProviderToolFactoryWithOutputSchema({
-  id: "claude-code.Grep",
+export const Grep = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#grep
   inputSchema: z.object({
     /**
@@ -57,6 +55,6 @@ export const Grep = createProviderToolFactoryWithOutputSchema({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#grep-2
   outputSchema: z.string(),
-})({});
+});
 
 export type GrepUIToolInvocation = UIToolInvocation<typeof Grep>;

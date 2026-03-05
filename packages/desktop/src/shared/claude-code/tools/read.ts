@@ -1,9 +1,7 @@
-import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
-import { type UIToolInvocation } from "ai";
+import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Read = createProviderToolFactoryWithOutputSchema({
-  id: "claude-code.Read",
+export const Read = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#read
   inputSchema: z.object({
     /**
@@ -21,6 +19,6 @@ export const Read = createProviderToolFactoryWithOutputSchema({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#read-2
   outputSchema: z.string(),
-})({});
+});
 
 export type ReadUIToolInvocation = UIToolInvocation<typeof Read>;
