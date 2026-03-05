@@ -90,7 +90,12 @@ export namespace StreamEvents {
   export type ThinkingDelta = { type: "thinking_delta"; sessionId: string; text: string };
 
   /** User message submitted to the session */
-  export type UserMessage = { type: "user_message"; sessionId: string; text: string };
+  export type UserMessage = {
+    type: "user_message";
+    sessionId: string;
+    text: string;
+    images?: { mediaType: string; base64: string }[];
+  };
 
   // ── Tool events ──
 
