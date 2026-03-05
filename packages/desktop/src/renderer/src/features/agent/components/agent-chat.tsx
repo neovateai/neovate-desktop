@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import debug from "debug";
 import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
+import { useProjectStore } from "../../project";
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const chatLog = debug("neovate:agent-chat");
