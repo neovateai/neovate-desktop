@@ -1,7 +1,7 @@
 "use client";
 
 import type { CarouselApi } from "../ui/carousel";
-import type { ComponentProps } from "react";
+import type { ComponentProps, FC } from "react";
 
 import { Badge } from "../ui/badge";
 import { Carousel, CarouselContent, CarouselItem } from "../ui/carousel";
@@ -65,11 +65,11 @@ const useCarouselApi = () => {
 
 export type InlineCitationCarouselProps = ComponentProps<typeof Carousel>;
 
-export const InlineCitationCarousel = ({
+export const InlineCitationCarousel: FC<InlineCitationCarouselProps> = ({
   className,
   children,
   ...props
-}: InlineCitationCarouselProps) => {
+}) => {
   const [api, setApi] = useState<CarouselApi>();
 
   return (

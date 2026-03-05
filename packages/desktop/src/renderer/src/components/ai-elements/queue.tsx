@@ -168,24 +168,22 @@ export const QueueSection = ({ className, defaultOpen = true, ...props }: QueueS
 );
 
 // QueueSectionTrigger - section header/trigger
-export type QueueSectionTriggerProps = ComponentProps<"button">;
+export type QueueSectionTriggerProps = ComponentProps<typeof CollapsibleTrigger>;
 
 export const QueueSectionTrigger = ({
   children,
   className,
   ...props
 }: QueueSectionTriggerProps) => (
-  <CollapsibleTrigger asChild>
-    <button
-      className={cn(
-        "group flex w-full items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-left font-medium text-muted-foreground text-sm transition-colors hover:bg-muted",
-        className,
-      )}
-      type="button"
-      {...props}
-    >
-      {children}
-    </button>
+  <CollapsibleTrigger
+    className={cn(
+      "group flex w-full items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-left font-medium text-muted-foreground text-sm transition-colors hover:bg-muted",
+      className,
+    )}
+    type="button"
+    {...props}
+  >
+    {children}
   </CollapsibleTrigger>
 );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, CSSProperties, HTMLAttributes } from "react";
+import type { ComponentProps, CSSProperties, FC, HTMLAttributes } from "react";
 import type { BundledLanguage, BundledTheme, HighlighterGeneric, ThemedToken } from "shiki";
 
 import { Button } from "../ui/button";
@@ -500,10 +500,10 @@ export const CodeBlockLanguageSelectorValue = (props: CodeBlockLanguageSelectorV
 
 export type CodeBlockLanguageSelectorContentProps = ComponentProps<typeof SelectContent>;
 
-export const CodeBlockLanguageSelectorContent = ({
+export const CodeBlockLanguageSelectorContent: FC<CodeBlockLanguageSelectorContentProps> = ({
   align = "end",
   ...props
-}: CodeBlockLanguageSelectorContentProps) => <SelectContent align={align} {...props} />;
+}) => <SelectContent align={align} {...props} />;
 
 export type CodeBlockLanguageSelectorItemProps = ComponentProps<typeof SelectItem>;
 

@@ -1,11 +1,17 @@
 import { lazy, Suspense, useState } from "react";
 import { cn } from "../lib/utils";
+import { ErrorBoundary } from "../components/ui/error-boundary";
 
 const PLAYGROUNDS = [
   {
     id: "ai-elements",
     label: "AI Elements",
     component: lazy(() => import("./playgrounds/ai-elements")),
+  },
+  {
+    id: "chat",
+    label: "Chat",
+    component: lazy(() => import("./playgrounds/chat")),
   },
 ] as const;
 
@@ -47,9 +53,11 @@ export default function Playground() {
 
         {/* Content */}
         <main className="min-w-0 flex-1">
-          <Suspense>
-            <Current />
-          </Suspense>
+          <ErrorBoundary key={active}>
+            <Suspense>
+              <Current />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
     </div>
