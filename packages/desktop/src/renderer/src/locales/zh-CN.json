@@ -110,17 +110,6 @@
   "settings.skills.retry": "重试",
   "settings.skills.removeSkill": "移除技能",
 
-  "files.title": "文件",
-  "files.noProject": "未选择项目",
-  "files.emptyDirectory": "空目录",
-  "files.contextMenu.newFile": "新建文件",
-  "files.contextMenu.newFolder": "新建文件夹",
-  "files.contextMenu.rename": "重命名",
-  "files.contextMenu.delete": "删除",
-  "files.confirmDelete": "确定要删除 {{fileName}} 吗？",
-  "files.newFilePlaceholder": "新文件.txt",
-  "files.newFolderPlaceholder": "新文件夹",
-
   "common.cancel": "取消",
   "common.delete": "删除",
   "common.loading": "加载中..."

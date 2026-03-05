@@ -9,6 +9,15 @@ const FilesIcon = ({ className }: { className?: string }) => (
 const plugin: RendererPlugin = {
   name: "builtin:files",
 
+  activate(ctx) {
+    ctx.app.i18nManager.setupLazyNamespaces([
+      {
+        namespace: "plugin-files",
+        loader: (locale) => import(`./locales/${locale}.json`),
+      },
+    ]);
+  },
+
   configContributions() {
     return {
       activityBarItems: [

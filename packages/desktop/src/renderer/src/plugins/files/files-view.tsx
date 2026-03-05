@@ -17,7 +17,7 @@ interface FilesViewProps {
 type FilesClient = ContractRouterClient<{ files: typeof filesContract }>;
 
 function FilesViewComponent({ project }: FilesViewProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("plugin-files");
   const { orpcClient } = usePluginContext();
   const client = orpcClient as FilesClient;
 
@@ -96,11 +96,11 @@ function FilesViewComponent({ project }: FilesViewProps) {
           return newSet;
         });
       } else {
-        alert(`删除失败: ${result.error}`);
+        alert(t("error.deleteFailed", { error: result.error }));
       }
     } catch (error) {
       console.error("Error deleting file:", error);
-      alert("删除失败");
+      alert(t("error.deleteFailed", { error: String(error) }));
     }
   };
   const handleRename = async (oldPath: string, newPath: string) => {
@@ -111,11 +111,11 @@ function FilesViewComponent({ project }: FilesViewProps) {
           setSelectedKey(newPath);
         }
       } else {
-        alert(`重命名失败: ${result.error}`);
+        alert(t("error.renameFailed", { error: result.error }));
       }
     } catch (error) {
       console.error("Error renaming file:", error);
-      alert("重命名失败");
+      alert(t("error.renameFailed", { error: String(error) }));
     }
   };
   // TODO: 待实现
@@ -131,11 +131,11 @@ function FilesViewComponent({ project }: FilesViewProps) {
       //   // 刷新文件树
       //   await loadFileTree();
       // } else {
-      //   alert(`创建文件失败: ${result.error}`);
+      //   alert(t("error.createFileFailed"));
       // }
     } catch (error) {
       console.error("Error creating file:", error);
-      alert("创建文件失败");
+      alert(t("error.createFileFailed"));
     }
   };
   // TODO: 待实现
@@ -151,11 +151,11 @@ function FilesViewComponent({ project }: FilesViewProps) {
       //   // 刷新文件树
       //   await loadFileTree();
       // } else {
-      //   alert(`创建文件夹失败: ${result.error}`);
+      //   alert(t("error.createFolderFailed"));
       // }
     } catch (error) {
       console.error("Error creating folder:", error);
-      alert("创建文件夹失败");
+      alert(t("error.createFolderFailed"));
     }
   };
   /** 添加文件到对话 */
@@ -166,9 +166,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (!project) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-muted-foreground">{t("files.noProject")}</p>
+          <p className="text-xs text-muted-foreground">{t("noProject")}</p>
         </div>
       </div>
     );
@@ -177,9 +177,11 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (loading) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("common.loading", { ns: "translation" })}
+          </p>
         </div>
       </div>
     );
@@ -188,13 +190,13 @@ function FilesViewComponent({ project }: FilesViewProps) {
   return (
     <div className="flex h-full flex-col p-3 overflow-hidden">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
       </div>
 
       <div className="flex-1 overflow-auto">
         {treeData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-xs text-muted-foreground">{t("files.emptyDirectory")}</p>
+            <p className="text-xs text-muted-foreground">{t("emptyDirectory")}</p>
           </div>
         ) : (
           <div className="space-y-1">

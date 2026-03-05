@@ -108,17 +108,6 @@
   "settings.skills.fetchFailed": "Failed to fetch skills",
   "settings.skills.installFailed": "Failed to install skills",
 
-  "files.title": "Files",
-  "files.noProject": "No project selected",
-  "files.emptyDirectory": "Empty directory",
-  "files.contextMenu.newFile": "New File",
-  "files.contextMenu.newFolder": "New Folder",
-  "files.contextMenu.rename": "Rename",
-  "files.contextMenu.delete": "Delete",
-  "files.confirmDelete": "Are you sure you want to delete {{fileName}}?",
-  "files.newFilePlaceholder": "New file.txt",
-  "files.newFolderPlaceholder": "New folder",
-
   "common.loading": "Loading...",
   "settings.skills.retry": "Retry",
   "settings.skills.removeSkill": "Remove skill",

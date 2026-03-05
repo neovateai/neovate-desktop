@@ -54,7 +54,7 @@ export function TreeNode({
   onCreateFolder,
   onAdd,
 }: TreeNodeProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("plugin-files");
   const { fileName = "" } = item || {};
   const [isEditing, setIsEditing] = useState(false);
   const [editingName, setEditingName] = useState(fileName);
@@ -93,24 +93,24 @@ export function TreeNode({
 
   const menuItems = [
     {
-      label: t("files.contextMenu.newFile"),
+      label: t("contextMenu.newFile"),
       icon: <FilePlus size={14} />,
       action: () => handleCreateFile(),
     },
     {
-      label: t("files.contextMenu.newFolder"),
+      label: t("contextMenu.newFolder"),
       icon: <FolderPlus size={14} />,
       action: () => handleCreateFolder(),
     },
     ...(item.relPath !== ""
       ? [
           {
-            label: t("files.contextMenu.rename"),
+            label: t("contextMenu.rename"),
             icon: <Edit size={14} />,
             action: () => handleStartRename(),
           },
           {
-            label: t("files.contextMenu.delete"),
+            label: t("contextMenu.delete"),
             icon: <Trash2 size={14} />,
             action: () => handleDelete(),
             variant: "destructive" as const,
@@ -139,7 +139,7 @@ export function TreeNode({
   };
 
   const handleDelete = () => {
-    if (onDelete && confirm(t("files.confirmDelete", { fileName }))) {
+    if (onDelete && confirm(t("confirmDelete", { fileName }))) {
       onDelete(item);
     }
   };
@@ -236,7 +236,7 @@ export function TreeNode({
                 onClick={handleAddClick}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-sm hover:bg-border opacity-0 transition-opacity"
                 style={{ opacity: isHovered ? 1 : 0 }}
-                title={t("files.contextMenu.newFile")}
+                title={t("contextMenu.newFile")}
               >
                 <Plus size={12} strokeWidth={1.5} />
               </button>
@@ -269,9 +269,7 @@ export function TreeNode({
             <input
               type="text"
               placeholder={
-                creatingType === "file"
-                  ? t("files.newFilePlaceholder")
-                  : t("files.newFolderPlaceholder")
+                creatingType === "file" ? t("newFilePlaceholder") : t("newFolderPlaceholder")
               }
               value={creatingName}
               onChange={(e) => setCreatingName(e.target.value)}
