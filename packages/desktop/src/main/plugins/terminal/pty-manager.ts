@@ -16,9 +16,7 @@ export class PtyManager {
     const cols = Math.max(1, opts.cols);
     const rows = Math.max(1, opts.rows);
     const shell =
-      process.platform === "win32"
-        ? "powershell.exe"
-        : (process.env.SHELL ?? "/bin/sh");
+      process.platform === "win32" ? "powershell.exe" : (process.env.SHELL ?? "/bin/sh");
 
     const publisher = new EventPublisher<{ data: string }>();
     const exitController = new AbortController();

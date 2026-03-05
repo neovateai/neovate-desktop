@@ -40,16 +40,17 @@ export function createTerminalRouter(
       ptyManager.kill(sessionId);
     }),
 
-    stream: orpcServer.output(eventIterator(z.string())).handler(async function* ({ input, signal }) {
+    stream: orpcServer.output(eventIterator(z.string())).handler(async function* ({
+      input,
+      signal,
+    }) {
       const { sessionId } = input as { sessionId: string };
       const session = ptyManager.getSession(sessionId);
       if (!session) return;
 
       // Combine: client disconnect OR natural PTY exit
       const combined = AbortSignal.any(
-        [signal, session.exitController.signal].filter(
-          (s): s is AbortSignal => s != null,
-        ),
+        [signal, session.exitController.signal].filter((s): s is AbortSignal => s != null),
       );
 
       try {

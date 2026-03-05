@@ -21,32 +21,38 @@ A fully functional terminal plugin for the content panel. Each tab spawns an ind
 ## Key Decisions
 
 ### Plugin Structure
+
 - **Main plugin** (`builtin:terminal`): registers `node-pty` PTY management + oRPC router
 - **Renderer plugin** (`builtin:terminal`): contributes `ContentPanelView` with `singleton: false`
 - PTY instances tracked in a `Map<instanceId, { pty, queue }>` on the main side
 
 ### oRPC Procedures (untyped plugin router)
-| Procedure | Input | Output | Description |
-|-----------|-------|--------|-------------|
-| `terminal.spawn` | `{ cwd?, cols, rows }` | `{ sessionId }` | Spawn a PTY; main generates UUID session key |
-| `terminal.write` | `{ sessionId, data }` | `void` | Send keystrokes/input to PTY |
-| `terminal.resize` | `{ sessionId, cols, rows }` | `void` | Notify PTY of terminal resize |
-| `terminal.stream` | `{ sessionId }` | `AsyncIterable<string>` | Yields PTY output chunks |
-| `terminal.kill` | `{ sessionId }` | `void` | Kill PTY and clean up |
+
+| Procedure         | Input                       | Output                  | Description                                  |
+| ----------------- | --------------------------- | ----------------------- | -------------------------------------------- |
+| `terminal.spawn`  | `{ cwd?, cols, rows }`      | `{ sessionId }`         | Spawn a PTY; main generates UUID session key |
+| `terminal.write`  | `{ sessionId, data }`       | `void`                  | Send keystrokes/input to PTY                 |
+| `terminal.resize` | `{ sessionId, cols, rows }` | `void`                  | Notify PTY of terminal resize                |
+| `terminal.stream` | `{ sessionId }`             | `AsyncIterable<string>` | Yields PTY output chunks                     |
+| `terminal.kill`   | `{ sessionId }`             | `void`                  | Kill PTY and clean up                        |
 
 Main stores PTY instances in `Map<sessionId, { pty, queue }>`. Renderer holds `sessionId` in React state.
 
 ### Push-to-Pull Bridge
+
 PTY emits data via events (push). oRPC generators consume via pull. Bridge pattern:
+
 ```ts
 class AsyncQueue<T> {
-  push(chunk: T): void     // called by pty.onData
-  iter(): AsyncIterable<T> // consumed by oRPC generator
+  push(chunk: T): void; // called by pty.onData
+  iter(): AsyncIterable<T>; // consumed by oRPC generator
 }
 ```
+
 Each PTY instance gets its own `AsyncQueue<string>`.
 
 ### Terminal Lifecycle
+
 1. Tab opens → renderer mounts xterm, calls `terminal.spawn({ cols, rows })` → gets `sessionId`
 2. Renderer subscribes to `terminal.stream({ sessionId })` → async generator loop → `xterm.write(chunk)`
 3. User types → `terminal.write({ sessionId, data })`
@@ -54,14 +60,17 @@ Each PTY instance gets its own `AsyncQueue<string>`.
 5. Tab unmounts → `terminal.kill({ sessionId })` → PTY cleaned up from Map
 
 ### State Persistence
+
 - No output buffer needed — `deactivation: "hidden"` keeps xterm alive in DOM between tab switches
 - `{ cwd, shell }` persistence deferred post-MVP
 
 ### Dependencies
+
 - `node-pty` — main process only (native Node addon, prebuilt for Electron)
 - `xterm` + `@xterm/addon-fit` — renderer process
 
 ### Shell Selection
+
 - Default: system default shell (`process.env.SHELL` on macOS/Linux, `powershell.exe` on Windows)
 
 ---
@@ -80,6 +89,7 @@ packages/desktop/src/renderer/src/plugins/terminal/
 ```
 
 Bootstrap wiring:
+
 - `packages/desktop/src/main/index.ts` — add `terminalPlugin` to `MainApp({ plugins })`
 - Renderer plugin stub exists; verify registration in renderer bootstrap
 
