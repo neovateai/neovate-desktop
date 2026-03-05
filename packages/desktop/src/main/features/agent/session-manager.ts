@@ -18,6 +18,7 @@ import type {
   StreamEvent,
   SessionInfo,
   SlashCommandInfo,
+  ImageAttachment,
 } from "../../../shared/features/agent/types";
 import { getShellEnvironment } from "./shell-env";
 import { Pushable } from "./pushable";
@@ -189,6 +190,7 @@ export class SessionManager {
     sessionId: string,
     text: string,
     emitter: (event: StreamEvent) => void,
+    attachments?: ImageAttachment[],
   ): AsyncGenerator<StreamEvent> {
     const managed = this.sessions.get(sessionId);
     if (!managed) {
@@ -199,7 +201,24 @@ export class SessionManager {
     }
 
     const t0 = performance.now();
-    log("prompt: START sessionId=%s promptLen=%d cwd=%s", sessionId, text.length, managed.cwd);
+    log(
+      "prompt: START sessionId=%s promptLen=%d cwd=%s attachments=%d",
+      sessionId,
+      text.length,
+      managed.cwd,
+      attachments?.length ?? 0,
+    );
+    if (attachments && attachments.length > 0) {
+      log(
+        "prompt: attachment details: %o",
+        attachments.map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          mediaType: a.mediaType,
+          base64Len: a.base64?.length ?? 0,
+        })),
+      );
+    }
 
     // Set permission emitter so canUseTool can forward events
     this.permissionEmitter = emitter;
@@ -207,9 +226,51 @@ export class SessionManager {
     let sdkMsgCount = 0;
 
     try {
+      const content =
+        attachments && attachments.length > 0
+          ? [
+              ...(text ? [{ type: "text" as const, text }] : []),
+              ...attachments.map((att) => ({
+                type: "image" as const,
+                source: {
+                  type: "base64" as const,
+                  media_type: att.mediaType as
+                    | "image/jpeg"
+                    | "image/png"
+                    | "image/gif"
+                    | "image/webp",
+                  data: att.base64,
+                },
+              })),
+            ]
+          : text;
+
+      log(
+        "prompt: content type=%s contentIsArray=%s blockCount=%s",
+        typeof content,
+        Array.isArray(content),
+        Array.isArray(content) ? content.length : "n/a",
+      );
+      if (Array.isArray(content)) {
+        log(
+          "prompt: content blocks: %o",
+          content.map((b) => ({
+            type: b.type,
+            ...(b.type === "text" ? { textLen: b.text.length } : {}),
+            ...(b.type === "image"
+              ? {
+                  sourceType: b.source.type,
+                  mediaType: b.source.media_type,
+                  dataLen: b.source.data?.length ?? 0,
+                }
+              : {}),
+          })),
+        );
+      }
+
       managed.input.push({
         type: "user",
-        message: { role: "user", content: text },
+        message: { role: "user", content },
         parent_tool_use_id: null,
         session_id: sessionId,
       });

@@ -40,7 +40,22 @@ export const agentContract = {
     .output(type<void>()),
 
   prompt: oc
-    .input(z.object({ sessionId: z.string(), prompt: z.string() }))
+    .input(
+      z.object({
+        sessionId: z.string(),
+        prompt: z.string(),
+        attachments: z
+          .array(
+            z.object({
+              id: z.string(),
+              filename: z.string(),
+              mediaType: z.string(),
+              base64: z.string(),
+            }),
+          )
+          .optional(),
+      }),
+    )
     .errors({
       BAD_GATEWAY: {
         message: "Agent prompt failed",

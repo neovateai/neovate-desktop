@@ -1,5 +1,13 @@
 export type AgentInfo = { id: string; name: string };
 
+/** Image attachment sent alongside a prompt */
+export type ImageAttachment = {
+  id: string;
+  filename: string;
+  mediaType: string;
+  base64: string;
+};
+
 export type TimingEntry = {
   phase: string;
   label: string;
