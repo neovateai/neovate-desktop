@@ -63,7 +63,7 @@ export const useFilesTranslation = () => useTranslation("plugin-files");
 ```typescript
 export interface RendererPluginHooks {
   configContributions(): PluginContributions;
-  configI18n(): I18nContributions;           // new
+  configI18n(): I18nContributions; // new
   activate(ctx: PluginContext): void | Promise<void>;
   deactivate(): void;
 }
@@ -147,8 +147,12 @@ export const filesPlugin: RendererPlugin = {
     };
   },
 
-  configContributions() { /* ... */ },
-  activate(ctx) { /* ... */ },
+  configContributions() {
+    /* ... */
+  },
+  activate(ctx) {
+    /* ... */
+  },
 };
 ```
 
