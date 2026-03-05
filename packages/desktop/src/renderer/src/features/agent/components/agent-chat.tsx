@@ -10,6 +10,7 @@ import { usePrompt } from "../hooks/use-prompt";
 import { usePermission } from "../hooks/use-permission";
 import { useNewSession } from "../hooks/use-new-session";
 import { MessageList } from "./message-list";
+// import { MessageList } from "./message-list-v1";
 import { MessageInput } from "./message-input";
 import { PermissionDialog } from "./permission-dialog";
 import { WelcomePanel } from "./welcome-panel";
