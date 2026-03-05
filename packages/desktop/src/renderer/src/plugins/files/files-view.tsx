@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ContractRouterClient } from "@orpc/contract";
 import { consumeEventIterator } from "@orpc/client";
+import debug from "debug";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
@@ -9,6 +10,8 @@ import { usePluginContext } from "../../core/app";
 import { TreeNode } from "./tree-node";
 import { useProjectStore } from "../../features/project/store";
 import { useFilesTranslation } from "./i18n";
+
+const log = debug("neovate:files-view");
 
 interface FilesViewProps {
   project: Project | null;
@@ -160,7 +163,10 @@ function FilesViewComponent({ project }: FilesViewProps) {
   };
   /** 添加文件到对话 */
   const handleAddContext = (item: FileTreeItem) => {
-    console.log("Add button clicked for:", item);
+    log("insert-mention dispatching path=%s", item.relPath);
+    window.dispatchEvent(
+      new CustomEvent("neovate:insert-mention", { detail: { path: item.relPath } }),
+    );
   };
 
   if (!project) {

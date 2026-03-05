@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import debug from "debug";
 import { Extension, useEditor, EditorContent } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
@@ -9,6 +10,8 @@ import { createSlashCommandsExtension } from "./slash-commands-extension";
 import { createMentionExtension } from "./mention-extension";
 import { useAgentStore } from "../store";
 import type { JSONContent } from "@tiptap/react";
+
+const log = debug("neovate:message-input");
 
 type Props = {
   onSend: (message: string) => void;
@@ -144,6 +147,25 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   useEffect(() => {
     editor?.setEditable(!disabled && !streaming);
   }, [editor, disabled, streaming]);
+
+  // Listen for insert-mention events from file tree
+  useEffect(() => {
+    if (!editor) return;
+    const handler = (e: Event) => {
+      const { path } = (e as CustomEvent<{ path: string }>).detail;
+      log("insert-mention received path=%s", path);
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: "mention", attrs: { id: path, label: path } },
+          { type: "text", text: " " },
+        ])
+        .run();
+    };
+    window.addEventListener("neovate:insert-mention", handler);
+    return () => window.removeEventListener("neovate:insert-mention", handler);
+  }, [editor]);
 
   return (
     <div className="border-t border-border p-4">
