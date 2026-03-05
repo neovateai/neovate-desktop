@@ -14,7 +14,7 @@ export interface FileSystemOperation {
 }
 
 export interface FileWatchEvent {
-  type: "create" | "update" | "delete";
+  type: "add" | "unlink" | "addDir" | "unlinkDir";
   path: string;
   timestamp: number;
 }

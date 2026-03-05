@@ -26,40 +26,37 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const cwd = project?.path || "";
+
   useEffect(() => {
-    if (project) {
-      loadFileTree();
+    if (!cwd) {
+      setTreeData([]);
+      setExpandedKeys(new Set());
+      setSelectedKey(null);
+      return;
     }
-  }, [project]);
-
-  useEffect(() => {
-    if (!project) return;
-
-    const cancel = consumeEventIterator(client.files.watch({ cwd: project.path }), {
-      onEvent: (event) => {
-        console.log("[files:watch]", event);
-      },
-      onError: (err) => {
-        console.error("[files:watch] error:", err);
-      },
+    refresh(true);
+    // 本地开发调试时，由于严格模式问题，会额外产生一次 useEffect 挂载卸载，导致触发多余的监听和取消监听
+    // 而取消监听有异步现象，会导致后面的一次监听后才执行前一次的取消监听，导致监听器不生效
+    // 本地调试时需要关闭严格模式 StrictMode。生产环境无此问题。
+    const cancel = consumeEventIterator(client.files.watch({ cwd }), {
+      onEvent: () => refresh(),
     });
 
     return () => {
       cancel();
     };
-  }, [project]);
+  }, [cwd]);
 
-  const loadFileTree = async () => {
+  const refresh = async (reset = false) => {
     if (!project) return;
-
-    setLoading(true);
+    if (reset) {
+      setExpandedKeys(new Set());
+      setLoading(true);
+    }
     try {
       const { tree } = await client.files.tree({ cwd: project.path });
       setTreeData(tree);
-      // 默认展开根目录
-      if (tree.length > 0) {
-        setExpandedKeys(new Set([project.path]));
-      }
     } catch (error) {
       console.error("Failed to load file tree:", error);
     } finally {
@@ -90,7 +87,14 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       const result = await client.files.delete({ path: item.fullPath });
       if (result.success) {
-        await loadFileTree(); // TODO:后续刷新逻辑应该是基于监听推送而不是主动刷新
+        if (selectedKey === item.fullPath) {
+          setSelectedKey(null);
+        }
+        setExpandedKeys((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(item.fullPath);
+          return newSet;
+        });
       } else {
         alert(`删除失败: ${result.error}`);
       }
@@ -103,7 +107,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       const result = await client.files.rename({ oldPath, newPath });
       if (result.success) {
-        await loadFileTree(); // TODO:后续刷新逻辑应该是基于监听推送而不是主动刷新
+        if (selectedKey === oldPath) {
+          setSelectedKey(newPath);
+        }
       } else {
         alert(`重命名失败: ${result.error}`);
       }
@@ -160,9 +166,13 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (!project) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">
+          {t("files.title")}
+        </h2>
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-muted-foreground">{t("files.noProject")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("files.noProject")}
+          </p>
         </div>
       </div>
     );
@@ -171,7 +181,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (loading) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">
+          {t("files.title")}
+        </h2>
         <div className="flex flex-1 items-center justify-center">
           <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
         </div>
@@ -182,13 +194,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
   return (
     <div className="flex h-full flex-col p-3 overflow-hidden">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("files.title")}</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground">
+          {t("files.title")}
+        </h2>
       </div>
 
       <div className="flex-1 overflow-auto">
         {treeData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-xs text-muted-foreground">{t("files.emptyDirectory")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("files.emptyDirectory")}
+            </p>
           </div>
         ) : (
           <div className="space-y-1">

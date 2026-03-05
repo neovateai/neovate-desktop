@@ -1,37 +1,8 @@
 import type { PluginContext } from "../../core/plugin/types";
-import type { FileWatchEvent } from "../../../shared/plugins/files/contract";
-import { EventPublisher } from "@orpc/server";
 import fs from "fs";
 import path from "path";
 import { getFileTree } from "./tree";
-
-export const filesPublisher = new EventPublisher<{
-  "file-changed": FileWatchEvent;
-}>();
-
-// Simulate periodic events for testing the push channel
-let mockInterval: ReturnType<typeof setInterval> | undefined;
-
-export function startMockFileEvents(cwd: string) {
-  stopMockFileEvents();
-  const types: FileWatchEvent["type"][] = ["create", "update", "delete"];
-  let tick = 0;
-  mockInterval = setInterval(() => {
-    filesPublisher.publish("file-changed", {
-      type: types[tick % types.length],
-      path: `${cwd}/mock-file-${tick}.txt`,
-      timestamp: Date.now(),
-    });
-    tick++;
-  }, 3000);
-}
-
-export function stopMockFileEvents() {
-  if (mockInterval) {
-    clearInterval(mockInterval);
-    mockInterval = undefined;
-  }
-}
+import { unwatchWorkspace, watchWorkspace } from "./watch";
 
 export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
   return orpcServer.router({
@@ -46,7 +17,8 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       } catch (error) {
         return {
           tree: [],
-          error: error instanceof Error ? error.message : "Unknown error occurred",
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         };
       }
     }),
@@ -70,7 +42,8 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred",
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         };
       }
     }),
@@ -99,14 +72,31 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred",
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         };
       }
     }),
     watch: orpcServer.handler(async function* ({ input, signal }) {
       const { cwd } = input as { cwd: string };
-      startMockFileEvents(cwd);
-      for await (const event of filesPublisher.subscribe("file-changed", { signal })) {
+
+      const publisher = watchWorkspace(cwd, {
+        onFsChange: (subType) => {
+          publisher.publish("file-changed", {
+            timestamp: Date.now(),
+            path: "",
+            type: subType,
+          });
+        },
+      });
+      if (signal) {
+        signal.addEventListener("abort", () => {
+          console.log("unwatch", cwd);
+          unwatchWorkspace(cwd); // 清理监听器watch 和 发布器pub
+        });
+      }
+      const events = publisher.subscribe("file-changed", { signal });
+      for await (const event of events) {
         yield event;
       }
     }),
