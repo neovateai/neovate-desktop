@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const SlashCommand = tool({
+export const SlashCommand = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.SlashCommand",
   // Docs: https://docs.claude.com/en/docs/claude-code/slash-commands
   inputSchema: z.object({
     /**
@@ -11,6 +13,6 @@ export const SlashCommand = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/slash-commands
   outputSchema: z.string(),
-});
+})({});
 
 export type SlashCommandUIToolInvocation = UIToolInvocation<typeof SlashCommand>;

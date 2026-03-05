@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Glob = tool({
+export const Glob = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.Glob",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#glob
   inputSchema: z.object({
     /**
@@ -15,6 +17,6 @@ export const Glob = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#glob-2
   outputSchema: z.string(),
-});
+})({});
 
 export type GlobUIToolInvocation = UIToolInvocation<typeof Glob>;

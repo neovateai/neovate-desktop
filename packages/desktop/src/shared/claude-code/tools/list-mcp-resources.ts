@@ -1,7 +1,8 @@
-import { tool } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
 import { z } from "zod";
 
-export const ListMcpResources = tool({
+export const ListMcpResources = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.ListMcpResources",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#listmcpresources
   inputSchema: z.object({
     /**
@@ -28,4 +29,4 @@ export const ListMcpResources = tool({
      */
     total: z.number(),
   }),
-});
+})({});

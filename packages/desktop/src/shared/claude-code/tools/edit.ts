@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Edit = tool({
+export const Edit = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.Edit",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#edit
   inputSchema: z.object({
     /**
@@ -23,6 +25,6 @@ export const Edit = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#edit-2
   outputSchema: z.string(),
-});
+})({});
 
 export type EditUIToolInvocation = UIToolInvocation<typeof Edit>;

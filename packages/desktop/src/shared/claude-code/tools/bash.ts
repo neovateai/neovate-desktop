@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Bash = tool({
+export const Bash = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.Bash",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bash
   inputSchema: z.object({
     /**
@@ -24,6 +26,6 @@ export const Bash = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bash-2
   // TODO real output is content string, but doc define is object
   outputSchema: z.string(),
-});
+})({});
 
 export type BashUIToolInvocation = UIToolInvocation<typeof Bash>;

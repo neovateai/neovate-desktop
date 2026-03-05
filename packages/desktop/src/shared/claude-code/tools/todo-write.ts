@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const TodoWrite = tool({
+export const TodoWrite = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.TodoWrite",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#todowrite
   inputSchema: z.object({
     /**
@@ -26,6 +28,6 @@ export const TodoWrite = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#todowrite-2
   outputSchema: z.string(),
-});
+})({});
 
 export type TodoWriteUIToolInvocation = UIToolInvocation<typeof TodoWrite>;

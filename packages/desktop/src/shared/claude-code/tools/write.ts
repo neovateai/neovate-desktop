@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Write = tool({
+export const Write = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.Write",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#write
   inputSchema: z.object({
     /**
@@ -15,6 +17,6 @@ export const Write = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#write-2
   outputSchema: z.string(),
-});
+})({});
 
 export type WriteUIToolInvocation = UIToolInvocation<typeof Write>;

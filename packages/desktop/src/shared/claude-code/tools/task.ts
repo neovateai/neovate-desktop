@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const Task = tool({
+export const Task = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.Task",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#task
   inputSchema: z.object({
     /**
@@ -27,6 +29,6 @@ export const Task = tool({
       }),
     ),
   ]),
-});
+})({});
 
 export type TaskUIToolInvocation = UIToolInvocation<typeof Task>;

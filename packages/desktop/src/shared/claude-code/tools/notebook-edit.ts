@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const NotebookEdit = tool({
+export const NotebookEdit = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.NotebookEdit",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#notebookedit
   inputSchema: z.object({
     /**
@@ -27,6 +29,6 @@ export const NotebookEdit = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#notebookedit-2
   outputSchema: z.string(),
-});
+})({});
 
 export type NotebookEditUIToolInvocation = UIToolInvocation<typeof NotebookEdit>;

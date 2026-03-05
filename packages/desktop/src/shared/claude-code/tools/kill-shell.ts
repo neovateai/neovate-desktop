@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const KillShell = tool({
+export const KillShell = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.KillShell",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#killbash
   inputSchema: z.object({
     /**
@@ -11,6 +13,6 @@ export const KillShell = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#killbash-2
   outputSchema: z.string(),
-});
+})({});
 
 export type KillShellUIToolInvocation = UIToolInvocation<typeof KillShell>;

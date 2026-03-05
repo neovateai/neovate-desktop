@@ -1,7 +1,9 @@
-import { tool, type UIToolInvocation } from "ai";
+import { createProviderToolFactoryWithOutputSchema } from "@ai-sdk/provider-utils";
+import { type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-export const MultiEdit = tool({
+export const MultiEdit = createProviderToolFactoryWithOutputSchema({
+  id: "claude-code.MultiEdit",
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#multiedit
   inputSchema: z.object({
     /**
@@ -30,6 +32,6 @@ export const MultiEdit = tool({
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#multiedit-2
   outputSchema: z.string(),
-});
+})({});
 
 export type MultiEditUIToolInvocation = UIToolInvocation<typeof MultiEdit>;
