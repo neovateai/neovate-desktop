@@ -4,7 +4,7 @@ import type { UIMessage } from "ai";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 
 import { Button } from "../ui/button";
-import { ButtonGroup, ButtonGroupText } from "../ui/button-group";
+import { ButtonGroup, ButtonGroupText } from "../ui/group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "../../lib/utils";
 import { cjk } from "@streamdown/cjk";
