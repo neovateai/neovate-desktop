@@ -141,6 +141,13 @@ export class SessionManager {
       env,
       canUseTool,
       permissionMode: "default",
+      settings: {
+        attribution: {
+          commit: "",
+          pr: "",
+        },
+      },
+      settingSources: ["user", "project", "local"],
     };
   }
 
