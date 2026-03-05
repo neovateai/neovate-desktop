@@ -1,59 +1,72 @@
-import type { ChatMessage } from "../store";
-import { MarkdownContent } from "./markdown-content";
-import { ToolActionsGroup } from "./tool-actions-group";
+import type { AgentMessage } from "../../../../../shared/features/agent/types";
 
-type Props = {
-  messages: ChatMessage[];
-  streaming?: boolean;
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "../../../components/ai-elements/reasoning";
+import { Message, MessageContent } from "../../../components/ai-elements/message";
+
+import { ClaudeCodeToolUIPart } from "./tool-parts";
+
+/** @deprecated Legacy props — use `AgentMessageListProps` instead. */
+type LegacyProps = {
+  messages: { id: string; role: string; content: string; thinking?: string }[];
+  toolCalls: Map<string, { toolCallId: string; name: string; status: string }>;
 };
 
-export function MessageList({ messages, streaming }: Props) {
+type AgentMessageListProps = {
+  agentMessages: AgentMessage[];
+};
+
+type Props = AgentMessageListProps & Partial<LegacyProps>;
+
+export function MessageList({ agentMessages }: Props) {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-      {messages.map((msg, idx) => (
-        <div
-          key={msg.id}
-          className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-        >
-          <div
-            className={`max-w-[80%] rounded-lg px-4 py-2 text-sm ${
-              msg.role === "user"
-                ? "whitespace-pre-wrap bg-primary text-primary-foreground"
-                : "bg-muted text-foreground"
-            }`}
-          >
-            {msg.thinking && (
-              <div className="mb-2 border-b border-border pb-2 text-xs italic text-muted-foreground">
-                {msg.thinking}
-              </div>
-            )}
-            {msg.role === "assistant" ? (
-              <MarkdownContent
-                content={msg.content}
-                streaming={streaming && idx === messages.length - 1}
-              />
-            ) : (
-              <>
-                {msg.content}
-                {msg.images && msg.images.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {msg.images.map((img, imgIdx) => (
-                      <img
-                        key={imgIdx}
-                        src={`data:${img.mediaType};base64,${img.base64}`}
-                        alt=""
-                        className="max-h-48 rounded-md object-cover"
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {msg.toolCalls && msg.toolCalls.length > 0 && (
-              <ToolActionsGroup toolCalls={msg.toolCalls} />
-            )}
-          </div>
-        </div>
+      {agentMessages.map((msg) => (
+        <Message key={msg.id} from={msg.role}>
+          <MessageContent>
+            {msg.parts.map((part, i) => {
+              switch (part.type) {
+                case "text":
+                  return (
+                    <div key={`${msg.id}-text-${i}`} className="whitespace-pre-wrap text-sm">
+                      {part.text}
+                    </div>
+                  );
+                case "thinking":
+                  return (
+                    <Reasoning key={`${msg.id}-thinking-${i}`} isStreaming={false}>
+                      <ReasoningTrigger />
+                      <ReasoningContent>{part.thinking}</ReasoningContent>
+                    </Reasoning>
+                  );
+                case "tool-invocation":
+                  // Skip child tool parts (they are rendered inside TaskToolCard)
+                  if (part.parentToolUseId) return null;
+                  return (
+                    <ClaudeCodeToolUIPart
+                      key={part.toolCallId}
+                      part={part}
+                      messages={agentMessages}
+                    />
+                  );
+                case "status":
+                  return (
+                    <div
+                      key={`${msg.id}-status-${i}`}
+                      className="text-xs italic text-muted-foreground"
+                    >
+                      {part.message}
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            })}
+          </MessageContent>
+        </Message>
       ))}
     </div>
   );

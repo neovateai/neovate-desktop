@@ -492,6 +492,7 @@ export class SessionManager {
 
   private *convertReplayMessage(sessionId: string, msg: SessionMessage): Generator<StreamEvent> {
     const message = msg.message as any;
+    const parentToolUseId: string | undefined = msg.parent_tool_use_id ?? undefined;
 
     if (msg.type === "user") {
       const content = message.content;
@@ -510,6 +511,35 @@ export class SessionManager {
             mediaType: b.source?.media_type ?? "image/png",
             base64: b.source?.data ?? "",
           }));
+        }
+        // Emit structured tool_result events for replay
+        for (const block of content) {
+          if (block.type === "tool_result") {
+            const resultContent =
+              typeof block.content === "string"
+                ? block.content
+                : Array.isArray(block.content)
+                  ? block.content
+                      .filter((c: any) => c.type === "text")
+                      .map((c: any) => c.text)
+                      .join("")
+                  : "";
+            if (block.is_error) {
+              yield {
+                type: "tool_output_error",
+                sessionId,
+                toolCallId: block.tool_use_id,
+                errorText: resultContent,
+              };
+            } else {
+              yield {
+                type: "tool_output_available",
+                sessionId,
+                toolCallId: block.tool_use_id,
+                output: resultContent,
+              };
+            }
+          }
         }
       }
       if (text || images) {
@@ -533,6 +563,7 @@ export class SessionManager {
             yield { type: "thinking_delta", sessionId, text: block.thinking };
           }
           if (block.type === "tool_use") {
+            // @deprecated Legacy event
             yield {
               type: "tool_use",
               sessionId,
@@ -540,6 +571,15 @@ export class SessionManager {
               name: block.name,
               status: "completed",
               input: block.input,
+            };
+            // New structured event
+            yield {
+              type: "tool_input_available",
+              sessionId,
+              toolCallId: block.id,
+              toolName: block.name,
+              input: block.input ?? {},
+              parentToolUseId,
             };
           }
         }
@@ -571,6 +611,7 @@ export class SessionManager {
       case "assistant": {
         // SDKAssistantMessage — full message (replay)
         const blocks = msg.message.content;
+        const parentId: string | undefined = msg.parent_tool_use_id ?? undefined;
         log(
           "convert: assistant replay blocks=%d error=%s uuid=%s",
           blocks.length,
@@ -589,6 +630,7 @@ export class SessionManager {
           }
           if (block.type === "tool_use") {
             log("convert:   tool_use block id=%s name=%s", block.id, block.name);
+            // @deprecated Legacy event
             yield {
               type: "tool_use",
               sessionId,
@@ -596,6 +638,15 @@ export class SessionManager {
               name: block.name,
               status: "completed",
               input: block.input,
+            };
+            // New structured event
+            yield {
+              type: "tool_input_available",
+              sessionId,
+              toolCallId: block.id,
+              toolName: block.name,
+              input: block.input ?? {},
+              parentToolUseId: parentId,
             };
           }
         }
@@ -641,6 +692,43 @@ export class SessionManager {
               mediaType: b.source?.media_type ?? "image/png",
               base64: b.source?.data ?? "",
             }));
+          }
+
+          // Emit structured tool_result events
+          for (const block of content) {
+            if (block.type === "tool_result") {
+              const resultBlock = block as {
+                tool_use_id: string;
+                content: unknown;
+                is_error?: boolean;
+              };
+              const resultContent =
+                typeof resultBlock.content === "string"
+                  ? resultBlock.content
+                  : Array.isArray(resultBlock.content)
+                    ? (resultBlock.content as any[])
+                        .filter((c) => c.type === "text")
+                        .map((c) => c.text)
+                        .join("")
+                    : "";
+              if (resultBlock.is_error) {
+                log("convert: tool_output_error id=%s", resultBlock.tool_use_id);
+                yield {
+                  type: "tool_output_error",
+                  sessionId,
+                  toolCallId: resultBlock.tool_use_id,
+                  errorText: resultContent,
+                };
+              } else {
+                log("convert: tool_output_available id=%s", resultBlock.tool_use_id);
+                yield {
+                  type: "tool_output_available",
+                  sessionId,
+                  toolCallId: resultBlock.tool_use_id,
+                  output: resultContent,
+                };
+              }
+            }
           }
         }
         const isReplay = "isReplay" in msg && msg.isReplay;
@@ -743,9 +831,11 @@ export class SessionManager {
           }
           if (msg.subtype === "init") {
             const initMsg = msg as Extract<SDKMessage, { type: "system"; subtype: "init" }>;
-            const commands: SlashCommandInfo[] = (initMsg.slash_commands ?? []).map((name) => ({
-              name,
-            }));
+            const commands: SlashCommandInfo[] = (initMsg.slash_commands ?? []).map(
+              (name: string) => ({
+                name,
+              }),
+            );
             log(
               "convert:   init model=%s tools=%d commands=%d cwd=%s",
               initMsg.model,

@@ -7,13 +7,21 @@ import type {
   TimingEntry,
   SlashCommandInfo,
   CachedSession,
+  AgentMessage,
+  AgentMessagePart,
+  ToolInvocationPart,
 } from "../../../../shared/features/agent/types";
+import type { ClaudeCodeToolName } from "../../../../shared/features/agent/tools";
 import debug from "debug";
 
 const storeLog = debug("neovate:agent-store");
 
 enableMapSet();
 
+/**
+ * @deprecated Use {@link AgentMessage} from shared types instead.
+ * Flat message type kept for backward compatibility.
+ */
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -23,6 +31,9 @@ export type ChatMessage = {
   images?: Array<{ mediaType: string; base64: string }>;
 };
 
+/**
+ * @deprecated Tool state is now embedded in `AgentMessage.parts` as `ToolInvocationPart`.
+ */
 export type ToolCallState = {
   toolCallId: string;
   name: string;
@@ -60,7 +71,13 @@ export type ChatSession = {
   title?: string;
   createdAt: string;
   isNew: boolean;
+  /**
+   * @deprecated Use `agentMessages` for parts-based rendering.
+   * Kept for backward compatibility — both are populated in parallel.
+   */
   messages: ChatMessage[];
+  /** Parts-based message list for the new rendering pipeline. */
+  agentMessages: AgentMessage[];
   streaming: boolean;
   promptError: string | null;
   pendingPermission: PendingPermission | null;
@@ -69,6 +86,34 @@ export type ChatSession = {
   usage?: SessionUsage;
   tasks: Map<string, TaskState>;
 };
+
+// ---------------------------------------------------------------------------
+// Selector helpers
+// ---------------------------------------------------------------------------
+
+/** Extract all tool invocation parts from an agent message. */
+export function selectToolParts(message: AgentMessage): ToolInvocationPart[] {
+  return message.parts.filter((p): p is ToolInvocationPart => p.type === "tool-invocation");
+}
+
+/** Extract the concatenated text content from an agent message. */
+export function selectTextContent(message: AgentMessage): string {
+  return message.parts
+    .filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .map((p) => p.text)
+    .join("");
+}
+
+/** Extract child tool parts belonging to a given parent tool call. */
+export function selectChildToolParts(
+  message: AgentMessage,
+  parentToolCallId: string,
+): ToolInvocationPart[] {
+  return message.parts.filter(
+    (p): p is ToolInvocationPart =>
+      p.type === "tool-invocation" && p.parentToolUseId === parentToolCallId,
+  );
+}
 
 type AgentState = {
   sessions: Map<string, ChatSession>;
@@ -132,6 +177,7 @@ export const useAgentStore = create<AgentState>()(
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           isNew: meta?.isNew ?? false,
           messages: [],
+          agentMessages: [],
           streaming: false,
           promptError: null,
           pendingPermission: null,
@@ -154,6 +200,7 @@ export const useAgentStore = create<AgentState>()(
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           isNew: meta?.isNew ?? false,
           messages: [],
+          agentMessages: [],
           streaming: false,
           promptError: null,
           pendingPermission: null,
@@ -198,16 +245,31 @@ export const useAgentStore = create<AgentState>()(
           session.title = content.slice(0, 50);
         }
         state._nextMessageId += 1;
+        const msgId = String(state._nextMessageId);
+        // Legacy
         session.messages.push({
           id: String(state._nextMessageId),
           role: "user",
           content,
           ...(images && images.length > 0 ? { images } : {}),
         });
+        // Parts-based
+        session.agentMessages.push({
+          id: msgId,
+          role: "user",
+          parts: [
+            {
+              type: "text",
+              text: content,
+              ...(images && images.length > 0 ? { images } : {}),
+            },
+          ],
+        });
         storeLog(
-          "addUserMessage: msgCount=%d msgId=%d",
+          "addUserMessage: msgCount=%d agentMsgCount=%d msgId=%s",
           session.messages.length,
-          state._nextMessageId,
+          session.agentMessages.length,
+          msgId,
         );
       });
     },
@@ -268,9 +330,10 @@ export const useAgentStore = create<AgentState>()(
 
     restoreFromCache: (sessionId, cached) => {
       storeLog(
-        "restoreFromCache: sid=%s msgs=%d title=%s",
+        "restoreFromCache: sid=%s msgs=%d agentMsgs=%d title=%s",
         sessionId,
         cached.messages.length,
+        cached.agentMessages?.length ?? 0,
         cached.title,
       );
       set((state) => {
@@ -279,6 +342,7 @@ export const useAgentStore = create<AgentState>()(
           storeLog("restoreFromCache: WARNING session not found sid=%s", sessionId);
           return;
         }
+        // @deprecated Legacy messages
         session.messages = cached.messages.map((m) => {
           state._nextMessageId += 1;
           return {
@@ -288,6 +352,26 @@ export const useAgentStore = create<AgentState>()(
             images: m.images,
           };
         });
+        // Parts-based messages
+        if (Array.isArray(cached.agentMessages) && cached.agentMessages.length > 0) {
+          session.agentMessages = cached.agentMessages.map((m) => {
+            state._nextMessageId += 1;
+            return { ...m, id: String(state._nextMessageId) };
+          });
+        } else {
+          // @deprecated Fallback: convert legacy messages to basic AgentMessage format
+          session.agentMessages = cached.messages.map((m) => {
+            state._nextMessageId += 1;
+            const parts: AgentMessagePart[] = [];
+            if (m.thinking) {
+              parts.push({ type: "thinking", thinking: m.thinking });
+            }
+            if (m.content) {
+              parts.push({ type: "text", text: m.content });
+            }
+            return { id: String(state._nextMessageId), role: m.role, parts };
+          });
+        }
         if (cached.title) session.title = cached.title;
         if (cached.cwd) session.cwd = cached.cwd;
         if (cached.usage) session.usage = cached.usage;
@@ -314,6 +398,20 @@ export const useAgentStore = create<AgentState>()(
           );
           return;
         }
+
+        // ── Helper: get or create the last assistant AgentMessage ──
+        const getOrCreateAssistantAgentMsg = () => {
+          const last = session.agentMessages[session.agentMessages.length - 1];
+          if (last && last.role === "assistant") return last;
+          state._nextMessageId += 1;
+          const msg: AgentMessage = {
+            id: `am-${state._nextMessageId}`,
+            role: "assistant",
+            parts: [],
+          };
+          session.agentMessages.push(msg);
+          return msg;
+        };
 
         switch (event.type) {
           case "timing":
@@ -349,7 +447,7 @@ export const useAgentStore = create<AgentState>()(
             session.availableCommands = event.commands;
             break;
 
-          case "user_message":
+          case "user_message": {
             storeLog(
               "appendChunk: user_message sid=%s len=%d images=%d",
               sessionId,
@@ -360,23 +458,34 @@ export const useAgentStore = create<AgentState>()(
               session.title = event.text.slice(0, 50);
             }
             state._nextMessageId += 1;
+            const umId = String(state._nextMessageId);
+            // Legacy
             session.messages.push({
               id: String(state._nextMessageId),
               role: "user",
               content: event.text,
               ...(event.images && event.images.length > 0 ? { images: event.images } : {}),
             });
+            // Parts-based
+            session.agentMessages.push({
+              id: `am-${umId}`,
+              role: "user",
+              parts: [
+                {
+                  type: "text",
+                  text: event.text,
+                  ...(event.images && event.images.length > 0 ? { images: event.images } : {}),
+                },
+              ],
+            });
             break;
+          }
 
           case "text_delta": {
+            // ── Legacy ──
             const last = session.messages[session.messages.length - 1];
             if (last && last.role === "assistant") {
               last.content += event.text;
-              storeLog(
-                "appendChunk: text_delta appended len=%d totalLen=%d",
-                event.text.length,
-                last.content.length,
-              );
             } else {
               state._nextMessageId += 1;
               session.messages.push({
@@ -384,24 +493,23 @@ export const useAgentStore = create<AgentState>()(
                 role: "assistant",
                 content: event.text,
               });
-              storeLog(
-                "appendChunk: text_delta new assistant msg msgId=%d len=%d",
-                state._nextMessageId,
-                event.text.length,
-              );
+            }
+            // ── Parts-based ──
+            const amMsg = getOrCreateAssistantAgentMsg();
+            const lastPart = amMsg.parts[amMsg.parts.length - 1];
+            if (lastPart && lastPart.type === "text") {
+              lastPart.text += event.text;
+            } else {
+              amMsg.parts.push({ type: "text", text: event.text });
             }
             break;
           }
 
           case "thinking_delta": {
+            // ── Legacy ──
             const last = session.messages[session.messages.length - 1];
             if (last && last.role === "assistant") {
               last.thinking = (last.thinking ?? "") + event.text;
-              storeLog(
-                "appendChunk: thinking_delta appended len=%d totalLen=%d",
-                event.text.length,
-                last.thinking!.length,
-              );
             } else {
               state._nextMessageId += 1;
               session.messages.push({
@@ -410,15 +518,19 @@ export const useAgentStore = create<AgentState>()(
                 content: "",
                 thinking: event.text,
               });
-              storeLog(
-                "appendChunk: thinking_delta new assistant msg msgId=%d len=%d",
-                state._nextMessageId,
-                event.text.length,
-              );
+            }
+            // ── Parts-based ──
+            const amMsg = getOrCreateAssistantAgentMsg();
+            const lastPart = amMsg.parts[amMsg.parts.length - 1];
+            if (lastPart && lastPart.type === "thinking") {
+              lastPart.thinking += event.text;
+            } else {
+              amMsg.parts.push({ type: "thinking", thinking: event.text });
             }
             break;
           }
 
+          // @deprecated Legacy — still populate toolCalls map
           case "tool_use": {
             storeLog(
               "appendChunk: tool_use id=%s name=%s status=%s",
@@ -449,6 +561,65 @@ export const useAgentStore = create<AgentState>()(
                 status: event.status,
                 ...("input" in event ? { input: event.input } : {}),
               });
+            }
+            break;
+          }
+
+          // ── New structured tool events ──
+
+          case "tool_input_available": {
+            storeLog(
+              "appendChunk: tool_input_available id=%s name=%s parent=%s",
+              event.toolCallId,
+              event.toolName,
+              event.parentToolUseId ?? "-",
+            );
+            const amMsg = getOrCreateAssistantAgentMsg();
+            amMsg.parts.push({
+              type: "tool-invocation",
+              toolCallId: event.toolCallId,
+              toolName: event.toolName as ClaudeCodeToolName,
+              state: "input-available",
+              input: event.input,
+              parentToolUseId: event.parentToolUseId,
+            });
+            break;
+          }
+
+          case "tool_output_available": {
+            storeLog(
+              "appendChunk: tool_output_available id=%s outputLen=%d",
+              event.toolCallId,
+              event.output.length,
+            );
+            // Find the matching tool invocation part across all messages
+            for (const msg of session.agentMessages) {
+              for (const part of msg.parts) {
+                if (part.type === "tool-invocation" && part.toolCallId === event.toolCallId) {
+                  part.state = "output-available";
+                  part.output = event.output;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+
+          case "tool_output_error": {
+            storeLog(
+              "appendChunk: tool_output_error id=%s error=%s",
+              event.toolCallId,
+              event.errorText.slice(0, 80),
+            );
+            // Find the matching tool invocation part across all messages
+            for (const msg of session.agentMessages) {
+              for (const part of msg.parts) {
+                if (part.type === "tool-invocation" && part.toolCallId === event.toolCallId) {
+                  part.state = "output-error";
+                  part.errorText = event.errorText;
+                  break;
+                }
+              }
             }
             break;
           }
