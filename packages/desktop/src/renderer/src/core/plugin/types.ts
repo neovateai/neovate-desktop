@@ -1,5 +1,5 @@
 import type { PluginContributions } from "./contributions";
-import type { I18nContributions } from "../i18n/types";
+import type { I18nContributions } from "../i18n/i18next";
 import type { IRendererApp } from "../types";
 
 export interface PluginContext {
