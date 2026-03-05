@@ -7,15 +7,19 @@ const FilesIcon = ({ className }: { className?: string }) => (
 );
 
 const plugin: RendererPlugin = {
-  name: "builtin:files",
+  name: "plugin-files",
 
-  activate(ctx) {
-    ctx.app.i18nManager.setupLazyNamespaces([
-      {
-        namespace: "plugin-files",
-        loader: (locale) => import(`./locales/${locale}.json`),
+  configI18n() {
+    return {
+      namespace: "plugin-files",
+      loader: async (locale) => {
+        try {
+          return (await import(`./locales/${locale}.json`)).default;
+        } catch {
+          return (await import("./locales/en-US.json")).default;
+        }
       },
-    ]);
+    };
   },
 
   configContributions() {

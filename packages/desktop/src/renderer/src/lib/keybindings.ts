@@ -143,7 +143,7 @@ export const READONLY_ACTIONS: KeybindingAction[] = [
 /**
  * Translation keys for keybinding actions
  */
-export const KEYBINDING_LABEL_KEYS: Record<KeybindingAction, string> = {
+export const KEYBINDING_LABEL_KEYS = {
   openSettings: "settings.keybindings.openSettings",
   newChat: "settings.keybindings.newChat",
   closeSettings: "settings.keybindings.closeSettings",
@@ -152,7 +152,7 @@ export const KEYBINDING_LABEL_KEYS: Record<KeybindingAction, string> = {
   prevSession: "settings.keybindings.prevSession",
   nextSession: "settings.keybindings.nextSession",
   copyPath: "settings.keybindings.copyPath",
-};
+} as const satisfies Record<KeybindingAction, string>;
 
 /**
  * Human-readable labels for keybinding actions (for backward compatibility)

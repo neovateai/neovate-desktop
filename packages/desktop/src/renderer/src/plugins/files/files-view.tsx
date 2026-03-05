@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import type { ContractRouterClient } from "@orpc/contract";
 import { consumeEventIterator } from "@orpc/client";
 
@@ -9,6 +8,7 @@ import type { Project } from "../../../../shared/features/project/types";
 import { usePluginContext } from "../../core/app";
 import { TreeNode } from "./tree-node";
 import { useProjectStore } from "../../features/project/store";
+import { useFilesTranslation } from "./i18n";
 
 interface FilesViewProps {
   project: Project | null;
@@ -17,7 +17,7 @@ interface FilesViewProps {
 type FilesClient = ContractRouterClient<{ files: typeof filesContract }>;
 
 function FilesViewComponent({ project }: FilesViewProps) {
-  const { t } = useTranslation("plugin-files");
+  const { t } = useFilesTranslation();
   const { orpcClient } = usePluginContext();
   const client = orpcClient as FilesClient;
 

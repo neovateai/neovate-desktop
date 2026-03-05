@@ -1,22 +1,24 @@
-import type { ChatMessage, ToolCallState } from "../store";
+import type { ChatMessage } from "../store";
+import { MarkdownContent } from "./markdown-content";
+import { ToolActionsGroup } from "./tool-actions-group";
 
 type Props = {
   messages: ChatMessage[];
-  toolCalls: Map<string, ToolCallState>;
+  streaming?: boolean;
 };
 
-export function MessageList({ messages, toolCalls }: Props) {
+export function MessageList({ messages, streaming }: Props) {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-      {messages.map((msg) => (
+      {messages.map((msg, idx) => (
         <div
           key={msg.id}
           className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
         >
           <div
-            className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
+            className={`max-w-[80%] rounded-lg px-4 py-2 text-sm ${
               msg.role === "user"
-                ? "bg-primary text-primary-foreground"
+                ? "whitespace-pre-wrap bg-primary text-primary-foreground"
                 : "bg-muted text-foreground"
             }`}
           >
@@ -25,33 +27,20 @@ export function MessageList({ messages, toolCalls }: Props) {
                 {msg.thinking}
               </div>
             )}
-            {msg.content}
+            {msg.role === "assistant" ? (
+              <MarkdownContent
+                content={msg.content}
+                streaming={streaming && idx === messages.length - 1}
+              />
+            ) : (
+              msg.content
+            )}
+            {msg.toolCalls && msg.toolCalls.length > 0 && (
+              <ToolActionsGroup toolCalls={msg.toolCalls} />
+            )}
           </div>
         </div>
       ))}
-
-      {toolCalls.size > 0 && (
-        <div className="flex flex-col gap-1">
-          {Array.from(toolCalls.values()).map((tc) => (
-            <div
-              key={tc.toolCallId}
-              className="flex items-center gap-2 rounded border border-border px-3 py-1.5 text-xs text-muted-foreground"
-            >
-              <span
-                className={`size-2 rounded-full ${
-                  tc.status === "completed"
-                    ? "bg-green-500"
-                    : tc.status === "error"
-                      ? "bg-red-500"
-                      : "bg-yellow-500"
-                }`}
-              />
-              <span className="font-medium">{tc.name}</span>
-              <span className="text-muted-foreground/60">{tc.status}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

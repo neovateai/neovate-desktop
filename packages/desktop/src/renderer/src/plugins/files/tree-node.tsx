@@ -2,7 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { ChevronRight, ChevronDown, FilePlus, FolderPlus, Edit, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useFilesTranslation } from "./i18n";
 import { cn } from "../../lib/utils";
 import type { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import {
@@ -54,7 +54,7 @@ export function TreeNode({
   onCreateFolder,
   onAdd,
 }: TreeNodeProps) {
-  const { t } = useTranslation("plugin-files");
+  const { t } = useFilesTranslation();
   const { fileName = "" } = item || {};
   const [isEditing, setIsEditing] = useState(false);
   const [editingName, setEditingName] = useState(fileName);

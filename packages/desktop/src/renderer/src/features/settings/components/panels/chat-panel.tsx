@@ -19,25 +19,25 @@ import { ToggleOptions } from "../../../../components/ui/toggle-options";
 import { SettingsRow } from "../settings-row";
 
 // Translation key mappings
-const agentLanguageKeys: Record<AgentLanguage, string> = {
+const agentLanguageKeys = {
   English: "settings.chat.agentLanguage.english",
   Chinese: "settings.chat.agentLanguage.chinese",
-};
+} as const satisfies Record<AgentLanguage, string>;
 
-const approvalModeKeys: Record<ApprovalMode, string> = {
+const approvalModeKeys = {
   default: "settings.chat.approvalMode.default",
   autoEdit: "settings.chat.approvalMode.autoEdit",
   yolo: "settings.chat.approvalMode.yolo",
-};
+} as const satisfies Record<ApprovalMode, string>;
 
-const notificationSoundKeys: Record<NotificationSound, string> = {
+const notificationSoundKeys = {
   off: "settings.chat.notification.off",
   default: "settings.chat.notification.default",
   Glass: "settings.chat.notification.glass",
   Ping: "settings.chat.notification.ping",
   Pop: "settings.chat.notification.pop",
   Funk: "settings.chat.notification.funk",
-};
+} as const satisfies Record<NotificationSound, string>;
 
 export const ChatPanel = () => {
   const { t } = useTranslation();
