@@ -7,7 +7,7 @@ const GitIcon = ({ className }: { className?: string }) => (
 );
 
 const plugin: RendererPlugin = {
-  name: "builtin:git",
+  name: "plugin-git",
 
   configContributions() {
     return {

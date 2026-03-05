@@ -7,7 +7,7 @@ const FilesIcon = ({ className }: { className?: string }) => (
 );
 
 const plugin: RendererPlugin = {
-  name: "builtin:files",
+  name: "plugin-files",
 
   configContributions() {
     return {
