@@ -57,18 +57,8 @@ A dev-only playground with two tabs:
 - **AI Elements** — all `ai-elements` components rendered with sample data
 - **Chat** — `ClaudeCodeMessageParts` renderer with a real Claude Code session as mock data
 
-**Option 1 — env var (auto-loads on startup):**
-
 ```sh
 VITE_UI_PLAYGROUND=1 bun dev
-```
-
-**Option 2 — hash navigation (works in a running dev session):**
-
-Open the app and navigate to `#playground` in the URL bar, or run in DevTools:
-
-```js
-window.location.hash = "#playground";
 ```
 
 The playground is only available in dev mode (`import.meta.env.DEV`) and is excluded from production builds.
