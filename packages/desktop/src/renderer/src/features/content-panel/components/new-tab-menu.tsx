@@ -23,11 +23,7 @@ export function NewTabMenu() {
 
   return (
     <Menu>
-      <MenuTrigger
-        openOnHover
-        delay={0}
-        render={<Button variant="ghost" size="icon-sm" />}
-      >
+      <MenuTrigger openOnHover delay={0} render={<Button variant="ghost" size="icon-sm" />}>
         <Plus className="size-3.5" />
       </MenuTrigger>
       <MenuPopup side="bottom" align="start">

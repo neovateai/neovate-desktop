@@ -70,10 +70,7 @@ export class ContentPanel {
     this.projectPath = path;
   }
 
-  openView(
-    viewType: string,
-    options?: { name?: string; activate?: boolean },
-  ): string {
+  openView(viewType: string, options?: { name?: string; activate?: boolean }): string {
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) throw new Error(`Unknown view: ${viewType}`);
 
@@ -113,17 +110,10 @@ export class ContentPanel {
   }
 
   getViewState(viewId: string): Record<string, unknown> {
-    return (
-      this.store.getState().getTab(this.projectPath, viewId)?.state ?? {}
-    );
+    return this.store.getState().getTab(this.projectPath, viewId)?.state ?? {};
   }
 
-  updateViewState(
-    viewId: string,
-    patch: Record<string, unknown>,
-  ): void {
-    this.store
-      .getState()
-      .updateTabState(this.projectPath, viewId, patch);
+  updateViewState(viewId: string, patch: Record<string, unknown>): void {
+    this.store.getState().updateTabState(this.projectPath, viewId, patch);
   }
 }

@@ -23,7 +23,8 @@ function TabButton({
       aria-selected={isActive}
       className={cn(
         "group flex select-none items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted/50",
-        isOrphan && "text-muted-foreground/50 line-through decoration-muted-foreground/30 hover:text-muted-foreground",
+        isOrphan &&
+          "text-muted-foreground/50 line-through decoration-muted-foreground/30 hover:text-muted-foreground",
         !isOrphan && isActive && "bg-accent text-accent-foreground",
         !isOrphan && !isActive && "text-muted-foreground hover:text-foreground",
       )}
@@ -62,10 +63,7 @@ export function TabItem({
   if (isOrphan) {
     return (
       <Tooltip>
-        <TooltipTrigger
-          render={<TabButton tab={tab} isActive={isActive} isOrphan />}
-          delay={0}
-        />
+        <TooltipTrigger render={<TabButton tab={tab} isActive={isActive} isOrphan />} delay={0} />
         <TooltipPopup side="bottom">
           &quot;{tab.name}&quot; is unavailable. You can close this tab.
         </TooltipPopup>

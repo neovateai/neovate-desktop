@@ -14,7 +14,10 @@ export function TabBar({
 }) {
   return (
     <div className="flex items-center border-b border-border px-1.5 py-1">
-      <ScrollArea scrollFade className="min-w-0 flex-1 [&_[data-slot=scroll-area-scrollbar]]:hidden [&_[data-slot=scroll-area-viewport]]:!flex [&_[data-slot=scroll-area-viewport]]:items-center">
+      <ScrollArea
+        scrollFade
+        className="min-w-0 flex-1 [&_[data-slot=scroll-area-scrollbar]]:hidden [&_[data-slot=scroll-area-viewport]]:!flex [&_[data-slot=scroll-area-viewport]]:items-center"
+      >
         <div className="flex items-center gap-0.5">
           {tabs.map((tab) => (
             <TabItem

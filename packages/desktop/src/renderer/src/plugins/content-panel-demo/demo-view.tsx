@@ -13,15 +13,12 @@ export default function DemoView() {
   const [counter, setCounter] = useState(0);
 
   // Live store snapshot
-  const projectPath = useStore(
-    contentPanel.store,
-    (s: ContentPanelStoreState) => {
-      for (const [path, ps] of Object.entries(s.projects)) {
-        if (ps.tabs.some((t) => t.id === viewId)) return path;
-      }
-      return "";
-    },
-  );
+  const projectPath = useStore(contentPanel.store, (s: ContentPanelStoreState) => {
+    for (const [path, ps] of Object.entries(s.projects)) {
+      if (ps.tabs.some((t) => t.id === viewId)) return path;
+    }
+    return "";
+  });
   const projectState = useStore(
     contentPanel.store,
     (s: ContentPanelStoreState) => s.projects[projectPath],
@@ -55,7 +52,9 @@ export default function DemoView() {
               <div
                 key={t.id}
                 className={`flex items-center gap-2 rounded px-2 py-0.5 text-xs font-mono ${
-                  t.id === activeTabId ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  t.id === activeTabId
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground"
                 } ${t.id === viewId ? "ring-1 ring-primary/30" : ""}`}
               >
                 <span className="truncate">{t.id.slice(0, 8)}</span>
@@ -71,24 +70,48 @@ export default function DemoView() {
         {/* Tab API */}
         <Section title="Tab API">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.openView("demo-multi", { name: `Multi #${Date.now().toString(36)}` })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                contentPanel.openView("demo-multi", { name: `Multi #${Date.now().toString(36)}` })
+              }
+            >
               Open + Activate
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.openView("demo-multi", { name: `BG #${Date.now().toString(36)}`, activate: false })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                contentPanel.openView("demo-multi", {
+                  name: `BG #${Date.now().toString(36)}`,
+                  activate: false,
+                })
+              }
+            >
               Open Background
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.openView("demo-singleton")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => contentPanel.openView("demo-singleton")}
+            >
               Open Singleton
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.updateView(viewId, { name: `Renamed ${Date.now().toString(36)}` })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                contentPanel.updateView(viewId, { name: `Renamed ${Date.now().toString(36)}` })
+              }
+            >
               Rename This
             </Button>
-            <Button variant="destructive-outline" size="sm"
-              onClick={() => contentPanel.closeView(viewId)}>
+            <Button
+              variant="destructive-outline"
+              size="sm"
+              onClick={() => contentPanel.closeView(viewId)}
+            >
               Close This
             </Button>
           </div>
@@ -100,16 +123,29 @@ export default function DemoView() {
             {JSON.stringify(state, null, 2) || "{}"}
           </pre>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.updateViewState(viewId, { clickedAt: new Date().toISOString() })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                contentPanel.updateViewState(viewId, { clickedAt: new Date().toISOString() })
+              }
+            >
               Write Timestamp
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.updateViewState(viewId, { random: Math.random().toFixed(4) })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                contentPanel.updateViewState(viewId, { random: Math.random().toFixed(4) })
+              }
+            >
               Add Random
             </Button>
-            <Button variant="outline" size="sm"
-              onClick={() => contentPanel.updateViewState(viewId, { counter })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => contentPanel.updateViewState(viewId, { counter })}
+            >
               Persist Counter
             </Button>
           </div>
@@ -118,9 +154,13 @@ export default function DemoView() {
         {/* Local State */}
         <Section title="Local State (resets on remount)">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon-sm" onClick={() => setCounter((c) => c - 1)}>−</Button>
+            <Button variant="outline" size="icon-sm" onClick={() => setCounter((c) => c - 1)}>
+              −
+            </Button>
             <span className="min-w-8 text-center text-sm font-mono">{counter}</span>
-            <Button variant="outline" size="icon-sm" onClick={() => setCounter((c) => c + 1)}>+</Button>
+            <Button variant="outline" size="icon-sm" onClick={() => setCounter((c) => c + 1)}>
+              +
+            </Button>
           </div>
         </Section>
       </div>

@@ -17,12 +17,12 @@ A view is a content type registered by a plugin. Uses `ContentPanelView` from `c
 
 ```ts
 interface ContentPanelView {
-  id: string                        // "terminal", "editor", "browser", "review"
-  name: string                      // "Terminal", "Editor"
-  icon?: React.ComponentType<{ className?: string }>
-  singleton?: boolean               // default true; per-project scope
-  deactivation?: "hidden" | "activity" | "unmount"  // default "hidden"
-  component: () => Promise<{ default: React.ComponentType }>  // no props — uses hooks
+  id: string; // "terminal", "editor", "browser", "review"
+  name: string; // "Terminal", "Editor"
+  icon?: React.ComponentType<{ className?: string }>;
+  singleton?: boolean; // default true; per-project scope
+  deactivation?: "hidden" | "activity" | "unmount"; // default "hidden"
+  component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }
 ```
 
@@ -30,11 +30,11 @@ Views are contributed via `PluginContributions.contentPanelViews` and collected 
 
 **`deactivation`** controls what happens when a tab is not active:
 
-| Mode | Hidden behavior | Effects | DOM | Use case |
-|---|---|---|---|---|
-| `"hidden"` (default) | CSS `display:none` | Keep running | Preserved | Terminal (subscriptions must stay alive) |
-| `"activity"` | React 19 `<Activity>` | Teardown on hide | Preserved | Editor, Browser (free resources, fast restore) |
-| `"unmount"` | Unmount component | Teardown on hide | Removed | Lightweight views (full memory release) |
+| Mode                 | Hidden behavior       | Effects          | DOM       | Use case                                       |
+| -------------------- | --------------------- | ---------------- | --------- | ---------------------------------------------- |
+| `"hidden"` (default) | CSS `display:none`    | Keep running     | Preserved | Terminal (subscriptions must stay alive)       |
+| `"activity"`         | React 19 `<Activity>` | Teardown on hide | Preserved | Editor, Browser (free resources, fast restore) |
+| `"unmount"`          | Unmount component     | Teardown on hide | Removed   | Lightweight views (full memory release)        |
 
 Currently all views use `"hidden"` (CSS). `"activity"` and `"unmount"` are defined for future optimization — plugins can opt in per-view when needed.
 
@@ -53,19 +53,19 @@ A tab is a live instance of a view. Internal to the content panel store — plug
 ```ts
 // Internal to tab store
 type Tab = {
-  id: string                        // stable nanoid
-  viewId: string                    // references ContentPanelView.id
-  name: string                      // displayed in tab bar
-  state: Record<string, unknown>    // plugin-managed restorable state, persisted with tab
-}
+  id: string; // stable nanoid
+  viewId: string; // references ContentPanelView.id
+  name: string; // displayed in tab bar
+  state: Record<string, unknown>; // plugin-managed restorable state, persisted with tab
+};
 ```
 
 Components don't know about tabs. The tab system provides context with the instance id. Components access it via hooks:
 
 ```ts
 // Provided by the tab system via React context
-function useInstanceId(): string                         // current tab's instance id
-function useViewState(): Record<string, unknown>         // reactive — re-renders on state change
+function useInstanceId(): string; // current tab's instance id
+function useViewState(): Record<string, unknown>; // reactive — re-renders on state change
 ```
 
 `tab.state` holds plugin-managed restorable config (e.g. terminal's `cwd`, editor's `filePath`). Plugins write via `contentPanel.updateViewState(instanceId, { cwd: "/foo" })`. The tab store persists it automatically, and cleans it up when the tab is closed. Runtime objects (xterm instances, PTY handles) live in plugin-internal variables — not in `tab.state`.
@@ -84,26 +84,28 @@ const terminalPlugin: RendererPlugin = {
   name: "builtin:terminal",
   configContributions() {
     return {
-      contentPanelViews: [{
-        id: "terminal",
-        name: "Terminal",
-        singleton: false,
-        component: () => import("./terminal-view"),
-      }]
-    }
+      contentPanelViews: [
+        {
+          id: "terminal",
+          name: "Terminal",
+          singleton: false,
+          component: () => import("./terminal-view"),
+        },
+      ],
+    };
   },
-}
+};
 
 // Component manages its own lifecycle (PTY spawn/kill, xterm setup)
 // terminal-view.tsx
 function TerminalView() {
-  const instanceId = useInstanceId()
-  const state = useViewState()   // { cwd: "/foo" }
+  const instanceId = useInstanceId();
+  const state = useViewState(); // { cwd: "/foo" }
 
   useEffect(() => {
-    spawnPty(instanceId, state.cwd)
-    return () => killPty(instanceId)
-  }, [])
+    spawnPty(instanceId, state.cwd);
+    return () => killPty(instanceId);
+  }, []);
 }
 ```
 
@@ -127,35 +129,41 @@ Built on [hookable](https://github.com/unjs/hookable) (from unjs/Nuxt). Each wor
 - **Cross-plugin communication:** one plugin hooking another plugin's view events is a natural fit for an event model, not store subscriptions.
 
 ```ts
-import { Hookable } from "hookable"
+import { Hookable } from "hookable";
 
 interface ViewContext {
-  viewId: string
-  instanceId: string
+  viewId: string;
+  instanceId: string;
 }
 
 interface ContentPanelHooks {
-  "opened":      (context: ViewContext & { props: Record<string, unknown> }) => void | Promise<void>
-  "closed":      (context: ViewContext) => void | Promise<void>
-  "activated":   (context: ViewContext) => void    // tab switch within same project only
-  "deactivated": (context: ViewContext) => void    // tab switch within same project only
-  "beforeClose": (context: ViewContext) => boolean | Promise<boolean>
+  opened: (context: ViewContext & { props: Record<string, unknown> }) => void | Promise<void>;
+  closed: (context: ViewContext) => void | Promise<void>;
+  activated: (context: ViewContext) => void; // tab switch within same project only
+  deactivated: (context: ViewContext) => void; // tab switch within same project only
+  beforeClose: (context: ViewContext) => boolean | Promise<boolean>;
 }
 
 class ContentPanel extends Hookable<ContentPanelHooks> {
   // Actions
-  openView(viewId: string, options?: {
-    name?: string
-    props?: Record<string, unknown>
-  }): Promise<string>                           // async — awaits hooks, returns instanceId
+  openView(
+    viewId: string,
+    options?: {
+      name?: string;
+      props?: Record<string, unknown>;
+    },
+  ): Promise<string>; // async — awaits hooks, returns instanceId
 
-  closeView(instanceId: string): Promise<void>  // async — awaits beforeClose guard
-  activateView(instanceId: string): void
-  updateView(instanceId: string, patch: {
-    name?: string
-  }): void
-  getViewState(instanceId: string): Record<string, unknown>
-  updateViewState(instanceId: string, patch: Record<string, unknown>): void  // shallow merge into tab.state
+  closeView(instanceId: string): Promise<void>; // async — awaits beforeClose guard
+  activateView(instanceId: string): void;
+  updateView(
+    instanceId: string,
+    patch: {
+      name?: string;
+    },
+  ): void;
+  getViewState(instanceId: string): Record<string, unknown>;
+  updateViewState(instanceId: string, patch: Record<string, unknown>): void; // shallow merge into tab.state
 
   // Hooks inherited from Hookable<ContentPanelHooks>:
   // hook(name, handler) — subscribe, returns unsubscribe fn
@@ -249,13 +257,13 @@ class ContentPanel extends Hookable<ContentPanelHooks> {
 
 ```ts
 type ContentPanelStoreState = {
-  projects: Record<string, ProjectTabState>   // keyed by project path
-}
+  projects: Record<string, ProjectTabState>; // keyed by project path
+};
 
 type ProjectTabState = {
-  tabs: Tab[]
-  activeTabId: string | null
-}
+  tabs: Tab[];
+  activeTabId: string | null;
+};
 ```
 
 **Reading (React):** `useStore(contentPanel.store, selector)` — reactive subscription via exposed store.
@@ -271,6 +279,7 @@ Does not use zustand `persist` middleware — it is designed for `localStorage`.
 **File:** `content-panel.json` in app userData directory (via `electron-store`).
 
 **Write strategy** (inspired by VSCode):
+
 - Zustand store updates are **in-memory immediate** (memory is the source of truth)
 - `store.subscribe()` + debounce → oRPC write to main process
 - **Flush on window close** — immediate flush on `beforeunload`
@@ -279,13 +288,14 @@ Does not use zustand `persist` middleware — it is designed for `localStorage`.
 ```ts
 // persistence subscription
 const debouncedSave = debounce(() => {
-  rpc.contentPanel.save(store.getState().projects)
-}, 100)
-store.subscribe(debouncedSave)
-window.addEventListener("beforeunload", () => debouncedSave.flush())
+  rpc.contentPanel.save(store.getState().projects);
+}, 100);
+store.subscribe(debouncedSave);
+window.addEventListener("beforeunload", () => debouncedSave.flush());
 ```
 
 **Hydration timing:**
+
 ```
 app.start():
   1. configContributions()           // collect views from plugins
@@ -310,6 +320,7 @@ Hydration happens before `activate()` so plugins and UI always see restored stat
 **On restore:** tabs whose `viewId` is no longer registered (plugin removed) are silently skipped with a dev warning.
 
 > **TODO:** Consolidate all UI state into a single `state.json`. Each subsystem keeps its own zustand store at runtime, but persists to the same file:
+>
 > ```
 > Runtime (memory):                     Persistence (disk):
 > ┌─────────────────────┐
@@ -320,25 +331,29 @@ Hydration happens before `activate()` so plugins and UI always see restored stat
 > │ layoutStore          │─┘
 > └─────────────────────┘
 > ```
+>
 > Main process uses a single `electron-store` instance, reading/writing by namespace key:
+>
 > ```ts
-> rpc.state.save("contentPanel", data)  // → stateStore.set("contentPanel", data)
-> rpc.state.load("contentPanel")        // → stateStore.get("contentPanel")
+> rpc.state.save("contentPanel", data); // → stateStore.set("contentPanel", data)
+> rpc.state.load("contentPanel"); // → stateStore.get("contentPanel")
 > ```
+>
 > Each subsystem subscribes and debounces independently. Hydration moves up to `RendererApp.start()` for a single load-and-dispatch. Currently using `electron-store`; when consolidating, consider `conf` (the underlying library, pure Node, no Electron API dependency).
 
 ---
 
 ## Plugin State Management
 
-| State type | Location | Persisted | Cleanup |
-|---|---|---|---|
-| Tab identity + restorable config | `tab.state` in tab store | Yes (with tab) | Automatic on tab close |
-| Runtime objects (xterm, PTY handle) | Plugin-internal variables (Map, ref) | No | Component `useEffect` cleanup |
+| State type                          | Location                             | Persisted      | Cleanup                       |
+| ----------------------------------- | ------------------------------------ | -------------- | ----------------------------- |
+| Tab identity + restorable config    | `tab.state` in tab store             | Yes (with tab) | Automatic on tab close        |
+| Runtime objects (xterm, PTY handle) | Plugin-internal variables (Map, ref) | No             | Component `useEffect` cleanup |
 
 Plugins do **not** need their own Zustand store for per-instance state. `tab.state` covers restorable config, and runtime objects live in plain variables inside the plugin module.
 
 **Data flow for `openView`:**
+
 ```
 await openView("terminal", { props: { cwd: "/foo" } })
   → content panel store creates Tab { id, viewId: "terminal", name: "Terminal", state: {} }
@@ -386,27 +401,29 @@ Currently all views use CSS `display:none` for hiding (the default `deactivation
 // mountedProjects: tracks which projects have been active this session
 // A project's tabs are only rendered after it has been active at least once
 
-{Object.entries(projects)
-  .filter(([path]) => mountedProjects.has(path))
-  .map(([projectPath, projectState]) => {
-    const isActiveProject = activeProject?.path === projectPath
-    return (
-      <div key={projectPath} style={{ display: isActiveProject ? "contents" : "none" }}>
-        {projectState.tabs.map(tab => {
-          const isActiveTab = projectState.activeTabId === tab.id
-          return (
-            <div key={tab.id} style={{ display: isActiveTab ? "contents" : "none" }}>
-              <Suspense>
-                <ViewContext.Provider value={tab.id}>
-                  <LazyViewComponent />
-                </ViewContext.Provider>
-              </Suspense>
-            </div>
-          )
-        })}
-      </div>
-    )
-  })}
+{
+  Object.entries(projects)
+    .filter(([path]) => mountedProjects.has(path))
+    .map(([projectPath, projectState]) => {
+      const isActiveProject = activeProject?.path === projectPath;
+      return (
+        <div key={projectPath} style={{ display: isActiveProject ? "contents" : "none" }}>
+          {projectState.tabs.map((tab) => {
+            const isActiveTab = projectState.activeTabId === tab.id;
+            return (
+              <div key={tab.id} style={{ display: isActiveTab ? "contents" : "none" }}>
+                <Suspense>
+                  <ViewContext.Provider value={tab.id}>
+                    <LazyViewComponent />
+                  </ViewContext.Provider>
+                </Suspense>
+              </div>
+            );
+          })}
+        </div>
+      );
+    });
+}
 ```
 
 - **Lazy project mount:** tabs are not mounted until their project becomes active — prevents bulk PTY spawn on restore

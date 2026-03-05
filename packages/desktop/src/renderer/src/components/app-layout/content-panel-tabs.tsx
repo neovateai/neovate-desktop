@@ -8,9 +8,7 @@ import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../../features/content-panel/types";
 
 function useLazyComponents(views: ContentPanelView[]) {
-  const cache = useRef(
-    new Map<string, React.LazyExoticComponent<React.ComponentType>>(),
-  );
+  const cache = useRef(new Map<string, React.LazyExoticComponent<React.ComponentType>>());
   for (const view of views) {
     if (!cache.current.has(view.viewType)) {
       cache.current.set(view.viewType, lazy(view.component));
@@ -39,10 +37,7 @@ export function ContentPanelTabs() {
     mountedProjects.current.add(projectPath);
   }
 
-  const projects = useStore(
-    contentPanel.store,
-    (s: ContentPanelStoreState) => s.projects,
-  );
+  const projects = useStore(contentPanel.store, (s: ContentPanelStoreState) => s.projects);
 
   if (!projectPath) {
     return (
@@ -95,10 +90,7 @@ export function ContentPanelTabs() {
         ))}
 
         {/* New tab button */}
-        <NewTabMenu
-          views={views}
-          onSelect={(viewId) => contentPanel.openView(viewId)}
-        />
+        <NewTabMenu views={views} onSelect={(viewId) => contentPanel.openView(viewId)} />
       </div>
 
       {/* View rendering area */}
@@ -108,10 +100,7 @@ export function ContentPanelTabs() {
           .map(([path, state]) => {
             const isActiveProject = path === projectPath;
             return (
-              <div
-                key={path}
-                style={{ display: isActiveProject ? "contents" : "none" }}
-              >
+              <div key={path} style={{ display: isActiveProject ? "contents" : "none" }}>
                 {state.tabs.map((tab) => {
                   const view = views.find((v) => v.viewType === tab.viewType);
                   if (!view) return null;

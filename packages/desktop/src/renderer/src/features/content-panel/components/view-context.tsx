@@ -12,9 +12,7 @@ export function ContentPanelViewContextProvider({
   viewId: string;
   children: ReactNode;
 }) {
-  return (
-    <ViewIdContext.Provider value={viewId}>{children}</ViewIdContext.Provider>
-  );
+  return <ViewIdContext.Provider value={viewId}>{children}</ViewIdContext.Provider>;
 }
 
 export interface ContentPanelViewContextValue {

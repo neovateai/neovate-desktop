@@ -46,9 +46,7 @@ beforeEach(() => {
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <ContentPanelViewContextProvider viewId="tab-1">
-      {children}
-    </ContentPanelViewContextProvider>
+    <ContentPanelViewContextProvider viewId="tab-1">{children}</ContentPanelViewContextProvider>
   );
 }
 

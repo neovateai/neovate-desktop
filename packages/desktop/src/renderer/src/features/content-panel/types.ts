@@ -16,11 +16,7 @@ export interface ContentPanelStoreState {
   removeTab(projectPath: string, tabId: string): void;
   setActiveTab(projectPath: string, tabId: string | null): void;
   updateTab(projectPath: string, tabId: string, patch: { name?: string }): void;
-  updateTabState(
-    projectPath: string,
-    tabId: string,
-    patch: Record<string, unknown>,
-  ): void;
+  updateTabState(projectPath: string, tabId: string, patch: Record<string, unknown>): void;
   getTab(projectPath: string, tabId: string): Tab | undefined;
   getProjectState(projectPath: string): ProjectTabState;
   findTabByViewType(projectPath: string, viewType: string): Tab | undefined;

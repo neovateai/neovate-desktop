@@ -11,8 +11,7 @@ export function createContentPanelStore() {
 
       addTab(projectPath, tab, activate = true) {
         set((s) => {
-          if (!s.projects[projectPath])
-            s.projects[projectPath] = { tabs: [], activeTabId: null };
+          if (!s.projects[projectPath]) s.projects[projectPath] = { tabs: [], activeTabId: null };
           s.projects[projectPath].tabs.push(tab);
           if (activate) s.projects[projectPath].activeTabId = tab.id;
         });
@@ -41,9 +40,7 @@ export function createContentPanelStore() {
 
       updateTab(projectPath, tabId, patch) {
         set((s) => {
-          const tab = s.projects[projectPath]?.tabs.find(
-            (t) => t.id === tabId,
-          );
+          const tab = s.projects[projectPath]?.tabs.find((t) => t.id === tabId);
           if (!tab) return;
           if (patch.name !== undefined) tab.name = patch.name;
         });
@@ -51,18 +48,14 @@ export function createContentPanelStore() {
 
       updateTabState(projectPath, tabId, patch) {
         set((s) => {
-          const tab = s.projects[projectPath]?.tabs.find(
-            (t) => t.id === tabId,
-          );
+          const tab = s.projects[projectPath]?.tabs.find((t) => t.id === tabId);
           if (!tab) return;
           Object.assign(tab.state, patch);
         });
       },
 
       getTab(projectPath, tabId) {
-        return get().projects[projectPath]?.tabs.find(
-          (t) => t.id === tabId,
-        );
+        return get().projects[projectPath]?.tabs.find((t) => t.id === tabId);
       },
 
       getProjectState(projectPath) {
@@ -70,9 +63,7 @@ export function createContentPanelStore() {
       },
 
       findTabByViewType(projectPath, viewType) {
-        return get().projects[projectPath]?.tabs.find(
-          (t) => t.viewType === viewType,
-        );
+        return get().projects[projectPath]?.tabs.find((t) => t.viewType === viewType);
       },
 
       removeProject(projectPath) {

@@ -43,16 +43,12 @@ describe("openView", () => {
   it("returns a viewId and adds tab to store", () => {
     const id = panel.openView("terminal");
     expect(id).toBeTruthy();
-    expect(
-      panel.store.getState().getProjectState(PROJECT).tabs,
-    ).toHaveLength(1);
+    expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(1);
   });
 
   it("uses view name as default tab name", () => {
     panel.openView("terminal");
-    expect(
-      panel.store.getState().getProjectState(PROJECT).tabs[0].name,
-    ).toBe("Terminal");
+    expect(panel.store.getState().getProjectState(PROJECT).tabs[0].name).toBe("Terminal");
   });
 
   it("accepts custom name", () => {
@@ -65,18 +61,14 @@ describe("openView", () => {
     const id1 = panel.openView("editor");
     const id2 = panel.openView("editor");
     expect(id1).toBe(id2);
-    expect(
-      panel.store.getState().getProjectState(PROJECT).tabs,
-    ).toHaveLength(1);
+    expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(1);
   });
 
   it("allows multiple instances for non-singleton views", () => {
     const id1 = panel.openView("terminal");
     const id2 = panel.openView("terminal");
     expect(id1).not.toBe(id2);
-    expect(
-      panel.store.getState().getProjectState(PROJECT).tabs,
-    ).toHaveLength(2);
+    expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(2);
   });
 
   it("throws for unknown viewType", () => {
@@ -97,9 +89,7 @@ describe("closeView", () => {
   it("removes the tab", () => {
     const id = panel.openView("terminal");
     panel.closeView(id);
-    expect(
-      panel.store.getState().getProjectState(PROJECT).tabs,
-    ).toHaveLength(0);
+    expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(0);
   });
 
   it("closing active tab activates previous tab", () => {
@@ -269,9 +259,7 @@ describe("observe + flush", () => {
 
     vi.advanceTimersByTime(100);
     expect(options.save).toHaveBeenCalledTimes(1);
-    expect(options.save).toHaveBeenCalledWith(
-      panel.store.getState().projects,
-    );
+    expect(options.save).toHaveBeenCalledWith(panel.store.getState().projects);
 
     panel.dispose();
   });
