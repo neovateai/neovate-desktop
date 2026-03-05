@@ -14,6 +14,7 @@ import { toastManager } from "../components/ui/toast";
 export function useGlobalKeybindings(): void {
   const showSettings = useSettingsStore((state) => state.showSettings);
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
+  const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,7 +50,6 @@ export function useGlobalKeybindings(): void {
       // Toggle Theme
       if (matchesBinding(e, keybindings.toggleTheme)) {
         e.preventDefault();
-        const { resolvedTheme, setTheme } = useTheme();
         const newTheme = resolvedTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
         config.setConfig("theme", newTheme);
@@ -74,5 +74,5 @@ export function useGlobalKeybindings(): void {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showSettings, setShowSettings]);
+  }, [showSettings, setShowSettings, resolvedTheme, setTheme]);
 }

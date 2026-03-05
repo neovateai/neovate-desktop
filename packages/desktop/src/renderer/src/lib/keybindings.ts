@@ -1,6 +1,9 @@
 /**
  * Keybinding utilities for capture, matching, and display formatting.
  */
+import debug from "debug";
+
+const log = debug("neovate:keybindings");
 
 // Symbol mapping for display
 const SYMBOL_MAP: Record<string, string> = {
@@ -37,8 +40,11 @@ export function captureKeybinding(e: KeyboardEvent): string | null {
   if (e.shiftKey) parts.push("Shift");
 
   // Normalize key name
+  // Use e.code for letter keys to avoid Option+letter producing alternate chars on macOS
   let key: string;
-  if (e.key === " ") {
+  if (e.code && e.code.startsWith("Key") && e.code.length === 4) {
+    key = e.code.charAt(3);
+  } else if (e.key === " ") {
     key = "Space";
   } else if (e.key === "Escape") {
     key = "Esc";
@@ -49,7 +55,9 @@ export function captureKeybinding(e: KeyboardEvent): string | null {
   }
 
   parts.push(key);
-  return parts.join("+");
+  const result = parts.join("+");
+  log("capture: key=%s code=%s → %s", e.key, e.code, result);
+  return result;
 }
 
 /**
@@ -76,8 +84,11 @@ export function matchesBinding(e: KeyboardEvent, binding: string): boolean {
   if (!key) return false;
 
   // Normalize the event key for comparison
+  // Use e.code for letter keys to avoid Option+letter producing alternate chars on macOS
   let eventKey: string;
-  if (e.key === "Escape") {
+  if (e.code && e.code.startsWith("Key") && e.code.length === 4) {
+    eventKey = e.code.charAt(3);
+  } else if (e.key === "Escape") {
     eventKey = "Esc";
   } else if (e.key === " ") {
     eventKey = "Space";
@@ -99,7 +110,11 @@ export function matchesBinding(e: KeyboardEvent, binding: string): boolean {
   const optionMatches = wantOption ? e.altKey : !e.altKey;
   const shiftMatches = wantShift ? e.shiftKey : !e.shiftKey;
 
-  return cmdMatches && ctrlMatches && optionMatches && shiftMatches && eventKey === key;
+  const matched = cmdMatches && ctrlMatches && optionMatches && shiftMatches && eventKey === key;
+  if (matched) {
+    log("matched: %s (key=%s code=%s)", binding, e.key, e.code);
+  }
+  return matched;
 }
 
 /**
