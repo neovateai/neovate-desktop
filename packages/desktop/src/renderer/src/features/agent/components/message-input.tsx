@@ -126,6 +126,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
       },
     },
     editable: !disabled && !streaming,
+    autofocus: "end",
   });
 
   // Keep sendRef in sync with latest props

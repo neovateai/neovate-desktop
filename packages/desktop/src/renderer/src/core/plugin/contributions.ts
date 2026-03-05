@@ -24,21 +24,12 @@ export interface SecondarySidebarView {
 }
 
 export interface ContentPanelView {
-  id: string;
+  viewType: string;
   name: string;
   icon?: React.ComponentType<{ className?: string }>;
-  singleton?: boolean;
-  component: () => Promise<{
-    default: React.ComponentType<{ tab: PluginTab }>;
-  }>;
-}
-
-/** Minimal tab info passed to content panel components */
-export interface PluginTab {
-  id: string;
-  panelId: string;
-  name: string;
-  props?: Record<string, unknown>;
+  singleton?: boolean; // default true; per-project scope
+  deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
+  component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }
 
 export interface TitlebarItem {

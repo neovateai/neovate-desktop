@@ -306,48 +306,69 @@ export function SessionList() {
   const allInMemory = (Array.from(sessions.values()) as ChatSession[]).filter(
     (s) => matchesProject(s.cwd) && !isArchived(s.sessionId) && !s.isNew,
   );
-  const pinnedInMemory = allInMemory.filter((s) => isPinned(s.sessionId));
-  const regularInMemory = allInMemory.filter((s) => !isPinned(s.sessionId));
 
   // Persisted sessions not loaded, filtered by project, excluding archived
   const allPersisted = agentSessions.filter(
     (s) => !loadedIds.has(s.sessionId) && matchesProject(s.cwd) && !isArchived(s.sessionId),
   );
-  const pinnedPersisted = allPersisted.filter((s) => isPinned(s.sessionId));
-  const regularPersisted = allPersisted.filter((s) => !isPinned(s.sessionId));
 
-  const hasPinned = pinnedInMemory.length > 0 || pinnedPersisted.length > 0;
-  const hasRegular = regularInMemory.length > 0;
-  const hasHistory = regularPersisted.length > 0;
+  // Unified sorted lists: pinned and regular
+  type UnifiedItem =
+    | { kind: "memory"; session: ChatSession }
+    | { kind: "persisted"; info: SessionInfo };
 
-  const renderInMemory = (session: ChatSession) => (
-    <SessionItemRow
-      key={session.sessionId}
-      sessionId={session.sessionId}
-      title={session.title}
-      createdAt={session.createdAt}
-      isActive={session.sessionId === activeSessionId}
-      isPinned={isPinned(session.sessionId)}
-      isRestoring={false}
-      subtitle={`${session.messages.length} msg${session.messages.length !== 1 ? "s" : ""}${session.streaming ? " · streaming" : ""}`}
-      onClick={() => setActiveSession(session.sessionId)}
-      projectPath={projectPath}
-    />
+  const toUnified = (items: ChatSession[], persisted: SessionInfo[]): UnifiedItem[] => {
+    const mem: UnifiedItem[] = items.map((s) => ({ kind: "memory", session: s }));
+    const per: UnifiedItem[] = persisted.map((s) => ({ kind: "persisted", info: s }));
+    return [...mem, ...per].sort((a, b) => {
+      const aDate = a.kind === "memory" ? a.session.createdAt : a.info.createdAt;
+      const bDate = b.kind === "memory" ? b.session.createdAt : b.info.createdAt;
+      return bDate.localeCompare(aDate);
+    });
+  };
+
+  const pinnedItems = toUnified(
+    allInMemory.filter((s) => isPinned(s.sessionId)),
+    allPersisted.filter((s) => isPinned(s.sessionId)),
+  );
+  const regularItems = toUnified(
+    allInMemory.filter((s) => !isPinned(s.sessionId)),
+    allPersisted.filter((s) => !isPinned(s.sessionId)),
   );
 
-  const renderPersisted = (info: SessionInfo) => (
-    <SessionItemRow
-      key={info.sessionId}
-      sessionId={info.sessionId}
-      title={info.title}
-      createdAt={info.createdAt}
-      isActive={false}
-      isPinned={isPinned(info.sessionId)}
-      isRestoring={restoring === info.sessionId}
-      onClick={() => loadSession(info.sessionId)}
-      projectPath={projectPath}
-    />
-  );
+  const renderItem = (item: UnifiedItem) => {
+    if (item.kind === "memory") {
+      const s = item.session;
+      return (
+        <SessionItemRow
+          key={s.sessionId}
+          sessionId={s.sessionId}
+          title={s.title}
+          createdAt={s.createdAt}
+          isActive={s.sessionId === activeSessionId}
+          isPinned={isPinned(s.sessionId)}
+          isRestoring={false}
+          subtitle={`${s.messages.length} msg${s.messages.length !== 1 ? "s" : ""}${s.streaming ? " · streaming" : ""}`}
+          onClick={() => setActiveSession(s.sessionId)}
+          projectPath={projectPath}
+        />
+      );
+    }
+    const info = item.info;
+    return (
+      <SessionItemRow
+        key={info.sessionId}
+        sessionId={info.sessionId}
+        title={info.title}
+        createdAt={info.createdAt}
+        isActive={false}
+        isPinned={isPinned(info.sessionId)}
+        isRestoring={restoring === info.sessionId}
+        onClick={() => loadSession(info.sessionId)}
+        projectPath={projectPath}
+      />
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-1">
@@ -366,37 +387,15 @@ export function SessionList() {
       </Button>
 
       <ul className="flex flex-col gap-0.5">
-        {hasPinned && (
+        {pinnedItems.length > 0 && (
           <>
             <li className="px-2 pt-2">
               <span className="text-[10px] font-medium text-muted-foreground">Pinned</span>
             </li>
-            {pinnedInMemory.map(renderInMemory)}
-            {pinnedPersisted.map(renderPersisted)}
+            {pinnedItems.map(renderItem)}
           </>
         )}
-
-        {hasRegular && (
-          <>
-            {hasPinned && (
-              <li className="px-2 pt-2">
-                <span className="text-[10px] font-medium text-muted-foreground">Recent</span>
-              </li>
-            )}
-            {regularInMemory.map(renderInMemory)}
-          </>
-        )}
-
-        {hasHistory && (
-          <>
-            {(hasRegular || hasPinned) && (
-              <li className="px-2 pt-2">
-                <span className="text-[10px] font-medium text-muted-foreground">History</span>
-              </li>
-            )}
-            {regularPersisted.map(renderPersisted)}
-          </>
-        )}
+        {regularItems.map(renderItem)}
       </ul>
     </div>
   );

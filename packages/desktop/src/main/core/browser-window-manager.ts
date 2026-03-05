@@ -9,6 +9,14 @@ import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 type WindowStore = { bounds: Electron.Rectangle };
 
+function stripColors(msg: string): string {
+  return msg
+    .replace(/%c/g, "")
+    .replace(/color:\s*[^;}\s]+/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, BrowserWindow>();
@@ -144,7 +152,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   #pipeConsole(win: BrowserWindow): void {
     win.webContents.on("console-message", (_e, level, message) => {
       const tag = BrowserWindowManager.#levels[level] ?? "log";
-      process.stderr.write(`[renderer:${tag}] ${message}\n`);
+      process.stderr.write(`[renderer:${tag}] ${stripColors(message)}\n`);
     });
   }
 

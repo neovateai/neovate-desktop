@@ -61,7 +61,7 @@ export function AgentChat() {
         chatLog(
           "effect[project-switch]: listSessions returned total=%d sessions=%o",
           sessions.length,
-          sessions.map((s) => ({ id: s.sessionId.slice(0, 8), cwd: s.cwd, title: s.title })),
+          // sessions.map((s) => (JSON.stringify({ id: s.sessionId.slice(0, 8), cwd: s.cwd, title: s.title }))),
         );
         setAgentSessions(sessions);
       })

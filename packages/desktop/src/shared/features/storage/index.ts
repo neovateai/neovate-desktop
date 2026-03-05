@@ -1,0 +1,1 @@
+export { storageContract } from "./contract";

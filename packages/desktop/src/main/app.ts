@@ -6,6 +6,7 @@ import type { IBrowserWindowManager, IMainApp } from "./core/types";
 import type { MainPlugin } from "./core/plugin/types";
 import { buildRouter } from "./router";
 import { BrowserWindowManager } from "./core";
+import { StorageService } from "./core/storage-service";
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];
@@ -15,6 +16,7 @@ export class MainApp implements IMainApp {
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
   readonly windowManager: IBrowserWindowManager;
+  private readonly storage: StorageService;
   #router: AnyRouter | null = null;
 
   get router(): AnyRouter {
@@ -25,6 +27,11 @@ export class MainApp implements IMainApp {
   constructor(options: MainAppOptions) {
     this.pluginManager = new PluginManager(options.plugins ?? []);
     this.windowManager = new BrowserWindowManager();
+    this.storage = new StorageService();
+  }
+
+  getStorage(): StorageService {
+    return this.storage;
   }
 
   async start(): Promise<void> {
@@ -36,6 +43,7 @@ export class MainApp implements IMainApp {
   }
 
   async stop(): Promise<void> {
+    this.storage.dispose();
     await this.pluginManager.deactivate();
     this.windowManager.destroyAll();
     this.subscriptions.dispose();

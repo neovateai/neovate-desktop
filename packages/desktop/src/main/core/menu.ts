@@ -1,60 +1,82 @@
-import { Menu, BrowserWindow } from "electron";
+import { Menu, BrowserWindow, MenuItemConstructorOptions } from "electron";
 
 export function setupApplicationMenu(mainWindow: BrowserWindow | null): void {
   const isMac = process.platform === "darwin";
 
-  const template: Electron.MenuItemConstructorOptions[] = [
-    // App menu (macOS only)
+  const openSettings = (): void => {
+    mainWindow?.webContents.send("menu:open-settings");
+  };
+
+  const template: MenuItemConstructorOptions[] = [
+    // App menu (macOS) / File menu (Windows/Linux)
     ...(isMac
       ? [
           {
             label: "Neovate",
             submenu: [
-              {
-                label: "Settings",
-                click: () => {
-                  mainWindow?.webContents.send("menu:open-settings");
-                },
-              },
+              { role: "about" as const },
+              { type: "separator" as const },
+              { label: "Settings", accelerator: "CmdOrCtrl+,", click: openSettings },
+              { type: "separator" as const },
+              { role: "hide" as const },
+              { role: "hideOthers" as const },
+              { role: "unhide" as const },
               { type: "separator" as const },
               { role: "quit" as const },
             ],
           },
         ]
-      : []),
+      : [
+          {
+            label: "File",
+            submenu: [
+              { label: "Settings", accelerator: "CmdOrCtrl+,", click: openSettings },
+              { type: "separator" as const },
+              { role: "quit" as const },
+            ],
+          },
+        ]),
     // Edit menu
     {
       label: "Edit",
       submenu: [
-        { role: "cut" as const },
-        { role: "copy" as const },
-        { role: "paste" as const },
-        { role: "selectAll" as const },
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
       ],
     },
     // View menu
     {
       label: "View",
-      submenu: [{ role: "toggleDevTools" as const }],
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+        { type: "separator" },
+        { role: "toggleDevTools" },
+      ],
+    },
+    // Window menu
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" },
+        { role: "close" },
+        ...(isMac
+          ? [{ role: "zoom" as const }, { type: "separator" as const }, { role: "front" as const }]
+          : []),
+      ],
     },
   ];
-
-  // Add Settings to File menu on Windows/Linux
-  if (!isMac) {
-    template.unshift({
-      label: "File",
-      submenu: [
-        {
-          label: "Settings",
-          click: () => {
-            mainWindow?.webContents.send("menu:open-settings");
-          },
-        },
-        { type: "separator" as const },
-        { role: "quit" as const },
-      ],
-    });
-  }
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);

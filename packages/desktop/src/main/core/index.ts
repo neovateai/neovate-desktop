@@ -10,3 +10,5 @@ export type {
   PluginContributions,
   PluginContext,
 } from "./plugin";
+export { StorageService } from "./storage-service";
+export type { IStorageService } from "./storage-service";

@@ -1,11 +1,12 @@
 import { app, ipcMain } from "electron";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { electronApp, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";
 import { SessionManager } from "./features/agent/session-manager";
 import { getShellEnvironment } from "./features/agent/shell-env";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
+import { StateStore } from "./features/state/state-store";
 import { MainApp } from "./app";
 import type { AppContext } from "./router";
 import gitPlugin from "./plugins/git";
@@ -24,22 +25,22 @@ getShellEnvironment();
 const sessionManager = new SessionManager();
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
+const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin],
 });
+
 const appContext: AppContext = {
   sessionManager,
   configStore,
   projectStore,
+  stateStore,
   mainApp,
+  storage: mainApp.getStorage(),
 };
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
-
-  app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window);
-  });
 
   await mainApp.start();
 
