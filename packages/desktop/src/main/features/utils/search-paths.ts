@@ -21,13 +21,7 @@ function resolveRgPath(): string {
   if (cachedRgPath) return cachedRgPath;
 
   const sdkMain = require.resolve("@anthropic-ai/claude-agent-sdk");
-  const sdkDir = join(
-    sdkMain,
-    "..",
-    "vendor",
-    "ripgrep",
-    `${process.arch}-${process.platform}`,
-  );
+  const sdkDir = join(sdkMain, "..", "vendor", "ripgrep", `${process.arch}-${process.platform}`);
   const binary = process.platform === "win32" ? "rg.exe" : "rg";
   const rgPath = join(sdkDir, binary);
 
