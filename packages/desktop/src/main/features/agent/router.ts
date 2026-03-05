@@ -130,10 +130,17 @@ export const agentRouter = os.agent.router({
     let eventCount = 0;
     let permissionEventCount = 0;
     agentLog(
-      "prompt: START sessionId=%s promptLen=%d prompt=%s",
+      "prompt: START sessionId=%s promptLen=%d prompt=%s attachments=%d attachmentDetails=%o",
       input.sessionId,
       input.prompt.length,
       input.prompt.slice(0, 100),
+      input.attachments?.length ?? 0,
+      input.attachments?.map((a) => ({
+        id: a.id,
+        filename: a.filename,
+        mediaType: a.mediaType,
+        base64Len: a.base64?.length ?? 0,
+      })),
     );
 
     const pendingPermissionEvents: StreamEvent[] = [];
@@ -147,6 +154,7 @@ export const agentRouter = os.agent.router({
         input.sessionId,
         input.prompt,
         emitter,
+        input.attachments,
       )) {
         eventCount += 1;
         if (!firstEventAt) {

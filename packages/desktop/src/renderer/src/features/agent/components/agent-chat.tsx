@@ -3,6 +3,7 @@ import debug from "debug";
 import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const chatLog = debug("neovate:agent-chat");
 import { usePrompt } from "../hooks/use-prompt";
@@ -97,13 +98,14 @@ export function AgentChat() {
       });
   }, [activeProjectPath, createNewSession]);
 
-  const handleSend = (message: string) => {
+  const handleSend = (message: string, attachments?: ImageAttachment[]) => {
     chatLog(
-      "handleSend: sessionId=%s msgLen=%d",
+      "handleSend: sessionId=%s msgLen=%d attachments=%d",
       activeSession?.sessionId?.slice(0, 8) ?? "new",
       message.length,
+      attachments?.length ?? 0,
     );
-    sendPrompt(activeSession?.sessionId, message);
+    sendPrompt(activeSession?.sessionId, message, attachments);
   };
 
   const handleCancel = () => {

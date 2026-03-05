@@ -5,6 +5,7 @@ import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { useNewSession } from "./use-new-session";
+import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const promptLog = debug("neovate:agent-prompt");
 
@@ -25,7 +26,7 @@ export function usePrompt() {
   }, []);
 
   const sendPrompt = useCallback(
-    async (sessionId: string | undefined, prompt: string) => {
+    async (sessionId: string | undefined, prompt: string, attachments?: ImageAttachment[]) => {
       const promptStart = performance.now();
       let resolvedSessionId = sessionId;
       const projectPath = useProjectStore.getState().activeProject?.path;
@@ -55,7 +56,18 @@ export function usePrompt() {
         }
       }
 
-      promptLog("sendPrompt: start sessionId=%s len=%d", resolvedSessionId, prompt.length);
+      promptLog(
+        "sendPrompt: start sessionId=%s len=%d attachments=%d attachmentDetails=%o",
+        resolvedSessionId,
+        prompt.length,
+        attachments?.length ?? 0,
+        attachments?.map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          mediaType: a.mediaType,
+          base64Len: a.base64?.length ?? 0,
+        })),
+      );
       useAgentStore.getState().setPromptError(resolvedSessionId, null);
 
       // Check if this was a new session before sending the first message
@@ -99,8 +111,13 @@ export function usePrompt() {
 
       try {
         const rpcStart = performance.now();
+        promptLog(
+          "sendPrompt: calling oRPC prompt sessionId=%s attachments=%s",
+          resolvedSessionId,
+          attachments ? `${attachments.length} items` : "none",
+        );
         const iterator = await client.agent.prompt(
-          { sessionId: resolvedSessionId, prompt },
+          { sessionId: resolvedSessionId, prompt, attachments },
           { signal: ac.signal },
         );
         const rpcElapsed = Math.round(performance.now() - rpcStart);

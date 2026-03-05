@@ -37,4 +37,7 @@ export const utilsContract = {
   setLoginItem: oc
     .input(z.object({ openAtLogin: z.boolean() }))
     .output(type<{ success: boolean }>()),
+  removeFile: oc
+    .input(z.object({ path: z.string() }))
+    .output(type<{ success: boolean; error?: string }>()),
 };
