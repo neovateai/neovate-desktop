@@ -1,108 +1,158 @@
-# Terminal Plugin Brainstorm
+# Terminal Plugin Design
 
 **Date:** 2026-03-04
-**Status:** Ready for planning
+**Status:** Implemented
 
 ---
 
-## What We're Building
+## What We Built
 
-A fully functional terminal plugin for the content panel. Each tab spawns an independent PTY process (via `node-pty` in the main process) and renders it using `xterm.js` + `@xterm/addon-fit` in the renderer. Communication between main and renderer uses the existing oRPC plugin router pattern, with async generators for PTY output streaming.
+A fully functional terminal plugin for the content panel. Each tab spawns an independent PTY process (via `node-pty` in the main process) and renders it using `xterm.js` in the renderer. Communication uses the existing oRPC plugin router pattern over MessagePort, with async generators for PTY output streaming.
 
-## Why This Approach
+## Architecture
 
-- **Follows existing plugin patterns exactly** — modeled after the git plugin (untyped router via `ctx.orpcServer`), no new infrastructure needed
-- **oRPC async generators for streaming** — keeps all communication in a single channel (the existing MessagePort transport); no separate IPC event wiring
-- **`singleton: false`** — multiple terminal tabs are already supported by the content panel; each gets its own `instanceId`
-- **`deactivation: "hidden"`** — inactive tabs get `display: none`, so xterm's DOM and scroll buffer survive tab switching without a ring buffer
+```
+Renderer (React)                    Main (Node/Electron)
+─────────────────                   ────────────────────
+TerminalView                        TerminalPlugin (MainPlugin)
+  │                                   │
+  ├─ xterm.js Terminal                ├─ PtyManager
+  │    ├─ FitAddon                    │    └─ Map<sessionId, PtySession>
+  │    ├─ WebglAddon                  │
+  │    └─ WebLinksAddon               └─ oRPC router
+  │                                       spawn  → pty.spawn()
+  └─ oRPC client (plugin ctx)  ←──→       stream → publisher.subscribe('data')
+       terminal.spawn()                    write  → pty.write()
+       terminal.stream()  ← AsyncGen ──    resize → pty.resize()
+       terminal.write()                    kill   → pty.kill()
+       terminal.resize()
+       terminal.kill()
+```
 
 ---
 
 ## Key Decisions
 
-### Plugin Structure
+### Push-to-Pull Bridge: EventPublisher
 
-- **Main plugin** (`builtin:terminal`): registers `node-pty` PTY management + oRPC router
-- **Renderer plugin** (`builtin:terminal`): contributes `ContentPanelView` with `singleton: false`
-- PTY instances tracked in a `Map<instanceId, { pty, queue }>` on the main side
-
-### oRPC Procedures (untyped plugin router)
-
-| Procedure         | Input                       | Output                  | Description                                  |
-| ----------------- | --------------------------- | ----------------------- | -------------------------------------------- |
-| `terminal.spawn`  | `{ cwd?, cols, rows }`      | `{ sessionId }`         | Spawn a PTY; main generates UUID session key |
-| `terminal.write`  | `{ sessionId, data }`       | `void`                  | Send keystrokes/input to PTY                 |
-| `terminal.resize` | `{ sessionId, cols, rows }` | `void`                  | Notify PTY of terminal resize                |
-| `terminal.stream` | `{ sessionId }`             | `AsyncIterable<string>` | Yields PTY output chunks                     |
-| `terminal.kill`   | `{ sessionId }`             | `void`                  | Kill PTY and clean up                        |
-
-Main stores PTY instances in `Map<sessionId, { pty, queue }>`. Renderer holds `sessionId` in React state.
-
-### Push-to-Pull Bridge
-
-PTY emits data via events (push). oRPC generators consume via pull. Bridge pattern:
+PTY emits data as events (push). oRPC async generators are pull-based. Bridge via oRPC's built-in `EventPublisher`:
 
 ```ts
-class AsyncQueue<T> {
-  push(chunk: T): void; // called by pty.onData
-  iter(): AsyncIterable<T>; // consumed by oRPC generator
+const publisher = new EventPublisher<{ data: string }>();
+pty.onData((chunk) => publisher.publish("data", chunk));
+```
+
+`AsyncQueue` was considered but `EventPublisher` is already built into `@orpc/server` and handles abort signals natively.
+
+### PTY Exit Signaling: AbortController
+
+`EventPublisher` has no `complete()` method. PTY exit is signaled via a per-session `AbortController`:
+
+```ts
+const exitController = new AbortController();
+pty.onExit(() => exitController.abort());
+```
+
+The stream handler combines the client disconnect signal with the PTY exit signal:
+
+```ts
+const combined = AbortSignal.any([signal, session.exitController.signal]);
+for await (const chunk of publisher.subscribe("data", { signal: combined })) {
+  yield chunk;
 }
 ```
 
-Each PTY instance gets its own `AsyncQueue<string>`.
+`AbortError` is caught in the server handler to return cleanly instead of propagating as a 500 error.
 
-### Terminal Lifecycle
+### oRPC Streaming Declaration
 
-1. Tab opens → renderer mounts xterm, calls `terminal.spawn({ cols, rows })` → gets `sessionId`
-2. Renderer subscribes to `terminal.stream({ sessionId })` → async generator loop → `xterm.write(chunk)`
-3. User types → `terminal.write({ sessionId, data })`
-4. xterm resize event → `terminal.resize({ sessionId, cols, rows })`
-5. Tab unmounts → `terminal.kill({ sessionId })` → PTY cleaned up from Map
+The stream procedure requires an explicit `.output(eventIterator(z.string()))` declaration for oRPC to recognize it as a streaming handler. Without this, the client receives a rejected promise instead of an async iterable.
 
-### State Persistence
+The client call returns `Promise<AsyncIterable>`, not `AsyncIterable` directly — must `await` before `for await`:
 
-- No output buffer needed — `deactivation: "hidden"` keeps xterm alive in DOM between tab switches
-- `{ cwd, shell }` persistence deferred post-MVP
-
-### Dependencies
-
-- `node-pty` — main process only (native Node addon, prebuilt for Electron)
-- `xterm` + `@xterm/addon-fit` — renderer process
-
-### Shell Selection
-
-- Default: system default shell (`process.env.SHELL` on macOS/Linux, `powershell.exe` on Windows)
-
----
-
-## File Plan
-
-```
-packages/desktop/src/main/plugins/terminal/
-  index.ts          ← MainPlugin (activate, configContributions)
-  router.ts         ← oRPC router (spawn, write, resize, stream, kill)
-  pty-manager.ts    ← PTY Map + AsyncQueue
-
-packages/desktop/src/renderer/src/plugins/terminal/
-  index.tsx         ← RendererPlugin (already stubbed: ContentPanelView contribution)
-  terminal-view.tsx ← Full implementation (xterm + addon-fit + oRPC client)
+```ts
+const stream = await client.terminal.stream({ sessionId }, { signal });
+for await (const chunk of stream) { xterm.write(chunk); }
 ```
 
-Bootstrap wiring:
+### Tab Switching: `deactivation: "offscreen"`
 
-- `packages/desktop/src/main/index.ts` — add `terminalPlugin` to `MainApp({ plugins })`
-- Renderer plugin stub exists; verify registration in renderer bootstrap
+Using `deactivation: "offscreen"` instead of `"hidden"`. The ContentPanel positions inactive tabs with `position: absolute; left: -9999em` (Hyper's approach) rather than `display: none`. Benefits:
+
+- xterm's internal `IntersectionObserver` automatically pauses WebGL rendering when off-screen
+- Layout is preserved, so `ResizeObserver` still fires if the container is resized while inactive
+- No ring buffer or manual pause/resume needed
+
+### Contract Typing
+
+Shared contract at `src/shared/plugins/terminal/contract.ts` for renderer type safety. The `stream` procedure is excluded from the contract (cast as `any` in renderer) because oRPC's contract system doesn't model async generator return types.
+
+### sessionId vs instanceId
+
+`sessionId` is a UUID generated by the main process on `spawn`, stored in renderer React state (not persisted `viewState`). This ensures stale terminal tabs from a previous session always get a fresh PTY on mount.
 
 ---
 
-## Open Questions
+## oRPC Procedures
 
-_None — all key decisions resolved._
+| Procedure         | Input                       | Output                  |
+| ----------------- | --------------------------- | ----------------------- |
+| `terminal.spawn`  | `{ cwd?, cols, rows }`      | `{ sessionId: string }` |
+| `terminal.write`  | `{ sessionId, data }`       | `void`                  |
+| `terminal.resize` | `{ sessionId, cols, rows }` | `void`                  |
+| `terminal.kill`   | `{ sessionId }`             | `void`                  |
+| `terminal.stream` | `{ sessionId }`             | `AsyncIterable<string>` |
 
 ---
 
-## Resolved Questions
+## Renderer Features
 
-- **Streaming approach:** oRPC async generators (not hybrid IPC events)
-- **Ring buffer:** Not needed for v1 — `deactivation: "hidden"` preserves xterm state
-- **Contract typing:** Untyped plugin router (follows git plugin pattern, no `shared/contract.ts` changes)
+- **Theme** — dark/light xterm theme synced to `next-themes` `resolvedTheme`; updates reactively via `xtermRef`
+- **WebGL renderer** — `WebglAddon` with `onContextLoss(() => webgl.dispose())` canvas fallback
+- **Web links** — `WebLinksAddon` for clickable URLs
+- **Select-to-copy** — `mouseup` → `xterm.hasSelection()` → `clipboard.writeText()`
+- **Cmd+K / Ctrl+K** — `attachCustomKeyEventHandler` → `xterm.clear()`, `return false` to block PTY
+- **ResizeObserver** — 100ms debounced, guards `cols >= 1 && rows >= 1`
+- **disableStdin** — enabled initially, disabled after `spawn` resolves
+
+---
+
+## Files
+
+```
+packages/desktop/src/
+├── shared/plugins/terminal/
+│   └── contract.ts                 ← spawn/write/resize/kill typed; stream excluded
+│
+├── main/plugins/terminal/
+│   ├── index.ts                    ← MainPlugin: configContributions + deactivate (killAll)
+│   ├── router.ts                   ← oRPC router
+│   └── pty-manager.ts              ← PtyManager + PtySession type
+│
+└── renderer/src/plugins/terminal/
+    ├── index.tsx                   ← RendererPlugin: deactivation "offscreen", icon, lazy import
+    └── terminal-view.tsx           ← Full xterm implementation
+```
+
+---
+
+## Dependencies
+
+| Package                  | Location        | Purpose                          |
+| ------------------------ | --------------- | -------------------------------- |
+| `node-pty`               | main runtime    | PTY spawning                     |
+| `@xterm/xterm`           | renderer devDep | Terminal emulator                |
+| `@xterm/addon-fit`       | renderer devDep | Auto-fit to container            |
+| `@xterm/addon-webgl`     | renderer devDep | GPU-accelerated rendering        |
+| `@xterm/addon-web-links` | renderer devDep | Clickable link detection         |
+| `@xterm/addon-serialize` | renderer devDep | Buffer serialization (post-MVP)  |
+
+---
+
+## Future Work
+
+- Read `terminalFontSize` / `terminalFont` from config store (keys already exist in `AppConfig`)
+- Re-fit + focus on tab activation (needs `useContentPanelViewContext` active state hook)
+- Shell selection UI
+- Session reconnect / PTY output ring buffer for renderer reload recovery
+- Project-switch PTY lifecycle (kill terminals for inactive projects)
