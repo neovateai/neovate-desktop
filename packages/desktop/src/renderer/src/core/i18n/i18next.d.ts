@@ -1,4 +1,3 @@
-import "i18next";
 import type enUS from "../../locales/en-US.json";
 import type { Locales } from "./locales";
 

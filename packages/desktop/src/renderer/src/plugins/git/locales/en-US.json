@@ -1,3 +1,4 @@
 {
-  "git.title": "Source Control"
+  "git.title": "Source Control",
+  "git.notAGitRepository": "Not a git repository"
 }
