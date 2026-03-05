@@ -19,18 +19,38 @@ export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   thinking?: string;
+  toolCalls?: ToolCallState[];
 };
 
 export type ToolCallState = {
   toolCallId: string;
   name: string;
   status?: string;
+  input?: unknown;
 };
 
 export type PendingPermission = {
   requestId: string;
   toolName: string;
   input: unknown;
+};
+
+export type TaskState = {
+  taskId: string;
+  description: string;
+  taskType?: string;
+  status: "running" | "completed" | "failed" | "stopped";
+  toolUses?: number;
+  durationMs?: number;
+  lastToolName?: string;
+  summary?: string;
+};
+
+export type SessionUsage = {
+  totalCostUsd: number;
+  totalDurationMs: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
 };
 
 export type ChatSession = {
@@ -40,12 +60,13 @@ export type ChatSession = {
   createdAt: string;
   isNew: boolean;
   messages: ChatMessage[];
-  toolCalls: Map<string, ToolCallState>;
   streaming: boolean;
   promptError: string | null;
   pendingPermission: PendingPermission | null;
   availableCommands: SlashCommandInfo[];
   sdkReady: boolean;
+  usage?: SessionUsage;
+  tasks: Map<string, TaskState>;
 };
 
 type AgentState = {
@@ -106,12 +127,12 @@ export const useAgentStore = create<AgentState>()(
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           isNew: meta?.isNew ?? false,
           messages: [],
-          toolCalls: new Map(),
           streaming: false,
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
           sdkReady: true,
+          tasks: new Map(),
         });
         state.activeSessionId = sessionId;
         storeLog("createSession: totalSessions=%d active=%s", state.sessions.size, sessionId);
@@ -128,12 +149,12 @@ export const useAgentStore = create<AgentState>()(
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           isNew: meta?.isNew ?? false,
           messages: [],
-          toolCalls: new Map(),
           streaming: false,
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
           sdkReady: true,
+          tasks: new Map(),
         });
         storeLog("createBackgroundSession: totalSessions=%d (not activated)", state.sessions.size);
       });
@@ -249,10 +270,11 @@ export const useAgentStore = create<AgentState>()(
         }
         session.messages = cached.messages.map((m) => {
           state._nextMessageId += 1;
-          return { ...m, id: String(state._nextMessageId) };
+          return { ...m, id: String(state._nextMessageId), toolCalls: m.toolCalls };
         });
         if (cached.title) session.title = cached.title;
         if (cached.cwd) session.cwd = cached.cwd;
+        if (cached.usage) session.usage = cached.usage;
         session.sdkReady = false;
       });
     },
@@ -375,29 +397,97 @@ export const useAgentStore = create<AgentState>()(
             break;
           }
 
-          case "tool_use":
+          case "tool_use": {
             storeLog(
               "appendChunk: tool_use id=%s name=%s status=%s",
               event.toolId,
               event.name,
               event.status,
             );
-            session.toolCalls.set(event.toolId, {
-              toolCallId: event.toolId,
-              name: event.name,
-              status: event.status,
-            });
+            let last = session.messages[session.messages.length - 1];
+            if (!last || last.role !== "assistant") {
+              state._nextMessageId += 1;
+              last = {
+                id: String(state._nextMessageId),
+                role: "assistant",
+                content: "",
+                toolCalls: [],
+              };
+              session.messages.push(last);
+            }
+            if (!last.toolCalls) last.toolCalls = [];
+            const existing = last.toolCalls.find((tc) => tc.toolCallId === event.toolId);
+            if (existing) {
+              existing.status = event.status;
+              if ("input" in event) existing.input = event.input;
+            } else {
+              last.toolCalls.push({
+                toolCallId: event.toolId,
+                name: event.name,
+                status: event.status,
+                ...("input" in event ? { input: event.input } : {}),
+              });
+            }
             break;
+          }
 
           case "result":
             storeLog("appendChunk: result stopReason=%s sid=%s", event.stopReason, sessionId);
             if (event.stopReason === "error") {
               session.promptError = "Session failed to load";
             }
+            if (event.costUsd != null || event.inputTokens != null || event.outputTokens != null) {
+              if (!session.usage) {
+                session.usage = {
+                  totalCostUsd: 0,
+                  totalDurationMs: 0,
+                  totalInputTokens: 0,
+                  totalOutputTokens: 0,
+                };
+              }
+              session.usage.totalCostUsd += event.costUsd ?? 0;
+              session.usage.totalDurationMs += event.durationMs ?? 0;
+              session.usage.totalInputTokens += event.inputTokens ?? 0;
+              session.usage.totalOutputTokens += event.outputTokens ?? 0;
+            }
             break;
 
           case "status":
             storeLog("appendChunk: status message=%s sid=%s", event.message, sessionId);
+            break;
+
+          case "task_started":
+            storeLog("appendChunk: task_started id=%s desc=%s", event.taskId, event.description);
+            session.tasks.set(event.taskId, {
+              taskId: event.taskId,
+              description: event.description,
+              taskType: event.taskType,
+              status: "running",
+            });
+            break;
+
+          case "task_progress":
+            storeLog("appendChunk: task_progress id=%s tools=%d", event.taskId, event.toolUses);
+            {
+              const task = session.tasks.get(event.taskId);
+              if (task) {
+                task.description = event.description;
+                task.toolUses = event.toolUses;
+                task.durationMs = event.durationMs;
+                task.lastToolName = event.lastToolName;
+              }
+            }
+            break;
+
+          case "task_notification":
+            storeLog("appendChunk: task_notification id=%s status=%s", event.taskId, event.status);
+            {
+              const task = session.tasks.get(event.taskId);
+              if (task) {
+                task.status = event.status;
+                task.summary = event.summary;
+              }
+            }
             break;
         }
       });

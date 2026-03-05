@@ -244,10 +244,12 @@ export function SessionList() {
                 role: m.role,
                 content: m.content,
                 thinking: m.thinking,
+                toolCalls: m.toolCalls,
               })),
               title: session.title,
               cwd: session.cwd,
               updatedAt: new Date().toISOString(),
+              usage: session.usage,
             },
           });
         }

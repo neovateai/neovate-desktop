@@ -58,23 +58,73 @@ describe("AgentStore", () => {
     expect(session.messages[0].thinking).toBe("thinking...");
   });
 
-  it("appendChunk with tool_use adds tool state", () => {
+  it("appendChunk with tool_use adds tool to last assistant message", () => {
+    useAgentStore.getState().createSession("s1");
+
+    // First create an assistant message via text_delta
+    useAgentStore.getState().appendChunk("s1", {
+      type: "text_delta",
+      sessionId: "s1",
+      text: "Let me read that file.",
+    });
+
+    useAgentStore.getState().appendChunk("s1", {
+      type: "tool_use",
+      sessionId: "s1",
+      toolId: "tc1",
+      name: "Read",
+      status: "running",
+    });
+
+    const session = useAgentStore.getState().sessions.get("s1")!;
+    expect(session.messages).toHaveLength(1);
+    expect(session.messages[0].toolCalls).toHaveLength(1);
+    expect(session.messages[0].toolCalls![0]).toMatchObject({
+      toolCallId: "tc1",
+      name: "Read",
+      status: "running",
+    });
+  });
+
+  it("appendChunk with tool_use creates assistant message if none exists", () => {
     useAgentStore.getState().createSession("s1");
 
     useAgentStore.getState().appendChunk("s1", {
       type: "tool_use",
       sessionId: "s1",
       toolId: "tc1",
-      name: "Read file",
+      name: "Read",
       status: "running",
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.toolCalls.get("tc1")).toMatchObject({
-      toolCallId: "tc1",
-      name: "Read file",
+    expect(session.messages).toHaveLength(1);
+    expect(session.messages[0].role).toBe("assistant");
+    expect(session.messages[0].toolCalls).toHaveLength(1);
+  });
+
+  it("appendChunk with tool_use updates existing tool status", () => {
+    useAgentStore.getState().createSession("s1");
+
+    useAgentStore.getState().appendChunk("s1", {
+      type: "tool_use",
+      sessionId: "s1",
+      toolId: "tc1",
+      name: "Read",
       status: "running",
     });
+
+    useAgentStore.getState().appendChunk("s1", {
+      type: "tool_use",
+      sessionId: "s1",
+      toolId: "tc1",
+      name: "Read",
+      status: "completed",
+    });
+
+    const session = useAgentStore.getState().sessions.get("s1")!;
+    expect(session.messages[0].toolCalls).toHaveLength(1);
+    expect(session.messages[0].toolCalls![0].status).toBe("completed");
   });
 
   it("appendChunk with permission_request sets pendingPermission", () => {

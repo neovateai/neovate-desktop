@@ -464,6 +464,7 @@ export class SessionManager {
               toolId: block.id,
               name: block.name,
               status: "completed",
+              input: block.input,
             };
           }
         }
@@ -519,6 +520,7 @@ export class SessionManager {
               toolId: block.id,
               name: block.name,
               status: "completed",
+              input: block.input,
             };
           }
         }
@@ -581,7 +583,15 @@ export class SessionManager {
           msg.duration_ms,
           msg.total_cost_usd,
         );
-        yield { type: "result", sessionId, stopReason };
+        yield {
+          type: "result",
+          sessionId,
+          stopReason,
+          costUsd: msg.total_cost_usd,
+          durationMs: msg.duration_ms,
+          inputTokens: msg.usage?.input_tokens,
+          outputTokens: msg.usage?.output_tokens,
+        };
         break;
       }
 
@@ -600,6 +610,51 @@ export class SessionManager {
               type: "status",
               sessionId,
               message: statusMsg.status ?? "",
+            };
+          }
+          if (msg.subtype === "task_started") {
+            const taskMsg = msg as Extract<SDKMessage, { type: "system"; subtype: "task_started" }>;
+            log("convert:   task_started id=%s desc=%s", taskMsg.task_id, taskMsg.description);
+            yield {
+              type: "task_started",
+              sessionId,
+              taskId: taskMsg.task_id,
+              description: taskMsg.description,
+              taskType: taskMsg.task_type,
+            };
+          }
+          if (msg.subtype === "task_progress") {
+            const taskMsg = msg as Extract<
+              SDKMessage,
+              { type: "system"; subtype: "task_progress" }
+            >;
+            log(
+              "convert:   task_progress id=%s tools=%d",
+              taskMsg.task_id,
+              taskMsg.usage?.tool_uses,
+            );
+            yield {
+              type: "task_progress",
+              sessionId,
+              taskId: taskMsg.task_id,
+              description: taskMsg.description,
+              toolUses: taskMsg.usage?.tool_uses ?? 0,
+              durationMs: taskMsg.usage?.duration_ms ?? 0,
+              lastToolName: taskMsg.last_tool_name,
+            };
+          }
+          if (msg.subtype === "task_notification") {
+            const taskMsg = msg as Extract<
+              SDKMessage,
+              { type: "system"; subtype: "task_notification" }
+            >;
+            log("convert:   task_notification id=%s status=%s", taskMsg.task_id, taskMsg.status);
+            yield {
+              type: "task_notification",
+              sessionId,
+              taskId: taskMsg.task_id,
+              status: taskMsg.status,
+              summary: taskMsg.summary,
             };
           }
           if (msg.subtype === "init") {
