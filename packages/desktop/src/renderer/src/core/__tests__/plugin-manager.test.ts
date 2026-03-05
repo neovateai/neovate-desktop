@@ -169,4 +169,52 @@ describe("PluginManager", () => {
       expect(deactivateFn).toHaveBeenCalledOnce();
     });
   });
+
+  describe("configI18n", () => {
+    it("calls setupLazyNamespaces with contributions from plugins that have configI18n", async () => {
+      const setupLazyNamespaces = vi.fn();
+      const app = {
+        ...createMockApp(),
+        i18nManager: { setupLazyNamespaces } as unknown as IRendererApp["i18nManager"],
+      };
+      const ctx = { app, orpcClient: {} };
+
+      const pm = new PluginManager([
+        {
+          name: "plugin-test",
+          configI18n() {
+            return {
+              namespace: "plugin-test",
+              loader: async (locale) => {
+                if (locale === "en-US") return { "test.hello": "Hello" };
+                return { "test.hello": "你好" };
+              },
+            };
+          },
+        },
+        { name: "plugin-no-i18n" },
+      ]);
+
+      await pm.configI18n(ctx);
+
+      expect(setupLazyNamespaces).toHaveBeenCalledOnce();
+      const [configs] = setupLazyNamespaces.mock.calls[0];
+      expect(configs).toHaveLength(1);
+      expect(configs[0].namespace).toBe("plugin-test");
+    });
+
+    it("skips plugins without configI18n", async () => {
+      const setupLazyNamespaces = vi.fn();
+      const app = {
+        ...createMockApp(),
+        i18nManager: { setupLazyNamespaces } as unknown as IRendererApp["i18nManager"],
+      };
+      const ctx = { app, orpcClient: {} };
+
+      const pm = new PluginManager([{ name: "plugin-no-i18n" }]);
+      await pm.configI18n(ctx);
+
+      expect(setupLazyNamespaces).not.toHaveBeenCalled();
+    });
+  });
 });
