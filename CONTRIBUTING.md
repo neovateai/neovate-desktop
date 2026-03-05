@@ -57,7 +57,7 @@ A dev-only playground for previewing all `ai-elements` components with sample da
 **Option 1 — env var (auto-loads on startup):**
 
 ```sh
-VITE_AI_ELEMENTS_PLAYGROUND=1 bun dev
+VITE_UI_PLAYGROUND=1 bun dev
 ```
 
 **Option 2 — hash navigation (works in a running dev session):**
@@ -72,10 +72,10 @@ The playground is only available in dev mode (`import.meta.env.DEV`) and is excl
 
 ## Environment Variables
 
-| Variable                      | Default | Description                                                                         |
-| ----------------------------- | ------- | ----------------------------------------------------------------------------------- |
-| `NEOVATE_PRELOAD_SESSION`     | `all`   | `all` = preload all sessions, `latest` = only the most recent, `false` = no preload |
-| `VITE_AI_ELEMENTS_PLAYGROUND` | —       | Set to `1` to launch directly into the AI Elements playground on startup            |
+| Variable                  | Default | Description                                                                         |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `NEOVATE_PRELOAD_SESSION` | `all`   | `all` = preload all sessions, `latest` = only the most recent, `false` = no preload |
+| `VITE_UI_PLAYGROUND`      | —       | Set to `1` to launch directly into the AI Elements playground on startup            |
 
 ## Code Style
 

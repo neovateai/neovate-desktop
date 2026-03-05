@@ -29,7 +29,7 @@ export default function App() {
   if (
     import.meta.env.DEV &&
     Playground &&
-    (import.meta.env.VITE_AI_ELEMENTS_PLAYGROUND === "1" || window.location.hash === "#playground")
+    (import.meta.env.VITE_UI_PLAYGROUND === "1" || window.location.hash === "#playground")
   ) {
     return (
       <Suspense>
