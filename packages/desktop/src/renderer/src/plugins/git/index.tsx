@@ -9,6 +9,19 @@ const GitIcon = ({ className }: { className?: string }) => (
 const plugin: RendererPlugin = {
   name: "plugin-git",
 
+  configI18n() {
+    return {
+      namespace: "plugin-git",
+      loader: async (locale) => {
+        try {
+          return (await import(`./locales/${locale}.json`)).default;
+        } catch {
+          return (await import("./locales/en-US.json")).default;
+        }
+      },
+    };
+  },
+
   configContributions() {
     return {
       activityBarItems: [
