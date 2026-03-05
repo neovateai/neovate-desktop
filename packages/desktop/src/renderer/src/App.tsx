@@ -26,7 +26,11 @@ export default function App() {
   useGlobalKeybindings();
   const showSettings = useSettingsStore((state) => state.showSettings);
 
-  if (import.meta.env.DEV && Playground && (import.meta.env.VITE_AI_ELEMENTS_PLAYGROUND === "1" || window.location.hash === "#playground")) {
+  if (
+    import.meta.env.DEV &&
+    Playground &&
+    (import.meta.env.VITE_AI_ELEMENTS_PLAYGROUND === "1" || window.location.hash === "#playground")
+  ) {
     return (
       <Suspense>
         <Playground />

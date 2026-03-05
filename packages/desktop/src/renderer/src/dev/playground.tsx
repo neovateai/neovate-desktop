@@ -37,7 +37,7 @@ export default function Playground() {
                 "rounded-md px-3 py-1.5 text-left text-sm transition-colors",
                 active === p.id
                   ? "bg-accent text-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
               )}
             >
               {p.label}
