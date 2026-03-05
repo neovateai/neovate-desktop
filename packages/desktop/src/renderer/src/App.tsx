@@ -2,6 +2,8 @@ import { AgentChat, SessionList } from "./features/agent";
 import { ContentPanelRenderer } from "./features/content-panel";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
+import { lazy, Suspense } from "react";
+
 import {
   AppLayoutActivityBar,
   AppLayoutChatPanel,
@@ -18,9 +20,19 @@ import {
 import { ThemeToggle } from "./components/ui/theme-toggle";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
+const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) : null;
+
 export default function App() {
   useGlobalKeybindings();
   const showSettings = useSettingsStore((state) => state.showSettings);
+
+  if (import.meta.env.DEV && Playground && (import.meta.env.VITE_AI_ELEMENTS_PLAYGROUND === "1" || window.location.hash === "#playground")) {
+    return (
+      <Suspense>
+        <Playground />
+      </Suspense>
+    );
+  }
 
   // Show Settings page when settings mode is active
   if (showSettings) {
