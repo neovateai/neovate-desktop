@@ -1,5 +1,5 @@
 import { app, ipcMain } from "electron";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { electronApp, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";
 import { SessionManager } from "./features/agent/session-manager";
@@ -38,10 +38,6 @@ const appContext: AppContext = {
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
-
-  app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window);
-  });
 
   await mainApp.start();
 
