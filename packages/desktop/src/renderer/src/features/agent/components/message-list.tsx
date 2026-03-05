@@ -1,4 +1,10 @@
+import { useEffect } from "react";
+
+import debug from "debug";
+
 import type { AgentMessage } from "../../../../../shared/features/agent/types";
+
+const log = debug("neovate:chat-message-list");
 
 import {
   Reasoning,
@@ -22,6 +28,12 @@ type AgentMessageListProps = {
 type Props = AgentMessageListProps & Partial<LegacyProps>;
 
 export function MessageList({ agentMessages }: Props) {
+  useEffect(() => {
+    if (agentMessages?.length) {
+      log("agentMessages: %O", agentMessages);
+    }
+  }, [agentMessages]);
+
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
       {agentMessages.map((msg) => (

@@ -128,7 +128,8 @@ export class SessionManager {
           });
         } else {
           log(
-            "canUseTool: WARNING no permissionEmitter or activeSessionId set, requestId=%s will hang until timeout",
+            "canUseTool: WARNING no permissionEmitter or activeSessionId set, activeSessionId=%s requestId=%s will hang until timeout",
+            this.activeSessionId,
             requestId,
           );
         }

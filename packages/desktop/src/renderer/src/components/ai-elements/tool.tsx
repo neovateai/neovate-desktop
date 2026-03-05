@@ -12,18 +12,28 @@ import {
   WrenchIcon,
   XCircleIcon,
 } from "lucide-react";
-import { isValidElement } from "react";
+import { isValidElement, useEffect, useState } from "react";
 
 import { CodeBlock } from "./code-block";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
-export const Tool = ({ className, ...props }: ToolProps) => (
-  <Collapsible
-    className={cn("group not-prose mb-4 w-full rounded-md border", className)}
-    {...props}
-  />
-);
+export const Tool = ({ className, defaultOpen, ...props }: ToolProps) => {
+  const [open, setOpen] = useState(defaultOpen ?? true);
+
+  useEffect(() => {
+    setOpen(defaultOpen ?? true);
+  }, [defaultOpen]);
+
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className={cn("group not-prose mb-4 w-full rounded-md border", className)}
+      {...props}
+    />
+  );
+};
 
 export type ToolPart = ToolUIPart | DynamicToolUIPart;
 
