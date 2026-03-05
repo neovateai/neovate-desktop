@@ -132,6 +132,8 @@ export class RendererApp implements IRendererApp {
     await useConfigStore.getState().load();
     // Initialize i18n with locale from config store
     await this.i18nManager.init({ store: useConfigStore as any });
+    const i18nConfigs = await this.pluginManager.configI18n();
+    this.i18nManager.setupLazyNamespaces(i18nConfigs);
     // TODO: hydrate blocks render — should run in background so UI renders immediately
     await this.hydrate();
     await this.pluginManager.configContributions();

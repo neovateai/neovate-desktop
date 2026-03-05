@@ -26,7 +26,7 @@ const menuItems: MenuItem[] = [
   { id: "about", icon: HelpCircle },
 ];
 
-const MENU_LABEL_KEYS: Record<SettingsMenuId, string> = {
+const MENU_LABEL_KEYS = {
   general: "settings.general",
   chat: "settings.chat",
   rules: "settings.rules",
@@ -34,7 +34,7 @@ const MENU_LABEL_KEYS: Record<SettingsMenuId, string> = {
   keybindings: "settings.keybindings",
   about: "settings.about",
   mcp: "settings.mcp.title",
-};
+} as const satisfies Record<SettingsMenuId, string>;
 
 export const SettingsMenu = ({
   activeMenu,

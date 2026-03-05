@@ -12,6 +12,7 @@ import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { PermissionDialog } from "./permission-dialog";
 import { WelcomePanel } from "./welcome-panel";
+import { TaskProgress } from "./task-progress";
 
 export function AgentChat() {
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -139,21 +140,28 @@ export function AgentChat() {
 
   // State 2: Active session — full chat
   chatLog(
-    "render: showing chat msgs=%d tools=%d streaming=%s error=%s perm=%s",
+    "render: showing chat msgs=%d streaming=%s error=%s perm=%s",
     activeSession.messages.length,
-    activeSession.toolCalls.size,
     activeSession.streaming,
     activeSession.promptError ?? "none",
     activeSession.pendingPermission?.toolName ?? "none",
   );
   return (
     <div className="flex h-full flex-col">
-      <MessageList messages={activeSession.messages} toolCalls={activeSession.toolCalls} />
+      <MessageList messages={activeSession.messages} streaming={activeSession.streaming} />
       {activeSession.pendingPermission && (
         <PermissionDialog
           permission={activeSession.pendingPermission}
           onResolve={handleResolvePermission}
         />
+      )}
+      <TaskProgress tasks={activeSession.tasks} />
+      {activeSession.usage && (
+        <div className="flex items-center gap-3 border-t border-border px-4 py-1 text-[10px] text-muted-foreground/60">
+          <span>${activeSession.usage.totalCostUsd.toFixed(4)}</span>
+          <span>{activeSession.usage.totalInputTokens.toLocaleString()} in</span>
+          <span>{activeSession.usage.totalOutputTokens.toLocaleString()} out</span>
+        </div>
       )}
       {activeSession.promptError && (
         <div className="mx-4 mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
