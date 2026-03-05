@@ -1,4 +1,5 @@
 import { buildContributions, PluginContributions } from "./contributions";
+import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 type HookFn = (...args: unknown[]) => unknown;
@@ -17,6 +18,11 @@ export class PluginManager {
 
   getPlugins(): readonly RendererPlugin[] {
     return this.#plugins;
+  }
+
+  /** Collect i18n contributions from all plugins */
+  async configI18n(): Promise<I18nContributions[]> {
+    return this.applyParallel("configI18n");
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */

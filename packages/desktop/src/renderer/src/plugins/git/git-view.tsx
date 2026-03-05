@@ -3,10 +3,12 @@ import { useState, useEffect } from "react";
 import { usePluginContext } from "../../core/app";
 import type { GitStatus } from "../../../../shared/plugins/git/contract";
 import { gitContract } from "../../../../shared/plugins/git/contract";
+import { useGitTranslation } from "./i18n";
 
 type Client = ContractRouterClient<{ git: typeof gitContract }>;
 
 export default function GitView() {
+  const { t } = useGitTranslation();
   const { orpcClient } = usePluginContext();
   const client = orpcClient as Client;
   const [status, setStatus] = useState<GitStatus | null>(null);
@@ -17,7 +19,7 @@ export default function GitView() {
 
   return (
     <div className="flex h-full flex-col p-3 gap-2">
-      <h2 className="text-xs font-semibold text-muted-foreground">Source Control</h2>
+      <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
       {status === null ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : status.branch === null ? (
