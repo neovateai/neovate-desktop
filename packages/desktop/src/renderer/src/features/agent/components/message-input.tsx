@@ -10,6 +10,7 @@ import { createSlashCommandsExtension } from "./slash-commands-extension";
 import { createMentionExtension } from "./mention-extension";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { useAgentStore } from "../store";
+import { useNewSession } from "../hooks/use-new-session";
 import type { JSONContent } from "@tiptap/react";
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
@@ -59,11 +60,14 @@ function extractText(doc: JSONContent): string {
   return parts.join("").trim();
 }
 
+const NEW_CHAT_EASTER_EGGS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
+
 export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Props) {
   const sendRef = useRef<() => void>(() => {});
   const cwdRef = useRef(cwd);
   cwdRef.current = cwd;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { createNewSession } = useNewSession();
 
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const attachmentsRef = useRef(attachments);
@@ -133,6 +137,12 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
                   if (event.key === "Enter" && !event.shiftKey && !event.altKey) {
                     if (document.querySelector("[data-suggestion-popup]")) return false;
                     event.preventDefault();
+                    const text = extractText(editor.getJSON()).trim();
+                    if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
+                      editor.commands.clearContent();
+                      createNewSession(cwdRef.current);
+                      return true;
+                    }
                     sendRef.current();
                     return true;
                   }
