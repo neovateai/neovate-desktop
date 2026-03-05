@@ -72,7 +72,9 @@ The client call returns `Promise<AsyncIterable>`, not `AsyncIterable` directly â
 
 ```ts
 const stream = await client.terminal.stream({ sessionId }, { signal });
-for await (const chunk of stream) { xterm.write(chunk); }
+for await (const chunk of stream) {
+  xterm.write(chunk);
+}
 ```
 
 ### Tab Switching: `deactivation: "offscreen"`
@@ -138,14 +140,14 @@ packages/desktop/src/
 
 ## Dependencies
 
-| Package                  | Location        | Purpose                          |
-| ------------------------ | --------------- | -------------------------------- |
-| `node-pty`               | main runtime    | PTY spawning                     |
-| `@xterm/xterm`           | renderer devDep | Terminal emulator                |
-| `@xterm/addon-fit`       | renderer devDep | Auto-fit to container            |
-| `@xterm/addon-webgl`     | renderer devDep | GPU-accelerated rendering        |
-| `@xterm/addon-web-links` | renderer devDep | Clickable link detection         |
-| `@xterm/addon-serialize` | renderer devDep | Buffer serialization (post-MVP)  |
+| Package                  | Location        | Purpose                         |
+| ------------------------ | --------------- | ------------------------------- |
+| `node-pty`               | main runtime    | PTY spawning                    |
+| `@xterm/xterm`           | renderer devDep | Terminal emulator               |
+| `@xterm/addon-fit`       | renderer devDep | Auto-fit to container           |
+| `@xterm/addon-webgl`     | renderer devDep | GPU-accelerated rendering       |
+| `@xterm/addon-web-links` | renderer devDep | Clickable link detection        |
+| `@xterm/addon-serialize` | renderer devDep | Buffer serialization (post-MVP) |
 
 ---
 
