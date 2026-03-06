@@ -11,7 +11,7 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "../../../components/ai-elements/reasoning";
-import { Message, MessageContent } from "../../../components/ai-elements/message";
+import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
 
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
@@ -35,11 +35,7 @@ export function MessageList({ messages, sessionId }: Props) {
             {msg.parts.map((part, i) => {
               switch (part.type) {
                 case "text":
-                  return (
-                    <div key={`${msg.id}-text-${i}`} className="whitespace-pre-wrap text-sm">
-                      {part.text}
-                    </div>
-                  );
+                  return <MessageResponse key={`${msg.id}-text-${i}`}>{part.text}</MessageResponse>;
                 case "thinking":
                   return (
                     <Reasoning key={`${msg.id}-thinking-${i}`} isStreaming={false}>

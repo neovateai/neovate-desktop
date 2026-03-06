@@ -96,6 +96,63 @@ export function selectChildToolParts(
   );
 }
 
+// ---------------------------------------------------------------------------
+// Cache migration
+// ---------------------------------------------------------------------------
+
+/**
+ * Old cached message format (before parts refactor).
+ */
+type LegacyCachedMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content?: string;
+  toolCalls?: Array<{
+    toolCallId: string;
+    name: string;
+    status?: string;
+    input?: unknown;
+  }>;
+};
+
+/**
+ * Migrates legacy cached messages to the new parts-based format.
+ * Returns the message as-is if it already has parts.
+ */
+function migrateCachedMessage(msg: LegacyCachedMessage & Partial<UIMessage>): UIMessage {
+  // Already has parts, return as-is
+  if (msg.parts) {
+    return msg as UIMessage;
+  }
+
+  // Build parts from legacy content/toolCalls
+  const parts: UIMessage["parts"] = [];
+
+  // Add text part from content
+  if (msg.content) {
+    parts.push({ type: "text", text: msg.content });
+  }
+
+  // Add tool invocation parts from toolCalls
+  if (msg.toolCalls) {
+    for (const tc of msg.toolCalls) {
+      parts.push({
+        type: "tool-invocation",
+        toolCallId: tc.toolCallId,
+        toolName: tc.name as ClaudeCodeToolName,
+        state: tc.status === "completed" ? "output-available" : "input-available",
+        input: tc.input,
+      });
+    }
+  }
+
+  return {
+    id: msg.id,
+    role: msg.role,
+    parts,
+  };
+}
+
 type AgentState = {
   sessions: Map<string, ChatSession>;
   activeSessionId: string | null;
@@ -309,7 +366,9 @@ export const useAgentStore = create<AgentState>()(
         }
         session.messages = cached.messages.map((m) => {
           state._nextMessageId += 1;
-          return { ...m, id: String(state._nextMessageId) };
+          // TODO: Migrate legacy format (content/toolCalls) to parts-based format
+          const migrated = migrateCachedMessage(m as Parameters<typeof migrateCachedMessage>[0]);
+          return { ...migrated, id: String(state._nextMessageId) };
         });
         if (cached.title) session.title = cached.title;
         if (cached.cwd) session.cwd = cached.cwd;
