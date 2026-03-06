@@ -331,7 +331,6 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
               className="h-7 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               title="Select model"
             >
-              {!currentModel && <option value="">Default</option>}
               {availableModels.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.displayName}
