@@ -16,6 +16,7 @@ import gitPlugin from "../plugins/git";
 import terminalPlugin from "../plugins/terminal";
 import searchPlugin from "../plugins/search";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
+// import demoWindowPlugin from "../plugins/demo-window";
 
 import { client } from "../orpc";
 import { SettingsService } from "../features/settings/service";
@@ -87,6 +88,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   searchPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
+  // demoWindowPlugin
 ];
 
 export interface RendererAppOptions {
