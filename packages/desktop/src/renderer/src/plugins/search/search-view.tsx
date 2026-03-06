@@ -39,7 +39,7 @@ interface SearchResult {
 
 function SearchViewComponent({ project }: SearchViewProps) {
   const { t } = useSearchTranslation();
-  const { orpcClient } = usePluginContext();
+  const { orpcClient, app } = usePluginContext();
   const client = orpcClient as UtilsClient;
 
   const [query, setQuery] = useState("");
@@ -155,11 +155,14 @@ function SearchViewComponent({ project }: SearchViewProps) {
   };
 
   const handleMatchClick = (result: SearchResult, line: number) => {
+    app.workbench.contentPanel.openView("editor");
     window.dispatchEvent(
       new CustomEvent("neovate:open-editor", {
         detail: { fullPath: result.fullPath, line },
       }),
     );
+    // @ts-ignore 避免 dispatchEvent 时未初始化完成
+    window.pendingEditorRequest = { fullPath: item.fullPath, line };
   };
 
   const highlightMatch = (text: string, searchQuery: string) => {

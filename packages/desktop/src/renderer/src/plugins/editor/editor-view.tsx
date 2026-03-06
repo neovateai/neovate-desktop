@@ -32,20 +32,37 @@ function EditorViewCore(props: { cwd: string }) {
   const connectToExtension = () => {
     const disposable: Array<() => void> = [];
     client.editor.connect({ cwd }).then(() => {
-      console.log("extension connected");
+      console.log("Extension connected");
+
+      const openEditor = (fullPath: string, line: number) => {
+        if (!fullPath) {
+          return;
+        }
+        client.editor.open({ cwd, filePath: fullPath, line });
+        // @ts-ignore 清理
+        window.pendingEditorRequest = undefined;
+      };
+      // @ts-ignore 避免初始化前未收到事件
+      const pendingEditorRequest = window.pendingEditorRequest as {
+        fullPath: string;
+        line?: number;
+      };
+      if (pendingEditorRequest?.fullPath) {
+        openEditor(pendingEditorRequest.fullPath, pendingEditorRequest.line || 1);
+      }
+
       // 连接成功后初始化插件可接受的操作事件响应函数
-      const openEditor = (e: Event) => {
+      const openEditorEvent = (e: Event) => {
         const { fullPath = "", line = 1 } =
           (e as CustomEvent<{ fullPath: string; line?: number }>)?.detail || {};
-        if (fullPath) {
-          client.editor.open({ cwd, filePath: fullPath, line });
-        }
+        openEditor(fullPath, line);
       };
-      window.addEventListener("neovate:open-editor", openEditor);
+      window.addEventListener("neovate:open-editor", openEditorEvent);
       disposable.push(() => {
-        window.addEventListener("neovate:open-editor", openEditor);
+        window.addEventListener("neovate:open-editor", openEditorEvent);
       });
     });
+
     return disposable;
   };
 
@@ -57,7 +74,7 @@ function EditorViewCore(props: { cwd: string }) {
 
     try {
       console.log("[EditorPane] Starting code-server...");
-      const { url } = await client.editor.start({ cwd });
+      const { url } = await client.editor.start();
       // Construct URL with folder query param
       const editorUrl = `${url}/?folder=${encodeURIComponent(cwd)}`;
       console.log("[EditorPane] Server ready at:", editorUrl);

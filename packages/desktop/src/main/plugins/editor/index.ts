@@ -11,5 +11,8 @@ export default {
   configContributions: (ctx) => ({
     router: createEditorRouter(ctx.orpcServer, codeServerManager, extBridge),
   }),
-  deactivate: () => codeServerManager.stop(),
+  deactivate: () => {
+    codeServerManager.stop();
+    extBridge.stop();
+  },
 } satisfies MainPlugin;

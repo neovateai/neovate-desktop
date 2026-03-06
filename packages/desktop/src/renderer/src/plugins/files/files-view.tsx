@@ -21,7 +21,7 @@ type FilesClient = ContractRouterClient<{ files: typeof filesContract }>;
 
 function FilesViewComponent({ project }: FilesViewProps) {
   const { t } = useFilesTranslation();
-  const { orpcClient } = usePluginContext();
+  const { orpcClient, app } = usePluginContext();
   const client = orpcClient as FilesClient;
 
   const [treeData, setTreeData] = useState<FileTreeItem[]>([]);
@@ -83,11 +83,14 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
     if (!item.isFolder && project) {
       log("open file path=%s", item.relPath);
+      app.workbench.contentPanel.openView("editor");
       window.dispatchEvent(
         new CustomEvent("neovate:open-editor", {
           detail: { fullPath: item.fullPath },
         }),
       );
+      // @ts-ignore 避免 dispatchEvent 时未初始化完成
+      window.pendingEditorRequest = { fullPath: item.fullPath };
     }
   };
   const handleDelete = async (item: FileTreeItem) => {
