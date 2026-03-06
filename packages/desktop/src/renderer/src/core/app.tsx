@@ -88,7 +88,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   searchPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
-  // demoWindowPlugin
+  // demoWindowPlugin,
 ];
 
 export interface RendererAppOptions {
@@ -174,35 +174,59 @@ export class RendererApp implements IRendererApp {
     await this.settings.hydrate();
   }
 
-  private async render(ctx: PluginContext): Promise<void> {
-    const root = document.getElementById("root");
-    if (!root) throw new Error("Missing #root element");
+  private render(ctx: PluginContext): void {
+    const rootElement = document.getElementById("root");
+    if (!rootElement) throw new Error("Missing #root element");
 
-    let AppComponent: React.ComponentType;
+    const reactDomRoot = ReactDOM.createRoot(rootElement);
 
     if (this.#windowType === "main") {
-      AppComponent = (await import("../App")).default;
-    } else {
-      const windowDef = this.pluginManager.windowContributions.find(
-        (w) => w.windowType === this.#windowType,
+      const AppComponent = lazy(() => import("../App"));
+      return reactDomRoot.render(
+        <StrictMode>
+          <RendererAppContext.Provider value={this}>
+            <PluginContextReact.Provider value={ctx}>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <ToastProvider>
+                  <ThemeSync />
+                  <MenuCommandHandler />
+                  <Suspense
+                    fallback={
+                      <div className="flex h-screen items-center justify-center">
+                        <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
+                      </div>
+                    }
+                  >
+                    <AppComponent />
+                  </Suspense>
+                </ToastProvider>
+              </ThemeProvider>
+            </PluginContextReact.Provider>
+          </RendererAppContext.Provider>
+        </StrictMode>,
       );
-      if (!windowDef) {
-        AppComponent = () => <div>Unknown window type: {this.#windowType}</div>;
-      } else {
-        AppComponent = lazy(windowDef.component);
-      }
     }
+    const windowDef = this.pluginManager.windowContributions.find(
+      (w) => w.windowType === this.#windowType,
+    );
+    if (!windowDef) return reactDomRoot.render(<div>Unknown window type: {this.#windowType}</div>);
+    const WindowComponent = lazy(windowDef.component);
 
-    ReactDOM.createRoot(root).render(
+    reactDomRoot.render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
           <PluginContextReact.Provider value={ctx}>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <ToastProvider>
                 <ThemeSync />
-                {this.#windowType === "main" && <MenuCommandHandler />}
-                <Suspense>
-                  <AppComponent />
+                <Suspense
+                  fallback={
+                    <div className="flex h-screen items-center justify-center">
+                      <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
+                    </div>
+                  }
+                >
+                  <WindowComponent />
                 </Suspense>
               </ToastProvider>
             </ThemeProvider>
