@@ -15,4 +15,5 @@ export { NotebookEditToolCard } from "./notebook-edit-tool-card";
 export { TaskToolCard } from "./task-tool-card";
 export { TaskOutputToolCard } from "./task-output-tool-card";
 export { TaskStopToolCard } from "./task-stop-tool-card";
+export { SkillToolCard } from "./skill-tool-card";
 export { GenericToolCard } from "./generic-tool-card";

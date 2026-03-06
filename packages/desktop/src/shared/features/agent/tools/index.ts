@@ -20,6 +20,7 @@ export { SlashCommand, type SlashCommandUIToolInvocation } from "./slash-command
 export { ExitPlanMode, type ExitPlanModeUIToolInvocation } from "./exit-plan-mode";
 export { NotebookEdit, type NotebookEditUIToolInvocation } from "./notebook-edit";
 export { AskUserQuestion, type AskUserQuestionUIToolInvocation } from "./ask-user-question";
+export { Skill, type SkillUIToolInvocation } from "./skill";
 
 // Re-import for registry object
 import { Bash } from "./bash";
@@ -42,6 +43,7 @@ import { SlashCommand } from "./slash-command";
 import { ExitPlanMode } from "./exit-plan-mode";
 import { NotebookEdit } from "./notebook-edit";
 import { AskUserQuestion } from "./ask-user-question";
+import { Skill } from "./skill";
 
 /**
  * Registry of all Claude Code tools with Zod schemas.
@@ -70,6 +72,7 @@ export const claudeCodeTools = {
   ExitPlanMode,
   NotebookEdit,
   AskUserQuestion,
+  Skill,
 } satisfies ToolSet;
 
 /**

@@ -17,6 +17,7 @@ import { TaskStopToolCard } from "./task-stop-tool-card";
 import { WebFetchToolCard } from "./web-fetch-tool-card";
 import { WebSearchToolCard } from "./web-search-tool-card";
 import { WriteToolCard } from "./write-tool-card";
+import { SkillToolCard } from "./skill-tool-card";
 
 type Props = {
   part: ToolInvocationPart;
@@ -69,6 +70,8 @@ export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
       return <TaskOutputToolCard part={part} />;
     case "TaskStop":
       return <TaskStopToolCard part={part} />;
+    case "Skill":
+      return <SkillToolCard part={part} />;
     // Simple tools use the generic card
     case "SlashCommand":
     case "ExitPlanMode":
