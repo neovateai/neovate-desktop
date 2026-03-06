@@ -25,7 +25,7 @@ export class PluginManager {
     return this.applyParallel("configI18n");
   }
 
-  /** Collect window contributions from all plugins (parallel) */
+  /** Collect window contributions from all plugins (sequential, deduplicates by windowType) */
   async configWindowContributions(): Promise<WindowContribution[]> {
     const seen = new Map<string, string>();
     const result: WindowContribution[] = [];

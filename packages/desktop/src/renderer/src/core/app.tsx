@@ -1,4 +1,4 @@
-import { StrictMode, createContext, useContext, useEffect, lazy } from "react";
+import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider, useTheme } from "next-themes";
 import { I18nManager } from "./i18n";
@@ -162,8 +162,8 @@ export class RendererApp implements IRendererApp {
   }
 
   async stop(): Promise<void> {
-    await this.pluginManager.deactivate();
     if (this.windowType === "main") {
+      await this.pluginManager.deactivate();
       this.workbench.contentPanel.dispose();
     }
     this.settings.dispose();
@@ -200,7 +200,9 @@ export class RendererApp implements IRendererApp {
               <ToastProvider>
                 <ThemeSync />
                 {this.windowType === "main" && <MenuCommandHandler />}
-                <AppComponent />
+                <Suspense>
+                  <AppComponent />
+                </Suspense>
               </ToastProvider>
             </ThemeProvider>
           </PluginContextReact.Provider>
