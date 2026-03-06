@@ -93,8 +93,6 @@ export function MessageList({ messages, sessionId }: Props) {
                       </SourcesContent>
                     </Sources>
                   );
-                case "step-start":
-                  return null;
                 default:
                   return null;
               }
