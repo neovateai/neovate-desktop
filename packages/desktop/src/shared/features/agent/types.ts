@@ -34,8 +34,22 @@ export { getParentToolUseId } from "./ui-message";
 /** Agent metadata for subagent invocation */
 export type AgentInfo = { id: string; name: string };
 
-/** Slash command metadata */
-export type SlashCommandInfo = { name: string; description?: string };
+/** Image attachment sent alongside a prompt */
+export type ImageAttachment = {
+  id: string;
+  filename: string;
+  mediaType: string;
+  base64: string;
+};
+
+export type TimingEntry = {
+  phase: string;
+  label: string;
+  durationMs: number;
+  timestamp: number;
+};
+
+export type SlashCommandInfo = { name: string; description?: string; argumentHint?: string };
 
 /** Lightweight session metadata for the sidebar list */
 export type SessionInfo = {

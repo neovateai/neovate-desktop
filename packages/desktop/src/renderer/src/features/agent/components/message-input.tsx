@@ -97,7 +97,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
       createSlashCommandsExtension(() => {
         const { activeSessionId, sessions } = useAgentStore.getState();
         if (!activeSessionId) return [];
-        return (sessions.get(activeSessionId)?.availableCommands ?? []).map((c) => c.name);
+        return sessions.get(activeSessionId)?.availableCommands ?? [];
       }),
     [],
   );

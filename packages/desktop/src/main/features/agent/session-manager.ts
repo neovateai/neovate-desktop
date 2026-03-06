@@ -175,6 +175,8 @@ export class SessionManager {
 
     const commands: SlashCommandInfo[] = (initResult.commands ?? []).map((cmd) => ({
       name: cmd.name,
+      description: cmd.description,
+      argumentHint: cmd.argumentHint,
     }));
 
     log(
@@ -361,6 +363,8 @@ export class SessionManager {
       // Emit available commands
       const commands: SlashCommandInfo[] = (initResult.commands ?? []).map((cmd) => ({
         name: cmd.name,
+        description: cmd.description,
+        argumentHint: cmd.argumentHint,
       }));
       if (commands.length > 0) {
         eventCount++;
