@@ -100,8 +100,7 @@ export namespace StreamEvents {
   // ── Tool events ──
 
   /**
-   * @deprecated Use `ToolInputAvailable`, `ToolOutputAvailable`, or `ToolOutputError` instead.
-   * Kept for backward compatibility during migration.
+   * Tool invocation event when the assistant calls a tool. This is emitted at the start of the tool call, before input is available.
    */
   export type ToolUse = {
     type: "tool_use";

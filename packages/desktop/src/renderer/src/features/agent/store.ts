@@ -7,7 +7,7 @@ import type {
   TimingEntry,
   SlashCommandInfo,
   CachedSession,
-  RenderingMessage,
+  UIMessage,
   ToolInvocationPart,
 } from "../../../../shared/features/agent/types";
 import type { ClaudeCodeToolName } from "../../../../shared/features/agent/tools";
@@ -18,20 +18,7 @@ const storeLog = debug("neovate:agent-store");
 enableMapSet();
 
 /**
- * @deprecated Use {@link RenderingMessage} from shared types instead.
- * Flat message type kept for backward compatibility.
- */
-export type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  thinking?: string;
-  toolCalls?: ToolCallState[];
-  images?: Array<{ mediaType: string; base64: string }>;
-};
-
-/**
- * @deprecated Tool state is now embedded in `RenderingMessage.parts` as `ToolInvocationPart`.
+ * @deprecated Tool state is now embedded in `UIMessage.parts` as `ToolInvocationPart`.
  */
 export type ToolCallState = {
   toolCallId: string;
@@ -71,7 +58,7 @@ export type ChatSession = {
   createdAt: string;
   isNew: boolean;
   /** Parts-based message list for rendering. */
-  messages: RenderingMessage[];
+  messages: UIMessage[];
   streaming: boolean;
   promptError: string | null;
   pendingPermission: PendingPermission | null;
@@ -85,13 +72,13 @@ export type ChatSession = {
 // Selector helpers
 // ---------------------------------------------------------------------------
 
-/** Extract all tool invocation parts from a rendering message. */
-export function selectToolParts(message: RenderingMessage): ToolInvocationPart[] {
+/** Extract all tool invocation parts from a UI message. */
+export function selectToolParts(message: UIMessage): ToolInvocationPart[] {
   return message.parts.filter((p): p is ToolInvocationPart => p.type === "tool-invocation");
 }
 
-/** Extract the concatenated text content from a rendering message. */
-export function selectTextContent(message: RenderingMessage): string {
+/** Extract the concatenated text content from a UI message. */
+export function selectTextContent(message: UIMessage): string {
   return message.parts
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
@@ -100,7 +87,7 @@ export function selectTextContent(message: RenderingMessage): string {
 
 /** Extract child tool parts belonging to a given parent tool call. */
 export function selectChildToolParts(
-  message: RenderingMessage,
+  message: UIMessage,
   parentToolCallId: string,
 ): ToolInvocationPart[] {
   return message.parts.filter(
@@ -351,12 +338,12 @@ export const useAgentStore = create<AgentState>()(
           return;
         }
 
-        // ── Helper: get or create the last assistant RenderingMessage ──
+        // ── Helper: get or create the last assistant UIMessage ──
         const getOrCreateAssistantMsg = () => {
           const last = session.messages[session.messages.length - 1];
           if (last && last.role === "assistant") return last;
           state._nextMessageId += 1;
-          const msg: RenderingMessage = {
+          const msg: UIMessage = {
             id: `am-${state._nextMessageId}`,
             role: "assistant",
             parts: [],
@@ -441,15 +428,13 @@ export const useAgentStore = create<AgentState>()(
             // ── Parts-based ──
             const amMsg = getOrCreateAssistantMsg();
             const lastPart = amMsg.parts[amMsg.parts.length - 1];
-            if (lastPart && lastPart.type === "thinking") {
-              lastPart.thinking += event.text;
+            if (lastPart && lastPart.type === "reasoning") {
+              lastPart.text += event.text;
             } else {
-              amMsg.parts.push({ type: "thinking", thinking: event.text });
+              amMsg.parts.push({ type: "reasoning", text: event.text });
             }
             break;
           }
-
-          // ── New structured tool events ──
 
           case "tool_input_available": {
             storeLog(

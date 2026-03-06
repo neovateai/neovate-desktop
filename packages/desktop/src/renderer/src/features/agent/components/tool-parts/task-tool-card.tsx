@@ -1,7 +1,4 @@
-import type {
-  RenderingMessage,
-  ToolInvocationPart,
-} from "../../../../../../shared/features/agent/types";
+import type { UIMessage, ToolInvocationPart } from "../../../../../../shared/features/agent/types";
 
 import { Tool, ToolContent, ToolHeader, ToolOutput } from "../../../../components/ai-elements/tool";
 import { selectChildToolParts } from "../../store";
@@ -10,7 +7,7 @@ import { ClaudeCodeToolUIPart } from "./claude-code-tool-ui-part";
 type Props = {
   part: ToolInvocationPart;
   /** The full message list — used for finding child tool parts. */
-  messages: RenderingMessage[];
+  messages: UIMessage[];
 };
 
 /**

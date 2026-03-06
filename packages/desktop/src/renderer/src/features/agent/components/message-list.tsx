@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import debug from "debug";
 
-import type { RenderingMessage } from "../../../../../shared/features/agent/types";
+import type { UIMessage } from "../../../../../shared/features/agent/types";
 
 const log = debug("neovate:chat-message-list");
 
@@ -16,7 +16,7 @@ import { Message, MessageContent } from "../../../components/ai-elements/message
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
 type Props = {
-  messages: RenderingMessage[];
+  messages: UIMessage[];
   sessionId?: string;
 };
 

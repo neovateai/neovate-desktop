@@ -572,16 +572,6 @@ export class SessionManager {
             yield { type: "thinking_delta", sessionId, text: block.thinking };
           }
           if (block.type === "tool_use") {
-            // @deprecated Legacy event
-            yield {
-              type: "tool_use",
-              sessionId,
-              toolId: block.id,
-              name: block.name,
-              status: "completed",
-              input: block.input,
-            };
-            // New structured event
             yield {
               type: "tool_input_available",
               sessionId,
@@ -639,15 +629,6 @@ export class SessionManager {
           }
           if (block.type === "tool_use") {
             log("convert:   tool_use block id=%s name=%s", block.id, block.name);
-            // @deprecated Legacy event
-            yield {
-              type: "tool_use",
-              sessionId,
-              toolId: block.id,
-              name: block.name,
-              status: "completed",
-              input: block.input,
-            };
             // New structured event
             yield {
               type: "tool_input_available",

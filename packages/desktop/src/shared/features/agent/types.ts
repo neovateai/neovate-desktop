@@ -2,8 +2,10 @@
 // Re-exports from sub-modules
 // ---------------------------------------------------------------------------
 
-import type { StopReason } from "./stream-event";
-import type { RenderingMessage } from "./rendering-message";
+import type { StopReason, StreamEvent } from "./stream-event";
+import type { UIMessagePartExtended, UIMessage } from "./ui-message";
+
+export type SessionUIMessage = UIMessagePartExtended | StreamEvent;
 
 // StreamEvent types
 export type {
@@ -20,10 +22,10 @@ export type {
   StreamEvent,
 } from "./stream-event";
 
-// RenderingMessage types
-export type { ToolInvocationPart, RenderingMessage } from "./rendering-message";
+// UIMessage types
+export type { ToolInvocationPart, UIMessagePartExtended, UIMessage } from "./ui-message";
 
-export { getParentToolUseId } from "./rendering-message";
+export { getParentToolUseId } from "./ui-message";
 
 // ---------------------------------------------------------------------------
 // Session Metadata
@@ -63,7 +65,7 @@ export type PromptResult = {
  */
 export type CachedSession = {
   /** Parts-based cached messages */
-  messages: RenderingMessage[];
+  messages: UIMessage[];
   title?: string;
   cwd?: string;
   updatedAt: string;

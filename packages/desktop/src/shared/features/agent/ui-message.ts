@@ -1,8 +1,8 @@
-import { type UITools, type UIDataTypes, type UIMessage } from "ai";
-import type { ClaudeCodeToolName } from "./tools";
+import { type UIMessagePart, type UIDataTypes } from "ai";
+import type { ClaudeCodeTools, ClaudeCodeToolName } from "./tools";
 
 // ---------------------------------------------------------------------------
-// Rendering Message Parts
+// UI Message Parts (extends AI SDK types with custom properties)
 // ---------------------------------------------------------------------------
 
 /**
@@ -22,8 +22,12 @@ export type ToolInvocationPart = {
   parentToolUseId?: string;
 };
 
+export type UIMessagePartExtended =
+  | UIMessagePart<UIDataTypes, ClaudeCodeTools>
+  | ToolInvocationPart;
+
 // ---------------------------------------------------------------------------
-// Rendering Message
+// UI Message
 // ---------------------------------------------------------------------------
 
 /**
@@ -32,11 +36,31 @@ export type ToolInvocationPart = {
  * Each message contains an ordered array of typed parts that can be
  * individually rendered by UI components.
  */
-export type RenderingMessage<
-  METADATA = unknown,
-  DATA_PARTS extends UIDataTypes = UIDataTypes,
-  TOOLS extends UITools = UITools,
-> = UIMessage<METADATA, DATA_PARTS, TOOLS>;
+export type UIMessage = {
+  /**
+   * A unique identifier for the message.
+   */
+  id: string;
+  /**
+   * The role of the message.
+   */
+  role: "system" | "user" | "assistant";
+  /**
+   * The metadata of the message.
+   */
+  metadata?: unknown;
+  /**
+   * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * System messages should be avoided (set the system prompt on the server instead).
+   * They can have text parts.
+   *
+   * User messages can have text parts and file parts.
+   *
+   * Assistant messages can have text, reasoning, tool invocation, and file parts.
+   */
+  parts: UIMessagePartExtended[];
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
