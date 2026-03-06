@@ -2,7 +2,8 @@ import { useEffect } from "react";
 
 import debug from "debug";
 
-import type { UIMessage } from "../../../../../shared/features/agent/types";
+import type { UIMessage, DynamicToolPart } from "../../../../../shared/features/agent/types";
+import { getParentToolUseId } from "../../../../../shared/features/agent/types";
 
 const log = debug("neovate:chat-message-list");
 
@@ -12,17 +13,6 @@ import {
   ReasoningTrigger,
 } from "../../../components/ai-elements/reasoning";
 import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
-import {
-  Attachment,
-  AttachmentPreview,
-  AttachmentInfo,
-} from "../../../components/ai-elements/attachments";
-import {
-  Sources,
-  SourcesTrigger,
-  SourcesContent,
-  Source,
-} from "../../../components/ai-elements/sources";
 
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
@@ -54,44 +44,16 @@ export function MessageList({ messages, sessionId }: Props) {
                       <ReasoningContent>{part.text}</ReasoningContent>
                     </Reasoning>
                   );
-                case "tool-invocation":
+                case "dynamic-tool":
                   // Skip child tool parts (they are rendered inside TaskToolCard)
-                  if (part.parentToolUseId) return null;
+                  if (getParentToolUseId(part as DynamicToolPart)) return null;
                   return (
                     <ClaudeCodeToolUIPart
                       key={part.toolCallId}
-                      part={part}
+                      part={part as DynamicToolPart}
                       messages={messages}
                       sessionId={sessionId}
                     />
-                  );
-                case "file":
-                  return (
-                    <Attachment
-                      key={`${msg.id}-file-${i}`}
-                      data={{ ...part, id: part.url || `${msg.id}-file-${i}` }}
-                    >
-                      <AttachmentPreview />
-                      <AttachmentInfo showMediaType />
-                    </Attachment>
-                  );
-                case "source-url":
-                  return (
-                    <Sources key={`${msg.id}-source-${i}`}>
-                      <SourcesTrigger count={1} />
-                      <SourcesContent>
-                        <Source href={part.url} title={part.title || part.url} />
-                      </SourcesContent>
-                    </Sources>
-                  );
-                case "source-document":
-                  return (
-                    <Sources key={`${msg.id}-source-${i}`}>
-                      <SourcesTrigger count={1} />
-                      <SourcesContent>
-                        <Source href="#" title={part.title || part.filename || "Document"} />
-                      </SourcesContent>
-                    </Sources>
                   );
                 default:
                   return null;

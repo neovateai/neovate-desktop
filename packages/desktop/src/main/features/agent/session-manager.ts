@@ -15,7 +15,7 @@ import type {
 import { randomUUID } from "node:crypto";
 import debug from "debug";
 import type {
-  StreamEvent,
+  UIMessagePart,
   SessionInfo,
   SlashCommandInfo,
   ImageAttachment,
@@ -39,7 +39,7 @@ type PendingPermission = {
   timer: ReturnType<typeof setTimeout>;
 };
 
-type PermissionEmitter = (event: StreamEvent) => void;
+type PermissionEmitter = (event: UIMessagePart) => void;
 
 export class SessionManager {
   private sessions = new Map<string, ManagedSession>();
@@ -120,11 +120,12 @@ export class SessionManager {
         if (this.permissionEmitter && this.activeSessionId) {
           log("canUseTool: emitting permission_request to renderer requestId=%s", requestId);
           this.permissionEmitter({
-            type: "permission_request",
-            sessionId: this.activeSessionId,
-            requestId,
-            toolName,
-            input,
+            type: "data-permission-request",
+            data: {
+              requestId,
+              toolName,
+              input,
+            },
           });
         } else {
           log(
@@ -196,9 +197,9 @@ export class SessionManager {
   async *prompt(
     sessionId: string,
     text: string,
-    emitter: (event: StreamEvent) => void,
+    emitter: (event: UIMessagePart) => void,
     attachments?: ImageAttachment[],
-  ): AsyncGenerator<StreamEvent> {
+  ): AsyncGenerator<UIMessagePart> {
     const managed = this.sessions.get(sessionId);
     if (!managed) {
       log("prompt: ERROR unknown sessionId=%s knownSessions=%o", sessionId, [
@@ -330,9 +331,9 @@ export class SessionManager {
   async *loadSession(
     sessionId: string,
     cwd?: string,
-    emitter?: (event: StreamEvent) => void,
+    emitter?: (event: UIMessagePart) => void,
     skipReplay?: boolean,
-  ): AsyncGenerator<StreamEvent> {
+  ): AsyncGenerator<UIMessagePart> {
     const t0 = performance.now();
     log("loadSession: START sessionId=%s cwd=%s skipReplay=%s", sessionId, cwd, !!skipReplay);
 
@@ -368,7 +369,7 @@ export class SessionManager {
       }));
       if (commands.length > 0) {
         eventCount++;
-        yield { type: "available_commands", sessionId, commands };
+        yield { type: "data-available-commands", data: { commands } };
       }
 
       // Replay history from persisted messages (skip if renderer has cache)
@@ -503,9 +504,10 @@ export class SessionManager {
     log("closeAll: DONE");
   }
 
-  private *convertReplayMessage(sessionId: string, msg: SessionMessage): Generator<StreamEvent> {
+  private *convertReplayMessage(sessionId: string, msg: SessionMessage): Generator<UIMessagePart> {
     const message = msg.message as any;
     const parentToolUseId: string | undefined = msg.parent_tool_use_id ?? undefined;
+    const providerMetadata = { context: { sessionId } };
 
     if (msg.type === "user") {
       const content = message.content;
@@ -525,7 +527,7 @@ export class SessionManager {
             base64: b.source?.data ?? "",
           }));
         }
-        // Emit structured tool_result events for replay
+        // Emit structured tool_result as dynamic-tool parts
         for (const block of content) {
           if (block.type === "tool_result") {
             const resultContent =
@@ -539,17 +541,25 @@ export class SessionManager {
                   : "";
             if (block.is_error) {
               yield {
-                type: "tool_output_error",
-                sessionId,
+                type: "dynamic-tool",
                 toolCallId: block.tool_use_id,
+                toolName: "",
+                state: "output-error",
+                input: undefined,
                 errorText: resultContent,
+                providerExecuted: true,
+                callProviderMetadata: providerMetadata,
               };
             } else {
               yield {
-                type: "tool_output_available",
-                sessionId,
+                type: "dynamic-tool",
                 toolCallId: block.tool_use_id,
+                toolName: "",
+                state: "output-available",
+                input: undefined,
                 output: resultContent,
+                providerExecuted: true,
+                callProviderMetadata: providerMetadata,
               };
             }
           }
@@ -562,7 +572,21 @@ export class SessionManager {
           images?.length ?? 0,
           msg.uuid,
         );
-        yield { type: "user_message", sessionId, text, ...(images ? { images } : {}) };
+        // Yield text part
+        if (text) {
+          yield { type: "text", text, state: "done", providerMetadata };
+        }
+        // Yield file parts for images
+        if (images) {
+          for (const img of images) {
+            yield {
+              type: "file",
+              mediaType: img.mediaType,
+              url: `data:${img.mediaType};base64,${img.base64}`,
+              providerMetadata,
+            };
+          }
+        }
       }
     } else if (msg.type === "assistant") {
       const blocks = message.content;
@@ -570,19 +594,22 @@ export class SessionManager {
         log("convertReplay: assistant blocks=%d uuid=%s", blocks.length, msg.uuid);
         for (const block of blocks) {
           if (block.type === "text") {
-            yield { type: "text_delta", sessionId, text: block.text };
+            yield { type: "text", text: block.text, state: "done", providerMetadata };
           }
           if (block.type === "thinking" && "thinking" in block) {
-            yield { type: "thinking_delta", sessionId, text: block.thinking };
+            yield { type: "reasoning", text: block.thinking, state: "done", providerMetadata };
           }
           if (block.type === "tool_use") {
             yield {
-              type: "tool_input_available",
-              sessionId,
+              type: "dynamic-tool",
               toolCallId: block.id,
               toolName: block.name,
+              state: "input-available",
               input: block.input ?? {},
-              parentToolUseId,
+              providerExecuted: true,
+              callProviderMetadata: {
+                context: { sessionId, parentToolUseId },
+              },
             };
           }
         }
@@ -590,7 +617,12 @@ export class SessionManager {
     }
   }
 
-  private *convertSdkMessage(sessionId: string, msg: SDKMessage): Generator<StreamEvent> {
+  /**
+   * Convert SDK message to UIMessagePart types.
+   */
+  private *convertSdkMessage(sessionId: string, msg: SDKMessage): Generator<UIMessagePart> {
+    const providerMetadata = { context: { sessionId } };
+
     switch (msg.type) {
       case "stream_event": {
         // SDKPartialAssistantMessage — streaming text/thinking deltas
@@ -599,11 +631,26 @@ export class SessionManager {
           const delta = event.delta;
           if ("text" in delta && typeof delta.text === "string") {
             log("convert: text_delta len=%d sessionId=%s", delta.text.length, sessionId);
-            yield { type: "text_delta", sessionId, text: delta.text };
+            yield { type: "text", text: delta.text, state: "streaming", providerMetadata };
           }
           if ("thinking" in delta && typeof delta.thinking === "string") {
             log("convert: thinking_delta len=%d sessionId=%s", delta.thinking.length, sessionId);
-            yield { type: "thinking_delta", sessionId, text: delta.thinking };
+            yield { type: "reasoning", text: delta.thinking, state: "streaming", providerMetadata };
+          }
+        } else if (event.type === "content_block_start") {
+          // Tool use started - emit input-streaming state
+          const block = "content_block" in event ? event.content_block : null;
+          if (block && block.type === "tool_use") {
+            log("convert: content_block_start tool=%s id=%s", block.name, block.id);
+            yield {
+              type: "dynamic-tool",
+              toolCallId: block.id,
+              toolName: block.name,
+              state: "input-streaming",
+              input: undefined,
+              providerExecuted: true,
+              callProviderMetadata: providerMetadata,
+            };
           }
         } else {
           log("convert: stream_event subtype=%s (not content_block_delta)", event.type);
@@ -623,24 +670,26 @@ export class SessionManager {
         );
         for (const block of blocks) {
           if (block.type === "text") {
-            log("convert:   text block len=%d", block.text.length);
-            yield { type: "text_delta", sessionId, text: block.text };
+            log("convert: text block len=%d", block.text.length);
+            yield { type: "text", text: block.text, state: "done", providerMetadata };
           }
           if (block.type === "thinking" && "thinking" in block) {
             const thinking = (block as { thinking: string }).thinking;
-            log("convert:   thinking block len=%d", thinking.length);
-            yield { type: "thinking_delta", sessionId, text: thinking };
+            log("convert: thinking block len=%d", thinking.length);
+            yield { type: "reasoning", text: thinking, state: "done", providerMetadata };
           }
           if (block.type === "tool_use") {
-            log("convert:   tool_use block id=%s name=%s", block.id, block.name);
-            // New structured event
+            log("convert: tool_use block id=%s name=%s", block.id, block.name);
             yield {
-              type: "tool_input_available",
-              sessionId,
+              type: "dynamic-tool",
               toolCallId: block.id,
               toolName: block.name,
+              state: "input-available",
               input: block.input ?? {},
-              parentToolUseId: parentId,
+              providerExecuted: true,
+              callProviderMetadata: {
+                context: { sessionId, parentToolUseId: parentId },
+              },
             };
           }
         }
@@ -655,11 +704,13 @@ export class SessionManager {
           msg.elapsed_time_seconds,
         );
         yield {
-          type: "tool_use",
-          sessionId,
-          toolId: msg.tool_use_id,
-          name: msg.tool_name,
-          status: "running",
+          type: "dynamic-tool",
+          toolCallId: msg.tool_use_id,
+          toolName: msg.tool_name,
+          state: "input-streaming",
+          input: undefined,
+          providerExecuted: true,
+          callProviderMetadata: providerMetadata,
         };
         break;
       }
@@ -672,7 +723,7 @@ export class SessionManager {
       case "user": {
         const content = msg.message.content;
         let text = "";
-        let images: Array<{ mediaType: string; base64: string }> | undefined;
+        let imageCount = 0;
         if (typeof content === "string") {
           text = content;
         } else if (Array.isArray(content)) {
@@ -680,15 +731,26 @@ export class SessionManager {
             .filter((b) => b.type === "text")
             .map((b) => (b as { text: string }).text)
             .join("");
+
+          // Handle image blocks as FileUIPart
           const imageBlocks = content.filter((b) => b.type === "image");
-          if (imageBlocks.length > 0) {
-            images = imageBlocks.map((b: any) => ({
-              mediaType: b.source?.media_type ?? "image/png",
-              base64: b.source?.data ?? "",
-            }));
+          imageCount = imageBlocks.length;
+          for (const block of imageBlocks) {
+            const imgBlock = block as {
+              source?: { media_type?: string; data?: string };
+            };
+            const mediaType = imgBlock.source?.media_type ?? "image/png";
+            const base64Data = imgBlock.source?.data ?? "";
+            log("convert: image block mediaType=%s dataLen=%d", mediaType, base64Data.length);
+            yield {
+              type: "file",
+              mediaType,
+              url: `data:${mediaType};base64,${base64Data}`,
+              providerMetadata,
+            };
           }
 
-          // Emit structured tool_result events
+          // Handle tool_result blocks - update tool state to output-available or output-error
           for (const block of content) {
             if (block.type === "tool_result") {
               const resultBlock = block as {
@@ -700,41 +762,52 @@ export class SessionManager {
                 typeof resultBlock.content === "string"
                   ? resultBlock.content
                   : Array.isArray(resultBlock.content)
-                    ? (resultBlock.content as any[])
+                    ? (resultBlock.content as Array<{ type: string; text?: string }>)
                         .filter((c) => c.type === "text")
-                        .map((c) => c.text)
+                        .map((c) => c.text ?? "")
                         .join("")
                     : "";
+
               if (resultBlock.is_error) {
-                log("convert: tool_output_error id=%s", resultBlock.tool_use_id);
+                log("convert: tool_result error id=%s", resultBlock.tool_use_id);
                 yield {
-                  type: "tool_output_error",
-                  sessionId,
+                  type: "dynamic-tool",
                   toolCallId: resultBlock.tool_use_id,
+                  toolName: "", // Unknown at this point
+                  state: "output-error",
+                  input: undefined,
                   errorText: resultContent,
+                  providerExecuted: true,
+                  callProviderMetadata: providerMetadata,
                 };
               } else {
-                log("convert: tool_output_available id=%s", resultBlock.tool_use_id);
+                log("convert: tool_result available id=%s", resultBlock.tool_use_id);
                 yield {
-                  type: "tool_output_available",
-                  sessionId,
+                  type: "dynamic-tool",
                   toolCallId: resultBlock.tool_use_id,
+                  toolName: "", // Unknown at this point
+                  state: "output-available",
+                  input: undefined,
                   output: resultContent,
+                  providerExecuted: true,
+                  callProviderMetadata: providerMetadata,
                 };
               }
             }
           }
         }
+
         const isReplay = "isReplay" in msg && msg.isReplay;
         log(
           "convert: user_message len=%d images=%d replay=%s uuid=%s",
           text.length,
-          images?.length ?? 0,
+          imageCount,
           isReplay,
           msg.uuid ?? "-",
         );
-        if (text || images) {
-          yield { type: "user_message", sessionId, text, ...(images ? { images } : {}) };
+        // User text as text part
+        if (text) {
+          yield { type: "text", text, state: "done", providerMetadata };
         }
         break;
       }
@@ -749,181 +822,211 @@ export class SessionManager {
           msg.duration_ms,
           msg.total_cost_usd,
         );
+        // Emit as data-result for custom handling
         yield {
-          type: "result",
-          sessionId,
-          stopReason,
-          costUsd: msg.total_cost_usd,
-          durationMs: msg.duration_ms,
-          inputTokens: msg.usage?.input_tokens,
-          outputTokens: msg.usage?.output_tokens,
-          isError: msg.is_error,
-          errors: "errors" in msg ? (msg as any).errors : undefined,
-        };
+          type: "data-result",
+          data: {
+            stopReason,
+            costUsd: msg.total_cost_usd,
+            durationMs: msg.duration_ms,
+            inputTokens: msg.usage?.input_tokens,
+            outputTokens: msg.usage?.output_tokens,
+            isError: msg.is_error,
+            errors: "errors" in msg ? (msg as { errors?: string[] }).errors : undefined,
+          },
+          providerMetadata,
+        } as UIMessagePart;
         break;
       }
 
       case "system": {
-        const subtype = "subtype" in msg ? (msg as any).subtype : "unknown";
+        const subtype = "subtype" in msg ? (msg as { subtype?: string }).subtype : "unknown";
         log("convert: system subtype=%s sessionId=%s", subtype, sessionId);
-        if ("subtype" in msg) {
-          if (msg.subtype === "status") {
-            const statusMsg = msg as Extract<SDKMessage, { type: "system"; subtype: "status" }>;
-            log(
-              "convert:   status=%s permissionMode=%s",
-              statusMsg.status,
-              statusMsg.permissionMode,
-            );
-            yield {
-              type: "status",
-              sessionId,
-              message: statusMsg.status ?? "",
-            };
-          }
-          if (msg.subtype === "task_started") {
-            const taskMsg = msg as Extract<SDKMessage, { type: "system"; subtype: "task_started" }>;
-            log("convert:   task_started id=%s desc=%s", taskMsg.task_id, taskMsg.description);
-            yield {
-              type: "task_started",
-              sessionId,
+
+        if (subtype === "status") {
+          const statusMsg = msg as { status?: string; permissionMode?: string };
+          log("convert:   status=%s permissionMode=%s", statusMsg.status, statusMsg.permissionMode);
+          yield {
+            type: "data-status",
+            data: { message: statusMsg.status ?? "" },
+            providerMetadata,
+          } as UIMessagePart;
+        }
+
+        if (subtype === "task_started") {
+          const taskMsg = msg as {
+            task_id: string;
+            description: string;
+            task_type?: string;
+          };
+          log("convert:   task_started id=%s desc=%s", taskMsg.task_id, taskMsg.description);
+          yield {
+            type: "data-task-started",
+            data: {
               taskId: taskMsg.task_id,
               description: taskMsg.description,
               taskType: taskMsg.task_type,
-            };
-          }
-          if (msg.subtype === "task_progress") {
-            const taskMsg = msg as Extract<
-              SDKMessage,
-              { type: "system"; subtype: "task_progress" }
-            >;
-            log(
-              "convert:   task_progress id=%s tools=%d",
-              taskMsg.task_id,
-              taskMsg.usage?.tool_uses,
-            );
-            yield {
-              type: "task_progress",
-              sessionId,
+            },
+            providerMetadata,
+          } as UIMessagePart;
+        }
+
+        if (subtype === "task_progress") {
+          const taskMsg = msg as {
+            task_id: string;
+            description: string;
+            usage?: { tool_uses?: number; duration_ms?: number };
+            last_tool_name?: string;
+          };
+          log("convert:   task_progress id=%s tools=%d", taskMsg.task_id, taskMsg.usage?.tool_uses);
+          yield {
+            type: "data-task-progress",
+            data: {
               taskId: taskMsg.task_id,
               description: taskMsg.description,
               toolUses: taskMsg.usage?.tool_uses ?? 0,
               durationMs: taskMsg.usage?.duration_ms ?? 0,
               lastToolName: taskMsg.last_tool_name,
-            };
-          }
-          if (msg.subtype === "task_notification") {
-            const taskMsg = msg as Extract<
-              SDKMessage,
-              { type: "system"; subtype: "task_notification" }
-            >;
-            log("convert:   task_notification id=%s status=%s", taskMsg.task_id, taskMsg.status);
-            yield {
-              type: "task_notification",
-              sessionId,
+            },
+            providerMetadata,
+          } as UIMessagePart;
+        }
+
+        if (subtype === "task_notification") {
+          const taskMsg = msg as {
+            task_id: string;
+            status: string;
+            summary: string;
+          };
+          log("convert:   task_notification id=%s status=%s", taskMsg.task_id, taskMsg.status);
+          yield {
+            type: "data-task-notification",
+            data: {
               taskId: taskMsg.task_id,
               status: taskMsg.status,
               summary: taskMsg.summary,
-            };
-          }
-          if (msg.subtype === "init") {
-            const initMsg = msg as Extract<SDKMessage, { type: "system"; subtype: "init" }>;
-            const commands: SlashCommandInfo[] = (initMsg.slash_commands ?? []).map(
-              (name: string) => ({
-                name,
-              }),
-            );
-            log(
-              "convert:   init model=%s tools=%d commands=%d cwd=%s",
-              initMsg.model,
-              initMsg.tools?.length ?? 0,
-              commands.length,
-              initMsg.cwd,
-            );
-            if (commands.length > 0) {
-              yield { type: "available_commands", sessionId, commands };
-            }
-          }
-          if (msg.subtype === "compact_boundary") {
-            const compactMsg = msg as Extract<
-              SDKMessage,
-              { type: "system"; subtype: "compact_boundary" }
-            >;
-            log(
-              "convert:   compact_boundary trigger=%s preTokens=%d",
-              compactMsg.compact_metadata?.trigger,
-              compactMsg.compact_metadata?.pre_tokens,
-            );
+            },
+            providerMetadata,
+          } as UIMessagePart;
+        }
+
+        if (subtype === "init") {
+          const initMsg = msg as {
+            model: string;
+            tools?: string[];
+            slash_commands?: string[];
+            cwd: string;
+          };
+          const commands: SlashCommandInfo[] = (initMsg.slash_commands ?? []).map(
+            (name: string) => ({ name }),
+          );
+          log(
+            "convert:   init model=%s tools=%d commands=%d cwd=%s",
+            initMsg.model,
+            initMsg.tools?.length ?? 0,
+            commands.length,
+            initMsg.cwd,
+          );
+          if (commands.length > 0) {
             yield {
-              type: "compact_boundary",
-              sessionId,
+              type: "data-available-commands",
+              data: { commands },
+              providerMetadata,
+            } as UIMessagePart;
+          }
+        }
+
+        if (subtype === "compact_boundary") {
+          const compactMsg = msg as {
+            compact_metadata?: { trigger?: string; pre_tokens?: number };
+          };
+          log(
+            "convert:   compact_boundary trigger=%s preTokens=%d",
+            compactMsg.compact_metadata?.trigger,
+            compactMsg.compact_metadata?.pre_tokens,
+          );
+          yield {
+            type: "data-compact-boundary",
+            data: {
               trigger: compactMsg.compact_metadata?.trigger ?? "auto",
               preTokens: compactMsg.compact_metadata?.pre_tokens ?? 0,
-            };
-          }
-          if (msg.subtype === "local_command_output") {
-            const localMsg = msg as Extract<
-              SDKMessage,
-              { type: "system"; subtype: "local_command_output" }
-            >;
-            log("convert:   local_command_output len=%d", localMsg.content?.length ?? 0);
-            yield {
-              type: "local_command_output",
-              sessionId,
-              content: localMsg.content ?? "",
-            };
-          }
-          if (msg.subtype === "files_persisted") {
-            const filesMsg = msg as Extract<
-              SDKMessage,
-              { type: "system"; subtype: "files_persisted" }
-            >;
-            log(
-              "convert:   files_persisted files=%d failed=%d",
-              filesMsg.files?.length ?? 0,
-              filesMsg.failed?.length ?? 0,
-            );
-            yield {
-              type: "files_persisted",
-              sessionId,
-              files: (filesMsg.files ?? []).map((f: any) => ({
+            },
+            providerMetadata,
+          } as UIMessagePart;
+        }
+
+        if (subtype === "local_command_output") {
+          const localMsg = msg as { content?: string };
+          log("convert:   local_command_output len=%d", localMsg.content?.length ?? 0);
+          yield {
+            type: "data-local-command-output",
+            data: { content: localMsg.content ?? "" },
+            providerMetadata,
+          } as UIMessagePart;
+        }
+
+        if (subtype === "files_persisted") {
+          const filesMsg = msg as {
+            files?: Array<{ filename: string; file_id: string }>;
+            failed?: Array<{ filename: string; error: string }>;
+          };
+          log(
+            "convert:   files_persisted files=%d failed=%d",
+            filesMsg.files?.length ?? 0,
+            filesMsg.failed?.length ?? 0,
+          );
+          yield {
+            type: "data-files-persisted",
+            data: {
+              files: (filesMsg.files ?? []).map((f) => ({
                 filename: f.filename,
                 fileId: f.file_id,
               })),
-              failed: (filesMsg.failed ?? []).map((f: any) => ({
+              failed: (filesMsg.failed ?? []).map((f) => ({
                 filename: f.filename,
                 error: f.error,
               })),
-            };
-          }
+            },
+            providerMetadata,
+          } as UIMessagePart;
         }
         break;
       }
 
       case "rate_limit_event": {
-        const rateLimitMsg = msg as Extract<SDKMessage, { type: "rate_limit_event" }>;
+        const rateLimitMsg = msg as {
+          rate_limit_info?: {
+            status?: string;
+            resetsAt?: number;
+            rateLimitType?: string;
+            utilization?: number;
+          };
+        };
         const info = rateLimitMsg.rate_limit_info;
         log("convert: rate_limit_event status=%s type=%s", info?.status, info?.rateLimitType);
         yield {
-          type: "rate_limit",
-          sessionId,
-          rateLimitInfo: {
-            status: info?.status ?? "allowed",
-            resetsAt: info?.resetsAt,
-            rateLimitType: info?.rateLimitType,
-            utilization: info?.utilization,
+          type: "data-rate-limit",
+          data: {
+            rateLimitInfo: {
+              status: info?.status ?? "allowed",
+              resetsAt: info?.resetsAt,
+              rateLimitType: info?.rateLimitType,
+              utilization: info?.utilization,
+            },
           },
-        };
+          providerMetadata,
+        } as UIMessagePart;
         break;
       }
 
       case "prompt_suggestion": {
-        const suggestionMsg = msg as Extract<SDKMessage, { type: "prompt_suggestion" }>;
+        const suggestionMsg = msg as { suggestion?: string };
         log("convert: prompt_suggestion len=%d", suggestionMsg.suggestion?.length ?? 0);
         yield {
-          type: "prompt_suggestion",
-          sessionId,
-          suggestion: suggestionMsg.suggestion,
-        };
+          type: "data-prompt-suggestion",
+          data: { suggestion: suggestionMsg.suggestion },
+          providerMetadata,
+        } as UIMessagePart;
         break;
       }
 

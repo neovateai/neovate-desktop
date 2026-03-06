@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import { useState } from "react";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
@@ -17,7 +17,7 @@ type Question = {
 };
 
 type Props = {
-  part: ToolInvocationPart;
+  part: DynamicToolPart;
   sessionId?: string;
 };
 

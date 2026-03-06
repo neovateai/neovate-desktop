@@ -1,8 +1,8 @@
-import type { ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import { Tool, ToolContent, ToolHeader, ToolOutput } from "../../../../components/ai-elements/tool";
 
-type Props = { part: ToolInvocationPart };
+type Props = { part: DynamicToolPart };
 
 /** Renders a Skill tool invocation card for executing slash commands/skills. */
 export function SkillToolCard({ part }: Props) {

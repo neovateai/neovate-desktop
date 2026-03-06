@@ -1,4 +1,4 @@
-import type { UIMessage, ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { UIMessage, DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
 import { AgentToolCard } from "./agent-tool-card";
@@ -23,7 +23,7 @@ import { ExitPlanModeToolCard } from "./exit-plan-mode-tool-card";
 import { EnterWorktreeToolCard } from "./enter-worktree-tool-card";
 
 type Props = {
-  part: ToolInvocationPart;
+  part: DynamicToolPart;
   /** Full agent message list — only needed by Task tool for child lookup. */
   messages: UIMessage[];
   /** Session ID — needed for AskUserQuestion to submit answers. */

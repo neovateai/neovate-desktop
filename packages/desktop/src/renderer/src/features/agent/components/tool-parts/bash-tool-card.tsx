@@ -1,4 +1,4 @@
-import type { ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import {
   Tool,
@@ -8,7 +8,7 @@ import {
   ToolOutput,
 } from "../../../../components/ai-elements/tool";
 
-type Props = { part: ToolInvocationPart };
+type Props = { part: DynamicToolPart };
 
 /** Renders a Bash tool invocation card. */
 export function BashToolCard({ part }: Props) {

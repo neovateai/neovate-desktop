@@ -1,8 +1,8 @@
-import type { ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import { Tool, ToolContent, ToolHeader, ToolOutput } from "../../../../components/ai-elements/tool";
 
-type Props = { part: ToolInvocationPart };
+type Props = { part: DynamicToolPart };
 
 /** Renders a TaskOutput tool invocation card for fetching output from background tasks. */
 export function TaskOutputToolCard({ part }: Props) {

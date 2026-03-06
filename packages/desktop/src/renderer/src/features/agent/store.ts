@@ -3,14 +3,15 @@ import { immer } from "zustand/middleware/immer";
 import { enableMapSet } from "immer";
 import type {
   SessionInfo,
-  StreamEvent,
+  UIMessagePart,
   TimingEntry,
   SlashCommandInfo,
   CachedSession,
   UIMessage,
-  ToolInvocationPart,
+  DynamicToolPart,
 } from "../../../../shared/features/agent/types";
 import type { ClaudeCodeToolName } from "../../../../shared/features/agent/tools";
+import { getParentToolUseId } from "../../../../shared/features/agent/types";
 import debug from "debug";
 
 const storeLog = debug("neovate:agent-store");
@@ -18,7 +19,7 @@ const storeLog = debug("neovate:agent-store");
 enableMapSet();
 
 /**
- * @deprecated Tool state is now embedded in `UIMessage.parts` as `ToolInvocationPart`.
+ * @deprecated Tool state is now embedded in `UIMessage.parts` as `DynamicToolPart`.
  */
 export type ToolCallState = {
   toolCallId: string;
@@ -72,9 +73,9 @@ export type ChatSession = {
 // Selector helpers
 // ---------------------------------------------------------------------------
 
-/** Extract all tool invocation parts from a UI message. */
-export function selectToolParts(message: UIMessage): ToolInvocationPart[] {
-  return message.parts.filter((p): p is ToolInvocationPart => p.type === "tool-invocation");
+/** Extract all dynamic tool parts from a UI message. */
+export function selectToolParts(message: UIMessage): DynamicToolPart[] {
+  return message.parts.filter((p): p is DynamicToolPart => p.type === "dynamic-tool");
 }
 
 /** Extract the concatenated text content from a UI message. */
@@ -89,10 +90,10 @@ export function selectTextContent(message: UIMessage): string {
 export function selectChildToolParts(
   message: UIMessage,
   parentToolCallId: string,
-): ToolInvocationPart[] {
+): DynamicToolPart[] {
   return message.parts.filter(
-    (p): p is ToolInvocationPart =>
-      p.type === "tool-invocation" && p.parentToolUseId === parentToolCallId,
+    (p): p is DynamicToolPart =>
+      p.type === "dynamic-tool" && getParentToolUseId(p) === parentToolCallId,
   );
 }
 
@@ -117,39 +118,91 @@ type LegacyCachedMessage = {
 
 /**
  * Migrates legacy cached messages to the new parts-based format.
- * Returns the message as-is if it already has parts.
+ * Also migrates old tool-invocation parts to dynamic-tool.
  */
 function migrateCachedMessage(msg: LegacyCachedMessage & Partial<UIMessage>): UIMessage {
-  // Already has parts, return as-is
-  if (msg.parts) {
-    return msg as UIMessage;
-  }
+  // If no parts, build from legacy content/toolCalls
+  if (!msg.parts) {
+    const parts: UIMessage["parts"] = [];
 
-  // Build parts from legacy content/toolCalls
-  const parts: UIMessage["parts"] = [];
-
-  // Add text part from content
-  if (msg.content) {
-    parts.push({ type: "text", text: msg.content });
-  }
-
-  // Add tool invocation parts from toolCalls
-  if (msg.toolCalls) {
-    for (const tc of msg.toolCalls) {
-      parts.push({
-        type: "tool-invocation",
-        toolCallId: tc.toolCallId,
-        toolName: tc.name as ClaudeCodeToolName,
-        state: tc.status === "completed" ? "output-available" : "input-available",
-        input: tc.input,
-      });
+    // Add text part from content
+    if (msg.content) {
+      parts.push({ type: "text", text: msg.content });
     }
+
+    // Add dynamic-tool parts from toolCalls
+    if (msg.toolCalls) {
+      for (const tc of msg.toolCalls) {
+        if (tc.status === "completed") {
+          parts.push({
+            type: "dynamic-tool",
+            toolCallId: tc.toolCallId,
+            toolName: tc.name as ClaudeCodeToolName,
+            state: "output-available",
+            input: tc.input,
+            output: tc.input,
+          });
+        } else {
+          parts.push({
+            type: "dynamic-tool",
+            toolCallId: tc.toolCallId,
+            toolName: tc.name as ClaudeCodeToolName,
+            state: "input-available",
+            input: tc.input,
+          });
+        }
+      }
+    }
+
+    return {
+      id: msg.id,
+      role: msg.role,
+      parts,
+    };
   }
+
+  // Migrate old tool-invocation parts to dynamic-tool
+  const migratedParts = msg.parts.map((part): UIMessage["parts"][number] => {
+    if ((part as { type: string }).type === "tool-invocation") {
+      const oldPart = part as unknown as {
+        type: "tool-invocation";
+        toolCallId: string;
+        toolName: string;
+        state: string;
+        input: unknown;
+        output?: string;
+        errorText?: string;
+        parentToolUseId?: string;
+      };
+      // Convert to dynamic-tool format
+      const result: Record<string, unknown> = {
+        type: "dynamic-tool",
+        toolCallId: oldPart.toolCallId,
+        toolName: oldPart.toolName,
+        state: oldPart.state,
+        input: oldPart.input,
+      };
+      if (oldPart.output !== undefined) {
+        result.output = oldPart.output;
+      }
+      if (oldPart.errorText !== undefined) {
+        result.errorText = oldPart.errorText;
+      }
+      // Migrate parentToolUseId to callProviderMetadata.context
+      if (oldPart.parentToolUseId) {
+        result.callProviderMetadata = {
+          context: { parentToolUseId: oldPart.parentToolUseId },
+        };
+      }
+      return result as DynamicToolPart;
+    }
+    return part;
+  });
 
   return {
     id: msg.id,
     role: msg.role,
-    parts,
+    parts: migratedParts,
   };
 }
 
@@ -180,7 +233,7 @@ type AgentState = {
   setPromptError: (sessionId: string, error: string | null) => void;
   setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
-  appendChunk: (sessionId: string, event: StreamEvent) => void;
+  appendChunk: (sessionId: string, part: UIMessagePart) => void;
   restoreFromCache: (sessionId: string, cached: CachedSession) => void;
   setSdkReady: (sessionId: string, ready: boolean) => void;
   addTiming: (entry: TimingEntry) => void;
@@ -385,14 +438,14 @@ export const useAgentStore = create<AgentState>()(
       });
     },
 
-    appendChunk: (sessionId, event) => {
+    appendChunk: (sessionId, part) => {
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (!session) {
           storeLog(
             "appendChunk: WARNING session not found sid=%s eventType=%s",
             sessionId,
-            event.type,
+            part.type,
           );
           return;
         }
@@ -411,205 +464,276 @@ export const useAgentStore = create<AgentState>()(
           return msg;
         };
 
-        switch (event.type) {
-          case "timing":
-            storeLog(
-              "appendChunk: timing phase=%s label=%s durationMs=%d",
-              event.entry.phase,
-              event.entry.label,
-              event.entry.durationMs,
-            );
-            state.timings.push(event.entry);
-            break;
+        // ── Handle DataUIPart types (data-*) ──
+        if (part.type.startsWith("data-")) {
+          switch (part.type) {
+            case "data-timing":
+              storeLog(
+                "appendChunk: data-timing phase=%s label=%s durationMs=%d",
+                part.data.phase,
+                part.data.label,
+                part.data.durationMs,
+              );
+              state.timings.push(part.data);
+              break;
 
-          case "permission_request":
-            storeLog(
-              "appendChunk: permission_request requestId=%s tool=%s",
-              event.requestId,
-              event.toolName,
-            );
-            session.pendingPermission = {
-              requestId: event.requestId,
-              toolName: event.toolName,
-              input: event.input,
-            };
-            break;
+            case "data-permission-request":
+              storeLog(
+                "appendChunk: data-permission-request requestId=%s tool=%s",
+                part.data.requestId,
+                part.data.toolName,
+              );
+              session.pendingPermission = {
+                requestId: part.data.requestId,
+                toolName: part.data.toolName,
+                input: part.data.input,
+              };
+              break;
 
-          case "available_commands":
-            storeLog(
-              "appendChunk: available_commands sid=%s count=%d names=%o",
-              sessionId,
-              event.commands.length,
-              event.commands.map((c) => c.name),
-            );
-            session.availableCommands = event.commands;
-            break;
+            case "data-available-commands":
+              storeLog(
+                "appendChunk: data-available-commands sid=%s count=%d names=%o",
+                sessionId,
+                part.data.commands.length,
+                part.data.commands.map((c) => c.name),
+              );
+              session.availableCommands = part.data.commands;
+              break;
 
-          case "user_message": {
-            storeLog(
-              "appendChunk: user_message sid=%s len=%d images=%d",
-              sessionId,
-              event.text.length,
-              event.images?.length ?? 0,
-            );
-            if (!session.title) {
-              session.title = event.text.slice(0, 50);
-            }
-            state._nextMessageId += 1;
-            const umId = String(state._nextMessageId);
-            session.messages.push({
-              id: `am-${umId}`,
-              role: "user",
-              parts: [
-                {
-                  type: "text",
-                  text: event.text,
-                  ...(event.images && event.images.length > 0 ? { images: event.images } : {}),
-                },
-              ],
-            });
-            break;
+            case "data-result":
+              storeLog(
+                "appendChunk: data-result stopReason=%s sid=%s",
+                part.data.stopReason,
+                sessionId,
+              );
+              if (part.data.stopReason === "error") {
+                session.promptError = "Session failed to load";
+              }
+              if (
+                part.data.costUsd != null ||
+                part.data.inputTokens != null ||
+                part.data.outputTokens != null
+              ) {
+                if (!session.usage) {
+                  session.usage = {
+                    totalCostUsd: 0,
+                    totalDurationMs: 0,
+                    totalInputTokens: 0,
+                    totalOutputTokens: 0,
+                  };
+                }
+                session.usage.totalCostUsd += part.data.costUsd ?? 0;
+                session.usage.totalDurationMs += part.data.durationMs ?? 0;
+                session.usage.totalInputTokens += part.data.inputTokens ?? 0;
+                session.usage.totalOutputTokens += part.data.outputTokens ?? 0;
+              }
+              break;
+
+            case "data-status":
+              storeLog("appendChunk: data-status message=%s sid=%s", part.data.message, sessionId);
+              break;
+
+            case "data-task-started":
+              storeLog(
+                "appendChunk: data-task-started id=%s desc=%s",
+                part.data.taskId,
+                part.data.description,
+              );
+              session.tasks.set(part.data.taskId, {
+                taskId: part.data.taskId,
+                description: part.data.description,
+                taskType: part.data.taskType,
+                status: "running",
+              });
+              break;
+
+            case "data-task-progress":
+              storeLog(
+                "appendChunk: data-task-progress id=%s tools=%d",
+                part.data.taskId,
+                part.data.toolUses,
+              );
+              {
+                const task = session.tasks.get(part.data.taskId);
+                if (task) {
+                  task.description = part.data.description;
+                  task.toolUses = part.data.toolUses;
+                  task.durationMs = part.data.durationMs;
+                  task.lastToolName = part.data.lastToolName;
+                }
+              }
+              break;
+
+            case "data-task-notification":
+              storeLog(
+                "appendChunk: data-task-notification id=%s status=%s",
+                part.data.taskId,
+                part.data.status,
+              );
+              {
+                const task = session.tasks.get(part.data.taskId);
+                if (task) {
+                  task.status = part.data.status as "completed" | "failed" | "stopped";
+                  task.summary = part.data.summary;
+                }
+              }
+              break;
+
+            default:
+              storeLog("appendChunk: unhandled data type=%s", part.type);
           }
+          return;
+        }
 
-          case "text_delta": {
-            // ── Parts-based ──
+        // ── Handle content types (text, reasoning, file, dynamic-tool) ──
+        switch (part.type) {
+          case "text": {
+            // Merge streaming text into last text part, or create new
             const amMsg = getOrCreateAssistantMsg();
             const lastPart = amMsg.parts[amMsg.parts.length - 1];
-            if (lastPart && lastPart.type === "text") {
-              lastPart.text += event.text;
+            if (lastPart && lastPart.type === "text" && lastPart.state === "streaming") {
+              lastPart.text += part.text;
             } else {
-              amMsg.parts.push({ type: "text", text: event.text });
+              amMsg.parts.push({ type: "text", text: part.text, state: part.state });
             }
             break;
           }
 
-          case "thinking_delta": {
-            // ── Parts-based ──
+          case "reasoning": {
+            // Merge streaming reasoning into last reasoning part, or create new
             const amMsg = getOrCreateAssistantMsg();
             const lastPart = amMsg.parts[amMsg.parts.length - 1];
-            if (lastPart && lastPart.type === "reasoning") {
-              lastPart.text += event.text;
+            if (lastPart && lastPart.type === "reasoning" && lastPart.state === "streaming") {
+              lastPart.text += part.text;
             } else {
-              amMsg.parts.push({ type: "reasoning", text: event.text });
+              amMsg.parts.push({ type: "reasoning", text: part.text, state: part.state });
             }
             break;
           }
 
-          case "tool_input_available": {
+          case "dynamic-tool": {
             storeLog(
-              "appendChunk: tool_input_available id=%s name=%s parent=%s",
-              event.toolCallId,
-              event.toolName,
-              event.parentToolUseId ?? "-",
+              "appendChunk: dynamic-tool id=%s name=%s state=%s",
+              part.toolCallId,
+              part.toolName,
+              part.state,
             );
+            if (part.state === "output-available" || part.state === "output-error") {
+              // Find and update existing tool part
+              for (const msg of session.messages) {
+                for (const p of msg.parts) {
+                  if (p.type === "dynamic-tool" && p.toolCallId === part.toolCallId) {
+                    p.state = part.state;
+                    if (part.state === "output-available") p.output = part.output;
+                    else p.errorText = part.errorText;
+                    break;
+                  }
+                }
+              }
+            } else {
+              // Add new tool invocation - push the whole part
+              const amMsg = getOrCreateAssistantMsg();
+              amMsg.parts.push(part);
+            }
+            break;
+          }
+
+          case "file": {
+            // File parts usually belong to user messages or assistant messages
+            storeLog("appendChunk: file mediaType=%s", part.mediaType);
             const amMsg = getOrCreateAssistantMsg();
             amMsg.parts.push({
-              type: "tool-invocation",
-              toolCallId: event.toolCallId,
-              toolName: event.toolName as ClaudeCodeToolName,
-              state: "input-available",
-              input: event.input,
-              parentToolUseId: event.parentToolUseId,
+              type: "file",
+              mediaType: part.mediaType,
+              url: part.url,
+              filename: part.filename,
             });
             break;
           }
 
-          case "tool_output_available": {
-            storeLog(
-              "appendChunk: tool_output_available id=%s outputLen=%d",
-              event.toolCallId,
-              event.output.length,
-            );
-            // Find the matching tool invocation part across all messages
-            for (const msg of session.messages) {
-              for (const part of msg.parts) {
-                if (part.type === "tool-invocation" && part.toolCallId === event.toolCallId) {
-                  part.state = "output-available";
-                  part.output = event.output;
-                  break;
+          default:
+            // Handle legacy StreamEvent types from old cached data
+            const legacyType = (part as any).type;
+            storeLog("appendChunk: handling legacy type=%s", legacyType);
+
+            switch (legacyType) {
+              case "text_delta": {
+                const amMsg = getOrCreateAssistantMsg();
+                const lastPart = amMsg.parts[amMsg.parts.length - 1];
+                if (lastPart && lastPart.type === "text" && lastPart.state === "streaming") {
+                  lastPart.text += (part as any).text;
+                } else {
+                  amMsg.parts.push({ type: "text", text: (part as any).text, state: "streaming" });
                 }
+                break;
               }
-            }
-            break;
-          }
 
-          case "tool_output_error": {
-            storeLog(
-              "appendChunk: tool_output_error id=%s error=%s",
-              event.toolCallId,
-              event.errorText.slice(0, 80),
-            );
-            // Find the matching tool invocation part across all messages
-            for (const msg of session.messages) {
-              for (const part of msg.parts) {
-                if (part.type === "tool-invocation" && part.toolCallId === event.toolCallId) {
-                  part.state = "output-error";
-                  part.errorText = event.errorText;
-                  break;
+              case "thinking_delta": {
+                const amMsg = getOrCreateAssistantMsg();
+                const lastPart = amMsg.parts[amMsg.parts.length - 1];
+                if (lastPart && lastPart.type === "reasoning" && lastPart.state === "streaming") {
+                  lastPart.text += (part as any).text;
+                } else {
+                  amMsg.parts.push({
+                    type: "reasoning",
+                    text: (part as any).text,
+                    state: "streaming",
+                  });
                 }
+                break;
               }
-            }
-            break;
-          }
 
-          case "result":
-            storeLog("appendChunk: result stopReason=%s sid=%s", event.stopReason, sessionId);
-            if (event.stopReason === "error") {
-              session.promptError = "Session failed to load";
-            }
-            if (event.costUsd != null || event.inputTokens != null || event.outputTokens != null) {
-              if (!session.usage) {
-                session.usage = {
-                  totalCostUsd: 0,
-                  totalDurationMs: 0,
-                  totalInputTokens: 0,
-                  totalOutputTokens: 0,
-                };
+              case "tool_use": {
+                const amMsg = getOrCreateAssistantMsg();
+                amMsg.parts.push({
+                  type: "dynamic-tool",
+                  toolCallId: (part as any).toolUseId,
+                  toolName: (part as any).name,
+                  state: "input-available",
+                  input: (part as any).input,
+                });
+                break;
               }
-              session.usage.totalCostUsd += event.costUsd ?? 0;
-              session.usage.totalDurationMs += event.durationMs ?? 0;
-              session.usage.totalInputTokens += event.inputTokens ?? 0;
-              session.usage.totalOutputTokens += event.outputTokens ?? 0;
-            }
-            break;
 
-          case "status":
-            storeLog("appendChunk: status message=%s sid=%s", event.message, sessionId);
-            break;
-
-          case "task_started":
-            storeLog("appendChunk: task_started id=%s desc=%s", event.taskId, event.description);
-            session.tasks.set(event.taskId, {
-              taskId: event.taskId,
-              description: event.description,
-              taskType: event.taskType,
-              status: "running",
-            });
-            break;
-
-          case "task_progress":
-            storeLog("appendChunk: task_progress id=%s tools=%d", event.taskId, event.toolUses);
-            {
-              const task = session.tasks.get(event.taskId);
-              if (task) {
-                task.description = event.description;
-                task.toolUses = event.toolUses;
-                task.durationMs = event.durationMs;
-                task.lastToolName = event.lastToolName;
+              case "tool_input_available": {
+                const amMsg = getOrCreateAssistantMsg();
+                amMsg.parts.push({
+                  type: "dynamic-tool",
+                  toolCallId: (part as any).toolCallId,
+                  toolName: (part as any).toolName,
+                  state: "input-available",
+                  input: (part as any).input,
+                });
+                break;
               }
-            }
-            break;
 
-          case "task_notification":
-            storeLog("appendChunk: task_notification id=%s status=%s", event.taskId, event.status);
-            {
-              const task = session.tasks.get(event.taskId);
-              if (task) {
-                task.status = event.status;
-                task.summary = event.summary;
+              case "tool_output_available": {
+                // Find and update existing tool part
+                for (const msg of session.messages) {
+                  for (const p of msg.parts) {
+                    if (p.type === "dynamic-tool" && p.toolCallId === (part as any).toolCallId) {
+                      p.state = "output-available";
+                      (p as any).output = (part as any).output;
+                      break;
+                    }
+                  }
+                }
+                break;
               }
+
+              case "timing": {
+                state.timings.push({
+                  phase: (part as any).phase,
+                  label: (part as any).label,
+                  durationMs: (part as any).durationMs,
+                  timestamp: (part as any).timestamp ?? Date.now(),
+                });
+                break;
+              }
+
+              default:
+                storeLog("appendChunk: unhandled legacy part type=%s", legacyType);
             }
-            break;
         }
       });
     },

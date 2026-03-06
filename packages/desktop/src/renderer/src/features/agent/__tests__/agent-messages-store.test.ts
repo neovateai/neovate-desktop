@@ -27,17 +27,17 @@ describe("AgentStore – messages", () => {
     expect(session.messages[0].parts).toEqual([{ type: "text", text: "Hello" }]);
   });
 
-  it("appendChunk text_delta populates messages", () => {
+  it("appendChunk text part populates messages", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "text_delta",
-      sessionId: "s1",
+      type: "text",
       text: "Hello ",
+      state: "streaming",
     });
     useAgentStore.getState().appendChunk("s1", {
-      type: "text_delta",
-      sessionId: "s1",
+      type: "text",
       text: "world",
+      state: "streaming",
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
@@ -50,12 +50,12 @@ describe("AgentStore – messages", () => {
     });
   });
 
-  it("appendChunk thinking_delta populates messages", () => {
+  it("appendChunk reasoning part populates messages", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "thinking_delta",
-      sessionId: "s1",
+      type: "reasoning",
       text: "reasoning...",
+      state: "streaming",
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
@@ -65,13 +65,13 @@ describe("AgentStore – messages", () => {
     expect(parts[0]).toMatchObject({ type: "reasoning", text: "reasoning..." });
   });
 
-  it("appendChunk tool_input_available adds ToolInvocationPart", () => {
+  it("appendChunk dynamic-tool adds tool part", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "tool_input_available",
-      sessionId: "s1",
+      type: "dynamic-tool",
       toolCallId: "tc1",
       toolName: "Bash",
+      state: "input-available",
       input: { command: "ls" },
     });
 
@@ -79,7 +79,7 @@ describe("AgentStore – messages", () => {
     expect(session.messages).toHaveLength(1);
     const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
-      type: "tool-invocation",
+      type: "dynamic-tool",
       toolCallId: "tc1",
       toolName: "Bash",
       state: "input-available",
@@ -87,103 +87,126 @@ describe("AgentStore – messages", () => {
     });
   });
 
-  it("appendChunk tool_output_available updates matching ToolInvocationPart", () => {
+  it("appendChunk dynamic-tool output-available updates matching tool", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "tool_input_available",
-      sessionId: "s1",
+      type: "dynamic-tool",
       toolCallId: "tc1",
       toolName: "Read",
+      state: "input-available",
       input: { file_path: "test.ts" },
     });
     useAgentStore.getState().appendChunk("s1", {
-      type: "tool_output_available",
-      sessionId: "s1",
+      type: "dynamic-tool",
       toolCallId: "tc1",
+      toolName: "Read",
+      state: "output-available",
+      input: { file_path: "test.ts" },
       output: "file contents",
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
     const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
-      type: "tool-invocation",
+      type: "dynamic-tool",
       state: "output-available",
       output: "file contents",
     });
   });
 
-  it("appendChunk tool_output_error updates matching ToolInvocationPart", () => {
+  it("appendChunk dynamic-tool output-error updates matching tool", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "tool_input_available",
-      sessionId: "s1",
+      type: "dynamic-tool",
       toolCallId: "tc1",
       toolName: "Bash",
+      state: "input-available",
       input: { command: "bad" },
     });
     useAgentStore.getState().appendChunk("s1", {
-      type: "tool_output_error",
-      sessionId: "s1",
+      type: "dynamic-tool",
       toolCallId: "tc1",
+      toolName: "Bash",
+      state: "output-error",
+      input: { command: "bad" },
       errorText: "command not found",
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
     const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
-      type: "tool-invocation",
+      type: "dynamic-tool",
       state: "output-error",
       errorText: "command not found",
     });
   });
 
-  it("appendChunk user_message writes to messages", () => {
+  it("appendChunk data-permission-request sets pending permission", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "user_message",
-      sessionId: "s1",
-      text: "replayed user msg",
+      type: "data-permission-request",
+      data: {
+        requestId: "req1",
+        toolName: "Bash",
+        input: { command: "rm -rf" },
+      },
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.messages).toHaveLength(1);
-    expect(session.messages[0].parts[0]).toMatchObject({
-      type: "text",
-      text: "replayed user msg",
+    expect(session.pendingPermission).toMatchObject({
+      requestId: "req1",
+      toolName: "Bash",
+      input: { command: "rm -rf" },
     });
   });
 
-  it("tool_input_available with parentToolUseId sets parentToolUseId", () => {
+  it("appendChunk data-available-commands sets available commands", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
-      type: "tool_input_available",
-      sessionId: "s1",
-      toolCallId: "tc-child",
-      toolName: "Read",
-      input: { file_path: "x.ts" },
-      parentToolUseId: "tc-parent",
+      type: "data-available-commands",
+      data: {
+        commands: [{ name: "test" }],
+      },
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    const part = session.messages[0].parts[0];
-    expect(part).toMatchObject({
-      type: "tool-invocation",
-      parentToolUseId: "tc-parent",
+    expect(session.availableCommands).toEqual([{ name: "test" }]);
+  });
+
+  it("appendChunk data-result updates usage", () => {
+    useAgentStore.getState().createSession("s1");
+    useAgentStore.getState().appendChunk("s1", {
+      type: "data-result",
+      data: {
+        stopReason: "end_turn",
+        costUsd: 0.01,
+        durationMs: 1000,
+        inputTokens: 100,
+        outputTokens: 50,
+      },
+    });
+
+    const session = useAgentStore.getState().sessions.get("s1")!;
+    expect(session.usage).toMatchObject({
+      totalCostUsd: 0.01,
+      totalDurationMs: 1000,
+      totalInputTokens: 100,
+      totalOutputTokens: 50,
     });
   });
 });
 
 describe("Selector helpers", () => {
-  it("selectToolParts filters tool-invocation parts", () => {
+  it("selectToolParts filters dynamic-tool parts", () => {
     const msg = {
       id: "1",
       role: "assistant" as const,
       parts: [
         { type: "text" as const, text: "hello" },
         {
-          type: "tool-invocation" as const,
+          type: "dynamic-tool" as const,
           toolCallId: "tc1",
-          toolName: "Bash" as const,
+          toolName: "Bash",
           state: "input-available" as const,
           input: {},
         },
@@ -214,28 +237,28 @@ describe("Selector helpers", () => {
       role: "assistant" as const,
       parts: [
         {
-          type: "tool-invocation" as const,
+          type: "dynamic-tool" as const,
           toolCallId: "parent",
-          toolName: "Task" as const,
+          toolName: "Task",
           state: "input-available" as const,
           input: {},
         },
         {
-          type: "tool-invocation" as const,
+          type: "dynamic-tool" as const,
           toolCallId: "child1",
-          toolName: "Read" as const,
+          toolName: "Read",
           state: "output-available" as const,
           input: {},
           output: "ok",
-          parentToolUseId: "parent",
+          callProviderMetadata: { context: { parentToolUseId: "parent" } },
         },
         {
-          type: "tool-invocation" as const,
+          type: "dynamic-tool" as const,
           toolCallId: "child2",
-          toolName: "Bash" as const,
+          toolName: "Bash",
           state: "input-available" as const,
           input: {},
-          parentToolUseId: "other-parent",
+          callProviderMetadata: { context: { parentToolUseId: "other-parent" } },
         },
       ],
     };

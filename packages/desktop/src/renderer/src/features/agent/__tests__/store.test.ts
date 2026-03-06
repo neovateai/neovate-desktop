@@ -6,6 +6,8 @@ describe("AgentStore", () => {
     useAgentStore.setState({
       sessions: new Map(),
       activeSessionId: null,
+      _nextMessageId: 0,
+      timings: [],
     });
   });
 
@@ -29,16 +31,20 @@ describe("AgentStore", () => {
     });
   });
 
-  it("appendChunk with text_delta appends text", () => {
+  it("appendChunk with text part appends text", () => {
     useAgentStore.getState().createSession("s1");
 
-    useAgentStore
-      .getState()
-      .appendChunk("s1", { type: "text_delta", sessionId: "s1", text: "Hello " });
+    useAgentStore.getState().appendChunk("s1", {
+      type: "text",
+      text: "Hello ",
+      state: "streaming",
+    });
 
-    useAgentStore
-      .getState()
-      .appendChunk("s1", { type: "text_delta", sessionId: "s1", text: "world" });
+    useAgentStore.getState().appendChunk("s1", {
+      type: "text",
+      text: "world",
+      state: "streaming",
+    });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);
@@ -46,27 +52,30 @@ describe("AgentStore", () => {
     expect(session.messages[0].role).toBe("assistant");
   });
 
-  it("appendChunk with thinking_delta appends reasoning", () => {
+  it("appendChunk with reasoning part appends reasoning", () => {
     useAgentStore.getState().createSession("s1");
 
-    useAgentStore
-      .getState()
-      .appendChunk("s1", { type: "thinking_delta", sessionId: "s1", text: "thinking..." });
+    useAgentStore.getState().appendChunk("s1", {
+      type: "reasoning",
+      text: "thinking...",
+      state: "streaming",
+    });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);
     expect(session.messages[0].parts[0]).toMatchObject({ type: "reasoning", text: "thinking..." });
   });
 
-  it("appendChunk with permission_request sets pendingPermission", () => {
+  it("appendChunk with data-permission-request sets pendingPermission", () => {
     useAgentStore.getState().createSession("s1");
 
     useAgentStore.getState().appendChunk("s1", {
-      type: "permission_request",
-      sessionId: "s1",
-      requestId: "req1",
-      toolName: "Edit",
-      input: { file: "test.ts" },
+      type: "data-permission-request",
+      data: {
+        requestId: "req1",
+        toolName: "Edit",
+        input: { file: "test.ts" },
+      },
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;

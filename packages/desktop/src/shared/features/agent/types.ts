@@ -2,28 +2,21 @@
 // Re-exports from sub-modules
 // ---------------------------------------------------------------------------
 
-import type { StopReason, StreamEvent } from "./stream-event";
-import type { UIMessagePartExtended, UIMessage } from "./ui-message";
+import type { UIMessage, StopReason } from "./ui-message";
 
-export type SessionUIMessage = UIMessagePartExtended | StreamEvent;
+// UIMessage types
+export type { DynamicToolPart, UIMessagePart, UIMessage } from "./ui-message";
 
-// StreamEvent types
+// Base types (re-exported from ui-message.ts)
 export type {
   StopReason,
   TaskStatus,
   RateLimitStatus,
   RateLimitType,
-  ImageAttachment,
-  TimingEntry,
   RateLimitInfo,
   PersistedFile,
   FailedFile,
-  StreamEvents,
-  StreamEvent,
-} from "./stream-event";
-
-// UIMessage types
-export type { ToolInvocationPart, UIMessagePartExtended, UIMessage } from "./ui-message";
+} from "./ui-message";
 
 export { getParentToolUseId } from "./ui-message";
 
@@ -49,7 +42,11 @@ export type TimingEntry = {
   timestamp: number;
 };
 
-export type SlashCommandInfo = { name: string; description?: string; argumentHint?: string };
+export type SlashCommandInfo = {
+  name: string;
+  description?: string;
+  argumentHint?: string;
+};
 
 /** Lightweight session metadata for the sidebar list */
 export type SessionInfo = {
