@@ -1,4 +1,72 @@
-export type AgentInfo = { id: string; name: string };
+export type AgentInfo = { name: string; description: string; model?: string };
+
+export type ModelInfo = {
+  value: string;
+  displayName: string;
+  description: string;
+  supportsEffort?: boolean;
+  supportedEffortLevels?: ("low" | "medium" | "high" | "max")[];
+};
+
+export type AccountInfo = {
+  email?: string;
+  organization?: string;
+  subscriptionType?: string;
+  tokenSource?: string;
+  apiKeySource?: string;
+};
+
+export type FastModeState = "off" | "cooldown" | "on";
+
+export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";
+
+export type RewindFilesResult = {
+  canRewind: boolean;
+  error?: string;
+  filesChanged?: string[];
+  insertions?: number;
+  deletions?: number;
+};
+
+export type McpStdioServerConfig = {
+  type?: "stdio";
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+};
+
+export type McpSSEServerConfig = {
+  type: "sse";
+  url: string;
+  headers?: Record<string, string>;
+};
+
+export type McpHttpServerConfig = {
+  type: "http";
+  url: string;
+  headers?: Record<string, string>;
+};
+
+export type McpServerConfig = McpStdioServerConfig | McpSSEServerConfig | McpHttpServerConfig;
+
+export type McpServerStatus = {
+  name: string;
+  status: "connected" | "failed" | "needs-auth" | "pending" | "disabled";
+  serverInfo?: { name: string; version: string };
+  error?: string;
+  scope?: string;
+  tools?: Array<{
+    name: string;
+    description?: string;
+    annotations?: { readOnly?: boolean; destructive?: boolean; openWorld?: boolean };
+  }>;
+};
+
+export type McpSetServersResult = {
+  added: string[];
+  removed: string[];
+  errors: Record<string, string>;
+};
 
 /** Image attachment sent alongside a prompt */
 export type ImageAttachment = {
@@ -46,6 +114,8 @@ export type StreamEvent =
     }
   | { type: "permission_request"; requestId: string; toolName: string; input: unknown }
   | { type: "available_commands"; sessionId: string; commands: SlashCommandInfo[] }
+  | { type: "available_models"; sessionId: string; models: ModelInfo[] }
+  | { type: "current_model"; sessionId: string; model: string }
   | { type: "timing"; entry: TimingEntry }
   | { type: "status"; sessionId: string; message: string }
   | {

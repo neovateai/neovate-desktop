@@ -7,6 +7,7 @@ import {
   loadSessionCache as readSessionCache,
   saveSessionCache as writeSessionCache,
 } from "./session-cache";
+import { writeModelToSettings } from "./claude-settings";
 
 const agentLog = debug("neovate:agent-router");
 
@@ -231,5 +232,75 @@ export const agentRouter = os.agent.router({
   cancel: os.agent.cancel.handler(async ({ input, context }) => {
     agentLog("cancel: sessionId=%s", input.sessionId);
     await context.sessionManager.cancel(input.sessionId);
+  }),
+
+  setPermissionMode: os.agent.setPermissionMode.handler(async ({ input, context }) => {
+    agentLog("setPermissionMode: sessionId=%s mode=%s", input.sessionId, input.mode);
+    await context.sessionManager.setPermissionMode(input.sessionId, input.mode);
+  }),
+
+  setModel: os.agent.setModel.handler(async ({ input, context }) => {
+    agentLog("setModel: sessionId=%s model=%s", input.sessionId, input.model);
+    await context.sessionManager.setModel(input.sessionId, input.model);
+  }),
+
+  setMaxThinkingTokens: os.agent.setMaxThinkingTokens.handler(async ({ input, context }) => {
+    agentLog(
+      "setMaxThinkingTokens: sessionId=%s maxThinkingTokens=%s",
+      input.sessionId,
+      input.maxThinkingTokens,
+    );
+    await context.sessionManager.setMaxThinkingTokens(input.sessionId, input.maxThinkingTokens);
+  }),
+
+  stopTask: os.agent.stopTask.handler(async ({ input, context }) => {
+    agentLog("stopTask: sessionId=%s taskId=%s", input.sessionId, input.taskId);
+    await context.sessionManager.stopTask(input.sessionId, input.taskId);
+  }),
+
+  rewindFiles: os.agent.rewindFiles.handler(async ({ input, context }) => {
+    agentLog(
+      "rewindFiles: sessionId=%s userMessageId=%s dryRun=%s",
+      input.sessionId,
+      input.userMessageId,
+      input.dryRun,
+    );
+    return context.sessionManager.rewindFiles(input.sessionId, input.userMessageId, {
+      dryRun: input.dryRun,
+    });
+  }),
+
+  mcpServerStatus: os.agent.mcpServerStatus.handler(async ({ input, context }) => {
+    agentLog("mcpServerStatus: sessionId=%s", input.sessionId);
+    return context.sessionManager.mcpServerStatus(input.sessionId);
+  }),
+
+  reconnectMcpServer: os.agent.reconnectMcpServer.handler(async ({ input, context }) => {
+    agentLog("reconnectMcpServer: sessionId=%s serverName=%s", input.sessionId, input.serverName);
+    await context.sessionManager.reconnectMcpServer(input.sessionId, input.serverName);
+  }),
+
+  toggleMcpServer: os.agent.toggleMcpServer.handler(async ({ input, context }) => {
+    agentLog(
+      "toggleMcpServer: sessionId=%s serverName=%s enabled=%s",
+      input.sessionId,
+      input.serverName,
+      input.enabled,
+    );
+    await context.sessionManager.toggleMcpServer(input.sessionId, input.serverName, input.enabled);
+  }),
+
+  setMcpServers: os.agent.setMcpServers.handler(async ({ input, context }) => {
+    agentLog(
+      "setMcpServers: sessionId=%s serverCount=%d",
+      input.sessionId,
+      Object.keys(input.servers).length,
+    );
+    return context.sessionManager.setMcpServers(input.sessionId, input.servers);
+  }),
+
+  setModelSetting: os.agent.setModelSetting.handler(({ input }) => {
+    agentLog("setModelSetting: sessionId=%s model=%s", input.sessionId, input.model);
+    writeModelToSettings(input.sessionId, input.model);
   }),
 });

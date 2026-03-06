@@ -16,6 +16,8 @@ export function usePrompt() {
   const setStreaming = useAgentStore((s) => s.setStreaming);
   const createSession = useAgentStore((s) => s.createSession);
   const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
+  const setAvailableModels = useAgentStore((s) => s.setAvailableModels);
+  const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
   const addTiming = useAgentStore((s) => s.addTiming);
   const { preWarmSession } = useNewSession();
 
@@ -35,13 +37,19 @@ export function usePrompt() {
       if (!resolvedSessionId) {
         const sessionStart = performance.now();
         promptLog("sendPrompt: creating session cwd=%s", cwd);
-        const { sessionId: newSessionId, commands } = await client.agent.newSession({ cwd });
+        const {
+          sessionId: newSessionId,
+          commands,
+          models,
+          currentModel,
+        } = await client.agent.newSession({ cwd });
         resolvedSessionId = newSessionId;
         const sessionElapsed = Math.round(performance.now() - sessionStart);
         promptLog(
-          "sendPrompt: session created in %dms sessionId=%s",
+          "sendPrompt: session created in %dms sessionId=%s currentModel=%s",
           sessionElapsed,
           resolvedSessionId,
+          currentModel,
         );
         addTiming({
           phase: "prompt",
@@ -53,6 +61,12 @@ export function usePrompt() {
         createSession(resolvedSessionId, { cwd: projectPath });
         if (commands?.length) {
           setAvailableCommands(resolvedSessionId, commands);
+        }
+        if (models?.length) {
+          setAvailableModels(resolvedSessionId, models);
+        }
+        if (currentModel) {
+          setCurrentModel(resolvedSessionId, currentModel);
         }
       }
 
@@ -214,6 +228,8 @@ export function usePrompt() {
       setStreaming,
       createSession,
       setAvailableCommands,
+      setAvailableModels,
+      setCurrentModel,
       addTiming,
       preWarmSession,
     ],

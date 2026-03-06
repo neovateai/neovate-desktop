@@ -11,6 +11,7 @@ import type {
   SDKSessionInfo,
   SessionMessage,
   CanUseTool,
+  PermissionMode as SDKPermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
 import { randomUUID } from "node:crypto";
 import debug from "debug";
@@ -19,8 +20,18 @@ import type {
   SessionInfo,
   SlashCommandInfo,
   ImageAttachment,
+  AgentInfo,
+  ModelInfo,
+  AccountInfo,
+  FastModeState,
+  PermissionMode,
+  RewindFilesResult,
+  McpServerConfig,
+  McpServerStatus,
+  McpSetServersResult,
 } from "../../../shared/features/agent/types";
 import { getShellEnvironment } from "./shell-env";
+import { readModelFromSettings } from "./claude-settings";
 import { Pushable } from "./pushable";
 
 const log = debug("neovate:session-manager");
@@ -132,11 +143,10 @@ export class SessionManager {
       });
     };
 
-    const resolvedModel = model ?? "sonnet";
-    log("buildOptions: model=%s permissionMode=default", resolvedModel);
+    log("buildOptions: model=%s permissionMode=default", model ?? "(default)");
 
     return {
-      model: resolvedModel,
+      ...(model ? { model } : {}),
       cwd,
       env,
       canUseTool,
@@ -148,7 +158,17 @@ export class SessionManager {
   async createSession(
     cwd: string,
     model?: string,
-  ): Promise<{ sessionId: string; commands?: SlashCommandInfo[] }> {
+  ): Promise<{
+    sessionId: string;
+    currentModel?: string;
+    commands?: SlashCommandInfo[];
+    agents?: AgentInfo[];
+    models?: ModelInfo[];
+    account?: AccountInfo;
+    outputStyle?: string;
+    availableOutputStyles?: string[];
+    fastModeState?: FastModeState;
+  }> {
     const t0 = performance.now();
     log("createSession: START cwd=%s model=%s activeSessions=%d", cwd, model, this.sessions.size);
 
@@ -164,8 +184,10 @@ export class SessionManager {
 
     const initResult = await q.initializationResult();
     log(
-      "createSession: init received — commands=%d model=%s",
+      "createSession: init received — commands=%d agents=%d models=%d model=%s",
       initResult.commands?.length ?? 0,
+      initResult.agents?.length ?? 0,
+      initResult.models?.length ?? 0,
       options.model,
     );
 
@@ -175,17 +197,44 @@ export class SessionManager {
       argumentHint: cmd.argumentHint,
     }));
 
+    const agents: AgentInfo[] = (initResult.agents ?? []).map((a) => ({
+      name: a.name,
+      description: a.description,
+      ...(a.model ? { model: a.model } : {}),
+    }));
+
+    const models: ModelInfo[] = (initResult.models ?? []).map((m) => ({
+      value: m.value,
+      displayName: m.displayName,
+      description: m.description,
+      ...(m.supportsEffort != null ? { supportsEffort: m.supportsEffort } : {}),
+      ...(m.supportedEffortLevels ? { supportedEffortLevels: m.supportedEffortLevels } : {}),
+    }));
+
+    // Resolve effective model: explicit param > settings chain
+    const currentModel = model ?? readModelFromSettings(sessionId, cwd);
+
     log(
-      "createSession: DONE in %dms sessionId=%s commands=%d activeSessions=%d",
+      "createSession: DONE in %dms sessionId=%s commands=%d agents=%d models=%d currentModel=%s activeSessions=%d",
       Math.round(performance.now() - t0),
       sessionId,
       commands.length,
+      agents.length,
+      models.length,
+      currentModel ?? "(default)",
       this.sessions.size,
     );
 
     return {
       sessionId,
+      currentModel,
       commands: commands.length > 0 ? commands : undefined,
+      agents: agents.length > 0 ? agents : undefined,
+      models: models.length > 0 ? models : undefined,
+      account: initResult.account,
+      outputStyle: initResult.output_style,
+      availableOutputStyles: initResult.available_output_styles,
+      fastModeState: initResult.fast_mode_state,
     };
   }
 
@@ -363,6 +412,24 @@ export class SessionManager {
         yield { type: "available_commands", sessionId, commands };
       }
 
+      // Emit available models and resolved current model
+      const models: ModelInfo[] = (initResult.models ?? []).map((m) => ({
+        value: m.value,
+        displayName: m.displayName,
+        description: m.description,
+        ...(m.supportsEffort != null ? { supportsEffort: m.supportsEffort } : {}),
+        ...(m.supportedEffortLevels ? { supportedEffortLevels: m.supportedEffortLevels } : {}),
+      }));
+      if (models.length > 0) {
+        eventCount++;
+        yield { type: "available_models", sessionId, models };
+      }
+      const currentModel = readModelFromSettings(sessionId, resolvedCwd);
+      if (currentModel) {
+        eventCount++;
+        yield { type: "current_model", sessionId, model: currentModel };
+      }
+
       // Replay history from persisted messages (skip if renderer has cache)
       if (!skipReplay) {
         const messages = await getSessionMessages(sessionId);
@@ -463,6 +530,69 @@ export class SessionManager {
     }
     log("cancel: interrupting sessionId=%s", sessionId);
     await managed.query.interrupt();
+  }
+
+  private getQuery(sessionId: string): Query {
+    const managed = this.sessions.get(sessionId);
+    if (!managed) throw new Error(`Unknown session: ${sessionId}`);
+    return managed.query;
+  }
+
+  async setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void> {
+    log("setPermissionMode: sessionId=%s mode=%s", sessionId, mode);
+    await this.getQuery(sessionId).setPermissionMode(mode as SDKPermissionMode);
+  }
+
+  async setModel(sessionId: string, model?: string): Promise<void> {
+    log("setModel: sessionId=%s model=%s", sessionId, model);
+    await this.getQuery(sessionId).setModel(model);
+  }
+
+  async setMaxThinkingTokens(sessionId: string, maxThinkingTokens: number | null): Promise<void> {
+    log("setMaxThinkingTokens: sessionId=%s maxThinkingTokens=%s", sessionId, maxThinkingTokens);
+    await this.getQuery(sessionId).setMaxThinkingTokens(maxThinkingTokens);
+  }
+
+  async stopTask(sessionId: string, taskId: string): Promise<void> {
+    log("stopTask: sessionId=%s taskId=%s", sessionId, taskId);
+    await this.getQuery(sessionId).stopTask(taskId);
+  }
+
+  async rewindFiles(
+    sessionId: string,
+    userMessageId: string,
+    options?: { dryRun?: boolean },
+  ): Promise<RewindFilesResult> {
+    log(
+      "rewindFiles: sessionId=%s userMessageId=%s dryRun=%s",
+      sessionId,
+      userMessageId,
+      options?.dryRun,
+    );
+    return await this.getQuery(sessionId).rewindFiles(userMessageId, options);
+  }
+
+  async mcpServerStatus(sessionId: string): Promise<McpServerStatus[]> {
+    log("mcpServerStatus: sessionId=%s", sessionId);
+    return await this.getQuery(sessionId).mcpServerStatus();
+  }
+
+  async reconnectMcpServer(sessionId: string, serverName: string): Promise<void> {
+    log("reconnectMcpServer: sessionId=%s serverName=%s", sessionId, serverName);
+    await this.getQuery(sessionId).reconnectMcpServer(serverName);
+  }
+
+  async toggleMcpServer(sessionId: string, serverName: string, enabled: boolean): Promise<void> {
+    log("toggleMcpServer: sessionId=%s serverName=%s enabled=%s", sessionId, serverName, enabled);
+    await this.getQuery(sessionId).toggleMcpServer(serverName, enabled);
+  }
+
+  async setMcpServers(
+    sessionId: string,
+    servers: Record<string, McpServerConfig>,
+  ): Promise<McpSetServersResult> {
+    log("setMcpServers: sessionId=%s serverCount=%d", sessionId, Object.keys(servers).length);
+    return await this.getQuery(sessionId).setMcpServers(servers);
   }
 
   async closeSession(sessionId: string): Promise<void> {

@@ -11,6 +11,7 @@ import { createMentionExtension } from "./mention-extension";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { useAgentStore } from "../store";
 import { useNewSession } from "../hooks/use-new-session";
+import { client } from "../../../orpc";
 import type { JSONContent } from "@tiptap/react";
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
@@ -68,6 +69,15 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   cwdRef.current = cwd;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createNewSession } = useNewSession();
+
+  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const availableModels = useAgentStore((s) =>
+    activeSessionId ? s.sessions.get(activeSessionId)?.availableModels : undefined,
+  );
+  const currentModel = useAgentStore((s) =>
+    activeSessionId ? s.sessions.get(activeSessionId)?.currentModel : undefined,
+  );
+  const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
 
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const attachmentsRef = useRef(attachments);
@@ -226,6 +236,18 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
     return () => window.removeEventListener("neovate:insert-mention", handler);
   }, [editor]);
 
+  const handleModelChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const model = e.target.value;
+      if (!activeSessionId) return;
+      log("handleModelChange: model=%s sessionId=%s", model, activeSessionId);
+      setCurrentModel(activeSessionId, model);
+      client.agent.setModel({ sessionId: activeSessionId, model });
+      client.agent.setModelSetting({ sessionId: activeSessionId, model });
+    },
+    [activeSessionId, setCurrentModel],
+  );
+
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
@@ -301,6 +323,22 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
           >
             <Paperclip className="h-4 w-4" />
           </Button>
+          {availableModels && availableModels.length > 0 && (
+            <select
+              value={currentModel ?? ""}
+              onChange={handleModelChange}
+              disabled={disabled || streaming}
+              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              title="Select model"
+            >
+              {!currentModel && <option value="">Default</option>}
+              {availableModels.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.displayName}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="flex-1" />
           {streaming ? (
             <Button
