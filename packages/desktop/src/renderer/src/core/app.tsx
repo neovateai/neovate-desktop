@@ -27,19 +27,9 @@ const RendererAppContext: React.Context<RendererApp | null> =
 const PluginContextReact: React.Context<PluginContext | null> =
   import.meta.hot?.data?.PluginContextReact ?? createContext<PluginContext | null>(null);
 
-export interface WindowInfo {
-  windowId: string;
-  windowType: string;
-}
-
-const WindowContext: React.Context<WindowInfo> =
-  import.meta.hot?.data?.WindowContext ??
-  createContext<WindowInfo>({ windowId: "main", windowType: "main" });
-
 if (import.meta.hot) {
   import.meta.hot.data.RendererAppContext = RendererAppContext;
   import.meta.hot.data.PluginContextReact = PluginContextReact;
-  import.meta.hot.data.WindowContext = WindowContext;
 }
 
 export function useRendererApp(): RendererApp {
@@ -52,10 +42,6 @@ export function usePluginContext(): PluginContext {
   const ctx = useContext(PluginContextReact);
   if (!ctx) throw new Error("usePluginContext must be used within RendererApp");
   return ctx;
-}
-
-export function useWindowInfo(): WindowInfo {
-  return useContext(WindowContext);
 }
 
 /** Syncs persisted config theme → next-themes on load */
@@ -204,24 +190,17 @@ export class RendererApp implements IRendererApp {
       }
     }
 
-    const windowInfo: WindowInfo = {
-      windowId: this.windowId,
-      windowType: this.windowType,
-    };
-
     ReactDOM.createRoot(root).render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
           <PluginContextReact.Provider value={ctx}>
-            <WindowContext.Provider value={windowInfo}>
-              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                <ToastProvider>
-                  <ThemeSync />
-                  {this.windowType === "main" && <MenuCommandHandler />}
-                  <AppComponent />
-                </ToastProvider>
-              </ThemeProvider>
-            </WindowContext.Provider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <ToastProvider>
+                <ThemeSync />
+                {this.windowType === "main" && <MenuCommandHandler />}
+                <AppComponent />
+              </ToastProvider>
+            </ThemeProvider>
           </PluginContextReact.Provider>
         </RendererAppContext.Provider>
       </StrictMode>,
