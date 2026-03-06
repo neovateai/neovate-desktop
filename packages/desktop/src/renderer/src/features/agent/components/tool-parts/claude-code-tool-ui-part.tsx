@@ -4,6 +4,7 @@ import type {
 } from "../../../../../../shared/features/agent/types";
 
 import { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
+import { AgentToolCard } from "./agent-tool-card";
 import { BashToolCard } from "./bash-tool-card";
 import { TodoWriteToolCard } from "./todo-write-tool-card";
 import { EditToolCard } from "./edit-tool-card";
@@ -37,9 +38,12 @@ type Props = {
  * nested tree.  The caller should filter them out.
  */
 export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
+  console.log(part.toolName);
   switch (part.toolName) {
     case "AskUserQuestion":
       return <AskUserQuestionToolCard part={part} sessionId={sessionId} />;
+    case "Agent":
+      return <AgentToolCard part={part} />;
     case "Bash":
       return <BashToolCard part={part} />;
     case "TodoWrite":

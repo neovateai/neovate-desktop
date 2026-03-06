@@ -1,4 +1,5 @@
 export { ClaudeCodeToolUIPart } from "./claude-code-tool-ui-part";
+export { AgentToolCard } from "./agent-tool-card";
 export { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
 export { BashToolCard } from "./bash-tool-card";
 export { TodoWriteToolCard } from "./todo-write-tool-card";

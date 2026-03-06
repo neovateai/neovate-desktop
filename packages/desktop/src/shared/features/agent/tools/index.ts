@@ -1,6 +1,7 @@
 import type { InferUITools, ToolSet } from "ai";
 
 export { Bash, type BashUIToolInvocation } from "./bash";
+export { Agent, type AgentUIToolInvocation } from "./agent";
 export { Task, type TaskUIToolInvocation } from "./task";
 export { TaskOutput, type TaskOutputUIToolInvocation } from "./task-output";
 export { TaskStop, type TaskStopUIToolInvocation } from "./task-stop";
@@ -22,6 +23,7 @@ export { AskUserQuestion, type AskUserQuestionUIToolInvocation } from "./ask-use
 
 // Re-import for registry object
 import { Bash } from "./bash";
+import { Agent } from "./agent";
 import { Task } from "./task";
 import { TaskOutput } from "./task-output";
 import { TaskStop } from "./task-stop";
@@ -49,6 +51,7 @@ import { AskUserQuestion } from "./ask-user-question";
  */
 export const claudeCodeTools = {
   Bash,
+  Agent,
   Task,
   TaskOutput,
   TaskStop,
