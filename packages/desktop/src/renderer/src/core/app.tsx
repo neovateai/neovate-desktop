@@ -1,4 +1,4 @@
-import { StrictMode, createContext, useContext, useEffect } from "react";
+import { StrictMode, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider, useTheme } from "next-themes";
 import { I18nManager } from "./i18n";
@@ -7,7 +7,7 @@ import { useSettingsStore } from "../features/settings/store";
 import { DisposableStore } from "./disposable";
 import { ToastProvider } from "../components/ui/toast";
 import type { IRendererApp, IWorkbench } from "./types";
-import type { RendererPlugin, PluginContext } from "./plugin";
+import type { RendererPlugin, PluginContext, WindowContribution } from "./plugin";
 import { PluginManager } from "./plugin";
 import { ContentPanel } from "../features/content-panel";
 import type { ProjectTabState } from "../features/content-panel";
@@ -27,9 +27,19 @@ const RendererAppContext: React.Context<RendererApp | null> =
 const PluginContextReact: React.Context<PluginContext | null> =
   import.meta.hot?.data?.PluginContextReact ?? createContext<PluginContext | null>(null);
 
+export interface WindowInfo {
+  windowId: string;
+  windowType: string;
+}
+
+const WindowContext: React.Context<WindowInfo> =
+  import.meta.hot?.data?.WindowContext ??
+  createContext<WindowInfo>({ windowId: "main", windowType: "main" });
+
 if (import.meta.hot) {
   import.meta.hot.data.RendererAppContext = RendererAppContext;
   import.meta.hot.data.PluginContextReact = PluginContextReact;
+  import.meta.hot.data.WindowContext = WindowContext;
 }
 
 export function useRendererApp(): RendererApp {
@@ -42,6 +52,10 @@ export function usePluginContext(): PluginContext {
   const ctx = useContext(PluginContextReact);
   if (!ctx) throw new Error("usePluginContext must be used within RendererApp");
   return ctx;
+}
+
+export function useWindowInfo(): WindowInfo {
+  return useContext(WindowContext);
 }
 
 /** Syncs persisted config theme → next-themes on load */
@@ -108,6 +122,7 @@ export class RendererApp implements IRendererApp {
       return client.storage.set({ namespace: "config", key: "settings", value: data });
     },
   });
+  windows: WindowContribution[] = [];
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
@@ -136,26 +151,33 @@ export class RendererApp implements IRendererApp {
 
   async start(): Promise<void> {
     const ctx: PluginContext = { app: this, orpcClient: client };
-    // Load persistent config (single source of truth)
+
+    // Infrastructure — all windows
     await useConfigStore.getState().load();
-    // Initialize i18n with locale from config store
     await this.i18nManager.init({ store: useConfigStore as any });
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
-    // TODO: hydrate blocks render — should run in background so UI renders immediately
     await this.hydrate();
-    await this.pluginManager.configContributions();
-    this.initWorkbench();
 
-    await this.workbench.contentPanel.hydrate();
+    // Collect window contributions — all windows (needed for lookup)
+    this.windows = await this.pluginManager.configWindowContributions();
 
-    await this.pluginManager.activate(ctx);
+    if (this.windowType === "main") {
+      // Main window — full plugin UI
+      await this.pluginManager.configContributions();
+      this.initWorkbench();
+      await this.workbench.contentPanel.hydrate();
+      await this.pluginManager.activate(ctx);
+    }
+
     await this.render(ctx);
   }
 
   async stop(): Promise<void> {
     await this.pluginManager.deactivate();
-    this.workbench.contentPanel.dispose();
+    if (this.windowType === "main") {
+      this.workbench.contentPanel.dispose();
+    }
     this.settings.dispose();
     this.subscriptions.dispose();
   }
@@ -168,18 +190,38 @@ export class RendererApp implements IRendererApp {
   private async render(ctx: PluginContext): Promise<void> {
     const root = document.getElementById("root");
     if (!root) throw new Error("Missing #root element");
-    const { default: App } = await import("../App");
+
+    let AppComponent: React.ComponentType;
+
+    if (this.windowType === "main") {
+      AppComponent = (await import("../App")).default;
+    } else {
+      const windowDef = this.windows.find((w) => w.windowType === this.windowType);
+      if (!windowDef) {
+        AppComponent = () => <div>Unknown window type: {this.windowType}</div>;
+      } else {
+        AppComponent = lazy(windowDef.component);
+      }
+    }
+
+    const windowInfo: WindowInfo = {
+      windowId: this.windowId,
+      windowType: this.windowType,
+    };
+
     ReactDOM.createRoot(root).render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
           <PluginContextReact.Provider value={ctx}>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <ToastProvider>
-                <ThemeSync />
-                <MenuCommandHandler />
-                <App />
-              </ToastProvider>
-            </ThemeProvider>
+            <WindowContext.Provider value={windowInfo}>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <ToastProvider>
+                  <ThemeSync />
+                  {this.windowType === "main" && <MenuCommandHandler />}
+                  <AppComponent />
+                </ToastProvider>
+              </ThemeProvider>
+            </WindowContext.Provider>
           </PluginContextReact.Provider>
         </RendererAppContext.Provider>
       </StrictMode>,

@@ -27,16 +27,24 @@ export class PluginManager {
 
   /** Collect window contributions from all plugins (parallel) */
   async configWindowContributions(): Promise<WindowContribution[]> {
-    const results = await this.applyParallel("configWindowContributions");
-    const seen = new Set<string>();
-    return results.flat().filter((w) => {
-      if (seen.has(w.windowType)) {
-        console.warn(`Duplicate window type: "${w.windowType}", skipping`);
-        return false;
+    const seen = new Map<string, string>();
+    const result: WindowContribution[] = [];
+    for (const plugin of this.#plugins) {
+      if (typeof plugin.configWindowContributions !== "function") continue;
+      const contributions = await plugin.configWindowContributions();
+      for (const w of contributions) {
+        const existing = seen.get(w.windowType);
+        if (existing) {
+          console.warn(
+            `Plugin "${plugin.name}" registers duplicate window type "${w.windowType}" (already registered by "${existing}"), skipping`,
+          );
+          continue;
+        }
+        seen.set(w.windowType, plugin.name);
+        result.push(w);
       }
-      seen.add(w.windowType);
-      return true;
-    });
+    }
+    return result;
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */

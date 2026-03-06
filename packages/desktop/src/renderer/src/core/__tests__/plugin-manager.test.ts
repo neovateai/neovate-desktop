@@ -206,7 +206,9 @@ describe("PluginManager", () => {
       const pm = new PluginManager(plugins);
       const windows = await pm.configWindowContributions();
       expect(windows).toHaveLength(1);
-      expect(warnSpy).toHaveBeenCalledWith('Duplicate window type: "companion", skipping');
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Plugin "plugin-b" registers duplicate window type "companion" (already registered by "plugin-a"), skipping',
+      );
       warnSpy.mockRestore();
     });
 
