@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import debug from "debug";
 
-import type { AgentMessage } from "../../../../../shared/features/agent/types";
+import type { UIMessage } from "../../../../../shared/features/agent/types";
 
 const log = debug("neovate:chat-message-list");
 
@@ -15,29 +15,21 @@ import { Message, MessageContent } from "../../../components/ai-elements/message
 
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
-/** @deprecated Legacy props — use `AgentMessageListProps` instead. */
-type LegacyProps = {
-  messages: { id: string; role: string; content: string; thinking?: string }[];
-  toolCalls: Map<string, { toolCallId: string; name: string; status: string }>;
-};
-
-type AgentMessageListProps = {
-  agentMessages: AgentMessage[];
+type Props = {
+  messages: UIMessage[];
   sessionId?: string;
 };
 
-type Props = AgentMessageListProps & Partial<LegacyProps>;
-
-export function MessageList({ agentMessages, sessionId }: Props) {
+export function MessageList({ messages, sessionId }: Props) {
   useEffect(() => {
-    if (agentMessages?.length) {
-      log("agentMessages: %O", agentMessages);
+    if (messages?.length) {
+      log("messages: %O", messages);
     }
-  }, [agentMessages]);
+  }, [messages]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-      {agentMessages.map((msg) => (
+      {messages.map((msg) => (
         <Message key={msg.id} from={msg.role}>
           <MessageContent>
             {msg.parts.map((part, i) => {
@@ -62,7 +54,7 @@ export function MessageList({ agentMessages, sessionId }: Props) {
                     <ClaudeCodeToolUIPart
                       key={part.toolCallId}
                       part={part}
-                      messages={agentMessages}
+                      messages={messages}
                       sessionId={sessionId}
                     />
                   );

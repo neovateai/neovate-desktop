@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type { StopReason } from "./stream-event";
-import type { CachedMessage, CachedAgentMessage } from "./agent-message";
+import type { CachedAgentMessage } from "./agent-message";
 
 // StreamEvent types
 export type {
@@ -28,7 +28,6 @@ export type {
   StatusPart,
   AgentMessagePart,
   AgentMessage,
-  CachedMessage,
   CachedAgentMessage,
 } from "./agent-message";
 
@@ -69,16 +68,10 @@ export type PromptResult = {
 
 /**
  * Persisted session cache for instant resume.
- *
- * Contains both legacy `messages` (for backward compat) and new `agentMessages`.
  */
 export type CachedSession = {
-  /**
-   * @deprecated Use `agentMessages` instead.
-   */
-  messages: CachedMessage[];
-  /** Parts-based cached messages. Present in caches written after the migration. */
-  agentMessages?: CachedAgentMessage[];
+  /** Parts-based cached messages */
+  messages: CachedAgentMessage[];
   title?: string;
   cwd?: string;
   updatedAt: string;

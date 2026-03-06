@@ -149,8 +149,7 @@ export function AgentChat() {
 
   // State 2: Active session — full chat
   chatLog(
-    "render: showing chat agentMsgs=%d legacyMsgs=%d tools=%d streaming=%s error=%s perm=%s",
-    activeSession.agentMessages.length,
+    "render: showing chat msgs=%d streaming=%s error=%s perm=%s",
     activeSession.messages.length,
     activeSession.streaming,
     activeSession.promptError ?? "none",
@@ -158,10 +157,7 @@ export function AgentChat() {
   );
   return (
     <div className="flex h-full flex-col">
-      <MessageList
-        agentMessages={activeSession.agentMessages}
-        sessionId={activeSession.sessionId}
-      />
+      <MessageList messages={activeSession.messages} sessionId={activeSession.sessionId} />
       {activeSession.pendingPermission && (
         <PermissionDialog
           permission={activeSession.pendingPermission}

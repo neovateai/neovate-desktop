@@ -53,24 +53,6 @@ export type AgentMessage = {
 // Cache Types
 // ---------------------------------------------------------------------------
 
-/**
- * @deprecated Use {@link CachedAgentMessage} instead.
- * Cached message for persisted session display.
- */
-export type CachedMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  thinking?: string;
-  toolCalls?: Array<{
-    toolCallId: string;
-    name: string;
-    status?: string;
-    input?: unknown;
-  }>;
-  images?: Array<{ mediaType: string; base64: string }>;
-};
-
 /** Cached parts-based agent message for persisted session display */
 export type CachedAgentMessage = {
   id: string;

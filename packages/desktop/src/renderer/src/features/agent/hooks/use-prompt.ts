@@ -194,15 +194,6 @@ export function usePrompt() {
               messages: session.messages.map((m) => ({
                 id: m.id,
                 role: m.role,
-                content: m.content,
-                thinking: m.thinking,
-                toolCalls: m.toolCalls,
-                images: m.images,
-              })),
-              // Save parts-based messages for instant restore
-              agentMessages: session.agentMessages.map((m) => ({
-                id: m.id,
-                role: m.role,
                 parts: m.parts,
               })),
               title: session.title,

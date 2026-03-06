@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useAgentStore, selectToolParts, selectTextContent, selectChildToolParts } from "../store";
 
-describe("AgentStore – agentMessages", () => {
+describe("AgentStore – messages", () => {
   beforeEach(() => {
     useAgentStore.setState({
       sessions: new Map(),
@@ -11,27 +11,23 @@ describe("AgentStore – agentMessages", () => {
     });
   });
 
-  it("createSession initializes empty agentMessages", () => {
+  it("createSession initializes empty messages", () => {
     useAgentStore.getState().createSession("s1");
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.agentMessages).toEqual([]);
+    expect(session.messages).toEqual([]);
   });
 
-  it("addUserMessage dual-writes to messages and agentMessages", () => {
+  it("addUserMessage writes to messages", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().addUserMessage("s1", "Hello");
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    // Legacy
     expect(session.messages).toHaveLength(1);
-    expect(session.messages[0]).toMatchObject({ role: "user", content: "Hello" });
-    // Parts-based
-    expect(session.agentMessages).toHaveLength(1);
-    expect(session.agentMessages[0].role).toBe("user");
-    expect(session.agentMessages[0].parts).toEqual([{ type: "text", text: "Hello" }]);
+    expect(session.messages[0].role).toBe("user");
+    expect(session.messages[0].parts).toEqual([{ type: "text", text: "Hello" }]);
   });
 
-  it("appendChunk text_delta populates agentMessages", () => {
+  it("appendChunk text_delta populates messages", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
       type: "text_delta",
@@ -45,16 +41,16 @@ describe("AgentStore – agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.agentMessages).toHaveLength(1);
-    expect(session.agentMessages[0].role).toBe("assistant");
-    expect(session.agentMessages[0].parts).toHaveLength(1);
-    expect(session.agentMessages[0].parts[0]).toMatchObject({
+    expect(session.messages).toHaveLength(1);
+    expect(session.messages[0].role).toBe("assistant");
+    expect(session.messages[0].parts).toHaveLength(1);
+    expect(session.messages[0].parts[0]).toMatchObject({
       type: "text",
       text: "Hello world",
     });
   });
 
-  it("appendChunk thinking_delta populates agentMessages", () => {
+  it("appendChunk thinking_delta populates messages", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
       type: "thinking_delta",
@@ -63,8 +59,8 @@ describe("AgentStore – agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.agentMessages).toHaveLength(1);
-    const parts = session.agentMessages[0].parts;
+    expect(session.messages).toHaveLength(1);
+    const parts = session.messages[0].parts;
     expect(parts).toHaveLength(1);
     expect(parts[0]).toMatchObject({ type: "thinking", thinking: "reasoning..." });
   });
@@ -80,8 +76,8 @@ describe("AgentStore – agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.agentMessages).toHaveLength(1);
-    const part = session.agentMessages[0].parts[0];
+    expect(session.messages).toHaveLength(1);
+    const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
       type: "tool-invocation",
       toolCallId: "tc1",
@@ -108,7 +104,7 @@ describe("AgentStore – agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    const part = session.agentMessages[0].parts[0];
+    const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
       type: "tool-invocation",
       state: "output-available",
@@ -133,7 +129,7 @@ describe("AgentStore – agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    const part = session.agentMessages[0].parts[0];
+    const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
       type: "tool-invocation",
       state: "output-error",
@@ -141,7 +137,7 @@ describe("AgentStore – agentMessages", () => {
     });
   });
 
-  it("appendChunk user_message dual-writes", () => {
+  it("appendChunk user_message writes to messages", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().appendChunk("s1", {
       type: "user_message",
@@ -151,8 +147,7 @@ describe("AgentStore – agentMessages", () => {
 
     const session = useAgentStore.getState().sessions.get("s1")!;
     expect(session.messages).toHaveLength(1);
-    expect(session.agentMessages).toHaveLength(1);
-    expect(session.agentMessages[0].parts[0]).toMatchObject({
+    expect(session.messages[0].parts[0]).toMatchObject({
       type: "text",
       text: "replayed user msg",
     });
@@ -170,7 +165,7 @@ describe("AgentStore – agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    const part = session.agentMessages[0].parts[0];
+    const part = session.messages[0].parts[0];
     expect(part).toMatchObject({
       type: "tool-invocation",
       parentToolUseId: "tc-parent",
@@ -250,7 +245,7 @@ describe("Selector helpers", () => {
   });
 });
 
-describe("restoreFromCache with agentMessages", () => {
+describe("restoreFromCache", () => {
   beforeEach(() => {
     useAgentStore.setState({
       sessions: new Map(),
@@ -260,11 +255,10 @@ describe("restoreFromCache with agentMessages", () => {
     });
   });
 
-  it("restores agentMessages from cache when present", () => {
+  it("restores messages from cache", () => {
     useAgentStore.getState().createSession("s1");
     useAgentStore.getState().restoreFromCache("s1", {
-      messages: [{ id: "m1", role: "user", content: "hi" }],
-      agentMessages: [
+      messages: [
         {
           id: "cached-1",
           role: "user",
@@ -276,32 +270,10 @@ describe("restoreFromCache with agentMessages", () => {
     });
 
     const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.agentMessages).toHaveLength(1);
-    expect(session.agentMessages[0].parts[0]).toMatchObject({
+    expect(session.messages).toHaveLength(1);
+    expect(session.messages[0].parts[0]).toMatchObject({
       type: "text",
       text: "hi",
     });
-  });
-
-  it("falls back to converting legacy messages when agentMessages is absent", () => {
-    useAgentStore.getState().createSession("s1");
-    useAgentStore.getState().restoreFromCache("s1", {
-      messages: [
-        { id: "m1", role: "user", content: "hello" },
-        { id: "m2", role: "assistant", content: "world", thinking: "reasoning" },
-      ],
-      title: "Legacy",
-      updatedAt: new Date().toISOString(),
-    });
-
-    const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.agentMessages).toHaveLength(2);
-    // User message converts to text part
-    expect(session.agentMessages[0].parts).toEqual([{ type: "text", text: "hello" }]);
-    // Assistant message with thinking converts to thinking + text parts
-    expect(session.agentMessages[1].parts).toEqual([
-      { type: "thinking", thinking: "reasoning" },
-      { type: "text", text: "world" },
-    ]);
   });
 });
