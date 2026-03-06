@@ -66,9 +66,9 @@ export const SuggestionList = forwardRef<SuggestionListHandle, Props>(
               type="button"
             >
               {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
-              <span className="truncate">{item.title ?? item.label}</span>
+              <span className="shrink-0">{item.title ?? item.label}</span>
               {item.description && (
-                <span className="ml-auto shrink-0 text-muted-foreground text-xs">
+                <span className="min-w-0 truncate text-muted-foreground text-xs">
                   {item.description}
                 </span>
               )}

@@ -6,6 +6,7 @@ import type {
   StreamEvent,
   TimingEntry,
   SlashCommandInfo,
+  ModelInfo,
   CachedSession,
   UIMessage,
   ToolInvocationPart,
@@ -63,6 +64,8 @@ export type ChatSession = {
   promptError: string | null;
   pendingPermission: PendingPermission | null;
   availableCommands: SlashCommandInfo[];
+  availableModels: ModelInfo[];
+  currentModel?: string;
   sdkReady: boolean;
   usage?: SessionUsage;
   tasks: Map<string, TaskState>;
@@ -180,6 +183,8 @@ type AgentState = {
   setPromptError: (sessionId: string, error: string | null) => void;
   setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
+  setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
+  setCurrentModel: (sessionId: string, model: string) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
   restoreFromCache: (sessionId: string, cached: CachedSession) => void;
   setSdkReady: (sessionId: string, ready: boolean) => void;
@@ -219,6 +224,7 @@ export const useAgentStore = create<AgentState>()(
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
+          availableModels: [],
           sdkReady: true,
           tasks: new Map(),
         });
@@ -241,6 +247,7 @@ export const useAgentStore = create<AgentState>()(
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
+          availableModels: [],
           sdkReady: true,
           tasks: new Map(),
         });
@@ -334,6 +341,26 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.availableCommands = commands;
+      });
+    },
+
+    setAvailableModels: (sessionId, models) => {
+      storeLog(
+        "setAvailableModels: sid=%s models=%o",
+        sessionId,
+        models.map((m) => m.value),
+      );
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.availableModels = models;
+      });
+    },
+
+    setCurrentModel: (sessionId, model) => {
+      storeLog("setCurrentModel: sid=%s model=%s", sessionId, model);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.currentModel = model;
       });
     },
 
@@ -443,6 +470,20 @@ export const useAgentStore = create<AgentState>()(
               event.commands.map((c) => c.name),
             );
             session.availableCommands = event.commands;
+            break;
+
+          case "available_models":
+            storeLog(
+              "appendChunk: available_models sid=%s count=%d",
+              sessionId,
+              event.models.length,
+            );
+            session.availableModels = event.models;
+            break;
+
+          case "current_model":
+            storeLog("appendChunk: current_model sid=%s model=%s", sessionId, event.model);
+            session.currentModel = event.model;
             break;
 
           case "user_message": {

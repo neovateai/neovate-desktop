@@ -1,4 +1,4 @@
-import type { SlashCommandInfo } from "./types";
+import type { SlashCommandInfo, ModelInfo } from "./types";
 
 // ---------------------------------------------------------------------------
 // Base Types for Stream Events
@@ -169,6 +169,20 @@ export namespace StreamEvents {
     commands: SlashCommandInfo[];
   };
 
+  /** Available models for the session */
+  export type AvailableModels = {
+    type: "available_models";
+    sessionId: string;
+    models: ModelInfo[];
+  };
+
+  /** Current model selection */
+  export type CurrentModel = {
+    type: "current_model";
+    sessionId: string;
+    model: string;
+  };
+
   /** Session status update */
   export type Status = { type: "status"; sessionId: string; message: string };
 
@@ -276,6 +290,8 @@ export type StreamEvent =
   | StreamEvents.Result
   | StreamEvents.PermissionRequest
   | StreamEvents.AvailableCommands
+  | StreamEvents.AvailableModels
+  | StreamEvents.CurrentModel
   | StreamEvents.Status
   | StreamEvents.Timing
   // Task/subagent events

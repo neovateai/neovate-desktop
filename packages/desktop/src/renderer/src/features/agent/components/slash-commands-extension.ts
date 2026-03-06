@@ -5,11 +5,12 @@ import { createElement, createRef } from "react";
 import { Terminal } from "lucide-react";
 import { SuggestionList, type SuggestionItem, type SuggestionListHandle } from "./suggestion-list";
 import { positionAboveInput } from "./suggestion-position";
+import type { SlashCommandInfo } from "../../../../../shared/features/agent/types";
 import debug from "debug";
 
 const slashLog = debug("neovate:slash-commands");
 
-export function createSlashCommandsExtension(getCommands: () => string[]) {
+export function createSlashCommandsExtension(getCommands: () => SlashCommandInfo[]) {
   return Node.create({
     name: "slashCommand",
     group: "inline",
@@ -44,9 +45,14 @@ export function createSlashCommandsExtension(getCommands: () => string[]) {
           startOfLine: true,
           items: ({ query }: { query: string }): SuggestionItem[] => {
             const commands = getCommands();
-            slashLog("items query=%s commands=%o", query, commands);
-            const items: SuggestionItem[] = commands.map((name) => ({
-              label: `/${name}`,
+            slashLog(
+              "items query=%s commands=%o",
+              query,
+              commands.map((c) => c.name),
+            );
+            const items: SuggestionItem[] = commands.map((cmd) => ({
+              label: `/${cmd.name}`,
+              description: cmd.description,
             }));
             if (!query) return items;
             return items.filter((c) => c.label.toLowerCase().includes(query.toLowerCase()));
