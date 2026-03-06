@@ -99,6 +99,8 @@ export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
   readonly #windowType: string;
+  // eslint-disable-next-line no-unused-private-class-members
+  // @ts-expect-error will be used by openWindow
   readonly #windowId: string;
   readonly subscriptions = new DisposableStore();
   readonly settings = new SettingsService({
@@ -154,15 +156,15 @@ export class RendererApp implements IRendererApp {
       await this.pluginManager.configContributions();
       this.initWorkbench();
       await this.workbench.contentPanel.hydrate();
-      await this.pluginManager.activate(ctx);
     }
 
-    await this.render(ctx);
+    await this.pluginManager.activate(ctx);
+    this.render(ctx);
   }
 
   async stop(): Promise<void> {
+    await this.pluginManager.deactivate();
     if (this.#windowType === "main") {
-      await this.pluginManager.deactivate();
       this.workbench.contentPanel.dispose();
     }
     this.settings.dispose();

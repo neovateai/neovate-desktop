@@ -23,7 +23,7 @@ export const contract = {
         height: z.number().optional(),
         title: z.string().optional(),
         parent: z.boolean().optional(),
-        urlSearchParams: z.record(z.string()).optional(),
+        urlSearchParams: z.record(z.string(), z.string()).optional(),
       }),
     ),
   },
