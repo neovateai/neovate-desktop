@@ -96,6 +96,8 @@ export interface RendererAppOptions {
 export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
+  readonly windowType: string;
+  readonly windowId: string;
   readonly subscriptions = new DisposableStore();
   readonly settings = new SettingsService({
     load: async () => {
@@ -109,6 +111,10 @@ export class RendererApp implements IRendererApp {
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const params = new URLSearchParams(search);
+    this.windowType = params.get("windowType") ?? "main";
+    this.windowId = params.get("windowId") ?? "main";
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
     this.i18nManager = new I18nManager();
   }
