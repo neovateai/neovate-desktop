@@ -170,6 +170,24 @@ describe("PluginManager", () => {
     });
   });
 
+  describe("configWindowContributions", () => {
+    it("collects window contributions from plugins", async () => {
+      const plugins: RendererPlugin[] = [
+        {
+          name: "plugin-a",
+          configWindowContributions: () => [
+            { windowType: "companion", component: () => Promise.resolve({ default: () => null }) },
+          ],
+        },
+        { name: "plugin-b" },
+      ];
+      const pm = new PluginManager(plugins);
+      const windows = await pm.configWindowContributions();
+      expect(windows).toHaveLength(1);
+      expect(windows[0].windowType).toBe("companion");
+    });
+  });
+
   describe("configI18n", () => {
     it("returns contributions from plugins that have configI18n", async () => {
       const pm = new PluginManager([

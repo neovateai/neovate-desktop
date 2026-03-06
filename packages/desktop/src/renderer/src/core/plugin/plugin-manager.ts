@@ -1,4 +1,4 @@
-import { buildContributions, PluginContributions } from "./contributions";
+import { buildContributions, PluginContributions, type WindowContribution } from "./contributions";
 import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
@@ -23,6 +23,12 @@ export class PluginManager {
   /** Collect i18n contributions from all plugins */
   async configI18n(): Promise<I18nContributions[]> {
     return this.applyParallel("configI18n");
+  }
+
+  /** Collect window contributions from all plugins (parallel) */
+  async configWindowContributions(): Promise<WindowContribution[]> {
+    const results = await this.applyParallel("configWindowContributions");
+    return results.flat();
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */

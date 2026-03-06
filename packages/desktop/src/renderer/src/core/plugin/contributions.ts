@@ -38,6 +38,13 @@ export interface TitlebarItem {
   component: () => Promise<{ default: React.ComponentType }>;
 }
 
+export interface WindowContribution {
+  /** Unique window type identifier — matches windowType URL param */
+  windowType: string;
+  /** Root component rendered for this window type */
+  component: () => Promise<{ default: React.ComponentType }>;
+}
+
 // ─── Merge ──────────────────────────────────────────────────────────
 
 /** Merge partial contributions from multiple plugins into a complete set */
