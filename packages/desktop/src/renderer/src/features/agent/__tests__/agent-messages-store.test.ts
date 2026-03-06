@@ -62,7 +62,7 @@ describe("AgentStore – messages", () => {
     expect(session.messages).toHaveLength(1);
     const parts = session.messages[0].parts;
     expect(parts).toHaveLength(1);
-    expect(parts[0]).toMatchObject({ type: "thinking", thinking: "reasoning..." });
+    expect(parts[0]).toMatchObject({ type: "reasoning", text: "reasoning..." });
   });
 
   it("appendChunk tool_input_available adds ToolInvocationPart", () => {
@@ -187,7 +187,7 @@ describe("Selector helpers", () => {
           state: "input-available" as const,
           input: {},
         },
-        { type: "thinking" as const, thinking: "hmm" },
+        { type: "reasoning" as const, text: "hmm" },
       ],
     };
     const tools = selectToolParts(msg);
@@ -201,7 +201,7 @@ describe("Selector helpers", () => {
       role: "assistant" as const,
       parts: [
         { type: "text" as const, text: "hello " },
-        { type: "thinking" as const, thinking: "hmm" },
+        { type: "reasoning" as const, text: "hmm" },
         { type: "text" as const, text: "world" },
       ],
     };

@@ -12,6 +12,17 @@ import {
   ReasoningTrigger,
 } from "../../../components/ai-elements/reasoning";
 import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
+import {
+  Attachment,
+  AttachmentPreview,
+  AttachmentInfo,
+} from "../../../components/ai-elements/attachments";
+import {
+  Sources,
+  SourcesTrigger,
+  SourcesContent,
+  Source,
+} from "../../../components/ai-elements/sources";
 
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
@@ -36,11 +47,11 @@ export function MessageList({ messages, sessionId }: Props) {
               switch (part.type) {
                 case "text":
                   return <MessageResponse key={`${msg.id}-text-${i}`}>{part.text}</MessageResponse>;
-                case "thinking":
+                case "reasoning":
                   return (
-                    <Reasoning key={`${msg.id}-thinking-${i}`} isStreaming={false}>
+                    <Reasoning key={`${msg.id}-reasoning-${i}`} isStreaming={false}>
                       <ReasoningTrigger />
-                      <ReasoningContent>{part.thinking}</ReasoningContent>
+                      <ReasoningContent>{part.text}</ReasoningContent>
                     </Reasoning>
                   );
                 case "tool-invocation":
@@ -54,14 +65,33 @@ export function MessageList({ messages, sessionId }: Props) {
                       sessionId={sessionId}
                     />
                   );
-                case "status":
+                case "file":
                   return (
-                    <div
-                      key={`${msg.id}-status-${i}`}
-                      className="text-xs italic text-muted-foreground"
+                    <Attachment
+                      key={`${msg.id}-file-${i}`}
+                      data={{ ...part, id: part.url || `${msg.id}-file-${i}` }}
                     >
-                      {part.message}
-                    </div>
+                      <AttachmentPreview />
+                      <AttachmentInfo showMediaType />
+                    </Attachment>
+                  );
+                case "source-url":
+                  return (
+                    <Sources key={`${msg.id}-source-${i}`}>
+                      <SourcesTrigger count={1} />
+                      <SourcesContent>
+                        <Source href={part.url} title={part.title || part.url} />
+                      </SourcesContent>
+                    </Sources>
+                  );
+                case "source-document":
+                  return (
+                    <Sources key={`${msg.id}-source-${i}`}>
+                      <SourcesTrigger count={1} />
+                      <SourcesContent>
+                        <Source href="#" title={part.title || part.filename || "Document"} />
+                      </SourcesContent>
+                    </Sources>
                   );
                 default:
                   return null;
