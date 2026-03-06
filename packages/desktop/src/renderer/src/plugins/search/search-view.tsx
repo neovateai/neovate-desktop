@@ -155,7 +155,11 @@ function SearchViewComponent({ project }: SearchViewProps) {
   };
 
   const handleMatchClick = (result: SearchResult, line: number) => {
-    console.log("click", result, line);
+    window.dispatchEvent(
+      new CustomEvent("neovate:open-editor", {
+        detail: { fullPath: result.fullPath, line },
+      }),
+    );
   };
 
   const highlightMatch = (text: string, searchQuery: string) => {

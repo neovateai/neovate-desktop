@@ -82,8 +82,12 @@ function FilesViewComponent({ project }: FilesViewProps) {
     setSelectedKey(item.fullPath);
 
     if (!item.isFolder && project) {
-      // TODO: 在内容面板中打开文件
-      console.log("Open file:", item.fullPath);
+      log("open file path=%s", item.relPath);
+      window.dispatchEvent(
+        new CustomEvent("neovate:open-editor", {
+          detail: { fullPath: item.fullPath },
+        }),
+      );
     }
   };
   const handleDelete = async (item: FileTreeItem) => {
@@ -165,7 +169,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const handleAddContext = (item: FileTreeItem) => {
     log("insert-mention dispatching path=%s", item.relPath);
     window.dispatchEvent(
-      new CustomEvent("neovate:insert-mention", { detail: { path: item.relPath } }),
+      new CustomEvent("neovate:insert-mention", {
+        detail: { path: item.relPath },
+      }),
     );
   };
 
