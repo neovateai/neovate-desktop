@@ -15,5 +15,16 @@ export const contract = {
   utils: utilsContract,
   window: {
     ensureWidth: oc.input(z.object({ minWidth: z.number() })),
+    open: oc.input(
+      z.object({
+        windowId: z.string(),
+        windowType: z.string(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        title: z.string().optional(),
+        parent: z.boolean().optional(),
+        urlSearchParams: z.record(z.string()).optional(),
+      }),
+    ),
   },
 };
