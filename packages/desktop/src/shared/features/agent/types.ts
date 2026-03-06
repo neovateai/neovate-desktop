@@ -2,8 +2,10 @@
 // Re-exports from sub-modules
 // ---------------------------------------------------------------------------
 
-import type { StopReason } from "./stream-event";
-import type { CachedMessage, CachedAgentMessage } from "./agent-message";
+import type { StopReason, StreamEvent } from "./stream-event";
+import type { UIMessagePartExtended, UIMessage } from "./ui-message";
+
+export type SessionUIMessage = UIMessagePartExtended | StreamEvent;
 
 // StreamEvent types
 export type {
@@ -20,19 +22,10 @@ export type {
   StreamEvent,
 } from "./stream-event";
 
-// AgentMessage types
-export type {
-  TextPart,
-  ThinkingPart,
-  ToolInvocationPart,
-  StatusPart,
-  AgentMessagePart,
-  AgentMessage,
-  CachedMessage,
-  CachedAgentMessage,
-} from "./agent-message";
+// UIMessage types
+export type { ToolInvocationPart, UIMessagePartExtended, UIMessage } from "./ui-message";
 
-export { getParentToolUseId } from "./agent-message";
+export { getParentToolUseId } from "./ui-message";
 
 // ---------------------------------------------------------------------------
 // Session Metadata
@@ -69,16 +62,10 @@ export type PromptResult = {
 
 /**
  * Persisted session cache for instant resume.
- *
- * Contains both legacy `messages` (for backward compat) and new `agentMessages`.
  */
 export type CachedSession = {
-  /**
-   * @deprecated Use `agentMessages` instead.
-   */
-  messages: CachedMessage[];
-  /** Parts-based cached messages. Present in caches written after the migration. */
-  agentMessages?: CachedAgentMessage[];
+  /** Parts-based cached messages */
+  messages: UIMessage[];
   title?: string;
   cwd?: string;
   updatedAt: string;
