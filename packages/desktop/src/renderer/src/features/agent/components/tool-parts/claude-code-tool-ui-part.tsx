@@ -5,6 +5,7 @@ import type {
 
 import { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
 import { BashToolCard } from "./bash-tool-card";
+import { TodoWriteToolCard } from "./todo-write-tool-card";
 import { EditToolCard } from "./edit-tool-card";
 import { GenericToolCard } from "./generic-tool-card";
 import { GlobToolCard } from "./glob-tool-card";
@@ -13,6 +14,8 @@ import { MultiEditToolCard } from "./multi-edit-tool-card";
 import { NotebookEditToolCard } from "./notebook-edit-tool-card";
 import { ReadToolCard } from "./read-tool-card";
 import { TaskToolCard } from "./task-tool-card";
+import { TaskOutputToolCard } from "./task-output-tool-card";
+import { TaskStopToolCard } from "./task-stop-tool-card";
 import { WebFetchToolCard } from "./web-fetch-tool-card";
 import { WebSearchToolCard } from "./web-search-tool-card";
 import { WriteToolCard } from "./write-tool-card";
@@ -39,6 +42,8 @@ export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
       return <AskUserQuestionToolCard part={part} sessionId={sessionId} />;
     case "Bash":
       return <BashToolCard part={part} />;
+    case "TodoWrite":
+      return <TodoWriteToolCard part={part} />;
     case "Read":
       return <ReadToolCard part={part} />;
     case "Edit":
@@ -59,10 +64,11 @@ export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
       return <NotebookEditToolCard part={part} />;
     case "Task":
       return <TaskToolCard part={part} messages={messages} />;
+    case "TaskOutput":
+      return <TaskOutputToolCard part={part} />;
+    case "TaskStop":
+      return <TaskStopToolCard part={part} />;
     // Simple tools use the generic card
-    case "TodoWrite":
-    case "BashOutput":
-    case "KillShell":
     case "SlashCommand":
     case "ExitPlanMode":
       return <GenericToolCard part={part} />;

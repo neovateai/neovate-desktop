@@ -1,6 +1,7 @@
 export { ClaudeCodeToolUIPart } from "./claude-code-tool-ui-part";
 export { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
 export { BashToolCard } from "./bash-tool-card";
+export { TodoWriteToolCard } from "./todo-write-tool-card";
 export { ReadToolCard } from "./read-tool-card";
 export { EditToolCard } from "./edit-tool-card";
 export { MultiEditToolCard } from "./multi-edit-tool-card";
@@ -11,4 +12,6 @@ export { WebFetchToolCard } from "./web-fetch-tool-card";
 export { WebSearchToolCard } from "./web-search-tool-card";
 export { NotebookEditToolCard } from "./notebook-edit-tool-card";
 export { TaskToolCard } from "./task-tool-card";
+export { TaskOutputToolCard } from "./task-output-tool-card";
+export { TaskStopToolCard } from "./task-stop-tool-card";
 export { GenericToolCard } from "./generic-tool-card";

@@ -2,6 +2,8 @@ import type { InferUITools, ToolSet } from "ai";
 
 export { Bash, type BashUIToolInvocation } from "./bash";
 export { Task, type TaskUIToolInvocation } from "./task";
+export { TaskOutput, type TaskOutputUIToolInvocation } from "./task-output";
+export { TaskStop, type TaskStopUIToolInvocation } from "./task-stop";
 export { Read, type ReadUIToolInvocation } from "./read";
 export { Edit, type EditUIToolInvocation } from "./edit";
 export { MultiEdit, type MultiEditUIToolInvocation } from "./multi-edit";
@@ -21,6 +23,8 @@ export { AskUserQuestion, type AskUserQuestionUIToolInvocation } from "./ask-use
 // Re-import for registry object
 import { Bash } from "./bash";
 import { Task } from "./task";
+import { TaskOutput } from "./task-output";
+import { TaskStop } from "./task-stop";
 import { Read } from "./read";
 import { Edit } from "./edit";
 import { MultiEdit } from "./multi-edit";
@@ -46,6 +50,8 @@ import { AskUserQuestion } from "./ask-user-question";
 export const claudeCodeTools = {
   Bash,
   Task,
+  TaskOutput,
+  TaskStop,
   Read,
   Edit,
   MultiEdit,
