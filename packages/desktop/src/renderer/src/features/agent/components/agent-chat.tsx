@@ -158,7 +158,10 @@ export function AgentChat() {
   );
   return (
     <div className="flex h-full flex-col">
-      <MessageList agentMessages={activeSession.agentMessages} />
+      <MessageList
+        agentMessages={activeSession.agentMessages}
+        sessionId={activeSession.sessionId}
+      />
       {activeSession.pendingPermission && (
         <PermissionDialog
           permission={activeSession.pendingPermission}

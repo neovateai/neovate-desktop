@@ -3,6 +3,7 @@ import type {
   ToolInvocationPart,
 } from "../../../../../../shared/features/agent/types";
 
+import { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
 import { BashToolCard } from "./bash-tool-card";
 import { EditToolCard } from "./edit-tool-card";
 import { GenericToolCard } from "./generic-tool-card";
@@ -20,6 +21,8 @@ type Props = {
   part: ToolInvocationPart;
   /** Full agent message list — only needed by Task tool for child lookup. */
   messages: AgentMessage[];
+  /** Session ID — needed for AskUserQuestion to submit answers. */
+  sessionId?: string;
 };
 
 /**
@@ -30,8 +33,10 @@ type Props = {
  * rendered here — they are rendered inside the `TaskToolCard` to form a
  * nested tree.  The caller should filter them out.
  */
-export function ClaudeCodeToolUIPart({ part, messages }: Props) {
+export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
   switch (part.toolName) {
+    case "AskUserQuestion":
+      return <AskUserQuestionToolCard part={part} sessionId={sessionId} />;
     case "Bash":
       return <BashToolCard part={part} />;
     case "Read":

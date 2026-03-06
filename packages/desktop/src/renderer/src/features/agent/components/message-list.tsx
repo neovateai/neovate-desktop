@@ -23,11 +23,12 @@ type LegacyProps = {
 
 type AgentMessageListProps = {
   agentMessages: AgentMessage[];
+  sessionId?: string;
 };
 
 type Props = AgentMessageListProps & Partial<LegacyProps>;
 
-export function MessageList({ agentMessages }: Props) {
+export function MessageList({ agentMessages, sessionId }: Props) {
   useEffect(() => {
     if (agentMessages?.length) {
       log("agentMessages: %O", agentMessages);
@@ -62,6 +63,7 @@ export function MessageList({ agentMessages }: Props) {
                       key={part.toolCallId}
                       part={part}
                       messages={agentMessages}
+                      sessionId={sessionId}
                     />
                   );
                 case "status":
