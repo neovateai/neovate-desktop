@@ -1,7 +1,7 @@
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
 import { agentContract } from "../../../shared/features/agent/contract";
-import type { StreamEvent } from "../../../shared/features/agent/types";
+import type { UIMessagePart } from "../../../shared/features/agent/types";
 import type { AppContext } from "../../router";
 import {
   loadSessionCache as readSessionCache,
@@ -11,16 +11,10 @@ import { writeModelToSettings } from "./claude-settings";
 
 const agentLog = debug("neovate:agent-router");
 
-function timingEntry(
-  sessionId: string,
-  phase: string,
-  label: string,
-  durationMs: number,
-): StreamEvent {
+function timingEntry(phase: string, label: string, durationMs: number): UIMessagePart {
   return {
-    type: "timing",
-    sessionId,
-    entry: {
+    type: "data-timing",
+    data: {
       phase,
       label,
       durationMs: Math.round(durationMs * 100) / 100,
@@ -70,8 +64,8 @@ export const agentRouter = os.agent.router({
     let permissionEventCount = 0;
     agentLog("loadSession: START sessionId=%s cwd=%s", input.sessionId, input.cwd);
 
-    const pendingPermissionEvents: StreamEvent[] = [];
-    const emitter = (event: StreamEvent) => {
+    const pendingPermissionEvents: UIMessagePart[] = [];
+    const emitter = (event: UIMessagePart) => {
       agentLog("loadSession: permission emitter received event type=%s", event.type);
       pendingPermissionEvents.push(event);
     };
@@ -126,8 +120,8 @@ export const agentRouter = os.agent.router({
       eventCount,
       permissionEventCount,
     );
-    yield timingEntry(input.sessionId, "loadSession", "time_to_first_event", ttfe);
-    yield timingEntry(input.sessionId, "loadSession", "total", totalMs);
+    yield timingEntry("loadSession", "time_to_first_event", ttfe);
+    yield timingEntry("loadSession", "total", totalMs);
     return { sessionId: input.sessionId };
   }),
 
@@ -150,8 +144,8 @@ export const agentRouter = os.agent.router({
       })),
     );
 
-    const pendingPermissionEvents: StreamEvent[] = [];
-    const emitter = (event: StreamEvent) => {
+    const pendingPermissionEvents: UIMessagePart[] = [];
+    const emitter = (event: UIMessagePart) => {
       agentLog("prompt: permission emitter received event type=%s", event.type);
       pendingPermissionEvents.push(event);
     };
@@ -215,8 +209,8 @@ export const agentRouter = os.agent.router({
       eventCount,
       permissionEventCount,
     );
-    yield timingEntry(input.sessionId, "prompt", "time_to_first_event", ttfe);
-    yield timingEntry(input.sessionId, "prompt", "total", totalMs);
+    yield timingEntry("prompt", "time_to_first_event", ttfe);
+    yield timingEntry("prompt", "total", totalMs);
     return { stopReason: "end_turn" };
   }),
 

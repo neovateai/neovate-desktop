@@ -1,8 +1,8 @@
-import type { ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-type Props = { part: ToolInvocationPart };
+type Props = { part: DynamicToolPart };
 
 /** Parses EnterWorktree output string to extract path and branch. */
 function parseWorktreeOutput(output: string | null): {

@@ -1,11 +1,11 @@
-import type { UIMessage, ToolInvocationPart } from "../../../../../../shared/features/agent/types";
+import type { UIMessage, DynamicToolPart } from "../../../../../../shared/features/agent/types";
 
 import { Tool, ToolContent, ToolHeader, ToolOutput } from "../../../../components/ai-elements/tool";
 import { selectChildToolParts } from "../../store";
 import { ClaudeCodeToolUIPart } from "./claude-code-tool-ui-part";
 
 type Props = {
-  part: ToolInvocationPart;
+  part: DynamicToolPart;
   /** The full message list — used for finding child tool parts. */
   messages: UIMessage[];
 };
@@ -20,7 +20,7 @@ export function TaskToolCard({ part, messages }: Props) {
   const input = part.input as { description?: string; prompt?: string };
 
   // Collect child tool parts from all messages
-  const childParts: ToolInvocationPart[] = [];
+  const childParts: DynamicToolPart[] = [];
   for (const msg of messages) {
     childParts.push(...selectChildToolParts(msg, part.toolCallId));
   }

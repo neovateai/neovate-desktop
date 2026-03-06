@@ -2,7 +2,7 @@ import { oc, type, eventIterator } from "@orpc/contract";
 import { z } from "zod";
 import type {
   SessionInfo,
-  StreamEvent,
+  UIMessagePart,
   LoadSessionResult,
   PromptResult,
   SlashCommandInfo,
@@ -48,7 +48,7 @@ export const agentContract = {
         skipReplay: z.boolean().optional(),
       }),
     )
-    .output(eventIterator(type<StreamEvent>(), type<LoadSessionResult>())),
+    .output(eventIterator(type<UIMessagePart>(), type<LoadSessionResult>())),
 
   getSessionCache: oc
     .input(z.object({ sessionId: z.string() }))
@@ -81,7 +81,7 @@ export const agentContract = {
         data: promptErrorDataSchema,
       },
     })
-    .output(eventIterator(type<StreamEvent>(), type<PromptResult>())),
+    .output(eventIterator(type<UIMessagePart>(), type<PromptResult>())),
 
   resolvePermission: oc
     .input(z.object({ requestId: z.string(), allow: z.boolean() }))
