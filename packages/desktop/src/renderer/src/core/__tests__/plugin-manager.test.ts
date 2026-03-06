@@ -186,6 +186,33 @@ describe("PluginManager", () => {
       expect(windows).toHaveLength(1);
       expect(windows[0].windowType).toBe("companion");
     });
+
+    it("throws on duplicate window type", async () => {
+      const plugins: RendererPlugin[] = [
+        {
+          name: "plugin-a",
+          configWindowContributions: () => [
+            { windowType: "companion", component: () => Promise.resolve({ default: () => null }) },
+          ],
+        },
+        {
+          name: "plugin-b",
+          configWindowContributions: () => [
+            { windowType: "companion", component: () => Promise.resolve({ default: () => null }) },
+          ],
+        },
+      ];
+      const pm = new PluginManager(plugins);
+      await expect(pm.configWindowContributions()).rejects.toThrow(
+        'Duplicate window type: "companion"',
+      );
+    });
+
+    it("returns empty array when no plugins have configWindowContributions", async () => {
+      const pm = new PluginManager([{ name: "no-windows" }]);
+      const windows = await pm.configWindowContributions();
+      expect(windows).toEqual([]);
+    });
   });
 
   describe("configI18n", () => {
