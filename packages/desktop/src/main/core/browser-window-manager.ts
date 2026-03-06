@@ -104,7 +104,8 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
     win.on("ready-to-show", () => win.show());
 
-    const params = new URLSearchParams({ windowId, windowType, ...options.urlSearchParams });
+    const { windowId: _, windowType: __, ...safeParams } = options.urlSearchParams ?? {};
+    const params = new URLSearchParams({ windowId, windowType, ...safeParams });
     this.#loadURL(win, params);
 
     win.on("closed", () => this.#windows.delete(windowId));

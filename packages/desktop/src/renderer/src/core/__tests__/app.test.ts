@@ -27,22 +27,6 @@ describe("RendererApp", () => {
     expect(typeof app.workbench.contentPanel.openView).toBe("function");
   });
 
-  it("reads windowType and windowId from URL params", () => {
-    (globalThis as any).window = {
-      location: { search: "?windowType=companion&windowId=companion-1" },
-    };
-    const app = new RendererApp({ plugins: [] });
-    expect(app.windowType).toBe("companion");
-    expect(app.windowId).toBe("companion-1");
-    delete (globalThis as any).window;
-  });
-
-  it("defaults windowType to main and windowId to main", () => {
-    const app = new RendererApp({ plugins: [] });
-    expect(app.windowType).toBe("main");
-    expect(app.windowId).toBe("main");
-  });
-
   it("stop() deactivates plugins and disposes subscriptions", async () => {
     const deactivateFn = vi.fn();
     const disposeFn = vi.fn();

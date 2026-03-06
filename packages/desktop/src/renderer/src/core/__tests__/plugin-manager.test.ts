@@ -182,9 +182,9 @@ describe("PluginManager", () => {
         { name: "plugin-b" },
       ];
       const pm = new PluginManager(plugins);
-      const windows = await pm.configWindowContributions();
-      expect(windows).toHaveLength(1);
-      expect(windows[0].windowType).toBe("companion");
+      await pm.configWindowContributions();
+      expect(pm.windowContributions).toHaveLength(1);
+      expect(pm.windowContributions[0].windowType).toBe("companion");
     });
 
     it("warns and skips duplicate window type", async () => {
@@ -204,8 +204,8 @@ describe("PluginManager", () => {
         },
       ];
       const pm = new PluginManager(plugins);
-      const windows = await pm.configWindowContributions();
-      expect(windows).toHaveLength(1);
+      await pm.configWindowContributions();
+      expect(pm.windowContributions).toHaveLength(1);
       expect(warnSpy).toHaveBeenCalledWith(
         'Plugin "plugin-b" registers duplicate window type "companion" (already registered by "plugin-a"), skipping',
       );
@@ -214,8 +214,8 @@ describe("PluginManager", () => {
 
     it("returns empty array when no plugins have configWindowContributions", async () => {
       const pm = new PluginManager([{ name: "no-windows" }]);
-      const windows = await pm.configWindowContributions();
-      expect(windows).toEqual([]);
+      await pm.configWindowContributions();
+      expect(pm.windowContributions).toEqual([]);
     });
   });
 

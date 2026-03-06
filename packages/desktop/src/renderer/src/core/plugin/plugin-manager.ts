@@ -7,6 +7,10 @@ type HookFn = (...args: unknown[]) => unknown;
 export class PluginManager {
   readonly #plugins: RendererPlugin[];
   contributions: Required<PluginContributions> = buildContributions([]);
+  private _windowContributions: WindowContribution[] = [];
+  get windowContributions(): readonly WindowContribution[] {
+    return this._windowContributions;
+  }
 
   constructor(rawPlugins: RendererPlugin[] = []) {
     this.#plugins = [
@@ -26,7 +30,7 @@ export class PluginManager {
   }
 
   /** Collect window contributions from all plugins (sequential, deduplicates by windowType) */
-  async configWindowContributions(): Promise<WindowContribution[]> {
+  async configWindowContributions(): Promise<void> {
     const seen = new Map<string, string>();
     const result: WindowContribution[] = [];
     for (const plugin of this.#plugins) {
@@ -44,7 +48,7 @@ export class PluginManager {
         result.push(w);
       }
     }
-    return result;
+    this._windowContributions = result;
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */

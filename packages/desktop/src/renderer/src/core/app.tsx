@@ -7,7 +7,7 @@ import { useSettingsStore } from "../features/settings/store";
 import { DisposableStore } from "./disposable";
 import { ToastProvider } from "../components/ui/toast";
 import type { IRendererApp, IWorkbench } from "./types";
-import type { RendererPlugin, PluginContext, WindowContribution } from "./plugin";
+import type { RendererPlugin, PluginContext } from "./plugin";
 import { PluginManager } from "./plugin";
 import { ContentPanel } from "../features/content-panel";
 import type { ProjectTabState } from "../features/content-panel";
@@ -98,8 +98,8 @@ export interface RendererAppOptions {
 export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
-  readonly windowType: string;
-  readonly windowId: string;
+  readonly #windowType: string;
+  readonly #windowId: string;
   readonly subscriptions = new DisposableStore();
   readonly settings = new SettingsService({
     load: async () => {
@@ -110,14 +110,13 @@ export class RendererApp implements IRendererApp {
       return client.storage.set({ namespace: "config", key: "settings", value: data });
     },
   });
-  windows: WindowContribution[] = [];
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
     const search = typeof window !== "undefined" ? window.location.search : "";
     const params = new URLSearchParams(search);
-    this.windowType = params.get("windowType") ?? "main";
-    this.windowId = params.get("windowId") ?? "main";
+    this.#windowType = params.get("windowType") ?? "main";
+    this.#windowId = params.get("windowId") ?? "main";
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
     this.i18nManager = new I18nManager();
   }
@@ -148,9 +147,9 @@ export class RendererApp implements IRendererApp {
     await this.hydrate();
 
     // Collect window contributions — all windows (needed for lookup)
-    this.windows = await this.pluginManager.configWindowContributions();
+    await this.pluginManager.configWindowContributions();
 
-    if (this.windowType === "main") {
+    if (this.#windowType === "main") {
       // Main window — full plugin UI
       await this.pluginManager.configContributions();
       this.initWorkbench();
@@ -162,7 +161,7 @@ export class RendererApp implements IRendererApp {
   }
 
   async stop(): Promise<void> {
-    if (this.windowType === "main") {
+    if (this.#windowType === "main") {
       await this.pluginManager.deactivate();
       this.workbench.contentPanel.dispose();
     }
@@ -181,12 +180,14 @@ export class RendererApp implements IRendererApp {
 
     let AppComponent: React.ComponentType;
 
-    if (this.windowType === "main") {
+    if (this.#windowType === "main") {
       AppComponent = (await import("../App")).default;
     } else {
-      const windowDef = this.windows.find((w) => w.windowType === this.windowType);
+      const windowDef = this.pluginManager.windowContributions.find(
+        (w) => w.windowType === this.#windowType,
+      );
       if (!windowDef) {
-        AppComponent = () => <div>Unknown window type: {this.windowType}</div>;
+        AppComponent = () => <div>Unknown window type: {this.#windowType}</div>;
       } else {
         AppComponent = lazy(windowDef.component);
       }
@@ -199,7 +200,7 @@ export class RendererApp implements IRendererApp {
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <ToastProvider>
                 <ThemeSync />
-                {this.windowType === "main" && <MenuCommandHandler />}
+                {this.#windowType === "main" && <MenuCommandHandler />}
                 <Suspense>
                   <AppComponent />
                 </Suspense>
