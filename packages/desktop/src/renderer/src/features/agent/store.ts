@@ -7,7 +7,7 @@ import type {
   TimingEntry,
   SlashCommandInfo,
   CachedSession,
-  AgentMessage,
+  RenderingMessage,
   ToolInvocationPart,
 } from "../../../../shared/features/agent/types";
 import type { ClaudeCodeToolName } from "../../../../shared/features/agent/tools";
@@ -18,7 +18,7 @@ const storeLog = debug("neovate:agent-store");
 enableMapSet();
 
 /**
- * @deprecated Use {@link AgentMessage} from shared types instead.
+ * @deprecated Use {@link RenderingMessage} from shared types instead.
  * Flat message type kept for backward compatibility.
  */
 export type ChatMessage = {
@@ -31,7 +31,7 @@ export type ChatMessage = {
 };
 
 /**
- * @deprecated Tool state is now embedded in `AgentMessage.parts` as `ToolInvocationPart`.
+ * @deprecated Tool state is now embedded in `RenderingMessage.parts` as `ToolInvocationPart`.
  */
 export type ToolCallState = {
   toolCallId: string;
@@ -71,7 +71,7 @@ export type ChatSession = {
   createdAt: string;
   isNew: boolean;
   /** Parts-based message list for rendering. */
-  messages: AgentMessage[];
+  messages: RenderingMessage[];
   streaming: boolean;
   promptError: string | null;
   pendingPermission: PendingPermission | null;
@@ -85,13 +85,13 @@ export type ChatSession = {
 // Selector helpers
 // ---------------------------------------------------------------------------
 
-/** Extract all tool invocation parts from an agent message. */
-export function selectToolParts(message: AgentMessage): ToolInvocationPart[] {
+/** Extract all tool invocation parts from a rendering message. */
+export function selectToolParts(message: RenderingMessage): ToolInvocationPart[] {
   return message.parts.filter((p): p is ToolInvocationPart => p.type === "tool-invocation");
 }
 
-/** Extract the concatenated text content from an agent message. */
-export function selectTextContent(message: AgentMessage): string {
+/** Extract the concatenated text content from a rendering message. */
+export function selectTextContent(message: RenderingMessage): string {
   return message.parts
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
@@ -100,7 +100,7 @@ export function selectTextContent(message: AgentMessage): string {
 
 /** Extract child tool parts belonging to a given parent tool call. */
 export function selectChildToolParts(
-  message: AgentMessage,
+  message: RenderingMessage,
   parentToolCallId: string,
 ): ToolInvocationPart[] {
   return message.parts.filter(
@@ -351,12 +351,12 @@ export const useAgentStore = create<AgentState>()(
           return;
         }
 
-        // ── Helper: get or create the last assistant AgentMessage ──
-        const getOrCreateAssistantAgentMsg = () => {
+        // ── Helper: get or create the last assistant RenderingMessage ──
+        const getOrCreateAssistantMsg = () => {
           const last = session.messages[session.messages.length - 1];
           if (last && last.role === "assistant") return last;
           state._nextMessageId += 1;
-          const msg: AgentMessage = {
+          const msg: RenderingMessage = {
             id: `am-${state._nextMessageId}`,
             role: "assistant",
             parts: [],
@@ -427,7 +427,7 @@ export const useAgentStore = create<AgentState>()(
 
           case "text_delta": {
             // ── Parts-based ──
-            const amMsg = getOrCreateAssistantAgentMsg();
+            const amMsg = getOrCreateAssistantMsg();
             const lastPart = amMsg.parts[amMsg.parts.length - 1];
             if (lastPart && lastPart.type === "text") {
               lastPart.text += event.text;
@@ -439,7 +439,7 @@ export const useAgentStore = create<AgentState>()(
 
           case "thinking_delta": {
             // ── Parts-based ──
-            const amMsg = getOrCreateAssistantAgentMsg();
+            const amMsg = getOrCreateAssistantMsg();
             const lastPart = amMsg.parts[amMsg.parts.length - 1];
             if (lastPart && lastPart.type === "thinking") {
               lastPart.thinking += event.text;
@@ -458,7 +458,7 @@ export const useAgentStore = create<AgentState>()(
               event.toolName,
               event.parentToolUseId ?? "-",
             );
-            const amMsg = getOrCreateAssistantAgentMsg();
+            const amMsg = getOrCreateAssistantMsg();
             amMsg.parts.push({
               type: "tool-invocation",
               toolCallId: event.toolCallId,

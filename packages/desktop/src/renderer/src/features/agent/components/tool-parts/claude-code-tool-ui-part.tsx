@@ -1,7 +1,4 @@
-import type {
-  AgentMessage,
-  ToolInvocationPart,
-} from "../../../../../../shared/features/agent/types";
+import type { UIMessage, ToolInvocationPart } from "../../../../../../shared/features/agent/types";
 
 import { AskUserQuestionToolCard } from "./ask-user-question-tool-card";
 import { BashToolCard } from "./bash-tool-card";
@@ -23,7 +20,7 @@ import { WriteToolCard } from "./write-tool-card";
 type Props = {
   part: ToolInvocationPart;
   /** Full agent message list — only needed by Task tool for child lookup. */
-  messages: AgentMessage[];
+  messages: UIMessage[];
   /** Session ID — needed for AskUserQuestion to submit answers. */
   sessionId?: string;
 };

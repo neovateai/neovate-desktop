@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type { StopReason } from "./stream-event";
-import type { CachedAgentMessage } from "./agent-message";
+import type { RenderingMessage } from "./rendering-message";
 
 // StreamEvent types
 export type {
@@ -20,18 +20,10 @@ export type {
   StreamEvent,
 } from "./stream-event";
 
-// AgentMessage types
-export type {
-  TextPart,
-  ThinkingPart,
-  ToolInvocationPart,
-  StatusPart,
-  AgentMessagePart,
-  AgentMessage,
-  CachedAgentMessage,
-} from "./agent-message";
+// RenderingMessage types
+export type { ToolInvocationPart, RenderingMessage } from "./rendering-message";
 
-export { getParentToolUseId } from "./agent-message";
+export { getParentToolUseId } from "./rendering-message";
 
 // ---------------------------------------------------------------------------
 // Session Metadata
@@ -71,7 +63,7 @@ export type PromptResult = {
  */
 export type CachedSession = {
   /** Parts-based cached messages */
-  messages: CachedAgentMessage[];
+  messages: RenderingMessage[];
   title?: string;
   cwd?: string;
   updatedAt: string;

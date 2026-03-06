@@ -1,5 +1,5 @@
 import type {
-  AgentMessage,
+  RenderingMessage,
   ToolInvocationPart,
 } from "../../../../../../shared/features/agent/types";
 
@@ -9,8 +9,8 @@ import { ClaudeCodeToolUIPart } from "./claude-code-tool-ui-part";
 
 type Props = {
   part: ToolInvocationPart;
-  /** The full agent message list — used for finding child tool parts. */
-  messages: AgentMessage[];
+  /** The full message list — used for finding child tool parts. */
+  messages: RenderingMessage[];
 };
 
 /**

@@ -1,14 +1,9 @@
+import { type UITools, type UIDataTypes, type UIMessage } from "ai";
 import type { ClaudeCodeToolName } from "./tools";
 
 // ---------------------------------------------------------------------------
-// Agent Message Parts
+// Rendering Message Parts
 // ---------------------------------------------------------------------------
-
-/** Plain text content part */
-export type TextPart = { type: "text"; text: string };
-
-/** Extended thinking/reasoning content part */
-export type ThinkingPart = { type: "thinking"; thinking: string };
 
 /**
  * Tool invocation part that tracks a single tool call lifecycle.
@@ -27,38 +22,21 @@ export type ToolInvocationPart = {
   parentToolUseId?: string;
 };
 
-/** Lightweight status message part */
-export type StatusPart = { type: "status"; message: string };
-
-/** Discriminated union of all agent message part types */
-export type AgentMessagePart = TextPart | ThinkingPart | ToolInvocationPart | StatusPart;
-
 // ---------------------------------------------------------------------------
-// Agent Message
+// Rendering Message
 // ---------------------------------------------------------------------------
 
 /**
- * Parts-based agent message for UI rendering.
+ * Parts-based message for UI rendering.
  *
  * Each message contains an ordered array of typed parts that can be
  * individually rendered by UI components.
  */
-export type AgentMessage = {
-  id: string;
-  role: "user" | "assistant";
-  parts: AgentMessagePart[];
-};
-
-// ---------------------------------------------------------------------------
-// Cache Types
-// ---------------------------------------------------------------------------
-
-/** Cached parts-based agent message for persisted session display */
-export type CachedAgentMessage = {
-  id: string;
-  role: "user" | "assistant";
-  parts: AgentMessagePart[];
-};
+export type RenderingMessage<
+  METADATA = unknown,
+  DATA_PARTS extends UIDataTypes = UIDataTypes,
+  TOOLS extends UITools = UITools,
+> = UIMessage<METADATA, DATA_PARTS, TOOLS>;
 
 // ---------------------------------------------------------------------------
 // Helpers
