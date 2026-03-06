@@ -21,6 +21,8 @@ export { ExitPlanMode, type ExitPlanModeUIToolInvocation } from "./exit-plan-mod
 export { NotebookEdit, type NotebookEditUIToolInvocation } from "./notebook-edit";
 export { AskUserQuestion, type AskUserQuestionUIToolInvocation } from "./ask-user-question";
 export { Skill, type SkillUIToolInvocation } from "./skill";
+export { EnterPlanMode, type EnterPlanModeUIToolInvocation } from "./enter-plan-mode";
+export { EnterWorktree, type EnterWorktreeUIToolInvocation } from "./enter-worktree";
 
 // Re-import for registry object
 import { Bash } from "./bash";
@@ -44,6 +46,8 @@ import { ExitPlanMode } from "./exit-plan-mode";
 import { NotebookEdit } from "./notebook-edit";
 import { AskUserQuestion } from "./ask-user-question";
 import { Skill } from "./skill";
+import { EnterPlanMode } from "./enter-plan-mode";
+import { EnterWorktree } from "./enter-worktree";
 
 /**
  * Registry of all Claude Code tools with Zod schemas.
@@ -73,6 +77,8 @@ export const claudeCodeTools = {
   NotebookEdit,
   AskUserQuestion,
   Skill,
+  EnterPlanMode,
+  EnterWorktree,
 } satisfies ToolSet;
 
 /**

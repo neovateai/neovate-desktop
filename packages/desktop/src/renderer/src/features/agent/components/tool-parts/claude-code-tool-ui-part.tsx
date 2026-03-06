@@ -18,6 +18,9 @@ import { WebFetchToolCard } from "./web-fetch-tool-card";
 import { WebSearchToolCard } from "./web-search-tool-card";
 import { WriteToolCard } from "./write-tool-card";
 import { SkillToolCard } from "./skill-tool-card";
+import { EnterPlanModeToolCard } from "./enter-plan-mode-tool-card";
+import { ExitPlanModeToolCard } from "./exit-plan-mode-tool-card";
+import { EnterWorktreeToolCard } from "./enter-worktree-tool-card";
 
 type Props = {
   part: ToolInvocationPart;
@@ -36,7 +39,7 @@ type Props = {
  * nested tree.  The caller should filter them out.
  */
 export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
-  console.log(part.toolName);
+  console.log(part.toolName, JSON.stringify(part), messages);
   switch (part.toolName) {
     case "AskUserQuestion":
       return <AskUserQuestionToolCard part={part} sessionId={sessionId} />;
@@ -72,9 +75,14 @@ export function ClaudeCodeToolUIPart({ part, messages, sessionId }: Props) {
       return <TaskStopToolCard part={part} />;
     case "Skill":
       return <SkillToolCard part={part} />;
+    case "EnterPlanMode":
+      return <EnterPlanModeToolCard part={part} />;
+    case "ExitPlanMode":
+      return <ExitPlanModeToolCard part={part} />;
+    case "EnterWorktree":
+      return <EnterWorktreeToolCard part={part} />;
     // Simple tools use the generic card
     case "SlashCommand":
-    case "ExitPlanMode":
       return <GenericToolCard part={part} />;
     default:
       // Future-proof: unknown tool names fall through to generic
