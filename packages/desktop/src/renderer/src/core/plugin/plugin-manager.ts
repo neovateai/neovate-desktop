@@ -30,13 +30,16 @@ export class PluginManager {
     const results = await this.applyParallel("configWindowContributions");
     const all = results.flat();
     const seen = new Set<string>();
+    const unique: WindowContribution[] = [];
     for (const w of all) {
       if (seen.has(w.windowType)) {
-        throw new Error(`Duplicate window type: "${w.windowType}"`);
+        console.warn(`Duplicate window type: "${w.windowType}", skipping`);
+        continue;
       }
       seen.add(w.windowType);
+      unique.push(w);
     }
-    return all;
+    return unique;
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */
