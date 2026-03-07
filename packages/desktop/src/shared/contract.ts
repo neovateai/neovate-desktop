@@ -17,7 +17,6 @@ export const contract = {
     ensureWidth: oc.input(z.object({ minWidth: z.number() })),
     open: oc.input(
       z.object({
-        windowId: z.string(),
         windowType: z.string(),
         width: z.number().optional(),
         height: z.number().optional(),

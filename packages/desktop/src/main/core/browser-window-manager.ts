@@ -5,6 +5,7 @@ import { join } from "path";
 import { shell, screen, BrowserWindow } from "electron";
 import { is } from "@electron-toolkit/utils";
 import icon from "../../../resources/icon.png?asset";
+import { randomUUID } from "node:crypto";
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 type WindowStore = { bounds: Electron.Rectangle };
@@ -19,7 +20,7 @@ function stripColors(msg: string): string {
 
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
-  #windows = new Map<string, BrowserWindow>();
+  #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: path.join(os.homedir(), ".neovate-desktop"),
@@ -76,24 +77,29 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   }
 
   /**
-   * Open a secondary window by ID.
-   * Focuses existing window if already open.
-   * Renderer reads `windowType` from URL params to decide what to render.
+   * Open a secondary window.
+   * Singleton by windowType — focuses existing window of the same type.
+   * Renderer reads `windowType` and `windowId` from URL params.
    */
   open(options: OpenWindowOptions): void {
-    const { windowId, windowType, width = 800, height = 600, title, parent = false } = options;
+    const { windowType, width = 800, height = 600, title, parent = false } = options;
 
-    const existing = this.#windows.get(windowId);
-    if (existing && !existing.isDestroyed()) {
-      existing.focus();
-      return;
+    // Singleton: focus existing window of the same type
+    for (const [id, entry] of this.#windows) {
+      if (entry.windowType === windowType) {
+        if (!entry.win.isDestroyed()) {
+          entry.win.focus();
+          return;
+        }
+        this.#windows.delete(id);
+      }
     }
-    if (existing) this.#windows.delete(windowId);
 
+    const windowId = `${windowType}_${randomUUID()}`;
     const win = new BrowserWindow({
       width,
       height,
-      title: title ?? windowId,
+      title: title ?? windowType,
       show: false,
       ...(parent && this.#mainWindow ? { parent: this.#mainWindow } : {}),
       webPreferences: {
@@ -115,12 +121,12 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     });
 
     this.#pipeConsole(win);
-    this.#windows.set(windowId, win);
+    this.#windows.set(windowId, { win, windowType });
   }
 
   close(windowId: string): void {
-    const win = this.#windows.get(windowId);
-    if (win && !win.isDestroyed()) win.close();
+    const entry = this.#windows.get(windowId);
+    if (entry && !entry.win.isDestroyed()) entry.win.close();
   }
 
   destroyAll(): void {
@@ -128,7 +134,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       this.#mainWindow.destroy();
       this.#mainWindow = null;
     }
-    for (const win of this.#windows.values()) {
+    for (const { win } of this.#windows.values()) {
       if (!win.isDestroyed()) win.destroy();
     }
     this.#windows.clear();

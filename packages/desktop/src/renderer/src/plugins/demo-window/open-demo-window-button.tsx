@@ -12,7 +12,6 @@ export default function OpenDemoWindowButton() {
       title="Open Demo Window"
       onClick={() =>
         client.window.open({
-          windowId: `demo-${Date.now()}`,
           windowType: "demo",
           width: 400,
           height: 300,
