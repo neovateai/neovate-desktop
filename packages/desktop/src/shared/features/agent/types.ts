@@ -9,6 +9,7 @@ export type { DynamicToolPart, UIMessagePart, UIMessage } from "./ui-message";
 
 // Base types (re-exported from ui-message.ts)
 export type {
+  ModelInfo,
   StopReason,
   TaskStatus,
   RateLimitStatus,
@@ -26,14 +27,6 @@ export { getParentToolUseId } from "./ui-message";
 
 /** Agent metadata for subagent invocation */
 export type AgentInfo = { name: string; description: string; model?: string };
-
-export type ModelInfo = {
-  value: string;
-  displayName: string;
-  description: string;
-  supportsEffort?: boolean;
-  supportedEffortLevels?: ("low" | "medium" | "high" | "max")[];
-};
 
 export type AccountInfo = {
   email?: string;
@@ -93,6 +86,21 @@ export type McpSetServersResult = {
   added: string[];
   removed: string[];
   errors: Record<string, string>;
+};
+
+/** Image attachment sent alongside a prompt */
+export type ImageAttachment = {
+  id: string;
+  filename: string;
+  mediaType: string;
+  base64: string;
+};
+
+export type TimingEntry = {
+  phase: string;
+  label: string;
+  durationMs: number;
+  timestamp: number;
 };
 
 export type SlashCommandInfo = {

@@ -431,12 +431,12 @@ export class SessionManager {
       }));
       if (models.length > 0) {
         eventCount++;
-        yield { type: "available_models", sessionId, models };
+        yield { type: "data-available-models", data: { sessionId, models } };
       }
       const currentModel = readModelFromSettings(sessionId, resolvedCwd);
       if (currentModel) {
         eventCount++;
-        yield { type: "current_model", sessionId, model: currentModel };
+        yield { type: "data-current-model", data: { sessionId, model: currentModel } };
       }
 
       // Replay history from persisted messages (skip if renderer has cache)

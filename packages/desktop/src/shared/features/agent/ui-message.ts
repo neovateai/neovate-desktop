@@ -32,6 +32,14 @@ export type RateLimitType =
   | "seven_day_sonnet"
   | "overage";
 
+export type ModelInfo = {
+  value: string;
+  displayName: string;
+  description: string;
+  supportsEffort?: boolean;
+  supportedEffortLevels?: ("low" | "medium" | "high" | "max")[];
+};
+
 /** Rate limit information structure */
 export type RateLimitInfo = {
   status: RateLimitStatus;
@@ -90,6 +98,8 @@ export type ClaudeCodeDataTypes = {
     input: unknown;
   };
   // Other metadata
+  "available-models": { sessionId: string; models: ModelInfo[] };
+  "current-model": { sessionId: string; model: string };
   "available-commands": { commands: SlashCommandInfo[] };
   "compact-boundary": { trigger: string; preTokens: number };
   "local-command-output": { content: string };
