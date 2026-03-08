@@ -49,17 +49,15 @@ export class SessionManager {
   private requestIdCounter = 0;
   private permissionEmitter: PermissionEmitter | null = null;
 
-  // V2: per-session data for stream/subscribe/dispatch endpoints
-  private sessionsV2 = new Map<
-    string,
-    {
-      publisher: EventPublisher<{ subscribe: ClaudeCodeUIEvent }>;
-      pendingRequests: Map<string, {
-        resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
-        timer: ReturnType<typeof setTimeout>;
-      }>;
-    }
-  >();
+  // V2: single global publisher — sessionId is the channel key
+  private publisher = new EventPublisher<Record<string, ClaudeCodeUIEvent>>();
+  // V2: per-session pending permission requests
+  private sessionsV2 = new Map<string, {
+    pendingRequests: Map<string, {
+      resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }>;
+  }>();
 
   private async buildOptions(cwd: string, model?: string, sessionId?: string): Promise<Options> {
     const t0 = performance.now();
@@ -157,7 +155,7 @@ export class SessionManager {
               },
               timer,
             });
-            v2.publisher.publish("subscribe", {
+            this.publisher.publish(sessionId, {
               kind: "request",
               requestId,
               request: {
@@ -197,10 +195,7 @@ export class SessionManager {
 
     const sessionId = randomUUID();
     // Init V2 subscribe channel before buildOptions (canUseTool needs it)
-    this.sessionsV2.set(sessionId, {
-      publisher: new EventPublisher(),
-      pendingRequests: new Map(),
-    });
+    this.sessionsV2.set(sessionId, { pendingRequests: new Map() });
     const options = await this.buildOptions(cwd, model, sessionId);
     log("createSession: options built in %dms", Math.round(performance.now() - t0));
     const input = new Pushable<SDKUserMessage>();
@@ -488,8 +483,9 @@ export class SessionManager {
   // ─── V2 API ───────────────────────────────────────────────────────────────────
 
   /** V2: get subscribe async generator for a session */
-  getSubscribeIterator(sessionId: string): AsyncGenerator<ClaudeCodeUIEvent> | undefined {
-    return this.sessionsV2.get(sessionId)?.publisher.subscribe("subscribe");
+  getSubscribeIterator(sessionId: string, signal?: AbortSignal): AsyncGenerator<ClaudeCodeUIEvent> | undefined {
+    if (!this.sessionsV2.has(sessionId)) return undefined;
+    return this.publisher.subscribe(sessionId, { signal });
   }
 
   /**
@@ -529,7 +525,7 @@ export class SessionManager {
       // Route events to subscribe channel
       if (v2) {
         const event = toUIEvent(msg as any);
-        if (event) v2.publisher.publish("subscribe", event);
+        if (event) this.publisher.publish(sessionId, event);
       }
 
       if (msg.type === "result") break;
