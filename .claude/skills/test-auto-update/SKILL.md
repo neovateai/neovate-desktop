@@ -98,23 +98,46 @@ screencapture -v -V30 -C test-auto-update.mov
 
 `-V30` records for 30 seconds. Adjust as needed. Start this **before** launching the app.
 
-### 3.3 Launch the old version
+### 3.3 Launch the app with CDP enabled
+
+Launch with `ELECTRON_CDP_PORT` so agent-browser can connect for UI interaction:
 
 ```bash
-open "/Applications/Neovate Dev.app"
+ELECTRON_CDP_PORT=9223 "/Applications/Neovate Dev.app/Contents/MacOS/Neovate Dev" &
 ```
 
-### 3.4 Observe the update flow
+**Note:** Do NOT use `open` — it doesn't forward environment variables to the app process.
+
+**Verify CDP is available:**
+```bash
+curl -s http://localhost:9223/json/version | head -1
+```
+
+### 3.4 Connect agent-browser
+
+```bash
+agent-browser connect http://localhost:9223
+```
+
+Then select the app's main window tab:
+```bash
+agent-browser tab
+agent-browser tab <n>
+```
+
+### 3.5 Observe the update flow
 
 The app auto-checks on launch. Expected sequence:
 1. App detects v0.2.0 available (within a few seconds)
 2. Toast appears with download progress
 3. Toast changes to **"Update 0.2.0 ready"** with **Later** / **Restart** buttons
 
-### 3.5 Test toast interactions
+Use `agent-browser screenshot` to capture each state for verification.
 
-- **Click "Later"**: Toast dismisses, app continues running
-- **Click "Restart"**: App quits and relaunches with new version
+### 3.6 Test toast interactions via agent-browser
+
+- **Click "Later"**: `agent-browser click "Later"` — Toast dismisses, app continues running
+- **Click "Restart"**: `agent-browser click "Restart"` — App quits and relaunches with new version
 
 ## Phase 4: Verify Update Applied
 
@@ -123,7 +146,7 @@ The app auto-checks on launch. Expected sequence:
 ```bash
 osascript -e 'tell application "Neovate Dev" to quit'
 sleep 2
-open "/Applications/Neovate Dev.app"
+ELECTRON_CDP_PORT=9223 "/Applications/Neovate Dev.app/Contents/MacOS/Neovate Dev" &
 ```
 
 ### 4.2 Check version
@@ -153,10 +176,10 @@ Kill the update server if still running.
 | # | Scenario | How to verify | Expected |
 |---|----------|---------------|----------|
 | 1 | Auto-check on launch | Launch v0.1.0 with update server running | Toast appears within seconds |
-| 2 | Download progress | Watch toast | Shows "Downloading..." with progress bar |
-| 3 | Update ready | Wait for download to complete | Toast: "Update 0.2.0 ready" with Later / Restart |
-| 4 | Dismiss toast | Click "Later" | Toast disappears, app keeps running |
-| 5 | Restart to update | Click "Restart" | App quits, relaunches as v0.2.0 |
+| 2 | Download progress | `agent-browser screenshot` during download | Shows "Downloading..." with progress bar |
+| 3 | Update ready | `agent-browser screenshot` after download | Toast: "Update 0.2.0 ready" with Later / Restart |
+| 4 | Dismiss toast | `agent-browser click "Later"` | Toast disappears, app keeps running |
+| 5 | Restart to update | `agent-browser click "Restart"` | App quits, relaunches as v0.2.0 |
 | 6 | Auto-apply on relaunch | Quit app (without clicking Restart), relaunch | `CFBundleShortVersionString` is `0.2.0` |
 
 ## Troubleshooting
@@ -168,8 +191,9 @@ Kill the update server if still running.
 | Multiple certs same name | Ran setup multiple times | `security delete-certificate -Z <hash>` |
 | `errSecInternalComponent` | Keychain locked | `security unlock-keychain ~/Library/Keychains/login.keychain-db` |
 | Toast doesn't appear | Update server not running or wrong version | Check `curl http://localhost:8080/latest-mac.yml` |
-| No update detected | App version ≥ server version | Ensure installed app is v0.1.0, server has v0.2.0 |
+| No update detected | App version >= server version | Ensure installed app is v0.1.0, server has v0.2.0 |
 | codesign fails silently | Identity name mismatch | `LOCAL_UPDATE_SIGN_IDENTITY` env var or check `electron-builder.local.mjs` |
+| agent-browser can't connect | App not launched with `ELECTRON_CDP_PORT` | Must use direct binary launch, not `open` |
 
 ## Key Behaviors
 
@@ -177,6 +201,7 @@ Kill the update server if still running.
 - **autoDownload = false**: `UpdaterService` calls `downloadUpdate()` explicitly after detecting availability, so the toast can show progress
 - **State guards**: `check()` is no-op when status is `checking` / `downloading` / `available` / `ready`
 - **dev-app-update.yml**: In dev mode, electron-updater reads this file (points to `http://localhost:8080`) instead of the packaged `app-update.yml`
+- **CDP via env var**: Set `ELECTRON_CDP_PORT=9223` when launching to enable agent-browser access
 
 ## Deliverable
 
