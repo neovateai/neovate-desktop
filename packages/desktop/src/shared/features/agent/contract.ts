@@ -126,6 +126,10 @@ export const agentContract = {
     .input(type<{ sessionId: string; servers: Record<string, McpServerConfig> }>())
     .output(type<McpSetServersResult>()),
 
+  renameSession: oc
+    .input(z.object({ sessionId: z.string(), title: z.string() }))
+    .output(type<void>()),
+
   setModelSetting: oc
     .input(z.object({ sessionId: z.string(), model: z.string() }))
     .output(type<void>()),

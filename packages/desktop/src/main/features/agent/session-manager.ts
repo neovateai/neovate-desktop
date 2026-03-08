@@ -14,6 +14,10 @@ import type {
   PermissionMode as SDKPermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
 import { randomUUID } from "node:crypto";
+import { appendFile } from "node:fs/promises";
+import { globSync } from "node:fs";
+import { homedir } from "node:os";
+import path from "node:path";
 import debug from "debug";
 import type {
   StreamEvent,
@@ -594,6 +598,19 @@ export class SessionManager {
   ): Promise<McpSetServersResult> {
     log("setMcpServers: sessionId=%s serverCount=%d", sessionId, Object.keys(servers).length);
     return await this.getQuery(sessionId).setMcpServers(servers);
+  }
+
+  async renameSession(sessionId: string, title: string): Promise<void> {
+    log("renameSession: sessionId=%s title=%s", sessionId, title);
+    const matches = globSync(
+      path.join(homedir(), ".claude", "projects", "*", `${sessionId}.jsonl`),
+    );
+    if (matches.length === 0) {
+      throw new Error(`Session file not found: ${sessionId}`);
+    }
+    const entry = JSON.stringify({ type: "custom-title", customTitle: title, sessionId });
+    await appendFile(matches[0], entry + "\n");
+    log("renameSession: DONE sessionId=%s", sessionId);
   }
 
   async closeSession(sessionId: string): Promise<void> {

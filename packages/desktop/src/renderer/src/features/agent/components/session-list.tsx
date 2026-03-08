@@ -1,127 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pin, PinOff, Archive, Copy, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import debug from "debug";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { client } from "../../../orpc";
 
 const listLog = debug("neovate:agent-session-list");
-import { cn } from "../../../lib/utils";
-import {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuPopup,
-  ContextMenuItem,
-  ContextMenuSeparator,
-} from "../../../components/ui/context-menu";
 import { Button } from "../../../components/ui/button";
 import { useNewSession } from "../hooks/use-new-session";
+import { SessionItem } from "./session-item";
 import type { ChatSession } from "../store";
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
-
-function timeAgo(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
-
-// --- SessionItemRow ---
-
-function SessionItemRow({
-  sessionId,
-  title,
-  createdAt,
-  isActive,
-  isPinned,
-  isRestoring,
-  subtitle,
-  onClick,
-  projectPath,
-}: {
-  sessionId: string;
-  title?: string;
-  createdAt: string;
-  isActive: boolean;
-  isPinned: boolean;
-  isRestoring: boolean;
-  subtitle?: string;
-  onClick: () => void;
-  projectPath: string;
-}) {
-  const archiveSession = useProjectStore((s) => s.archiveSession);
-  const togglePinSession = useProjectStore((s) => s.togglePinSession);
-
-  const handleCopySessionId = () => {
-    navigator.clipboard.writeText(sessionId);
-  };
-
-  return (
-    <li>
-      <ContextMenu>
-        <ContextMenuTrigger
-          className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors cursor-pointer group",
-            isActive
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent/50",
-          )}
-          onClick={onClick}
-        >
-          <div className="flex-1 min-w-0">
-            <span className="block truncate">
-              {isRestoring ? "Restoring..." : title || sessionId.slice(0, 8)}
-            </span>
-            <span className="block truncate text-[10px] opacity-60">
-              {subtitle ? `${subtitle} · ` : ""}
-              {timeAgo(createdAt)}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="hidden shrink-0 group-hover:block"
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePinSession(projectPath, sessionId);
-            }}
-          >
-            {isPinned ? (
-              <PinOff size={12} strokeWidth={1.5} />
-            ) : (
-              <Pin size={12} strokeWidth={1.5} />
-            )}
-          </button>
-        </ContextMenuTrigger>
-        <ContextMenuPopup>
-          <ContextMenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
-            {isPinned ? (
-              <>
-                <PinOff size={14} /> Unpin
-              </>
-            ) : (
-              <>
-                <Pin size={14} /> Pin
-              </>
-            )}
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => archiveSession(projectPath, sessionId)}>
-            <Archive size={14} /> Archive
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={handleCopySessionId}>
-            <Copy size={14} /> Copy session ID
-          </ContextMenuItem>
-        </ContextMenuPopup>
-      </ContextMenu>
-    </li>
-  );
-}
 
 // --- SessionList ---
 
@@ -288,7 +177,7 @@ export function SessionList() {
     if (item.kind === "memory") {
       const s = item.session;
       return (
-        <SessionItemRow
+        <SessionItem
           key={s.sessionId}
           sessionId={s.sessionId}
           title={s.title}
@@ -296,7 +185,8 @@ export function SessionList() {
           isActive={s.sessionId === activeSessionId}
           isPinned={isPinned(s.sessionId)}
           isRestoring={false}
-          subtitle={`${s.messages.length} msg${s.messages.length !== 1 ? "s" : ""}${s.streaming ? " · streaming" : ""}`}
+          isStreaming={s.streaming}
+          hasPendingPermission={s.pendingPermission !== null}
           onClick={() => setActiveSession(s.sessionId)}
           projectPath={projectPath}
         />
@@ -304,7 +194,7 @@ export function SessionList() {
     }
     const info = item.info;
     return (
-      <SessionItemRow
+      <SessionItem
         key={info.sessionId}
         sessionId={info.sessionId}
         title={info.title}

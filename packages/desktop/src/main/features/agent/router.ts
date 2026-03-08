@@ -284,6 +284,11 @@ export const agentRouter = os.agent.router({
     return context.sessionManager.setMcpServers(input.sessionId, input.servers);
   }),
 
+  renameSession: os.agent.renameSession.handler(async ({ input, context }) => {
+    agentLog("renameSession: sessionId=%s title=%s", input.sessionId, input.title);
+    await context.sessionManager.renameSession(input.sessionId, input.title);
+  }),
+
   setModelSetting: os.agent.setModelSetting.handler(({ input }) => {
     agentLog("setModelSetting: sessionId=%s model=%s", input.sessionId, input.model);
     writeModelToSettings(input.sessionId, input.model);
