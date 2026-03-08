@@ -23,7 +23,7 @@ import type {
 } from "@anthropic-ai/claude-agent-sdk";
 // NOTE: `ai` is not yet installed — will be added in PR2.
 // TypeScript will report a module-not-found error for these imports until then.
-import type { UIMessage, InferUIMessageChunk } from "ai";
+import type { UIMessage, InferUIMessageChunk, DataUIPart } from "ai";
 
 // ─── Message metadata ─────────────────────────────────────────────────────────
 
@@ -49,6 +49,7 @@ export type ClaudeCodeUIMessage = UIMessage<
 >;
 
 export type ClaudeCodeUIMessageChunk = InferUIMessageChunk<ClaudeCodeUIMessage>;
+export type ClaudeCodeDataUIPart = DataUIPart<ClaudeCodeDataParts>;
 
 // ─── Event part (union of all event-stream SDK message types) ─────────────────
 
