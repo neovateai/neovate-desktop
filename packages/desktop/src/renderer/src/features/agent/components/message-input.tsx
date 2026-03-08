@@ -11,7 +11,7 @@ import { createMentionExtension } from "./mention-extension";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { useAgentStore } from "../store";
 import { useNewSession } from "../hooks/use-new-session";
-import { client } from "../../../orpc";
+import { claudeCodeChatManager } from "../chat-manager";
 import type { JSONContent } from "@tiptap/react";
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
@@ -242,8 +242,10 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
       if (!activeSessionId) return;
       log("handleModelChange: model=%s sessionId=%s", model, activeSessionId);
       setCurrentModel(activeSessionId, model);
-      client.agent.setModel({ sessionId: activeSessionId, model });
-      client.agent.setModelSetting({ sessionId: activeSessionId, model });
+      claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
+        kind: "configure",
+        configure: { type: "set_model", model },
+      });
     },
     [activeSessionId, setCurrentModel],
   );

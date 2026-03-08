@@ -20,6 +20,6 @@ export function useClaudeCodeChat(sessionId: string) {
     pendingRequests,
     sendMessage: chat.sendMessage.bind(chat),
     respondToRequest: chat.respondToRequest,
-    stop: chat.stop.bind(chat),
+    stop: chat.interrupt,
   };
 }

@@ -4,6 +4,9 @@ import type {
   ClaudeCodeUIEventRequest,
   ClaudeCodeUIMessage,
 } from "../../../../shared/claude-code/types";
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
+
+export type ClaudeCodeChatCapabilities = Awaited<ReturnType<Query["initializationResult"]>>;
 
 export interface ClaudeCodeChatStoreState {
   messages: ClaudeCodeUIMessage[];
@@ -14,6 +17,7 @@ export interface ClaudeCodeChatStoreState {
     requestId: string;
     request: ClaudeCodeUIEventRequest;
   }>;
+  capabilities: ClaudeCodeChatCapabilities | null;
 }
 
 export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
@@ -26,6 +30,7 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
       error: undefined,
       eventError: undefined,
       pendingRequests: [],
+      capabilities: null,
     }));
   }
 

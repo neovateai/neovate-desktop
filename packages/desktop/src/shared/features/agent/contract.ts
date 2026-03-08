@@ -16,6 +16,7 @@ import type {
   McpServerStatus,
   McpSetServersResult,
 } from "./types";
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import type {
   ClaudeCodeUIMessage,
   ClaudeCodeUIMessageChunk,
@@ -136,18 +137,9 @@ export const agentContract = {
 
   // V2: new transport endpoints under a dedicated sub-namespace
   claudeCode: {
-    createSession: oc.input(z.object({ cwd: z.string(), model: z.string().optional() })).output(
-      type<{
-        sessionId: string;
-        commands: SlashCommandInfo[];
-        models: ModelInfo[];
-        agents: AgentInfo[];
-        account: AccountInfo;
-        output_style: string;
-        available_output_styles: string[];
-        fast_mode_state?: FastModeState;
-      }>(),
-    ),
+    createSession: oc
+      .input(z.object({ cwd: z.string(), model: z.string().optional() }))
+      .output(type<{ sessionId: string } & Awaited<ReturnType<Query["initializationResult"]>>>()),
 
     stream: oc
       .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())

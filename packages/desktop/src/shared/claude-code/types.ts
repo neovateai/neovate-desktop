@@ -88,16 +88,22 @@ export type ClaudeCodeUIDispatch =
     }
   | {
       kind: "configure";
-      configure: { type: "set_permission_mode"; mode: PermissionMode };
-    };
+      configure:
+        | { type: "set_permission_mode"; mode: PermissionMode }
+        | { type: "set_model"; model: string };
+    }
+  | { kind: "interrupt" };
 
 export type ClaudeCodeUIDispatchResult =
   | { kind: "respond"; ok: boolean }
   | {
       kind: "configure";
       ok: boolean;
-      configure: { type: "set_permission_mode"; mode: PermissionMode };
-    };
+      configure:
+        | { type: "set_permission_mode"; mode: PermissionMode }
+        | { type: "set_model"; model: string };
+    }
+  | { kind: "interrupt"; ok: boolean };
 
 // ─── Re-exports (tools) ─────────────────────────────────────────────────────
 

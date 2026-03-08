@@ -3,6 +3,7 @@ import type { ChatInit } from "ai";
 import { AbstractChat } from "ai";
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type {
+  ClaudeCodeUIDispatch,
   ClaudeCodeUIEvent,
   ClaudeCodeUIEventMessage,
   ClaudeCodeUIMessage,
@@ -81,15 +82,12 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
         .getState()
         .pendingRequests.find((request) => request.requestId === requestId);
 
-      const result = await this.#transport.dispatch({
-        chatId: this.id,
-        dispatch: {
-          kind: "respond",
-          requestId,
-          respond: {
-            type: "permission_request",
-            result: { ...respond.result, toolUseID: request?.request.options.toolUseID },
-          },
+      const result = await this.dispatch({
+        kind: "respond",
+        requestId,
+        respond: {
+          type: "permission_request",
+          result: { ...respond.result, toolUseID: request?.request.options.toolUseID },
         },
       });
 
@@ -101,6 +99,15 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
         }));
       }
     }
+  };
+
+  dispatch = (dispatch: ClaudeCodeUIDispatch) => {
+    return this.#transport.dispatch({ chatId: this.id, dispatch });
+  };
+
+  interrupt = async () => {
+    await this.dispatch({ kind: "interrupt" });
+    await this.stop();
   };
 
   dispose = async () => {

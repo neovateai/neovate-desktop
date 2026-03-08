@@ -1130,8 +1130,36 @@ export class SessionManager {
       clearTimeout(pending.timer);
       return { kind: "respond", ok: true };
     }
-    // configure: stub for future use
-    log("handleDispatch: configure sessionId=%s", sessionId);
+    const session = this.sessionsV2.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+
+    if (dispatch.kind === "interrupt") {
+      log("handleDispatch: interrupt sessionId=%s", sessionId);
+      session.query.interrupt();
+      return { kind: "interrupt", ok: true };
+    }
+
+    if (dispatch.kind === "configure") {
+      const { configure } = dispatch;
+      console.log("[handleDispatch] configure.type=%s", JSON.stringify(configure, null, 2));
+      switch (configure.type) {
+        case "set_permission_mode": {
+          log(
+            "handleDispatch: set_permission_mode sessionId=%s mode=%s",
+            sessionId,
+            configure.mode,
+          );
+          session.query.setPermissionMode(configure.mode as SDKPermissionMode);
+          return { kind: "configure", ok: true, configure };
+        }
+        case "set_model": {
+          log("handleDispatch: set_model sessionId=%s model=%s", sessionId, configure.model);
+          session.query.setModel(configure.model);
+          return { kind: "configure", ok: true, configure };
+        }
+      }
+    }
+
     return { kind: "configure", ok: false, configure: (dispatch as any).configure };
   }
 }

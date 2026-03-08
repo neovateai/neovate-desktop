@@ -15,15 +15,14 @@ export class ClaudeCodeChatManager {
   }
 
   async createSession(cwd: string) {
-    const result = await this.rpc.claudeCode.createSession({ cwd });
-    this.chats.set(
-      result.sessionId,
-      new ClaudeCodeChat({
-        id: result.sessionId,
-        transport: this.transport,
-      }),
-    );
-    return result;
+    const { sessionId, ...capabilities } = await this.rpc.claudeCode.createSession({ cwd });
+    const chat = new ClaudeCodeChat({
+      id: sessionId,
+      transport: this.transport,
+    });
+    chat.store.setState({ capabilities });
+    this.chats.set(sessionId, chat);
+    return { sessionId, ...capabilities };
   }
 
   getChat(sessionId: string) {
