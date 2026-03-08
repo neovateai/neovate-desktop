@@ -23,7 +23,6 @@ export function useNewSession() {
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
   const setAvailableModels = useAgentStore((s) => s.setAvailableModels);
-  const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
 
   const createNewSession = useCallback(
     async (cwd: string) => {
@@ -38,11 +37,8 @@ export function useNewSession() {
 
       const startActiveId = useAgentStore.getState().activeSessionId;
       newSessionLog("createNewSession: creating session cwd=%s", cwd);
-      const result = await claudeCodeChatManager.createSession(cwd);
-      const { sessionId, commands } = result;
-      const models = "models" in result ? (result as any).models : undefined;
-      const currentModel = "currentModel" in result ? (result as any).currentModel : undefined;
-      newSessionLog("createNewSession: created %s currentModel=%s", sessionId, currentModel);
+      const { sessionId, commands, models } = await claudeCodeChatManager.createSession(cwd);
+      newSessionLog("createNewSession: created %s", sessionId);
 
       // Guard: if user navigated to another session during the async gap, don't steal focus
       const currentActiveId = useAgentStore.getState().activeSessionId;
@@ -66,13 +62,10 @@ export function useNewSession() {
       if (models?.length) {
         setAvailableModels(sessionId, models);
       }
-      if (currentModel) {
-        setCurrentModel(sessionId, currentModel);
-      }
 
       return sessionId;
     },
-    [createSession, setActiveSession, setAvailableCommands, setAvailableModels, setCurrentModel],
+    [createSession, setActiveSession, setAvailableCommands, setAvailableModels],
   );
 
   /** Pre-warm a new empty session in the background (no activation). */
@@ -87,9 +80,8 @@ export function useNewSession() {
       }
 
       newSessionLog("preWarmSession: creating background session cwd=%s", cwd);
-      const { sessionId, commands, models, currentModel } =
-        await claudeCodeChatManager.createSession(cwd);
-      newSessionLog("preWarmSession: created %s currentModel=%s", sessionId, currentModel);
+      const { sessionId, commands, models } = await claudeCodeChatManager.createSession(cwd);
+      newSessionLog("preWarmSession: created %s", sessionId);
 
       createBackgroundSession(sessionId, {
         cwd: projectPath,
@@ -102,11 +94,8 @@ export function useNewSession() {
       if (models?.length) {
         setAvailableModels(sessionId, models);
       }
-      if (currentModel) {
-        setCurrentModel(sessionId, currentModel);
-      }
     },
-    [createBackgroundSession, setAvailableCommands, setAvailableModels, setCurrentModel],
+    [createBackgroundSession, setAvailableCommands, setAvailableModels],
   );
 
   return { createNewSession, preWarmSession };

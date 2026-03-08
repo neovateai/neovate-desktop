@@ -14,7 +14,7 @@ export class ClaudeCodeChatManager {
     this.transport = new ClaudeCodeChatTransport(rpc);
   }
 
-  async createSession(cwd: string): Promise<{ sessionId: string; commands?: { name: string }[] }> {
+  async createSession(cwd: string) {
     const result = await this.rpc.claudeCode.createSession({ cwd });
     this.chats.set(
       result.sessionId,

@@ -136,9 +136,18 @@ export const agentContract = {
 
   // V2: new transport endpoints under a dedicated sub-namespace
   claudeCode: {
-    createSession: oc
-      .input(z.object({ cwd: z.string(), model: z.string().optional() }))
-      .output(type<{ sessionId: string; commands?: SlashCommandInfo[] }>()),
+    createSession: oc.input(z.object({ cwd: z.string(), model: z.string().optional() })).output(
+      type<{
+        sessionId: string;
+        commands: SlashCommandInfo[];
+        models: ModelInfo[];
+        agents: AgentInfo[];
+        account: AccountInfo;
+        output_style: string;
+        available_output_styles: string[];
+        fast_mode_state?: FastModeState;
+      }>(),
+    ),
 
     stream: oc
       .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())
