@@ -103,6 +103,7 @@ type AgentState = {
   setCurrentModel: (sessionId: string, model: string) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
   setSdkReady: (sessionId: string, ready: boolean) => void;
+  setSessionTitle: (sessionId: string, title: string) => void;
   addTiming: (entry: TimingEntry) => void;
   clearTimings: () => void;
 };
@@ -296,6 +297,16 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.sdkReady = ready;
+      });
+    },
+
+    setSessionTitle: (sessionId, title) => {
+      storeLog("setSessionTitle: sid=%s title=%s", sessionId, title);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.title = title;
+        const info = state.agentSessions.find((s) => s.sessionId === sessionId);
+        if (info) info.title = title;
       });
     },
 
