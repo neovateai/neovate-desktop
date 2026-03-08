@@ -8,11 +8,11 @@
 
 AI SDK 是为通用 LLM Chat 设计的，与 Claude Agent SDK 的场景有三个不匹配：
 
-| # | 问题 | AI SDK 现状 | 方案 |
-|---|------|------------|------|
-| 1 | **ChatTransport 只支持消息流** | `sendMessages()` 一条流，无法承载 task 进度、系统通知等事件 | `ClaudeCodeChatTransport` 在 `sendMessages()` 基础上增加 `subscribe()` + `dispatch()` |
-| 2 | **useChat 是单 session** | 组件生命周期内一个 Chat 实例，无法并发管理 | `ClaudeCodeChatManager` 管理 Chat 实例 + 每 session 独立 Zustand store |
-| 3 | **SDK 回调需要双向交互** | 无 request/response 机制；`tool-approval-request` chunk 不适用（审批 UI 是悬浮弹窗，不在消息渲染流） | subscribe 流增加 `kind: 'request'` + `dispatch` RPC 端点 |
+| #   | 问题                           | AI SDK 现状                                                                                          | 方案                                                                                  |
+| --- | ------------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | **ChatTransport 只支持消息流** | `sendMessages()` 一条流，无法承载 task 进度、系统通知等事件                                          | `ClaudeCodeChatTransport` 在 `sendMessages()` 基础上增加 `subscribe()` + `dispatch()` |
+| 2   | **useChat 是单 session**       | 组件生命周期内一个 Chat 实例，无法并发管理                                                           | `ClaudeCodeChatManager` 管理 Chat 实例 + 每 session 独立 Zustand store                |
+| 3   | **SDK 回调需要双向交互**       | 无 request/response 机制；`tool-approval-request` chunk 不适用（审批 UI 是悬浮弹窗，不在消息渲染流） | subscribe 流增加 `kind: 'request'` + `dispatch` RPC 端点                              |
 
 ### 设计优势
 
@@ -122,9 +122,7 @@ const contract = {
     .output(eventIterator(type<ClaudeCodeUIMessageChunk>)),
 
   // 订阅流：事件推送（kind: 'event'）+ 交互请求（kind: 'request'）
-  subscribe: oc
-    .input(type<{ sessionId: string }>)
-    .output(eventIterator(type<ClaudeCodeUIEvent>)),
+  subscribe: oc.input(type<{ sessionId: string }>).output(eventIterator(type<ClaudeCodeUIEvent>)),
 
   // 客户端指令：回应交互请求 + 设置变更
   dispatch: oc
@@ -178,15 +176,15 @@ dispatch handler
 
 #### 类型总览
 
-| 分类 | 类型 | 用途 |
-|------|------|------|
-| Message | `ClaudeCodeUIMessage` | 前端 UIMessage（定义见 `docs/types.ts`） |
-| Message | `ClaudeCodeUIMessageChunk` | `stream` 流输出（`InferUIMessageChunk` 推导） |
-| Event | `ClaudeCodeUIEvent` | `subscribe` 流输出（`kind: 'event' \| 'request'`） |
-| Event | `ClaudeCodeUIEventMessage` | 纯事件数据（SDK 透传 + `id`） |
-| Event | `ClaudeCodeUIEventRequest` | 交互请求（`permission_request` 等） |
-| Dispatch | `ClaudeCodeUIDispatch` | `dispatch` 端点输入（`kind: 'respond' \| 'configure'`） |
-| Dispatch | `ClaudeCodeUIDispatchResult` | `dispatch` 端点输出（按 `kind` 区分） |
+| 分类     | 类型                         | 用途                                                    |
+| -------- | ---------------------------- | ------------------------------------------------------- |
+| Message  | `ClaudeCodeUIMessage`        | 前端 UIMessage（定义见 `docs/types.ts`）                |
+| Message  | `ClaudeCodeUIMessageChunk`   | `stream` 流输出（`InferUIMessageChunk` 推导）           |
+| Event    | `ClaudeCodeUIEvent`          | `subscribe` 流输出（`kind: 'event' \| 'request'`）      |
+| Event    | `ClaudeCodeUIEventMessage`   | 纯事件数据（SDK 透传 + `id`）                           |
+| Event    | `ClaudeCodeUIEventRequest`   | 交互请求（`permission_request` 等）                     |
+| Dispatch | `ClaudeCodeUIDispatch`       | `dispatch` 端点输入（`kind: 'respond' \| 'configure'`） |
+| Dispatch | `ClaudeCodeUIDispatchResult` | `dispatch` 端点输出（按 `kind` 区分）                   |
 
 #### ClaudeCodeUIMessageChunk
 
@@ -199,16 +197,15 @@ import type { ClaudeCodeUIMessage } from "./types";
 export type ClaudeCodeUIMessageChunk = InferUIMessageChunk<ClaudeCodeUIMessage>;
 ```
 
-AI SDK 支持自定义 Data Part：chunk 类型为 `` { type: `data-${NAME}`, data: T } ``，`NAME` 来自 `ClaudeCodeDataParts` 的 key。我们定义了两个：
+AI SDK 支持自定义 Data Part：chunk 类型为 ``{ type: `data-${NAME}`, data: T }``，`NAME` 来自 `ClaudeCodeDataParts` 的 key。我们定义了两个：
 
 ```typescript
 type DataPartEntry<M extends { type: string; subtype: string }> = {
-  [K in `${M['type']}/${M['subtype']}`]: M;
+  [K in `${M["type"]}/${M["subtype"]}`]: M;
 };
 
-type ClaudeCodeDataParts =
-  DataPartEntry<SDKSystemMessage> &            // → { "system/init": SDKSystemMessage }
-  DataPartEntry<SDKCompactBoundaryMessage>;    // → { "system/compact_boundary": SDKCompactBoundaryMessage }
+type ClaudeCodeDataParts = DataPartEntry<SDKSystemMessage> & // → { "system/init": SDKSystemMessage }
+  DataPartEntry<SDKCompactBoundaryMessage>; // → { "system/compact_boundary": SDKCompactBoundaryMessage }
 ```
 
 #### ClaudeCodeUIEvent
@@ -217,8 +214,8 @@ type ClaudeCodeDataParts =
 
 ```typescript
 type ClaudeCodeUIEvent =
-  | { kind: 'event'; event: ClaudeCodeUIEventMessage }
-  | { kind: 'request'; requestId: string; request: ClaudeCodeUIEventRequest }
+  | { kind: "event"; event: ClaudeCodeUIEventMessage }
+  | { kind: "request"; requestId: string; request: ClaudeCodeUIEventRequest };
 ```
 
 - `kind: 'event'` — 纯推送，前端收到更新 UI 即可（字段名 `event` 与 `kind` 语义对应）
@@ -236,8 +233,8 @@ type ClaudeCodeUIEvent =
 
 ```typescript
 type ClaudeCodeUIEventPart =
-  | SDKResultMessage          // ← 交集：消息流 finish + 事件流 session done/error
-  | SDKSystemMessage          // ← 交集：消息流 data part (init) + 事件流
+  | SDKResultMessage // ← 交集：消息流 finish + 事件流 session done/error
+  | SDKSystemMessage // ← 交集：消息流 data part (init) + 事件流
   | SDKStatusMessage
   | SDKLocalCommandOutputMessage
   | SDKHookStartedMessage
@@ -268,28 +265,35 @@ type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
 
 ```typescript
 // 请求（后端 → 前端，通过 subscribe 流推送）
-type ClaudeCodeUIEventRequest =
-  | {
-      type: 'permission_request';
-      toolName: string;
-      input: Record<string, unknown>;
-      toolUseId: string;
-      suggestions?: PermissionUpdate[];
-      blockedPath?: string;
-      decisionReason?: string;
-      agentId?: string;
-    }
-  // 后续扩展：
-  // | { type: 'elicitation_request'; serverName: string; message: string; mode?: 'form' | 'url'; ... }
+type ClaudeCodeUIEventRequest = {
+  type: "permission_request";
+  toolName: string;
+  input: Record<string, unknown>;
+  toolUseId: string;
+  suggestions?: PermissionUpdate[];
+  blockedPath?: string;
+  decisionReason?: string;
+  agentId?: string;
+};
+// 后续扩展：
+// | { type: 'elicitation_request'; serverName: string; message: string; mode?: 'form' | 'url'; ... }
 
 // 客户端指令（前端 → 后端，通过 dispatch 端点）— kind 区分回应/设置
 type ClaudeCodeUIDispatch =
-  | { kind: 'respond'; requestId: string; respond: { type: 'permission_request'; result: PermissionResult } }
-  | { kind: 'configure'; configure: { type: 'set_permission_mode'; mode: PermissionMode } }
+  | {
+      kind: "respond";
+      requestId: string;
+      respond: { type: "permission_request"; result: PermissionResult };
+    }
+  | { kind: "configure"; configure: { type: "set_permission_mode"; mode: PermissionMode } };
 
 type ClaudeCodeUIDispatchResult =
-  | { kind: 'respond'; ok: boolean }
-  | { kind: 'configure'; ok: boolean; configure: { type: 'set_permission_mode'; mode: PermissionMode } }
+  | { kind: "respond"; ok: boolean }
+  | {
+      kind: "configure";
+      ok: boolean;
+      configure: { type: "set_permission_mode"; mode: PermissionMode };
+    };
 ```
 
 `PermissionResult` 即 SDK 原始类型（`{ behavior: 'allow'; ... } | { behavior: 'deny'; ... }`）。
@@ -312,7 +316,10 @@ type IsNever<T> = [T] extends [never] ? true : false;
 type ChunkInput = Parameters<typeof toUIMessageChunks>[0];
 
 // 1. 完整性：SDKMessage 的每个类型都至少出现在一边（排除 SDKPartialAssistantMessage）
-type _Unhandled = Exclude<SDKMessage, ClaudeCodeUIEventPart | ChunkInput | SDKPartialAssistantMessage>;
+type _Unhandled = Exclude<
+  SDKMessage,
+  ClaudeCodeUIEventPart | ChunkInput | SDKPartialAssistantMessage
+>;
 type _ = AssertTrue<IsNever<_Unhandled>>;
 
 // 2. 无多余（事件侧）
@@ -332,44 +339,44 @@ type ___ = AssertTrue<IsNever<_ExtraInChunk>>;
 
 后端收到 SDK 的消息流后，需要将每条 `SDKMessage` 分流：
 
-| 分类 | 去向 | 处理 |
-|------|------|------|
-| 消息类 | `rpc.stream` 流 | 转换为 `ClaudeCodeUIMessageChunk` |
+| 分类   | 去向               | 处理                                                                  |
+| ------ | ------------------ | --------------------------------------------------------------------- |
+| 消息类 | `rpc.stream` 流    | 转换为 `ClaudeCodeUIMessageChunk`                                     |
 | 事件类 | `rpc.subscribe` 流 | 加 `id` 后透传为 `{ kind: 'event', event: ClaudeCodeUIEventMessage }` |
 
 注：`canUseTool` 回调触发的交互请求不在 SDK 消息流里，而是通过 `Options.canUseTool` 回调独立推入 `subscribe` 流（`kind: 'request'`）。
 
 #### 消息类（→ toUIMessageChunks）
 
-| SDKMessage 类型 | 转换目标 |
-|-----------------|----------|
-| SDKAssistantMessage | text-start/delta/end, reasoning-start/delta/end, tool-call 相关 |
-| SDKUserMessage (tool_result) | tool-output-available / tool-output-error |
-| SDKUserMessageReplay | 同 SDKUserMessage |
-| SDKResultMessage | finish-step, finish |
-| SDKSystemMessage (init) | data-system/init |
-| SDKCompactBoundaryMessage | data-system/compact_boundary |
-| SDKPartialAssistantMessage | TODO: 真正流式支持（见附录 B） |
+| SDKMessage 类型              | 转换目标                                                        |
+| ---------------------------- | --------------------------------------------------------------- |
+| SDKAssistantMessage          | text-start/delta/end, reasoning-start/delta/end, tool-call 相关 |
+| SDKUserMessage (tool_result) | tool-output-available / tool-output-error                       |
+| SDKUserMessageReplay         | 同 SDKUserMessage                                               |
+| SDKResultMessage             | finish-step, finish                                             |
+| SDKSystemMessage (init)      | data-system/init                                                |
+| SDKCompactBoundaryMessage    | data-system/compact_boundary                                    |
+| SDKPartialAssistantMessage   | TODO: 真正流式支持（见附录 B）                                  |
 
 #### 事件类（→ 透传）
 
-| SDKMessage 类型 | type | subtype |
-|-----------------|------|---------|
-| SDKStatusMessage | system | status |
-| SDKLocalCommandOutputMessage | system | local_command_output |
-| SDKHookStartedMessage | system | hook_started |
-| SDKHookProgressMessage | system | hook_progress |
-| SDKHookResponseMessage | system | hook_response |
-| SDKTaskStartedMessage | system | task_started |
-| SDKTaskProgressMessage | system | task_progress |
-| SDKTaskNotificationMessage | system | task_notification |
-| SDKFilesPersistedEvent | system | files_persisted |
-| SDKElicitationCompleteMessage | system | elicitation_complete |
-| SDKToolProgressMessage | tool_progress | — |
-| SDKToolUseSummaryMessage | tool_use_summary | — |
-| SDKAuthStatusMessage | auth_status | — |
-| SDKRateLimitEvent | rate_limit_event | — |
-| SDKPromptSuggestionMessage | prompt_suggestion | — |
+| SDKMessage 类型               | type              | subtype              |
+| ----------------------------- | ----------------- | -------------------- |
+| SDKStatusMessage              | system            | status               |
+| SDKLocalCommandOutputMessage  | system            | local_command_output |
+| SDKHookStartedMessage         | system            | hook_started         |
+| SDKHookProgressMessage        | system            | hook_progress        |
+| SDKHookResponseMessage        | system            | hook_response        |
+| SDKTaskStartedMessage         | system            | task_started         |
+| SDKTaskProgressMessage        | system            | task_progress        |
+| SDKTaskNotificationMessage    | system            | task_notification    |
+| SDKFilesPersistedEvent        | system            | files_persisted      |
+| SDKElicitationCompleteMessage | system            | elicitation_complete |
+| SDKToolProgressMessage        | tool_progress     | —                    |
+| SDKToolUseSummaryMessage      | tool_use_summary  | —                    |
+| SDKAuthStatusMessage          | auth_status       | —                    |
+| SDKRateLimitEvent             | rate_limit_event  | —                    |
+| SDKPromptSuggestionMessage    | prompt_suggestion | —                    |
 
 所有 SDKMessage 类型均分流到消息类或事件类，无忽略项。`SDKPartialAssistantMessage` 暂不处理（见附录 B），启用流式后需额外支持。
 
@@ -395,6 +402,7 @@ type ___ = AssertTrue<IsNever<_ExtraInChunk>>;
 ```
 
 **step 语义（与 AI SDK 一致）**：
+
 - **一个 step = 一次 LLM API 调用**，不含工具执行
 - `start-step`: 新的 `message.id` 首次出现时发出
 - `finish-step`: 下一个 step 开始前，或 `result` 到达时发出
@@ -403,18 +411,18 @@ type ___ = AssertTrue<IsNever<_ExtraInChunk>>;
 
 ### 3.3 SDKMessage → Chunk 映射
 
-| SDKMessage type | content | 产出的 Chunk |
-|---|---|---|
-| `system` subtype=`init` | — | `start` + `data-system/init` |
-| `system` subtype=`compact_boundary` | — | `data-system/compact_boundary` |
-| `assistant`（新 message.id） | `[thinking]` | (`finish-step` 如果上一个 step 未结束) + `start-step` + `reasoning-start/delta/end` |
-| `assistant`（同 message.id） | `[tool_use]` | `tool-input-available`（同一个 step 内） |
-| `assistant`（新 message.id） | `[text]` | (`finish-step` 如果上一个 step 未结束) + `start-step` + `text-start/delta/end` |
-| `user` | `[tool_result]` | `tool-output-available`（不触发 step 边界） |
-| `user` | `[text]` | `text-start/delta/end`（SDK 内部流转的文本，非用户输入） |
-| `result` subtype=`success` | — | (`finish-step` 如果在 step 内) + `finish` |
-| `result` subtype!=`success` | — | (`finish-step` 如果在 step 内) + `error` + `finish` |
-| `rate_limit_event` 等 | — | 不产出 chunk，走 subscribe 流 |
+| SDKMessage type                     | content         | 产出的 Chunk                                                                        |
+| ----------------------------------- | --------------- | ----------------------------------------------------------------------------------- |
+| `system` subtype=`init`             | —               | `start` + `data-system/init`                                                        |
+| `system` subtype=`compact_boundary` | —               | `data-system/compact_boundary`                                                      |
+| `assistant`（新 message.id）        | `[thinking]`    | (`finish-step` 如果上一个 step 未结束) + `start-step` + `reasoning-start/delta/end` |
+| `assistant`（同 message.id）        | `[tool_use]`    | `tool-input-available`（同一个 step 内）                                            |
+| `assistant`（新 message.id）        | `[text]`        | (`finish-step` 如果上一个 step 未结束) + `start-step` + `text-start/delta/end`      |
+| `user`                              | `[tool_result]` | `tool-output-available`（不触发 step 边界）                                         |
+| `user`                              | `[text]`        | `text-start/delta/end`（SDK 内部流转的文本，非用户输入）                            |
+| `result` subtype=`success`          | —               | (`finish-step` 如果在 step 内) + `finish`                                           |
+| `result` subtype!=`success`         | —               | (`finish-step` 如果在 step 内) + `error` + `finish`                                 |
+| `rate_limit_event` 等               | —               | 不产出 chunk，走 subscribe 流                                                       |
 
 ### 3.4 SDKMessageTransformer
 
@@ -466,10 +474,13 @@ class ClaudeCodeChatTransport {
     const lastMessage = options.messages.at(-1)!;
 
     return eventIteratorToUnproxiedDataStream(
-      await this.rpc.stream({
-        sessionId: options.chatId,
-        message: lastMessage,
-      }, { signal: options.abortSignal })
+      await this.rpc.stream(
+        {
+          sessionId: options.chatId,
+          message: lastMessage,
+        },
+        { signal: options.abortSignal },
+      ),
     );
   }
 
@@ -481,7 +492,13 @@ class ClaudeCodeChatTransport {
     return this.rpc.subscribe({ sessionId: chatId });
   }
 
-  async dispatch({ chatId, dispatch }: { chatId: string; dispatch: ClaudeCodeUIDispatch }): Promise<ClaudeCodeUIDispatchResult> {
+  async dispatch({
+    chatId,
+    dispatch,
+  }: {
+    chatId: string;
+    dispatch: ClaudeCodeUIDispatch;
+  }): Promise<ClaudeCodeUIDispatchResult> {
     return this.rpc.dispatch({ sessionId: chatId, dispatch });
   }
 }
@@ -502,8 +519,8 @@ interface ClaudeCodeChatStoreState {
   error: Error | undefined;
 
   // --- 业务扩展字段 ---
-  eventError: Error | undefined;                                   // 事件流错误（与消息流 error 分开）
-  pendingRequests: Array<ClaudeCodeUIEvent & { kind: 'request' }>; // 待用户响应的交互请求
+  eventError: Error | undefined; // 事件流错误（与消息流 error 分开）
+  pendingRequests: Array<ClaudeCodeUIEvent & { kind: "request" }>; // 待用户响应的交互请求
 }
 
 export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
@@ -521,14 +538,26 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
 
   // --- ChatState 接口实现 ---
 
-  get messages() { return this.store.getState().messages; }
-  set messages(messages: ClaudeCodeUIMessage[]) { this.store.setState({ messages }); }
+  get messages() {
+    return this.store.getState().messages;
+  }
+  set messages(messages: ClaudeCodeUIMessage[]) {
+    this.store.setState({ messages });
+  }
 
-  get status() { return this.store.getState().status; }
-  set status(status: ChatStatus) { this.store.setState({ status }); }
+  get status() {
+    return this.store.getState().status;
+  }
+  set status(status: ChatStatus) {
+    this.store.setState({ status });
+  }
 
-  get error() { return this.store.getState().error; }
-  set error(error: Error | undefined) { this.store.setState({ error }); }
+  get error() {
+    return this.store.getState().error;
+  }
+  set error(error: Error | undefined) {
+    this.store.setState({ error });
+  }
 
   pushMessage = (message: ClaudeCodeUIMessage) => {
     this.store.setState((state) => ({ messages: state.messages.concat(message) }));
@@ -581,10 +610,12 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     });
   }
 
-  get store() { return this.#state.store; }
+  get store() {
+    return this.#state.store;
+  }
 
   #handleMessage(msg: ClaudeCodeUIEvent) {
-    if (msg.kind === 'event') {
+    if (msg.kind === "event") {
       this.#handleEvent(msg.event);
     } else {
       // kind: 'request' → 加入 pendingRequests，等用户响应
@@ -595,8 +626,14 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   }
 
   /** 响应交互请求（前端 UI 调用） */
-  respondToRequest = async (requestId: string, respond: { type: 'permission_request'; result: PermissionResult }) => {
-    const result = await this.#transport.dispatch({ chatId: this.id, dispatch: { kind: 'respond', requestId, respond } });
+  respondToRequest = async (
+    requestId: string,
+    respond: { type: "permission_request"; result: PermissionResult },
+  ) => {
+    const result = await this.#transport.dispatch({
+      chatId: this.id,
+      dispatch: { kind: "respond", requestId, respond },
+    });
     if (result.ok) {
       this.#state.store.setState((state) => ({
         pendingRequests: state.pendingRequests.filter((r) => r.requestId !== requestId),
@@ -626,12 +663,15 @@ export class ClaudeCodeChatManager {
   async createSession(cwd: string): Promise<string> {
     const { sessionId } = await this.rpc.newSession({ cwd });
 
-    this.chats.set(sessionId, new ClaudeCodeChat({
-      id: sessionId,
-      transport: this.transport,
-      messageMetadataSchema: claudeCodeMetadataSchema,
-      dataPartSchemas: claudeCodeDataPartSchemas,
-    }));
+    this.chats.set(
+      sessionId,
+      new ClaudeCodeChat({
+        id: sessionId,
+        transport: this.transport,
+        messageMetadataSchema: claudeCodeMetadataSchema,
+        dataPartSchemas: claudeCodeDataPartSchemas,
+      }),
+    );
 
     return sessionId;
   }
@@ -639,16 +679,21 @@ export class ClaudeCodeChatManager {
   restoreSession(sessionId: string, messages: ClaudeCodeUIMessage[]) {
     if (this.chats.has(sessionId)) throw new Error(`Session already active: ${sessionId}`);
 
-    this.chats.set(sessionId, new ClaudeCodeChat({
-      id: sessionId,
-      messages,
-      transport: this.transport,
-      messageMetadataSchema: claudeCodeMetadataSchema,
-      dataPartSchemas: claudeCodeDataPartSchemas,
-    }));
+    this.chats.set(
+      sessionId,
+      new ClaudeCodeChat({
+        id: sessionId,
+        messages,
+        transport: this.transport,
+        messageMetadataSchema: claudeCodeMetadataSchema,
+        dataPartSchemas: claudeCodeDataPartSchemas,
+      }),
+    );
   }
 
-  getChat(sessionId: string) { return this.chats.get(sessionId); }
+  getChat(sessionId: string) {
+    return this.chats.get(sessionId);
+  }
 
   async removeSession(sessionId: string) {
     const chat = this.chats.get(sessionId);
@@ -682,9 +727,9 @@ function useClaudeCodeChat(sessionId: string) {
     id: sessionId,
     messages,
     status,
-    error,            // 消息流错误（AbstractChat 管理）
-    eventError,       // 事件流错误（ClaudeCodeChat 管理）
-    pendingRequests,  // 待响应的交互请求
+    error, // 消息流错误（AbstractChat 管理）
+    eventError, // 事件流错误（ClaudeCodeChat 管理）
+    pendingRequests, // 待响应的交互请求
     sendMessage: chat.sendMessage,
     respondToRequest: chat.respondToRequest,
     stop: chat.stop,
@@ -777,24 +822,24 @@ ClaudeCodeChat 构造时
 
 ### 4.8 关键设计决策
 
-| 领域 | 决策 | 原因 |
-|------|------|------|
-| **API** | `type<T>` 纯类型约束，无运行时 Zod 校验 | 前端 AbstractChat 已保证格式正确 |
-| **API** | subscribe 合并事件 + 交互请求（`kind` 区分） | 避免多流的订阅/错误处理/重连逻辑 |
-| **API** | `kind` 而非 `type` 作顶层判别 | `data` 内部已有 `type`（SDK 原始字段），避免冲突 |
-| **转换** | Chunk 类型从 AI SDK 推导（`InferUIMessageChunk`） | 不自定义，编译期安全 |
-| **转换** | 事件透传 SDK 原始结构（snake_case 保持原样） | 前期无转换成本，SDK 变化时无映射层维护 |
-| **转换** | 有状态转换器（`SDKMessageTransformer` 类） | 需跟踪 step 边界和 message.id |
-| **转换** | `finish-step` 延迟到下一个 step 或 result | tool_result 不属于 step，不触发边界 |
-| **前端** | 每 session 独立 Zustand store | 隔离性好，无 Map 路由，性能更优 |
-| **前端** | `ClaudeCodeChatTransport` 独立类（不依赖泛型接口） | YAGNI — 等真的有第二个 Agent 时再抽取通用接口 |
-| **前端** | stop() 停消息流，dispose() 停事件流 | stop 是单次请求级别，dispose 是 session 级别 |
-| **交互** | `canUseTool` 不走 chunk 流 | 审批 UI 是悬浮弹窗，不在消息渲染流 |
-| **交互** | `requestId` 由后端生成，不用 SDK 的 `toolUseId` | 请求-响应配对用，与工具调用 ID 解耦 |
-| **交互** | `ClaudeCodeUIDispatch` 用 `kind` 联合类型区分 | 单端点多指令，扩展只需加联合成员 |
-| **交互** | `dispatch` 端点统一 respond + configure，`kind` 路由 | 单端点多操作，与 subscribe 流的 `kind` 模式对称 |
-| **交互** | subscribe 流字段名与 `kind` 语义对应（`event` / `request`） | 避免泛化的 `data` 命名，可读性更高 |
-| **前端** | `ClaudeCodeChat` 持有具体 `ClaudeCodeChatTransport` 类型（非泛型接口） | YAGNI — 具体类不需要多态 |
+| 领域     | 决策                                                                   | 原因                                             |
+| -------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| **API**  | `type<T>` 纯类型约束，无运行时 Zod 校验                                | 前端 AbstractChat 已保证格式正确                 |
+| **API**  | subscribe 合并事件 + 交互请求（`kind` 区分）                           | 避免多流的订阅/错误处理/重连逻辑                 |
+| **API**  | `kind` 而非 `type` 作顶层判别                                          | `data` 内部已有 `type`（SDK 原始字段），避免冲突 |
+| **转换** | Chunk 类型从 AI SDK 推导（`InferUIMessageChunk`）                      | 不自定义，编译期安全                             |
+| **转换** | 事件透传 SDK 原始结构（snake_case 保持原样）                           | 前期无转换成本，SDK 变化时无映射层维护           |
+| **转换** | 有状态转换器（`SDKMessageTransformer` 类）                             | 需跟踪 step 边界和 message.id                    |
+| **转换** | `finish-step` 延迟到下一个 step 或 result                              | tool_result 不属于 step，不触发边界              |
+| **前端** | 每 session 独立 Zustand store                                          | 隔离性好，无 Map 路由，性能更优                  |
+| **前端** | `ClaudeCodeChatTransport` 独立类（不依赖泛型接口）                     | YAGNI — 等真的有第二个 Agent 时再抽取通用接口    |
+| **前端** | stop() 停消息流，dispose() 停事件流                                    | stop 是单次请求级别，dispose 是 session 级别     |
+| **交互** | `canUseTool` 不走 chunk 流                                             | 审批 UI 是悬浮弹窗，不在消息渲染流               |
+| **交互** | `requestId` 由后端生成，不用 SDK 的 `toolUseId`                        | 请求-响应配对用，与工具调用 ID 解耦              |
+| **交互** | `ClaudeCodeUIDispatch` 用 `kind` 联合类型区分                          | 单端点多指令，扩展只需加联合成员                 |
+| **交互** | `dispatch` 端点统一 respond + configure，`kind` 路由                   | 单端点多操作，与 subscribe 流的 `kind` 模式对称  |
+| **交互** | subscribe 流字段名与 `kind` 语义对应（`event` / `request`）            | 避免泛化的 `data` 命名，可读性更高               |
+| **前端** | `ClaudeCodeChat` 持有具体 `ClaudeCodeChatTransport` 类型（非泛型接口） | YAGNI — 具体类不需要多态                         |
 
 ---
 
@@ -804,14 +849,14 @@ ClaudeCodeChat 构造时
 
 当前架构的以下设计为接入多 Agent 预留了扩展空间：
 
-| 设计点 | 扩展能力 |
-|--------|---------|
-| `ClaudeCodeChatTransport` 模式（sendMessages + subscribe + dispatch） | 新 Agent 可参照同样的模式实现自己的 Transport 类；未来需要时可抽取通用接口 |
-| `ClaudeCodeUIEvent` 两层结构（`kind` + `event.type` / `request.type`） | 新的 `kind` 或 `type` 不影响现有事件处理逻辑 |
-| `ClaudeCodeUIEventRequest` + `ClaudeCodeUIDispatch` 可扩展 | 新 Agent 的交互请求只需加新的 `type` 成员，新的指令只需加联合成员 |
-| `ClaudeCodeChatManager` 按 sessionId 隔离 | 不同 Agent 的 session 互不干扰 |
-| `pendingRequests` 通用机制 | 任何 Agent 的交互请求都走同一套弹窗 → dispatch 流程 |
-| SDK 消息透传（事件不做字段转换） | 新 Agent 的事件结构无需额外映射层 |
+| 设计点                                                                 | 扩展能力                                                                   |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `ClaudeCodeChatTransport` 模式（sendMessages + subscribe + dispatch）  | 新 Agent 可参照同样的模式实现自己的 Transport 类；未来需要时可抽取通用接口 |
+| `ClaudeCodeUIEvent` 两层结构（`kind` + `event.type` / `request.type`） | 新的 `kind` 或 `type` 不影响现有事件处理逻辑                               |
+| `ClaudeCodeUIEventRequest` + `ClaudeCodeUIDispatch` 可扩展             | 新 Agent 的交互请求只需加新的 `type` 成员，新的指令只需加联合成员          |
+| `ClaudeCodeChatManager` 按 sessionId 隔离                              | 不同 Agent 的 session 互不干扰                                             |
+| `pendingRequests` 通用机制                                             | 任何 Agent 的交互请求都走同一套弹窗 → dispatch 流程                        |
+| SDK 消息透传（事件不做字段转换）                                       | 新 Agent 的事件结构无需额外映射层                                          |
 
 ---
 
@@ -834,7 +879,11 @@ export class SDKMessageTransformer {
         if (msg.subtype === "init") {
           this.inStep = false;
           this.currentMessageId = null;
-          yield { type: "start", messageId: msg.uuid, messageMetadata: { sessionId: msg.session_id, parentToolUseId: null } };
+          yield {
+            type: "start",
+            messageId: msg.uuid,
+            messageMetadata: { sessionId: msg.session_id, parentToolUseId: null },
+          };
           yield { type: "data-system/init", data: msg };
         } else if (msg.subtype === "compact_boundary") {
           yield { type: "data-system/compact_boundary", data: msg };
@@ -876,7 +925,9 @@ export class SDKMessageTransformer {
     }
   }
 
-  private *transformAssistant(msg: SDKMessage & { type: "assistant" }): Generator<ClaudeCodeUIMessageChunk> {
+  private *transformAssistant(
+    msg: SDKMessage & { type: "assistant" },
+  ): Generator<ClaudeCodeUIMessageChunk> {
     for (const part of msg.message.content) {
       switch (part.type) {
         case "text": {
@@ -957,9 +1008,7 @@ export class SDKMessageTransformer {
   }
 
   private claudeCodeMetadata(parentToolUseId: string | null | undefined) {
-    return parentToolUseId
-      ? { claudeCode: { parentToolUseId } }
-      : undefined;
+    return parentToolUseId ? { claudeCode: { parentToolUseId } } : undefined;
   }
 }
 

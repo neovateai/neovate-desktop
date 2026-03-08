@@ -1,5 +1,8 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { ClaudeCodeUIMessageChunk, ClaudeCodeUIEvent } from "../../../shared/features/agent/chat-types";
+import type {
+  ClaudeCodeUIMessageChunk,
+  ClaudeCodeUIEvent,
+} from "../../../shared/features/agent/chat-types";
 
 export class SDKMessageTransformer {
   private inStep = false;
@@ -11,7 +14,11 @@ export class SDKMessageTransformer {
         if (msg.subtype === "init") {
           this.inStep = false;
           this.currentMessageId = null;
-          yield { type: "start", messageId: msg.uuid, messageMetadata: { sessionId: msg.session_id, parentToolUseId: null } };
+          yield {
+            type: "start",
+            messageId: msg.uuid,
+            messageMetadata: { sessionId: msg.session_id, parentToolUseId: null },
+          };
           yield { type: "data-system/init", data: msg };
         } else if (msg.subtype === "compact_boundary") {
           yield { type: "data-system/compact_boundary", data: msg };
@@ -49,7 +56,9 @@ export class SDKMessageTransformer {
     }
   }
 
-  private *transformAssistant(msg: SDKMessage & { type: "assistant" }): Generator<ClaudeCodeUIMessageChunk> {
+  private *transformAssistant(
+    msg: SDKMessage & { type: "assistant" },
+  ): Generator<ClaudeCodeUIMessageChunk> {
     for (const part of msg.message.content) {
       switch (part.type) {
         case "text": {

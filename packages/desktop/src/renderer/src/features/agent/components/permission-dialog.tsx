@@ -18,10 +18,18 @@ export function PermissionDialog({ requestId, request, onResolve }: Props) {
         </pre>
       )}
       <div className="flex gap-2">
-        <Button size="sm" variant="default" onClick={() => onResolve(requestId, { behavior: "allow" })}>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => onResolve(requestId, { behavior: "allow" })}
+        >
           Allow
         </Button>
-        <Button size="sm" variant="outline" onClick={() => onResolve(requestId, { behavior: "deny", message: "User denied" })}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onResolve(requestId, { behavior: "deny", message: "User denied" })}
+        >
           Deny
         </Button>
       </div>
