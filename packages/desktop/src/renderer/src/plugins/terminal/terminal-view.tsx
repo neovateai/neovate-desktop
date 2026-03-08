@@ -7,6 +7,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import { usePluginContext } from "../../core/app";
+import { useProjectStore } from "../../features/project/store";
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
@@ -143,7 +144,8 @@ export default function TerminalView() {
       const cols = Math.max(1, xterm.cols);
       const rows = Math.max(1, xterm.rows);
 
-      const result = await client.terminal.spawn({ cols, rows });
+      const cwd = useProjectStore.getState().activeProject?.path;
+      const result = await client.terminal.spawn({ cwd, cols, rows });
       if (!mounted) {
         client.terminal.kill({ sessionId: result.sessionId });
         return;

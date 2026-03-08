@@ -11,6 +11,7 @@ import type {
   SDKSessionInfo,
   SessionMessage,
   CanUseTool,
+  PermissionMode as SDKPermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
 import { randomUUID } from "node:crypto";
 import debug from "debug";
@@ -18,9 +19,20 @@ import type {
   StreamEvent,
   SessionInfo,
   SlashCommandInfo,
+  ImageAttachment,
+  AgentInfo,
+  ModelInfo,
+  AccountInfo,
+  FastModeState,
+  PermissionMode,
+  RewindFilesResult,
+  McpServerConfig,
+  McpServerStatus,
+  McpSetServersResult,
 } from "../../../shared/features/agent/types";
 import { getShellEnvironment } from "./shell-env";
 import { EventPublisher } from "@orpc/server";
+import { readModelFromSettings } from "./claude-settings";
 import { Pushable } from "./pushable";
 import type {
   ClaudeCodeUIEvent,
@@ -138,22 +150,32 @@ export class SessionManager {
       });
     };
 
-    const resolvedModel = model ?? "sonnet";
-    log("buildOptions: model=%s permissionMode=default", resolvedModel);
+    log("buildOptions: model=%s permissionMode=default", model ?? "(default)");
 
     return {
-      model: resolvedModel,
+      ...(model ? { model } : {}),
       cwd,
       env,
       canUseTool,
       permissionMode: "default",
+      settingSources: ["user", "project", "local"],
     };
   }
 
   async createSession(
     cwd: string,
     model?: string,
-  ): Promise<{ sessionId: string; commands?: SlashCommandInfo[] }> {
+  ): Promise<{
+    sessionId: string;
+    currentModel?: string;
+    commands?: SlashCommandInfo[];
+    agents?: AgentInfo[];
+    models?: ModelInfo[];
+    account?: AccountInfo;
+    outputStyle?: string;
+    availableOutputStyles?: string[];
+    fastModeState?: FastModeState;
+  }> {
     const t0 = performance.now();
     log("createSession: START cwd=%s model=%s activeSessions=%d", cwd, model, this.sessions.size);
 
@@ -168,26 +190,57 @@ export class SessionManager {
 
     const initResult = await q.initializationResult();
     log(
-      "createSession: init received — commands=%d model=%s",
+      "createSession: init received — commands=%d agents=%d models=%d model=%s",
       initResult.commands?.length ?? 0,
+      initResult.agents?.length ?? 0,
+      initResult.models?.length ?? 0,
       options.model,
     );
 
     const commands: SlashCommandInfo[] = (initResult.commands ?? []).map((cmd) => ({
       name: cmd.name,
+      description: cmd.description,
+      argumentHint: cmd.argumentHint,
     }));
 
+    const agents: AgentInfo[] = (initResult.agents ?? []).map((a) => ({
+      name: a.name,
+      description: a.description,
+      ...(a.model ? { model: a.model } : {}),
+    }));
+
+    const models: ModelInfo[] = (initResult.models ?? []).map((m) => ({
+      value: m.value,
+      displayName: m.displayName,
+      description: m.description,
+      ...(m.supportsEffort != null ? { supportsEffort: m.supportsEffort } : {}),
+      ...(m.supportedEffortLevels ? { supportedEffortLevels: m.supportedEffortLevels } : {}),
+    }));
+
+    // Resolve effective model: explicit param > settings chain
+    const currentModel = model ?? readModelFromSettings(sessionId, cwd);
+
     log(
-      "createSession: DONE in %dms sessionId=%s commands=%d activeSessions=%d",
+      "createSession: DONE in %dms sessionId=%s commands=%d agents=%d models=%d currentModel=%s activeSessions=%d",
       Math.round(performance.now() - t0),
       sessionId,
       commands.length,
+      agents.length,
+      models.length,
+      currentModel ?? "(default)",
       this.sessions.size,
     );
 
     return {
       sessionId,
+      currentModel,
       commands: commands.length > 0 ? commands : undefined,
+      agents: agents.length > 0 ? agents : undefined,
+      models: models.length > 0 ? models : undefined,
+      account: initResult.account,
+      outputStyle: initResult.output_style,
+      availableOutputStyles: initResult.available_output_styles,
+      fastModeState: initResult.fast_mode_state,
     };
   }
 
@@ -195,6 +248,7 @@ export class SessionManager {
     sessionId: string,
     text: string,
     emitter: (event: StreamEvent) => void,
+    attachments?: ImageAttachment[],
   ): AsyncGenerator<StreamEvent> {
     const managed = this.sessions.get(sessionId);
     if (!managed) {
@@ -205,7 +259,24 @@ export class SessionManager {
     }
 
     const t0 = performance.now();
-    log("prompt: START sessionId=%s promptLen=%d cwd=%s", sessionId, text.length, managed.cwd);
+    log(
+      "prompt: START sessionId=%s promptLen=%d cwd=%s attachments=%d",
+      sessionId,
+      text.length,
+      managed.cwd,
+      attachments?.length ?? 0,
+    );
+    if (attachments && attachments.length > 0) {
+      log(
+        "prompt: attachment details: %o",
+        attachments.map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          mediaType: a.mediaType,
+          base64Len: a.base64?.length ?? 0,
+        })),
+      );
+    }
 
     // Set permission emitter so canUseTool can forward events
     this.permissionEmitter = emitter;
@@ -213,9 +284,51 @@ export class SessionManager {
     let sdkMsgCount = 0;
 
     try {
+      const content =
+        attachments && attachments.length > 0
+          ? [
+              ...(text ? [{ type: "text" as const, text }] : []),
+              ...attachments.map((att) => ({
+                type: "image" as const,
+                source: {
+                  type: "base64" as const,
+                  media_type: att.mediaType as
+                    | "image/jpeg"
+                    | "image/png"
+                    | "image/gif"
+                    | "image/webp",
+                  data: att.base64,
+                },
+              })),
+            ]
+          : text;
+
+      log(
+        "prompt: content type=%s contentIsArray=%s blockCount=%s",
+        typeof content,
+        Array.isArray(content),
+        Array.isArray(content) ? content.length : "n/a",
+      );
+      if (Array.isArray(content)) {
+        log(
+          "prompt: content blocks: %o",
+          content.map((b) => ({
+            type: b.type,
+            ...(b.type === "text" ? { textLen: b.text.length } : {}),
+            ...(b.type === "image"
+              ? {
+                  sourceType: b.source.type,
+                  mediaType: b.source.media_type,
+                  dataLen: b.source.data?.length ?? 0,
+                }
+              : {}),
+          })),
+        );
+      }
+
       managed.input.push({
         type: "user",
-        message: { role: "user", content: text },
+        message: { role: "user", content },
         parent_tool_use_id: null,
         session_id: sessionId,
       });
@@ -267,10 +380,9 @@ export class SessionManager {
     sessionId: string,
     cwd?: string,
     emitter?: (event: StreamEvent) => void,
-    skipReplay?: boolean,
   ): AsyncGenerator<StreamEvent> {
     const t0 = performance.now();
-    log("loadSession: START sessionId=%s cwd=%s skipReplay=%s", sessionId, cwd, !!skipReplay);
+    log("loadSession: START sessionId=%s cwd=%s", sessionId, cwd);
 
     const resolvedCwd = cwd ?? process.cwd();
     const options = await this.buildOptions(resolvedCwd);
@@ -297,25 +409,41 @@ export class SessionManager {
       // Emit available commands
       const commands: SlashCommandInfo[] = (initResult.commands ?? []).map((cmd) => ({
         name: cmd.name,
+        description: cmd.description,
+        argumentHint: cmd.argumentHint,
       }));
       if (commands.length > 0) {
         eventCount++;
         yield { type: "available_commands", sessionId, commands };
       }
 
-      // Replay history from persisted messages (skip if renderer has cache)
-      if (!skipReplay) {
-        const messages = await getSessionMessages(sessionId);
-        log("loadSession: replaying %d historical messages", messages.length);
+      // Emit available models and resolved current model
+      const models: ModelInfo[] = (initResult.models ?? []).map((m) => ({
+        value: m.value,
+        displayName: m.displayName,
+        description: m.description,
+        ...(m.supportsEffort != null ? { supportsEffort: m.supportsEffort } : {}),
+        ...(m.supportedEffortLevels ? { supportedEffortLevels: m.supportedEffortLevels } : {}),
+      }));
+      if (models.length > 0) {
+        eventCount++;
+        yield { type: "available_models", sessionId, models };
+      }
+      const currentModel = readModelFromSettings(sessionId, resolvedCwd);
+      if (currentModel) {
+        eventCount++;
+        yield { type: "current_model", sessionId, model: currentModel };
+      }
 
-        for (const msg of messages) {
-          for (const event of this.convertReplayMessage(sessionId, msg)) {
-            eventCount++;
-            yield event;
-          }
+      // Replay history from persisted messages
+      const messages = await getSessionMessages(sessionId);
+      log("loadSession: replaying %d historical messages", messages.length);
+
+      for (const msg of messages) {
+        for (const event of this.convertReplayMessage(sessionId, msg)) {
+          eventCount++;
+          yield event;
         }
-      } else {
-        log("loadSession: skipReplay=true, skipping message replay");
       }
     } catch (error) {
       log(
@@ -405,6 +533,69 @@ export class SessionManager {
     await managed.query.interrupt();
   }
 
+  private getQuery(sessionId: string): Query {
+    const managed = this.sessions.get(sessionId);
+    if (!managed) throw new Error(`Unknown session: ${sessionId}`);
+    return managed.query;
+  }
+
+  async setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void> {
+    log("setPermissionMode: sessionId=%s mode=%s", sessionId, mode);
+    await this.getQuery(sessionId).setPermissionMode(mode as SDKPermissionMode);
+  }
+
+  async setModel(sessionId: string, model?: string): Promise<void> {
+    log("setModel: sessionId=%s model=%s", sessionId, model);
+    await this.getQuery(sessionId).setModel(model);
+  }
+
+  async setMaxThinkingTokens(sessionId: string, maxThinkingTokens: number | null): Promise<void> {
+    log("setMaxThinkingTokens: sessionId=%s maxThinkingTokens=%s", sessionId, maxThinkingTokens);
+    await this.getQuery(sessionId).setMaxThinkingTokens(maxThinkingTokens);
+  }
+
+  async stopTask(sessionId: string, taskId: string): Promise<void> {
+    log("stopTask: sessionId=%s taskId=%s", sessionId, taskId);
+    await this.getQuery(sessionId).stopTask(taskId);
+  }
+
+  async rewindFiles(
+    sessionId: string,
+    userMessageId: string,
+    options?: { dryRun?: boolean },
+  ): Promise<RewindFilesResult> {
+    log(
+      "rewindFiles: sessionId=%s userMessageId=%s dryRun=%s",
+      sessionId,
+      userMessageId,
+      options?.dryRun,
+    );
+    return await this.getQuery(sessionId).rewindFiles(userMessageId, options);
+  }
+
+  async mcpServerStatus(sessionId: string): Promise<McpServerStatus[]> {
+    log("mcpServerStatus: sessionId=%s", sessionId);
+    return await this.getQuery(sessionId).mcpServerStatus();
+  }
+
+  async reconnectMcpServer(sessionId: string, serverName: string): Promise<void> {
+    log("reconnectMcpServer: sessionId=%s serverName=%s", sessionId, serverName);
+    await this.getQuery(sessionId).reconnectMcpServer(serverName);
+  }
+
+  async toggleMcpServer(sessionId: string, serverName: string, enabled: boolean): Promise<void> {
+    log("toggleMcpServer: sessionId=%s serverName=%s enabled=%s", sessionId, serverName, enabled);
+    await this.getQuery(sessionId).toggleMcpServer(serverName, enabled);
+  }
+
+  async setMcpServers(
+    sessionId: string,
+    servers: Record<string, McpServerConfig>,
+  ): Promise<McpSetServersResult> {
+    log("setMcpServers: sessionId=%s serverCount=%d", sessionId, Object.keys(servers).length);
+    return await this.getQuery(sessionId).setMcpServers(servers);
+  }
+
   async closeSession(sessionId: string): Promise<void> {
     const managed = this.sessions.get(sessionId);
     if (!managed) {
@@ -448,6 +639,7 @@ export class SessionManager {
     if (msg.type === "user") {
       const content = message.content;
       let text = "";
+      let images: Array<{ mediaType: string; base64: string }> | undefined;
       if (typeof content === "string") {
         text = content;
       } else if (Array.isArray(content)) {
@@ -455,10 +647,22 @@ export class SessionManager {
           .filter((b: any) => b.type === "text")
           .map((b: any) => b.text)
           .join("");
+        const imageBlocks = content.filter((b: any) => b.type === "image");
+        if (imageBlocks.length > 0) {
+          images = imageBlocks.map((b: any) => ({
+            mediaType: b.source?.media_type ?? "image/png",
+            base64: b.source?.data ?? "",
+          }));
+        }
       }
-      if (text) {
-        log("convertReplay: user_message len=%d uuid=%s", text.length, msg.uuid);
-        yield { type: "user_message", sessionId, text };
+      if (text || images) {
+        log(
+          "convertReplay: user_message len=%d images=%d uuid=%s",
+          text.length,
+          images?.length ?? 0,
+          msg.uuid,
+        );
+        yield { type: "user_message", sessionId, text, ...(images ? { images } : {}) };
       }
     } else if (msg.type === "assistant") {
       const blocks = message.content;
@@ -566,6 +770,7 @@ export class SessionManager {
       case "user": {
         const content = msg.message.content;
         let text = "";
+        let images: Array<{ mediaType: string; base64: string }> | undefined;
         if (typeof content === "string") {
           text = content;
         } else if (Array.isArray(content)) {
@@ -573,16 +778,24 @@ export class SessionManager {
             .filter((b) => b.type === "text")
             .map((b) => (b as { text: string }).text)
             .join("");
+          const imageBlocks = content.filter((b) => b.type === "image");
+          if (imageBlocks.length > 0) {
+            images = imageBlocks.map((b: any) => ({
+              mediaType: b.source?.media_type ?? "image/png",
+              base64: b.source?.data ?? "",
+            }));
+          }
         }
         const isReplay = "isReplay" in msg && msg.isReplay;
         log(
-          "convert: user_message len=%d replay=%s uuid=%s",
+          "convert: user_message len=%d images=%d replay=%s uuid=%s",
           text.length,
+          images?.length ?? 0,
           isReplay,
           msg.uuid ?? "-",
         );
-        if (text) {
-          yield { type: "user_message", sessionId, text };
+        if (text || images) {
+          yield { type: "user_message", sessionId, text, ...(images ? { images } : {}) };
         }
         break;
       }

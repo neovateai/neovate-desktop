@@ -50,11 +50,25 @@ For renderer-side debug logs, set `localStorage.debug` in DevTools:
 localStorage.debug = "neovate:*";
 ```
 
+## UI Playground
+
+A dev-only playground with two tabs:
+
+- **AI Elements** — all `ai-elements` components rendered with sample data
+- **Chat** — `ClaudeCodeMessageParts` renderer with a real Claude Code session as mock data
+
+```sh
+VITE_UI_PLAYGROUND=1 bun dev
+```
+
+The playground is only available in dev mode (`import.meta.env.DEV`) and is excluded from production builds.
+
 ## Environment Variables
 
 | Variable                  | Default | Description                                                                         |
 | ------------------------- | ------- | ----------------------------------------------------------------------------------- |
 | `NEOVATE_PRELOAD_SESSION` | `all`   | `all` = preload all sessions, `latest` = only the most recent, `false` = no preload |
+| `VITE_UI_PLAYGROUND`      | —       | Set to `1` to launch directly into the UI playground on startup                     |
 
 ## Code Style
 

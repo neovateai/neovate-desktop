@@ -1,3 +1,16 @@
 {
-  "files.title": "Files"
+  "title": "Files",
+  "noProject": "No project selected",
+  "emptyDirectory": "Empty directory",
+  "contextMenu.newFile": "New File",
+  "contextMenu.newFolder": "New Folder",
+  "contextMenu.rename": "Rename",
+  "contextMenu.delete": "Delete",
+  "confirmDelete": "Are you sure you want to delete {{fileName}}?",
+  "newFilePlaceholder": "New file.txt",
+  "newFolderPlaceholder": "New folder",
+  "error.deleteFailed": "Delete failed: {{error}}",
+  "error.renameFailed": "Rename failed: {{error}}",
+  "error.createFileFailed": "Failed to create file",
+  "error.createFolderFailed": "Failed to create folder"
 }

@@ -17,16 +17,11 @@ function ensureExecutable(filePath: string) {
   }
 }
 
-function resolveRgPath(): string {
+export function resolveRgPath(): string {
   if (cachedRgPath) return cachedRgPath;
 
-  const sdkDir = join(
-    require.resolve("@anthropic-ai/claude-agent-sdk/package.json"),
-    "..",
-    "vendor",
-    "ripgrep",
-    `${process.arch}-${process.platform}`,
-  );
+  const sdkMain = require.resolve("@anthropic-ai/claude-agent-sdk");
+  const sdkDir = join(sdkMain, "..", "vendor", "ripgrep", `${process.arch}-${process.platform}`);
   const binary = process.platform === "win32" ? "rg.exe" : "rg";
   const rgPath = join(sdkDir, binary);
 

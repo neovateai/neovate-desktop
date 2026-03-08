@@ -6,7 +6,15 @@ import type {
   LoadSessionResult,
   PromptResult,
   SlashCommandInfo,
-  CachedSession,
+  AgentInfo,
+  ModelInfo,
+  AccountInfo,
+  FastModeState,
+  PermissionMode,
+  RewindFilesResult,
+  McpServerConfig,
+  McpServerStatus,
+  McpSetServersResult,
 } from "./types";
 import type {
   ClaudeCodeUIMessage,
@@ -24,30 +32,46 @@ const promptErrorDataSchema = type<{
 export const agentContract = {
   listSessions: oc.input(z.object({ cwd: z.string().optional() })).output(type<SessionInfo[]>()),
 
-  newSession: oc
-    .input(z.object({ cwd: z.string(), model: z.string().optional() }))
-    .output(type<{ sessionId: string; commands?: SlashCommandInfo[] }>()),
+  newSession: oc.input(z.object({ cwd: z.string(), model: z.string().optional() })).output(
+    type<{
+      sessionId: string;
+      currentModel?: string;
+      commands?: SlashCommandInfo[];
+      agents?: AgentInfo[];
+      models?: ModelInfo[];
+      account?: AccountInfo;
+      outputStyle?: string;
+      availableOutputStyles?: string[];
+      fastModeState?: FastModeState;
+    }>(),
+  ),
 
   loadSession: oc
     .input(
       z.object({
         sessionId: z.string(),
         cwd: z.string().optional(),
-        skipReplay: z.boolean().optional(),
       }),
     )
     .output(eventIterator(type<StreamEvent>(), type<LoadSessionResult>())),
 
-  getSessionCache: oc
-    .input(z.object({ sessionId: z.string() }))
-    .output(type<CachedSession | null>()),
-
-  saveSessionCache: oc
-    .input(type<{ sessionId: string; data: CachedSession }>())
-    .output(type<void>()),
-
   prompt: oc
-    .input(z.object({ sessionId: z.string(), prompt: z.string() }))
+    .input(
+      z.object({
+        sessionId: z.string(),
+        prompt: z.string(),
+        attachments: z
+          .array(
+            z.object({
+              id: z.string(),
+              filename: z.string(),
+              mediaType: z.string(),
+              base64: z.string(),
+            }),
+          )
+          .optional(),
+      }),
+    )
     .errors({
       BAD_GATEWAY: {
         message: "Agent prompt failed",
@@ -62,24 +86,64 @@ export const agentContract = {
 
   cancel: oc.input(z.object({ sessionId: z.string() })).output(type<void>()),
 
+  setPermissionMode: oc
+    .input(
+      z.object({ sessionId: z.string(), mode: z.string().transform((v) => v as PermissionMode) }),
+    )
+    .output(type<void>()),
+
+  setModel: oc
+    .input(z.object({ sessionId: z.string(), model: z.string().optional() }))
+    .output(type<void>()),
+
+  setMaxThinkingTokens: oc
+    .input(z.object({ sessionId: z.string(), maxThinkingTokens: z.number().nullable() }))
+    .output(type<void>()),
+
+  stopTask: oc.input(z.object({ sessionId: z.string(), taskId: z.string() })).output(type<void>()),
+
+  rewindFiles: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        userMessageId: z.string(),
+        dryRun: z.boolean().optional(),
+      }),
+    )
+    .output(type<RewindFilesResult>()),
+
+  mcpServerStatus: oc.input(z.object({ sessionId: z.string() })).output(type<McpServerStatus[]>()),
+
+  reconnectMcpServer: oc
+    .input(z.object({ sessionId: z.string(), serverName: z.string() }))
+    .output(type<void>()),
+
+  toggleMcpServer: oc
+    .input(z.object({ sessionId: z.string(), serverName: z.string(), enabled: z.boolean() }))
+    .output(type<void>()),
+
+  setMcpServers: oc
+    .input(type<{ sessionId: string; servers: Record<string, McpServerConfig> }>())
+    .output(type<McpSetServersResult>()),
+
+  setModelSetting: oc
+    .input(z.object({ sessionId: z.string(), model: z.string() }))
+    .output(type<void>()),
+
   // V2: new transport endpoints under a dedicated sub-namespace
   claudeCode: {
-    // create session
     createSession: oc
       .input(z.object({ cwd: z.string(), model: z.string().optional() }))
       .output(type<{ sessionId: string; commands?: SlashCommandInfo[] }>()),
 
-    // message stream — UIMessage in, UIMessageChunk out
     stream: oc
       .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())
       .output(eventIterator(type<ClaudeCodeUIMessageChunk>())),
 
-    // subscribe stream — events + interaction requests
     subscribe: oc
       .input(type<{ sessionId: string }>())
       .output(eventIterator(type<ClaudeCodeUIEvent>())),
 
-    // dispatch — respond / configure
     dispatch: oc
       .input(type<{ sessionId: string; dispatch: ClaudeCodeUIDispatch }>())
       .output(type<ClaudeCodeUIDispatchResult>()),

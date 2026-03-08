@@ -1,3 +1,4 @@
+import type React from "react";
 import { X, TriangleAlert } from "lucide-react";
 import { useRendererApp } from "../../../core";
 import { cn } from "../../../lib/utils";
@@ -9,16 +10,18 @@ function TabButton({
   tab,
   isActive,
   isOrphan,
+  ...rest
 }: {
   tab: Tab;
   isActive: boolean;
   isOrphan: boolean;
-}) {
+} & React.ComponentPropsWithRef<"div">) {
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
 
   return (
     <div
+      {...rest}
       role="tab"
       aria-selected={isActive}
       className={cn(
@@ -63,7 +66,10 @@ export function TabItem({
   if (isOrphan) {
     return (
       <Tooltip>
-        <TooltipTrigger render={<TabButton tab={tab} isActive={isActive} isOrphan />} delay={0} />
+        <TooltipTrigger
+          delay={0}
+          render={(props) => <TabButton {...props} tab={tab} isActive={isActive} isOrphan />}
+        />
         <TooltipPopup side="bottom">
           &quot;{tab.name}&quot; is unavailable. You can close this tab.
         </TooltipPopup>

@@ -1,3 +1,16 @@
 {
-  "files.title": "文件"
+  "title": "文件",
+  "noProject": "未选择项目",
+  "emptyDirectory": "空目录",
+  "contextMenu.newFile": "新建文件",
+  "contextMenu.newFolder": "新建文件夹",
+  "contextMenu.rename": "重命名",
+  "contextMenu.delete": "删除",
+  "confirmDelete": "确定要删除 {{fileName}} 吗？",
+  "newFilePlaceholder": "新文件.txt",
+  "newFolderPlaceholder": "新文件夹",
+  "error.deleteFailed": "删除失败：{{error}}",
+  "error.renameFailed": "重命名失败：{{error}}",
+  "error.createFileFailed": "创建文件失败",
+  "error.createFolderFailed": "创建文件夹失败"
 }

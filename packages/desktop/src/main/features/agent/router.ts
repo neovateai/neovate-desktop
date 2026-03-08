@@ -3,10 +3,7 @@ import debug from "debug";
 import { agentContract } from "../../../shared/features/agent/contract";
 import type { StreamEvent } from "../../../shared/features/agent/types";
 import type { AppContext } from "../../router";
-import {
-  loadSessionCache as readSessionCache,
-  saveSessionCache as writeSessionCache,
-} from "./session-cache";
+import { writeModelToSettings } from "./claude-settings";
 
 const agentLog = debug("neovate:agent-router");
 
@@ -74,7 +71,6 @@ export const agentRouter = os.agent.router({
         input.sessionId,
         input.cwd,
         emitter,
-        input.skipReplay,
       )) {
         eventCount += 1;
         if (!firstEventAt) {
@@ -130,10 +126,17 @@ export const agentRouter = os.agent.router({
     let eventCount = 0;
     let permissionEventCount = 0;
     agentLog(
-      "prompt: START sessionId=%s promptLen=%d prompt=%s",
+      "prompt: START sessionId=%s promptLen=%d prompt=%s attachments=%d attachmentDetails=%o",
       input.sessionId,
       input.prompt.length,
       input.prompt.slice(0, 100),
+      input.attachments?.length ?? 0,
+      input.attachments?.map((a) => ({
+        id: a.id,
+        filename: a.filename,
+        mediaType: a.mediaType,
+        base64Len: a.base64?.length ?? 0,
+      })),
     );
 
     const pendingPermissionEvents: StreamEvent[] = [];
@@ -147,6 +150,7 @@ export const agentRouter = os.agent.router({
         input.sessionId,
         input.prompt,
         emitter,
+        input.attachments,
       )) {
         eventCount += 1;
         if (!firstEventAt) {
@@ -205,16 +209,6 @@ export const agentRouter = os.agent.router({
     return { stopReason: "end_turn" };
   }),
 
-  getSessionCache: os.agent.getSessionCache.handler(async ({ input }) => {
-    agentLog("getSessionCache: sessionId=%s", input.sessionId);
-    return readSessionCache(input.sessionId);
-  }),
-
-  saveSessionCache: os.agent.saveSessionCache.handler(async ({ input }) => {
-    agentLog("saveSessionCache: sessionId=%s msgs=%d", input.sessionId, input.data.messages.length);
-    writeSessionCache(input.sessionId, input.data);
-  }),
-
   resolvePermission: os.agent.resolvePermission.handler(({ input, context }) => {
     agentLog("resolvePermission: requestId=%s allow=%s", input.requestId, input.allow);
     context.sessionManager.resolvePermission(input.requestId, input.allow);
@@ -225,10 +219,80 @@ export const agentRouter = os.agent.router({
     await context.sessionManager.cancel(input.sessionId);
   }),
 
+  setPermissionMode: os.agent.setPermissionMode.handler(async ({ input, context }) => {
+    agentLog("setPermissionMode: sessionId=%s mode=%s", input.sessionId, input.mode);
+    await context.sessionManager.setPermissionMode(input.sessionId, input.mode);
+  }),
+
+  setModel: os.agent.setModel.handler(async ({ input, context }) => {
+    agentLog("setModel: sessionId=%s model=%s", input.sessionId, input.model);
+    await context.sessionManager.setModel(input.sessionId, input.model);
+  }),
+
+  setMaxThinkingTokens: os.agent.setMaxThinkingTokens.handler(async ({ input, context }) => {
+    agentLog(
+      "setMaxThinkingTokens: sessionId=%s maxThinkingTokens=%s",
+      input.sessionId,
+      input.maxThinkingTokens,
+    );
+    await context.sessionManager.setMaxThinkingTokens(input.sessionId, input.maxThinkingTokens);
+  }),
+
+  stopTask: os.agent.stopTask.handler(async ({ input, context }) => {
+    agentLog("stopTask: sessionId=%s taskId=%s", input.sessionId, input.taskId);
+    await context.sessionManager.stopTask(input.sessionId, input.taskId);
+  }),
+
+  rewindFiles: os.agent.rewindFiles.handler(async ({ input, context }) => {
+    agentLog(
+      "rewindFiles: sessionId=%s userMessageId=%s dryRun=%s",
+      input.sessionId,
+      input.userMessageId,
+      input.dryRun,
+    );
+    return context.sessionManager.rewindFiles(input.sessionId, input.userMessageId, {
+      dryRun: input.dryRun,
+    });
+  }),
+
+  mcpServerStatus: os.agent.mcpServerStatus.handler(async ({ input, context }) => {
+    agentLog("mcpServerStatus: sessionId=%s", input.sessionId);
+    return context.sessionManager.mcpServerStatus(input.sessionId);
+  }),
+
+  reconnectMcpServer: os.agent.reconnectMcpServer.handler(async ({ input, context }) => {
+    agentLog("reconnectMcpServer: sessionId=%s serverName=%s", input.sessionId, input.serverName);
+    await context.sessionManager.reconnectMcpServer(input.sessionId, input.serverName);
+  }),
+
+  toggleMcpServer: os.agent.toggleMcpServer.handler(async ({ input, context }) => {
+    agentLog(
+      "toggleMcpServer: sessionId=%s serverName=%s enabled=%s",
+      input.sessionId,
+      input.serverName,
+      input.enabled,
+    );
+    await context.sessionManager.toggleMcpServer(input.sessionId, input.serverName, input.enabled);
+  }),
+
+  setMcpServers: os.agent.setMcpServers.handler(async ({ input, context }) => {
+    agentLog(
+      "setMcpServers: sessionId=%s serverCount=%d",
+      input.sessionId,
+      Object.keys(input.servers).length,
+    );
+    return context.sessionManager.setMcpServers(input.sessionId, input.servers);
+  }),
+
+  setModelSetting: os.agent.setModelSetting.handler(({ input }) => {
+    agentLog("setModelSetting: sessionId=%s model=%s", input.sessionId, input.model);
+    writeModelToSettings(input.sessionId, input.model);
+  }),
+
   // V2: new transport endpoints under claudeCode sub-namespace
   claudeCode: os.agent.claudeCode.router({
     createSession: os.agent.claudeCode.createSession.handler(async ({ input, context }) => {
-      console.log("[claudeCode.createSession] START cwd=%s model=%s", input.cwd, input.model);
+      agentLog("claudeCode.createSession: cwd=%s model=%s", input.cwd, input.model);
       try {
         return await context.sessionManager.createSessionV2(input.cwd, input.model);
       } catch (error) {
@@ -237,14 +301,12 @@ export const agentRouter = os.agent.router({
       }
     }),
 
-    // message stream handler
     stream: os.agent.claudeCode.stream.handler(async function* ({ input, context }) {
       for await (const chunk of context.sessionManager.stream(input.sessionId, input.message)) {
         yield chunk;
       }
     }),
 
-    // subscribe handler — long-lived stream until session closes
     subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context, signal }) {
       for await (const event of context.sessionManager.eventPublisher.subscribe(input.sessionId, {
         signal,
@@ -253,7 +315,6 @@ export const agentRouter = os.agent.router({
       }
     }),
 
-    // dispatch handler
     dispatch: os.agent.claudeCode.dispatch.handler(({ input, context }) => {
       return context.sessionManager.handleDispatch(input.sessionId, input.dispatch);
     }),

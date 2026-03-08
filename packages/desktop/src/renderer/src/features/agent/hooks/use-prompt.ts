@@ -5,6 +5,7 @@ import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { useNewSession } from "./use-new-session";
+import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const promptLog = debug("neovate:agent-prompt");
 
@@ -15,6 +16,8 @@ export function usePrompt() {
   const setStreaming = useAgentStore((s) => s.setStreaming);
   const createSession = useAgentStore((s) => s.createSession);
   const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
+  const setAvailableModels = useAgentStore((s) => s.setAvailableModels);
+  const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
   const addTiming = useAgentStore((s) => s.addTiming);
   const { preWarmSession } = useNewSession();
 
@@ -25,22 +28,28 @@ export function usePrompt() {
   }, []);
 
   const sendPrompt = useCallback(
-    async (sessionId: string | undefined, prompt: string) => {
+    async (sessionId: string | undefined, prompt: string, attachments?: ImageAttachment[]) => {
       const promptStart = performance.now();
       let resolvedSessionId = sessionId;
       const projectPath = useProjectStore.getState().activeProject?.path;
-      const cwd = projectPath ?? process.cwd?.() ?? "";
+      const cwd = projectPath ?? "";
 
       if (!resolvedSessionId) {
         const sessionStart = performance.now();
         promptLog("sendPrompt: creating session cwd=%s", cwd);
-        const { sessionId: newSessionId, commands } = await client.agent.newSession({ cwd });
+        const {
+          sessionId: newSessionId,
+          commands,
+          models,
+          currentModel,
+        } = await client.agent.newSession({ cwd });
         resolvedSessionId = newSessionId;
         const sessionElapsed = Math.round(performance.now() - sessionStart);
         promptLog(
-          "sendPrompt: session created in %dms sessionId=%s",
+          "sendPrompt: session created in %dms sessionId=%s currentModel=%s",
           sessionElapsed,
           resolvedSessionId,
+          currentModel,
         );
         addTiming({
           phase: "prompt",
@@ -53,14 +62,35 @@ export function usePrompt() {
         if (commands?.length) {
           setAvailableCommands(resolvedSessionId, commands);
         }
+        if (models?.length) {
+          setAvailableModels(resolvedSessionId, models);
+        }
+        if (currentModel) {
+          setCurrentModel(resolvedSessionId, currentModel);
+        }
       }
 
-      promptLog("sendPrompt: start sessionId=%s len=%d", resolvedSessionId, prompt.length);
+      promptLog(
+        "sendPrompt: start sessionId=%s len=%d attachments=%d attachmentDetails=%o",
+        resolvedSessionId,
+        prompt.length,
+        attachments?.length ?? 0,
+        attachments?.map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          mediaType: a.mediaType,
+          base64Len: a.base64?.length ?? 0,
+        })),
+      );
       useAgentStore.getState().setPromptError(resolvedSessionId, null);
 
       // Check if this was a new session before sending the first message
       const wasNew = useAgentStore.getState().sessions.get(resolvedSessionId)?.isNew;
-      addUserMessage(resolvedSessionId, prompt);
+      addUserMessage(
+        resolvedSessionId,
+        prompt,
+        attachments?.map((a) => ({ mediaType: a.mediaType, base64: a.base64 })),
+      );
       setStreaming(resolvedSessionId, true);
 
       // Pre-warm next empty session in background after first message
@@ -99,8 +129,13 @@ export function usePrompt() {
 
       try {
         const rpcStart = performance.now();
+        promptLog(
+          "sendPrompt: calling oRPC prompt sessionId=%s attachments=%s",
+          resolvedSessionId,
+          attachments ? `${attachments.length} items` : "none",
+        );
         const iterator = await client.agent.prompt(
-          { sessionId: resolvedSessionId, prompt },
+          { sessionId: resolvedSessionId, prompt, attachments },
           { signal: ac.signal },
         );
         const rpcElapsed = Math.round(performance.now() - rpcStart);
@@ -163,27 +198,6 @@ export function usePrompt() {
       } finally {
         setStreaming(resolvedSessionId, false);
         abortRef.current = null;
-
-        // Save session cache for instant restore on next load
-        const session = useAgentStore.getState().sessions.get(resolvedSessionId!);
-        if (session && session.messages.length > 0) {
-          client.agent.saveSessionCache({
-            sessionId: resolvedSessionId!,
-            data: {
-              messages: session.messages.map((m) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                thinking: m.thinking,
-                toolCalls: m.toolCalls,
-              })),
-              title: session.title,
-              cwd: session.cwd,
-              updatedAt: new Date().toISOString(),
-              usage: session.usage,
-            },
-          });
-        }
       }
     },
     [
@@ -192,6 +206,8 @@ export function usePrompt() {
       setStreaming,
       createSession,
       setAvailableCommands,
+      setAvailableModels,
+      setCurrentModel,
       addTiming,
       preWarmSession,
     ],

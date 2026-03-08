@@ -1,4 +1,17 @@
 {
   "git.title": "Source Control",
-  "git.notAGitRepository": "Not a git repository"
+  "git.notAGitRepository": "Not a git repository",
+  "git.status": "Status",
+  "git.noProject": "No project selected",
+  "git.loadingStatus": "Loading Git status...",
+  "git.noChanges": "No changes",
+  "git.stagedChanges": "Staged Changes",
+  "git.workingChanges": "Working Changes",
+  "git.refreshStatus": "Refresh Git Status",
+  "git.addToStage": "Add to Stage",
+  "git.removeFromStage": "Remove from Stage",
+  "git.revertFile": "Revert File",
+  "git.addAllToStage": "Stage All Changes",
+  "git.removeAllFromStage": "Unstage All",
+  "git.revertAllFiles": "Revert All Changes"
 }

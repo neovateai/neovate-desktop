@@ -1,5 +1,5 @@
 import { spawn, execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync, rmSync, unlinkSync } from "node:fs";
 import debug from "debug";
 import { app } from "electron";
 import { implement } from "@orpc/server";
@@ -8,6 +8,7 @@ import type { App } from "../../../shared/features/utils/types";
 import type { AppContext } from "../../router";
 import { getShellEnvironment } from "../agent/shell-env";
 import { searchPaths } from "./search-paths";
+import { searchWithContent } from "./search-content";
 
 const log = debug("neovate:utils-router");
 
@@ -108,6 +109,23 @@ export const utilsRouter = os.utils.router({
     return searchPaths(input.cwd, input.query, input.maxResults);
   }),
 
+  searchWithContent: os.utils.searchWithContent.handler(async ({ input }) => {
+    log(
+      "searchWithContent request cwd=%s query=%s caseSensitive=%s exactMatch=%s",
+      input.cwd,
+      input.query,
+      input.caseSensitive,
+      input.exactMatch,
+    );
+    return searchWithContent(
+      input.cwd,
+      input.query,
+      input.caseSensitive,
+      input.exactMatch,
+      input.maxResults,
+    );
+  }),
+
   setLoginItem: os.utils.setLoginItem.handler(async ({ input }) => {
     const { openAtLogin } = input;
     app.setLoginItemSettings({
@@ -115,5 +133,28 @@ export const utilsRouter = os.utils.router({
       openAsHidden: true,
     });
     return { success: true };
+  }),
+  removeFile: os.utils.removeFile.handler(async ({ input }) => {
+    const { path } = input;
+    try {
+      if (!path) {
+        return { success: false, error: "Path is required" };
+      }
+      if (!existsSync(path)) {
+        return { success: false, error: "File does not exist" };
+      }
+      const stats = statSync(path);
+      if (stats.isDirectory()) {
+        rmSync(path, { recursive: true, force: true });
+      } else {
+        unlinkSync(path);
+      }
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
   }),
 });

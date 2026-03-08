@@ -6,7 +6,7 @@ import type {
   StreamEvent,
   TimingEntry,
   SlashCommandInfo,
-  CachedSession,
+  ModelInfo,
 } from "../../../../shared/features/agent/types";
 import debug from "debug";
 
@@ -20,6 +20,7 @@ export type ChatMessage = {
   content: string;
   thinking?: string;
   toolCalls?: ToolCallState[];
+  images?: Array<{ mediaType: string; base64: string }>;
 };
 
 export type ToolCallState = {
@@ -64,6 +65,8 @@ export type ChatSession = {
   promptError: string | null;
   pendingPermission: PendingPermission | null;
   availableCommands: SlashCommandInfo[];
+  availableModels: ModelInfo[];
+  currentModel?: string;
   sdkReady: boolean;
   usage?: SessionUsage;
   tasks: Map<string, TaskState>;
@@ -87,13 +90,18 @@ type AgentState = {
     meta?: { title?: string; createdAt?: string; cwd?: string; isNew?: boolean },
   ) => void;
   removeSession: (sessionId: string) => void;
-  addUserMessage: (sessionId: string, content: string) => void;
+  addUserMessage: (
+    sessionId: string,
+    content: string,
+    images?: Array<{ mediaType: string; base64: string }>,
+  ) => void;
   setStreaming: (sessionId: string, streaming: boolean) => void;
   setPromptError: (sessionId: string, error: string | null) => void;
   setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
+  setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
+  setCurrentModel: (sessionId: string, model: string) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
-  restoreFromCache: (sessionId: string, cached: CachedSession) => void;
   setSdkReady: (sessionId: string, ready: boolean) => void;
   addTiming: (entry: TimingEntry) => void;
   clearTimings: () => void;
@@ -131,6 +139,7 @@ export const useAgentStore = create<AgentState>()(
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
+          availableModels: [],
           sdkReady: true,
           tasks: new Map(),
         });
@@ -153,6 +162,7 @@ export const useAgentStore = create<AgentState>()(
           promptError: null,
           pendingPermission: null,
           availableCommands: [],
+          availableModels: [],
           sdkReady: true,
           tasks: new Map(),
         });
@@ -175,8 +185,13 @@ export const useAgentStore = create<AgentState>()(
       });
     },
 
-    addUserMessage: (sessionId, content) => {
-      storeLog("addUserMessage: sid=%s len=%d", sessionId, content.length);
+    addUserMessage: (sessionId, content, images) => {
+      storeLog(
+        "addUserMessage: sid=%s len=%d images=%d",
+        sessionId,
+        content.length,
+        images?.length ?? 0,
+      );
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (!session) {
@@ -192,6 +207,7 @@ export const useAgentStore = create<AgentState>()(
           id: String(state._nextMessageId),
           role: "user",
           content,
+          ...(images && images.length > 0 ? { images } : {}),
         });
         storeLog(
           "addUserMessage: msgCount=%d msgId=%d",
@@ -241,6 +257,26 @@ export const useAgentStore = create<AgentState>()(
       });
     },
 
+    setAvailableModels: (sessionId, models) => {
+      storeLog(
+        "setAvailableModels: sid=%s models=%o",
+        sessionId,
+        models.map((m) => m.value),
+      );
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.availableModels = models;
+      });
+    },
+
+    setCurrentModel: (sessionId, model) => {
+      storeLog("setCurrentModel: sid=%s model=%s", sessionId, model);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.currentModel = model;
+      });
+    },
+
     addTiming: (entry) => {
       storeLog(
         "addTiming: phase=%s label=%s durationMs=%d",
@@ -254,30 +290,6 @@ export const useAgentStore = create<AgentState>()(
     },
 
     clearTimings: () => set({ timings: [] }),
-
-    restoreFromCache: (sessionId, cached) => {
-      storeLog(
-        "restoreFromCache: sid=%s msgs=%d title=%s",
-        sessionId,
-        cached.messages.length,
-        cached.title,
-      );
-      set((state) => {
-        const session = state.sessions.get(sessionId);
-        if (!session) {
-          storeLog("restoreFromCache: WARNING session not found sid=%s", sessionId);
-          return;
-        }
-        session.messages = cached.messages.map((m) => {
-          state._nextMessageId += 1;
-          return { ...m, id: String(state._nextMessageId), toolCalls: m.toolCalls };
-        });
-        if (cached.title) session.title = cached.title;
-        if (cached.cwd) session.cwd = cached.cwd;
-        if (cached.usage) session.usage = cached.usage;
-        session.sdkReady = false;
-      });
-    },
 
     setSdkReady: (sessionId, ready) => {
       storeLog("setSdkReady: sid=%s ready=%s", sessionId, ready);
@@ -333,8 +345,27 @@ export const useAgentStore = create<AgentState>()(
             session.availableCommands = event.commands;
             break;
 
+          case "available_models":
+            storeLog(
+              "appendChunk: available_models sid=%s count=%d",
+              sessionId,
+              event.models.length,
+            );
+            session.availableModels = event.models;
+            break;
+
+          case "current_model":
+            storeLog("appendChunk: current_model sid=%s model=%s", sessionId, event.model);
+            session.currentModel = event.model;
+            break;
+
           case "user_message":
-            storeLog("appendChunk: user_message sid=%s len=%d", sessionId, event.text.length);
+            storeLog(
+              "appendChunk: user_message sid=%s len=%d images=%d",
+              sessionId,
+              event.text.length,
+              event.images?.length ?? 0,
+            );
             if (!session.title) {
               session.title = event.text.slice(0, 50);
             }
@@ -343,6 +374,7 @@ export const useAgentStore = create<AgentState>()(
               id: String(state._nextMessageId),
               role: "user",
               content: event.text,
+              ...(event.images && event.images.length > 0 ? { images: event.images } : {}),
             });
             break;
 

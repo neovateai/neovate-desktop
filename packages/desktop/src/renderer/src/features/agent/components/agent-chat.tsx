@@ -4,6 +4,7 @@ import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const chatLog = debug("neovate:agent-chat");
 import { useNewSession } from "../hooks/use-new-session";
@@ -93,11 +94,12 @@ export function AgentChat() {
       });
   }, [activeProjectPath, createNewSession]);
 
-  const handleSend = (message: string) => {
+  const handleSend = (message: string, attachments?: ImageAttachment[]) => {
     chatLog(
-      "handleSend: sessionId=%s msgLen=%d",
+      "handleSend: sessionId=%s msgLen=%d attachments=%d",
       activeSessionId?.slice(0, 8) ?? "new",
       message.length,
+      attachments?.length ?? 0,
     );
     if (!activeSessionId) return;
     useAgentStore.getState().addUserMessage(activeSessionId, message);
@@ -117,7 +119,13 @@ export function AgentChat() {
     return (
       <div className="flex h-full flex-col">
         <WelcomePanel />
-        <MessageInput onSend={handleSend} onCancel={() => {}} streaming={false} cwd={cwd} />
+        <MessageInput
+          onSend={handleSend}
+          onCancel={() => {}}
+          streaming={false}
+          disabled={!activeProjectPath}
+          cwd={cwd}
+        />
       </div>
     );
   }

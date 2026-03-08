@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 const RENDERER_SRC = join(process.cwd(), "src/renderer/src");
 
-const DIRS_TO_FIX = ["components/ui", "lib", "hooks"] as const;
+const DIRS_TO_FIX = ["components/ui", "components/ai-elements", "lib", "hooks"] as const;
 
 function resolveRelative(fromDir: string, aliasPath: string): string {
   // aliasPath e.g. "@/components/ui/button" or "@/lib/utils"

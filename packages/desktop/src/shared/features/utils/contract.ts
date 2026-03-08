@@ -37,4 +37,29 @@ export const utilsContract = {
   setLoginItem: oc
     .input(z.object({ openAtLogin: z.boolean() }))
     .output(type<{ success: boolean }>()),
+  removeFile: oc
+    .input(z.object({ path: z.string() }))
+    .output(type<{ success: boolean; error?: string }>()),
+
+  searchWithContent: oc
+    .input(
+      z.object({
+        cwd: z.string(),
+        query: z.string(),
+        caseSensitive: z.boolean().optional(),
+        exactMatch: z.boolean().optional(),
+        maxResults: z.number().optional(),
+      }),
+    )
+    .output(
+      type<{
+        results: Array<{
+          fullPath: string;
+          relPath: string;
+          fileName: string;
+          extName: string;
+          matches?: Array<{ line: number; column: number; text: string }>;
+        }>;
+      }>(),
+    ),
 };

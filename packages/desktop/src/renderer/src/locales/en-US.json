@@ -107,6 +107,8 @@
   "settings.skills.loadFailed": "Failed to load skills",
   "settings.skills.fetchFailed": "Failed to fetch skills",
   "settings.skills.installFailed": "Failed to install skills",
+
+  "common.loading": "Loading...",
   "settings.skills.retry": "Retry",
   "settings.skills.removeSkill": "Remove skill",
 

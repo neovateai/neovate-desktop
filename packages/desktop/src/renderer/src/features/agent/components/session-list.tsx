@@ -133,7 +133,6 @@ export function SessionList() {
   const createSession = useAgentStore((s) => s.createSession);
   const removeSession = useAgentStore((s) => s.removeSession);
   const appendChunk = useAgentStore((s) => s.appendChunk);
-  const restoreFromCache = useAgentStore((s) => s.restoreFromCache);
   const setSdkReady = useAgentStore((s) => s.setSdkReady);
 
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -187,36 +186,9 @@ export function SessionList() {
         info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
       );
 
-      // Phase 1: Try loading from cache for instant display
-      let hasCachedMessages = false;
-      try {
-        const cached = await client.agent.getSessionCache({ sessionId });
-        if (cached && cached.messages.length > 0) {
-          restoreFromCache(sessionId, cached);
-          hasCachedMessages = true;
-          listLog(
-            "loadSession: cache HIT sid=%s msgs=%d in %dms",
-            sessionId.slice(0, 8),
-            cached.messages.length,
-            Math.round(performance.now() - t0),
-          );
-          // Stop showing "Restoring..." since messages are visible now
-          setRestoring((prev) => (prev === sessionId ? null : prev));
-        } else {
-          listLog("loadSession: cache MISS sid=%s", sessionId.slice(0, 8));
-        }
-      } catch (error) {
-        listLog(
-          "loadSession: cache read error sid=%s error=%s",
-          sessionId.slice(0, 8),
-          error instanceof Error ? error.message : String(error),
-        );
-      }
-
-      // Phase 2: Resume SDK session (skip replay if we loaded from cache)
       try {
         const iterator = await client.agent.loadSession(
-          { sessionId, cwd: activeProject?.path, skipReplay: hasCachedMessages },
+          { sessionId, cwd: activeProject?.path },
           { signal: ac.signal },
         );
         let eventCount = 0;
@@ -226,33 +198,11 @@ export function SessionList() {
         }
         setSdkReady(sessionId, true);
         listLog(
-          "loadSession: SDK ready sid=%s in %dms events=%d cached=%s",
+          "loadSession: SDK ready sid=%s in %dms events=%d",
           sessionId.slice(0, 8),
           Math.round(performance.now() - t0),
           eventCount,
-          hasCachedMessages,
         );
-
-        // Save cache for future loads (always save to keep it fresh)
-        const session = useAgentStore.getState().sessions.get(sessionId);
-        if (session && session.messages.length > 0) {
-          client.agent.saveSessionCache({
-            sessionId,
-            data: {
-              messages: session.messages.map((m) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                thinking: m.thinking,
-                toolCalls: m.toolCalls,
-              })),
-              title: session.title,
-              cwd: session.cwd,
-              updatedAt: new Date().toISOString(),
-              usage: session.usage,
-            },
-          });
-        }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
@@ -263,10 +213,7 @@ export function SessionList() {
           Math.round(performance.now() - t0),
           error instanceof Error ? error.message : String(error),
         );
-        // Only remove session if we didn't already show cached messages
-        if (!hasCachedMessages) {
-          removeSession(sessionId);
-        }
+        removeSession(sessionId);
       } finally {
         if (loadAbortRef.current === ac) {
           loadAbortRef.current = null;
@@ -280,7 +227,6 @@ export function SessionList() {
       createSession,
       removeSession,
       appendChunk,
-      restoreFromCache,
       setSdkReady,
       agentSessions,
       activeProject?.path,
