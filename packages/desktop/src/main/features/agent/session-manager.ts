@@ -21,6 +21,8 @@ import type {
 } from "../../../shared/features/agent/types";
 import { getShellEnvironment } from "./shell-env";
 import { Pushable } from "./pushable";
+import type { ClaudeCodeUIEvent, ClaudeCodeUIDispatch, ClaudeCodeUIDispatchResult } from "../../../shared/features/agent/chat-types";
+import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 
 const log = debug("neovate:session-manager");
 
@@ -46,7 +48,19 @@ export class SessionManager {
   private requestIdCounter = 0;
   private permissionEmitter: PermissionEmitter | null = null;
 
-  private async buildOptions(cwd: string, model?: string): Promise<Options> {
+  // V2: per-session data for stream/subscribe/dispatch endpoints
+  private v2Sessions = new Map<
+    string,
+    {
+      subscribeChannel: Pushable<ClaudeCodeUIEvent>;
+      pendingRequests: Map<string, {
+        resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
+        timer: ReturnType<typeof setTimeout>;
+      }>;
+    }
+  >();
+
+  private async buildOptions(cwd: string, model?: string, sessionId?: string): Promise<Options> {
     const t0 = performance.now();
     const shellEnv = await getShellEnvironment();
     const shellEnvMs = Math.round(performance.now() - t0);
@@ -128,6 +142,32 @@ export class SessionManager {
             requestId,
           );
         }
+
+        // V2 path: push to per-session subscribe channel
+        if (sessionId) {
+          const v2 = this.v2Sessions.get(sessionId);
+          if (v2) {
+            v2.pendingRequests.set(requestId, {
+              resolve: (result) => {
+                clearTimeout(timer);
+                this.pendingPermissions.delete(requestId);
+                v2.pendingRequests.delete(requestId);
+                resolve(result);
+              },
+              timer,
+            });
+            v2.subscribeChannel.push({
+              kind: "request",
+              requestId,
+              request: {
+                type: "permission_request",
+                toolName,
+                input: input as Record<string, unknown>,
+                toolUseId: requestId,
+              },
+            });
+          }
+        }
       });
     };
 
@@ -150,10 +190,14 @@ export class SessionManager {
     const t0 = performance.now();
     log("createSession: START cwd=%s model=%s activeSessions=%d", cwd, model, this.sessions.size);
 
-    const options = await this.buildOptions(cwd, model);
-    log("createSession: options built in %dms", Math.round(performance.now() - t0));
-
     const sessionId = randomUUID();
+    // Init V2 subscribe channel before buildOptions (canUseTool needs it)
+    this.v2Sessions.set(sessionId, {
+      subscribeChannel: new Pushable(),
+      pendingRequests: new Map(),
+    });
+    const options = await this.buildOptions(cwd, model, sessionId);
+    log("createSession: options built in %dms", Math.round(performance.now() - t0));
     const input = new Pushable<SDKUserMessage>();
     const q = query({ prompt: input, options: { ...options, sessionId } });
 
@@ -406,6 +450,15 @@ export class SessionManager {
       return;
     }
     managed.query.close();
+    const v2 = this.v2Sessions.get(sessionId);
+    if (v2) {
+      v2.subscribeChannel.end();
+      for (const [, pending] of v2.pendingRequests) {
+        clearTimeout(pending.timer);
+        pending.resolve({ behavior: "deny", message: "Session closed" });
+      }
+      this.v2Sessions.delete(sessionId);
+    }
     this.sessions.delete(sessionId);
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);
   }
@@ -426,6 +479,74 @@ export class SessionManager {
       this.pendingPermissions.delete(id);
     }
     log("closeAll: DONE");
+  }
+
+  // ─── V2 API ───────────────────────────────────────────────────────────────────
+
+  /** V2: get subscribe channel for a session */
+  getSubscribeChannel(sessionId: string): Pushable<ClaudeCodeUIEvent> | undefined {
+    return this.v2Sessions.get(sessionId)?.subscribeChannel;
+  }
+
+  /**
+   * V2: stream a user message as UIMessageChunks.
+   * Events from the SDK are routed to the session's subscribe channel.
+   */
+  async *streamV2(
+    sessionId: string,
+    message: import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessage,
+  ): AsyncGenerator<import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessageChunk> {
+    const managed = this.sessions.get(sessionId);
+    if (!managed) throw new Error(`Unknown session: ${sessionId}`);
+
+    const v2 = this.v2Sessions.get(sessionId);
+    const transformer = new SDKMessageTransformer();
+
+    // Extract text content from UIMessage parts (AI SDK format)
+    const text = message.parts
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join("");
+
+    managed.input.push({
+      type: "user",
+      message: { role: "user", content: text },
+      parent_tool_use_id: null,
+      session_id: sessionId,
+    });
+
+    while (true) {
+      const { value: msg, done } = await managed.query.next();
+      if (done || !msg) break;
+
+      // Route to message stream
+      yield* transformer.transform(msg as any);
+
+      // Route events to subscribe channel
+      if (v2) {
+        const event = toUIEvent(msg as any);
+        if (event) v2.subscribeChannel.push(event);
+      }
+
+      if (msg.type === "result") break;
+    }
+  }
+
+  /** V2: handle dispatch — respond to permission request or configure session */
+  handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
+    if (dispatch.kind === "respond") {
+      const v2 = this.v2Sessions.get(sessionId);
+      const pending = v2?.pendingRequests.get(dispatch.requestId);
+      if (!pending) {
+        log("handleDispatch: unknown requestId=%s", dispatch.requestId);
+        return { kind: "respond", ok: false };
+      }
+      pending.resolve(dispatch.respond.result);
+      return { kind: "respond", ok: true };
+    }
+    // configure: stub for future use
+    log("handleDispatch: configure sessionId=%s", sessionId);
+    return { kind: "configure", ok: false, configure: (dispatch as any).configure };
   }
 
   private *convertReplayMessage(sessionId: string, msg: SessionMessage): Generator<StreamEvent> {
