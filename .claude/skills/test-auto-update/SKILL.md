@@ -7,6 +7,8 @@ description: E2E test the Electron auto-updater with local builds, screen record
 
 E2E test the Electron auto-updater by building two local versions, serving the newer one via HTTP, launching the older one, and verifying the update flow. Record the screen as deliverable.
 
+**Required skill:** Invoke `/electron` skill for agent-browser + Electron CDP workflow (launch, connect, snapshot, click, screenshot).
+
 ## Overview
 
 The test proves that: app launches → auto-checks for update → downloads → shows toast → user can dismiss or restart → Squirrel.Mac applies update on next launch.
@@ -98,46 +100,28 @@ screencapture -v -V30 -C test-auto-update.mov
 
 `-V30` records for 30 seconds. Adjust as needed. Start this **before** launching the app.
 
-### 3.3 Launch the app with CDP enabled
+### 3.3 Launch the app and connect agent-browser
 
-Launch with `ELECTRON_CDP_PORT` so agent-browser can connect for UI interaction:
+Invoke `/electron` skill, then follow its workflow to:
 
-```bash
-ELECTRON_CDP_PORT=9223 "/Applications/Neovate Dev.app/Contents/MacOS/Neovate Dev" &
-```
+1. Launch: `open -a "Neovate Dev" --args --remote-debugging-port=9222`
+2. Connect agent-browser to port 9222
+3. Select the app window tab
 
-**Note:** Do NOT use `open` — it doesn't forward environment variables to the app process.
-
-**Verify CDP is available:**
-```bash
-curl -s http://localhost:9223/json/version | head -1
-```
-
-### 3.4 Connect agent-browser
-
-```bash
-agent-browser connect http://localhost:9223
-```
-
-Then select the app's main window tab:
-```bash
-agent-browser tab
-agent-browser tab <n>
-```
-
-### 3.5 Observe the update flow
+### 3.4 Observe the update flow
 
 The app auto-checks on launch. Expected sequence:
 1. App detects v0.2.0 available (within a few seconds)
 2. Toast appears with download progress
 3. Toast changes to **"Update 0.2.0 ready"** with **Later** / **Restart** buttons
 
-Use `agent-browser screenshot` to capture each state for verification.
+Use `agent-browser screenshot` to capture each state.
 
-### 3.6 Test toast interactions via agent-browser
+### 3.5 Test toast interactions
 
-- **Click "Later"**: `agent-browser click "Later"` — Toast dismisses, app continues running
-- **Click "Restart"**: `agent-browser click "Restart"` — App quits and relaunches with new version
+Use agent-browser to click toast buttons:
+- **Click "Later"**: Toast dismisses, app continues running
+- **Click "Restart"**: App quits and relaunches with new version
 
 ## Phase 4: Verify Update Applied
 
@@ -146,7 +130,7 @@ Use `agent-browser screenshot` to capture each state for verification.
 ```bash
 osascript -e 'tell application "Neovate Dev" to quit'
 sleep 2
-ELECTRON_CDP_PORT=9223 "/Applications/Neovate Dev.app/Contents/MacOS/Neovate Dev" &
+open -a "Neovate Dev" --args --remote-debugging-port=9222
 ```
 
 ### 4.2 Check version
@@ -178,8 +162,8 @@ Kill the update server if still running.
 | 1 | Auto-check on launch | Launch v0.1.0 with update server running | Toast appears within seconds |
 | 2 | Download progress | `agent-browser screenshot` during download | Shows "Downloading..." with progress bar |
 | 3 | Update ready | `agent-browser screenshot` after download | Toast: "Update 0.2.0 ready" with Later / Restart |
-| 4 | Dismiss toast | `agent-browser click "Later"` | Toast disappears, app keeps running |
-| 5 | Restart to update | `agent-browser click "Restart"` | App quits, relaunches as v0.2.0 |
+| 4 | Dismiss toast | Click "Later" via agent-browser | Toast disappears, app keeps running |
+| 5 | Restart to update | Click "Restart" via agent-browser | App quits, relaunches as v0.2.0 |
 | 6 | Auto-apply on relaunch | Quit app (without clicking Restart), relaunch | `CFBundleShortVersionString` is `0.2.0` |
 
 ## Troubleshooting
@@ -193,7 +177,7 @@ Kill the update server if still running.
 | Toast doesn't appear | Update server not running or wrong version | Check `curl http://localhost:8080/latest-mac.yml` |
 | No update detected | App version >= server version | Ensure installed app is v0.1.0, server has v0.2.0 |
 | codesign fails silently | Identity name mismatch | `LOCAL_UPDATE_SIGN_IDENTITY` env var or check `electron-builder.local.mjs` |
-| agent-browser can't connect | App not launched with `ELECTRON_CDP_PORT` | Must use direct binary launch, not `open` |
+| agent-browser can't connect | App not launched with `--remote-debugging-port` | Quit app, relaunch with the flag |
 
 ## Key Behaviors
 
@@ -201,7 +185,6 @@ Kill the update server if still running.
 - **autoDownload = false**: `UpdaterService` calls `downloadUpdate()` explicitly after detecting availability, so the toast can show progress
 - **State guards**: `check()` is no-op when status is `checking` / `downloading` / `available` / `ready`
 - **dev-app-update.yml**: In dev mode, electron-updater reads this file (points to `http://localhost:8080`) instead of the packaged `app-update.yml`
-- **CDP via env var**: Set `ELECTRON_CDP_PORT=9223` when launching to enable agent-browser access
 
 ## Deliverable
 
