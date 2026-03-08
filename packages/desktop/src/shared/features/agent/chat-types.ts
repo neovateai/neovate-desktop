@@ -81,8 +81,8 @@ export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
 // Omit `signal` (AbortSignal is internal to the callback, not serialized to the client).
 export type ClaudeCodeUIEventRequest = {
   type: "permission_request";
-  toolName: string;
-  input: Record<string, unknown>;
+  toolName: Parameters<CanUseTool>[0];
+  input: Parameters<CanUseTool>[1];
 } & Omit<Parameters<CanUseTool>[2], "signal">;
 
 // ─── Subscribe stream output ──────────────────────────────────────────────────
