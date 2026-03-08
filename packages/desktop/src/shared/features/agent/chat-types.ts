@@ -76,14 +76,16 @@ export type ClaudeCodeUIEventPart =
 
 export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
 
-// ─── Interactive request (backend → frontend via subscribe stream) ────────────
-// Derive from CanUseTool options rather than manually redeclaring the same fields.
-// Omit `signal` (AbortSignal is internal to the callback, not serialized to the client).
-export type ClaudeCodeUIEventRequest = {
+// ─── Interactive requests (backend → frontend via subscribe stream) ───────────
+
+type ClaudeCodePermissionRequest = {
   type: "permission_request";
   toolName: Parameters<CanUseTool>[0];
   input: Parameters<CanUseTool>[1];
 } & Omit<Parameters<CanUseTool>[2], "signal">;
+
+// Union — extend here as new request types are added
+export type ClaudeCodeUIEventRequest = ClaudeCodePermissionRequest;
 
 // ─── Subscribe stream output ──────────────────────────────────────────────────
 
