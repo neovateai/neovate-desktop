@@ -6,6 +6,7 @@ import { configContract } from "./features/config/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
 import { storageContract } from "./features/storage/contract";
+import { updaterContract } from "./features/updater/contract";
 import { utilsContract } from "./features/utils/contract";
 
 export const contract = {
@@ -15,6 +16,7 @@ export const contract = {
   project: projectContract,
   provider: providerContract,
   storage: storageContract,
+  updater: updaterContract,
   utils: utilsContract,
   window: {
     ensureWidth: oc.input(z.object({ minWidth: z.number() })),
