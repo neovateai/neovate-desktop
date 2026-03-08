@@ -117,7 +117,7 @@ async function main() {
     console.log(`\n=== Step 3: Install v${oldVersion} to /Applications ===`);
     run(`rm -rf "${APP_PATH}"`, "clean");
     run(
-      `cp -R "release-dev/mac-arm64/${APP_NAME}.app" "${APP_PATH}"`,
+      `cp -R "release/mac-arm64/${APP_NAME}.app" "${APP_PATH}"`,
       "install",
     );
     console.log(`Installed version: ${getInstalledVersion()}`);

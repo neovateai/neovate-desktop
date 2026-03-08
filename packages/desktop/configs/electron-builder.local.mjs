@@ -15,7 +15,7 @@ const config = {
 
   directories: {
     buildResources: "build",
-    output: "release-dev",
+    output: "release",
   },
 
   artifactName: "neovate-dev-${arch}.${ext}",

@@ -1,12 +1,12 @@
 /**
  * Local update server for testing auto-update.
- * Serves files from release-dev/ directory on port 8080.
+ * Serves files from release/ directory on port 8080.
  *
  * Usage: bun run scripts/dev-app-update-server.ts
  */
 
 const PORT = 8080;
-const RELEASE_DIR = new URL("../release-dev", import.meta.url).pathname;
+const RELEASE_DIR = new URL("../release", import.meta.url).pathname;
 
 const server = Bun.serve({
   port: PORT,
@@ -20,12 +20,12 @@ const server = Bun.serve({
       const { readdir } = await import("node:fs/promises");
       try {
         const files = await readdir(RELEASE_DIR);
-        const html = `<html><body><h1>release-dev/</h1><ul>${files.map((f) => `<li><a href="/${f}">${f}</a></li>`).join("")}</ul></body></html>`;
+        const html = `<html><body><h1>release/</h1><ul>${files.map((f) => `<li><a href="/${f}">${f}</a></li>`).join("")}</ul></body></html>`;
         return new Response(html, {
           headers: { "Content-Type": "text/html" },
         });
       } catch {
-        return new Response("release-dev/ not found", { status: 404 });
+        return new Response("release/ not found", { status: 404 });
       }
     }
 
