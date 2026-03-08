@@ -236,11 +236,11 @@ export const agentRouter = os.agent.router({
 
     // subscribe handler — long-lived stream until session closes
     subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context }) {
-      const channel = context.sessionManager.getSubscribeChannel(input.sessionId);
-      if (!channel) {
+      const iterator = context.sessionManager.getSubscribeIterator(input.sessionId);
+      if (!iterator) {
         throw new ORPCError("NOT_FOUND", { message: `Unknown session: ${input.sessionId}` });
       }
-      for await (const event of channel) {
+      for await (const event of iterator) {
         yield event;
       }
     }),

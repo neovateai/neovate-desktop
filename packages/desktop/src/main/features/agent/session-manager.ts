@@ -20,6 +20,7 @@ import type {
   SlashCommandInfo,
 } from "../../../shared/features/agent/types";
 import { getShellEnvironment } from "./shell-env";
+import { EventPublisher } from "@orpc/server";
 import { Pushable } from "./pushable";
 import type { ClaudeCodeUIEvent, ClaudeCodeUIDispatch, ClaudeCodeUIDispatchResult } from "../../../shared/features/agent/chat-types";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
@@ -49,10 +50,10 @@ export class SessionManager {
   private permissionEmitter: PermissionEmitter | null = null;
 
   // V2: per-session data for stream/subscribe/dispatch endpoints
-  private v2Sessions = new Map<
+  private sessionsV2 = new Map<
     string,
     {
-      subscribeChannel: Pushable<ClaudeCodeUIEvent>;
+      publisher: EventPublisher<{ subscribe: ClaudeCodeUIEvent }>;
       pendingRequests: Map<string, {
         resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
         timer: ReturnType<typeof setTimeout>;
@@ -145,7 +146,7 @@ export class SessionManager {
 
         // V2 path: push to per-session subscribe channel
         if (sessionId) {
-          const v2 = this.v2Sessions.get(sessionId);
+          const v2 = this.sessionsV2.get(sessionId);
           if (v2) {
             v2.pendingRequests.set(requestId, {
               resolve: (result) => {
@@ -156,7 +157,7 @@ export class SessionManager {
               },
               timer,
             });
-            v2.subscribeChannel.push({
+            v2.publisher.publish("subscribe", {
               kind: "request",
               requestId,
               request: {
@@ -196,8 +197,8 @@ export class SessionManager {
 
     const sessionId = randomUUID();
     // Init V2 subscribe channel before buildOptions (canUseTool needs it)
-    this.v2Sessions.set(sessionId, {
-      subscribeChannel: new Pushable(),
+    this.sessionsV2.set(sessionId, {
+      publisher: new EventPublisher(),
       pendingRequests: new Map(),
     });
     const options = await this.buildOptions(cwd, model, sessionId);
@@ -454,14 +455,13 @@ export class SessionManager {
       return;
     }
     managed.query.close();
-    const v2 = this.v2Sessions.get(sessionId);
+    const v2 = this.sessionsV2.get(sessionId);
     if (v2) {
-      v2.subscribeChannel.end();
       for (const [, pending] of v2.pendingRequests) {
         clearTimeout(pending.timer);
         pending.resolve({ behavior: "deny", message: "Session closed" });
       }
-      this.v2Sessions.delete(sessionId);
+      this.sessionsV2.delete(sessionId);
     }
     this.sessions.delete(sessionId);
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);
@@ -487,9 +487,9 @@ export class SessionManager {
 
   // ─── V2 API ───────────────────────────────────────────────────────────────────
 
-  /** V2: get subscribe channel for a session */
-  getSubscribeChannel(sessionId: string): Pushable<ClaudeCodeUIEvent> | undefined {
-    return this.v2Sessions.get(sessionId)?.subscribeChannel;
+  /** V2: get subscribe async generator for a session */
+  getSubscribeIterator(sessionId: string): AsyncGenerator<ClaudeCodeUIEvent> | undefined {
+    return this.sessionsV2.get(sessionId)?.publisher.subscribe("subscribe");
   }
 
   /**
@@ -503,7 +503,7 @@ export class SessionManager {
     const managed = this.sessions.get(sessionId);
     if (!managed) throw new Error(`Unknown session: ${sessionId}`);
 
-    const v2 = this.v2Sessions.get(sessionId);
+    const v2 = this.sessionsV2.get(sessionId);
     const transformer = new SDKMessageTransformer();
 
     // Extract text content from UIMessage parts (AI SDK format)
@@ -529,7 +529,7 @@ export class SessionManager {
       // Route events to subscribe channel
       if (v2) {
         const event = toUIEvent(msg as any);
-        if (event) v2.subscribeChannel.push(event);
+        if (event) v2.publisher.publish("subscribe", event);
       }
 
       if (msg.type === "result") break;
@@ -539,7 +539,7 @@ export class SessionManager {
   /** V2: handle dispatch — respond to permission request or configure session */
   handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
     if (dispatch.kind === "respond") {
-      const v2 = this.v2Sessions.get(sessionId);
+      const v2 = this.sessionsV2.get(sessionId);
       const pending = v2?.pendingRequests.get(dispatch.requestId);
       if (!pending) {
         log("handleDispatch: unknown requestId=%s", dispatch.requestId);
