@@ -151,4 +151,19 @@ describe("toUIEvent", () => {
     const r = toUIEvent({ type: "result", subtype: "success", uuid: "r", session_id: "s", is_error: false, num_turns: 1, duration_ms: 0, total_cost_usd: 0, usage: {}, stop_reason: "end_turn", errors: [] } as any);
     expect(r?.kind).toBe("event");
   });
+
+  it("returns null for user (handled by stream)", () => {
+    const msg = { type: "user" as const, uuid: "u", session_id: "s", parent_tool_use_id: null, message: { role: "user" as const, content: [] } };
+    expect(toUIEvent(msg as any)).toBeNull();
+  });
+
+  it("returns event for tool_use_summary", () => {
+    const r = toUIEvent({ type: "tool_use_summary", uuid: "uuid-t", session_id: "s" } as any);
+    expect(r?.kind).toBe("event");
+  });
+
+  it("returns event for auth_status", () => {
+    const r = toUIEvent({ type: "auth_status", uuid: "uuid-a", session_id: "s" } as any);
+    expect(r?.kind).toBe("event");
+  });
 });

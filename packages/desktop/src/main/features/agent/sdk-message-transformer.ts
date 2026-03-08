@@ -1,6 +1,9 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { ClaudeCodeUIMessageChunk, ClaudeCodeUIEvent } from "../../../shared/features/agent/chat-types";
 
+// Type alias for the custom data chunk types which are derived from ClaudeCodeDataParts
+type DataChunk = Extract<ClaudeCodeUIMessageChunk, { type: `data-${string}` }>;
+
 export class SDKMessageTransformer {
   private inStep = false;
   private currentMessageId: string | null = null;
@@ -11,10 +14,10 @@ export class SDKMessageTransformer {
         if (msg.subtype === "init") {
           this.inStep = false;
           this.currentMessageId = null;
-          yield { type: "start", messageId: msg.uuid, messageMetadata: { sessionId: msg.session_id, parentToolUseId: null } } as any;
-          yield { type: "data-system/init", data: msg } as any;
+          yield { type: "start", messageId: msg.uuid, messageMetadata: { sessionId: msg.session_id, parentToolUseId: null } };
+          yield { type: "data-system/init", data: msg } as DataChunk;
         } else if (msg.subtype === "compact_boundary") {
-          yield { type: "data-system/compact_boundary", data: msg } as any;
+          yield { type: "data-system/compact_boundary", data: msg } as DataChunk;
         }
         break;
       }
@@ -22,8 +25,8 @@ export class SDKMessageTransformer {
       case "assistant": {
         const isNewStep = msg.message.id !== this.currentMessageId;
         if (isNewStep) {
-          if (this.inStep) yield { type: "finish-step" } as any;
-          yield { type: "start-step" } as any;
+          if (this.inStep) yield { type: "finish-step" };
+          yield { type: "start-step" };
           this.inStep = true;
           this.currentMessageId = msg.message.id;
         }
@@ -37,11 +40,11 @@ export class SDKMessageTransformer {
       }
 
       case "result": {
-        if (this.inStep) yield { type: "finish-step" } as any;
+        if (this.inStep) yield { type: "finish-step" };
         if (msg.subtype !== "success") {
-          yield { type: "error", errorText: (msg as any).errors?.join("\n") || msg.subtype } as any;
+          yield { type: "error", errorText: msg.errors.join("\n") || msg.subtype };
         }
-        yield { type: "finish" } as any;
+        yield { type: "finish" };
         this.inStep = false;
         this.currentMessageId = null;
         break;
@@ -53,19 +56,19 @@ export class SDKMessageTransformer {
     for (const part of msg.message.content) {
       switch (part.type) {
         case "text": {
-          yield { type: "text-start", id: msg.message.id } as any;
-          yield { type: "text-delta", id: msg.message.id, delta: part.text } as any;
-          yield { type: "text-end", id: msg.message.id } as any;
+          yield { type: "text-start", id: msg.message.id };
+          yield { type: "text-delta", id: msg.message.id, delta: part.text };
+          yield { type: "text-end", id: msg.message.id };
           break;
         }
         case "thinking": {
-          yield { type: "reasoning-start", id: msg.message.id } as any;
-          yield { type: "reasoning-delta", id: msg.message.id, delta: (part as any).thinking } as any;
+          yield { type: "reasoning-start", id: msg.message.id };
+          yield { type: "reasoning-delta", id: msg.message.id, delta: part.thinking };
           yield {
             type: "reasoning-end",
             id: msg.message.id,
-            providerMetadata: { claudeCode: { signature: (part as any).signature } },
-          } as any;
+            providerMetadata: { claudeCode: { signature: (part as { type: "thinking"; thinking: string; signature: string }).signature } },
+          };
           break;
         }
         case "tool_use": {
@@ -76,7 +79,7 @@ export class SDKMessageTransformer {
             input: part.input,
             providerExecuted: true,
             providerMetadata: this.claudeCodeMetadata(msg.parent_tool_use_id),
-          } as any;
+          };
           break;
         }
       }
@@ -88,9 +91,9 @@ export class SDKMessageTransformer {
     const content = message.message?.content;
 
     if (typeof content === "string") {
-      yield { type: "text-start", id: message.uuid } as any;
-      yield { type: "text-delta", id: message.uuid, delta: content } as any;
-      yield { type: "text-end", id: message.uuid } as any;
+      yield { type: "text-start", id: message.uuid };
+      yield { type: "text-delta", id: message.uuid, delta: content };
+      yield { type: "text-end", id: message.uuid };
       return;
     }
 
@@ -99,30 +102,27 @@ export class SDKMessageTransformer {
     for (const part of content) {
       switch (part.type) {
         case "tool_result": {
-          const providerMetadata = this.claudeCodeMetadata(message.parent_tool_use_id);
           if (part.is_error) {
             yield {
               type: "tool-output-error",
               toolCallId: part.tool_use_id,
               errorText: typeof part.content === "string" ? part.content : "",
               providerExecuted: true,
-              providerMetadata,
-            } as any;
+            };
           } else {
             yield {
               type: "tool-output-available",
               toolCallId: part.tool_use_id,
               output: part.content,
               providerExecuted: true,
-              providerMetadata,
-            } as any;
+            };
           }
           break;
         }
         case "text": {
-          yield { type: "text-start", id: message.uuid } as any;
-          yield { type: "text-delta", id: message.uuid, delta: part.text } as any;
-          yield { type: "text-end", id: message.uuid } as any;
+          yield { type: "text-start", id: message.uuid };
+          yield { type: "text-delta", id: message.uuid, delta: part.text };
+          yield { type: "text-end", id: message.uuid };
           break;
         }
       }
