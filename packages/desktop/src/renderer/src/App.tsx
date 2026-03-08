@@ -18,6 +18,7 @@ import { useConfigStore } from "./features/config/store";
 import { ContentPanelRenderer } from "./features/content-panel";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
+import { UpdaterToast } from "./features/updater/UpdaterToast";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
 const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) : null;
@@ -81,6 +82,7 @@ export default function App() {
 
         <AppLayoutSecondarySidebar />
         <AppLayoutActivityBar />
+        <UpdaterToast />
       </AppLayoutRoot>
 
       {showSettings && <SettingsPage />}
