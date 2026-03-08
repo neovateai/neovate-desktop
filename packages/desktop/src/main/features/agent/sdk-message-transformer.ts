@@ -1,9 +1,6 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { ClaudeCodeUIMessageChunk, ClaudeCodeUIEvent } from "../../../shared/features/agent/chat-types";
 
-// Type alias for the custom data chunk types which are derived from ClaudeCodeDataParts
-type DataChunk = Extract<ClaudeCodeUIMessageChunk, { type: `data-${string}` }>;
-
 export class SDKMessageTransformer {
   private inStep = false;
   private currentMessageId: string | null = null;
@@ -15,9 +12,9 @@ export class SDKMessageTransformer {
           this.inStep = false;
           this.currentMessageId = null;
           yield { type: "start", messageId: msg.uuid, messageMetadata: { sessionId: msg.session_id, parentToolUseId: null } };
-          yield { type: "data-system/init", data: msg } as DataChunk;
+          yield { type: "data-system/init", data: msg };
         } else if (msg.subtype === "compact_boundary") {
-          yield { type: "data-system/compact_boundary", data: msg } as DataChunk;
+          yield { type: "data-system/compact_boundary", data: msg };
         }
         break;
       }
