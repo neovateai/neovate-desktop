@@ -9,12 +9,14 @@ import type { ConfigStore } from "./features/config/config-store";
 import type { ProjectStore } from "./features/project/project-store";
 import type { ProviderStore } from "./features/provider/provider-store";
 import type { StateStore } from "./features/state/state-store";
+import type { UpdaterService } from "./features/updater/service";
 
 import { contract } from "../shared/contract";
 import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
+import { updaterRouter } from "./features/updater/router";
 import { storageRouter } from "./features/storage/router";
 import { utilsRouter } from "./features/utils/router";
 
@@ -24,6 +26,7 @@ export type AppContext = {
   providerStore: ProviderStore;
   projectStore: ProjectStore;
   stateStore: StateStore;
+  updaterService: UpdaterService;
   mainApp: IMainApp;
   storage: StorageService;
 };
@@ -40,6 +43,7 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
     project: projectRouter,
     provider: providerRouter,
     storage: storageRouter,
+    updater: updaterRouter,
     utils: utilsRouter,
     window: {
       ensureWidth: os.window.ensureWidth.handler(({ input, context }) => {
