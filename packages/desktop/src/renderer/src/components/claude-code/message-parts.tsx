@@ -1,11 +1,11 @@
-import type { ClaudeCodeTools } from "../../../../shared/claude-code";
+import type { ClaudeCodeUITools } from "../../../../shared/claude-code/types";
 
 import { isToolUIPart, type UIDataTypes, type UIMessage } from "ai";
 
 import { Message, MessageContent, MessageResponse } from "../ai-elements/message";
 import { ClaudeCodeToolUIPart } from "./index";
 
-export type ClaudeCodeUIMessage = UIMessage<unknown, UIDataTypes, ClaudeCodeTools>;
+export type ClaudeCodeUIMessage = UIMessage<unknown, UIDataTypes, ClaudeCodeUITools>;
 
 export function ClaudeCodeMessageParts({ message }: { message: ClaudeCodeUIMessage }) {
   return (

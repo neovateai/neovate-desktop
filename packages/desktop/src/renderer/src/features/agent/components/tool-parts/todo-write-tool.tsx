@@ -1,10 +1,10 @@
-import type { TodoWriteUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { TodoWriteUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { cn } from "../../lib/utils";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { cn } from "../../../../lib/utils";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 import { SquareCheckIcon, SquareDotIcon, SquareIcon } from "lucide-react";
 
-export function ClaudeCodeTodoWriteTool({ invocation }: { invocation: TodoWriteUIToolInvocation }) {
+export function TodoWriteTool({ invocation }: { invocation: TodoWriteUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input } = invocation;
 

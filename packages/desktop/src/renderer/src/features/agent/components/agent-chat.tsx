@@ -10,7 +10,12 @@ const chatLog = debug("neovate:agent-chat");
 import { useNewSession } from "../hooks/use-new-session";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { claudeCodeChatManager } from "../chat-manager";
-import { MessageList } from "./message-list";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "../../../components/ai-elements/conversation";
+import { MessageParts } from "./message-parts";
 import { MessageInput } from "./message-input";
 import { PermissionDialog } from "./permission-dialog";
 import { WelcomePanel } from "./welcome-panel";
@@ -141,9 +146,7 @@ function AgentChatSession({
 }: {
   sessionId: string;
   cwd: string;
-  tasks: ReturnType<typeof useAgentStore.getState>["sessions"] extends Map<string, infer S>
-    ? S["tasks"]
-    : never;
+  tasks: Map<string, import("../store").TaskState>;
 }) {
   const { messages, status, error, pendingRequests, sendMessage, respondToRequest, stop } =
     useClaudeCodeChat(sessionId);
@@ -177,7 +180,14 @@ function AgentChatSession({
 
   return (
     <div className="flex h-full flex-col">
-      <MessageList messages={messages} streaming={status === "streaming"} />
+      <Conversation>
+        <ConversationContent>
+          {messages.map((message) => (
+            <MessageParts key={message.id} message={message} />
+          ))}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
       {pendingRequests.map((req) => (
         <PermissionDialog
           key={req.requestId}

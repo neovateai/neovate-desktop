@@ -1,10 +1,10 @@
-import type { WebFetchUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { WebFetchUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../ai-elements/code-block";
-import { MessageResponse } from "../ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { CodeBlock } from "../../../../components/ai-elements/code-block";
+import { MessageResponse } from "../../../../components/ai-elements/message";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeWebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocation }) {
+export function WebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 

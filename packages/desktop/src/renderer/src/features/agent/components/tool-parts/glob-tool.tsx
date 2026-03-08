@@ -1,9 +1,9 @@
-import type { GrepUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { GlobUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { CodeBlock } from "../../../../components/ai-elements/code-block";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeGrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
+export function GlobTool({ invocation }: { invocation: GlobUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 
@@ -13,11 +13,11 @@ export function ClaudeCodeGrepTool({ invocation }: { invocation: GrepUIToolInvoc
   ]
     .filter(Boolean)
     .join(" ");
-  const title = parts ? `Grep for ${parts}` : undefined;
+  const title = parts ? `Glob for ${parts}` : undefined;
 
   return (
     <Tool>
-      <ToolHeader type="tool-Grep" state={state} title={title} />
+      <ToolHeader type="tool-Glob" state={state} title={title} />
       <ToolContent>
         {typeof output === "string" ? (
           <CodeBlock code={output} language="bash" className="text-sm" />

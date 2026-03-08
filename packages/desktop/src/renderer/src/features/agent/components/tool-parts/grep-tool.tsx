@@ -1,9 +1,9 @@
-import type { GrepUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { GrepUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { CodeBlock } from "../../../../components/ai-elements/code-block";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeGrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
+export function GrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 

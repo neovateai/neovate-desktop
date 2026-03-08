@@ -1,9 +1,9 @@
-import type { BashUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { BashUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { CodeBlock } from "../../../../components/ai-elements/code-block";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeBashTool({ invocation }: { invocation: BashUIToolInvocation }) {
+export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 

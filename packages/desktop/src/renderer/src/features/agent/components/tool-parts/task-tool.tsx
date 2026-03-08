@@ -1,24 +1,22 @@
-import type { ClaudeCodeUITools, TaskUIToolInvocation } from "../../../../shared/claude-code/types";
+import type {
+  ClaudeCodeUIMessage,
+  ClaudeCodeUITools,
+  TaskUIToolInvocation,
+} from "../../../../../../shared/claude-code/types";
 
-import { MessageResponse } from "../ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
-import {
-  isToolUIPart,
-  type DynamicToolUIPart,
-  type ToolUIPart,
-  type UIDataTypes,
-  type UIMessage,
-} from "ai";
+import { isToolUIPart, type ToolUIPart } from "ai";
 import { type ReactNode, useMemo } from "react";
+import { MessageResponse } from "../../../../components/ai-elements/message";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeTaskTool({
+export function TaskTool({
   message,
   invocation,
   renderToolPart,
 }: {
-  message: UIMessage<unknown, UIDataTypes, ClaudeCodeUITools>;
+  message: ClaudeCodeUIMessage;
   invocation: TaskUIToolInvocation;
-  renderToolPart?: (part: ToolUIPart<ClaudeCodeUITools> | DynamicToolUIPart) => ReactNode;
+  renderToolPart?: (part: ToolUIPart<ClaudeCodeUITools>) => ReactNode;
 }) {
   const childrenToolUIParts = useMemo(
     () =>
@@ -31,7 +29,10 @@ export function ClaudeCodeTaskTool({
             part.callProviderMetadata?.claudeCode?.parentToolUseId === invocation.toolCallId
           );
         })
-        .filter((part) => isToolUIPart(part)),
+        .filter(
+          (part): part is ToolUIPart<ClaudeCodeUITools> =>
+            isToolUIPart(part) && part.type !== "dynamic-tool",
+        ),
     [message.parts, invocation.toolCallId],
   );
 

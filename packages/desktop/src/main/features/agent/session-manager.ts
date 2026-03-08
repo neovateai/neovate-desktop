@@ -42,7 +42,7 @@ import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
-} from "../../../shared/features/agent/chat-types";
+} from "../../../shared/claude-code/types";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 
 const log = debug("neovate:session-manager");
@@ -1068,8 +1068,8 @@ export class SessionManager {
    */
   async *stream(
     sessionId: string,
-    message: import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessage,
-  ): AsyncGenerator<import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessageChunk> {
+    message: import("../../../shared/claude-code/types").ClaudeCodeUIMessage,
+  ): AsyncGenerator<import("../../../shared/claude-code/types").ClaudeCodeUIMessageChunk> {
     const session = this.sessionsV2.get(sessionId);
     if (!session) throw new Error(`Unknown session: ${sessionId}`);
     const transformer = new SDKMessageTransformer();

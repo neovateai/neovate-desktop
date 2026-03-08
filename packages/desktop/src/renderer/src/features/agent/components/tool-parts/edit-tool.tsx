@@ -1,10 +1,10 @@
-import type { EditUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { EditUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import type { BundledLanguage } from "shiki";
-import { CodeBlock } from "../ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { CodeBlock } from "../../../../components/ai-elements/code-block";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeEditTool({ invocation }: { invocation: EditUIToolInvocation }) {
+export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input } = invocation;
 

@@ -6,7 +6,7 @@ import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIEventMessage,
   ClaudeCodeUIMessage,
-} from "../../../../shared/features/agent/chat-types";
+} from "../../../../shared/claude-code/types";
 import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
 import type { ClaudeCodeChatTransport } from "./chat-transport";
 import { StoreApi } from "zustand";

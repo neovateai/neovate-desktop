@@ -1,4 +1,4 @@
-import type { GlobUIToolInvocation } from "../../../../shared/claude-code";
+import type { GlobUIToolInvocation } from "../../../../shared/claude-code/types";
 
 import { CodeBlock } from "../ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";

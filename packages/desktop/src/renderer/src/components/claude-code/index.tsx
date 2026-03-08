@@ -1,4 +1,4 @@
-import type { ClaudeCodeTools } from "../../../../shared/claude-code";
+import type { ClaudeCodeUITools } from "../../../../shared/claude-code/types";
 
 import { type DynamicToolUIPart, type ToolUIPart, type UIDataTypes, type UIMessage } from "ai";
 
@@ -36,8 +36,8 @@ function ClaudeCodeToolUIPartComponent({
   message,
   part,
 }: {
-  message: UIMessage<unknown, UIDataTypes, ClaudeCodeTools>;
-  part: ToolUIPart<ClaudeCodeTools> | DynamicToolUIPart;
+  message: UIMessage<unknown, UIDataTypes, ClaudeCodeUITools>;
+  part: ToolUIPart<ClaudeCodeUITools> | DynamicToolUIPart;
 }) {
   switch (part.type) {
     case "tool-Task":
@@ -87,8 +87,8 @@ export function ClaudeCodeToolUIPart({
   message,
   part,
 }: {
-  message: UIMessage<unknown, UIDataTypes, ClaudeCodeTools>;
-  part: ToolUIPart<ClaudeCodeTools> | DynamicToolUIPart;
+  message: UIMessage<unknown, UIDataTypes, ClaudeCodeUITools>;
+  part: ToolUIPart<ClaudeCodeUITools> | DynamicToolUIPart;
 }) {
   if (
     !part ||
@@ -102,7 +102,7 @@ export function ClaudeCodeToolUIPart({
     <ClaudeCodeToolUIPartComponent
       key={part.toolCallId}
       message={message}
-      part={part as ToolUIPart<ClaudeCodeTools>}
+      part={part as ToolUIPart<ClaudeCodeUITools>}
     />
   );
 }

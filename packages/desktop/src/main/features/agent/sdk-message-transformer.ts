@@ -2,7 +2,7 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type {
   ClaudeCodeUIMessageChunk,
   ClaudeCodeUIEvent,
-} from "../../../shared/features/agent/chat-types";
+} from "../../../shared/claude-code/types";
 
 export class SDKMessageTransformer {
   private inStep = false;

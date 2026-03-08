@@ -1,9 +1,9 @@
-import type { WebSearchUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { WebSearchUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { MessageResponse } from "../ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { MessageResponse } from "../../../../components/ai-elements/message";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeWebSearchTool({ invocation }: { invocation: WebSearchUIToolInvocation }) {
+export function WebSearchTool({ invocation }: { invocation: WebSearchUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 

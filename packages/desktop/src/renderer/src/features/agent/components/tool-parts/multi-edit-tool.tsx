@@ -1,10 +1,10 @@
-import type { MultiEditUIToolInvocation } from "../../../../shared/claude-code/types";
+import type { MultiEditUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import type { BundledLanguage } from "shiki";
-import { CodeBlock } from "../ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../ai-elements/tool";
+import { CodeBlock } from "../../../../components/ai-elements/code-block";
+import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
-export function ClaudeCodeMultiEditTool({ invocation }: { invocation: MultiEditUIToolInvocation }) {
+export function MultiEditTool({ invocation }: { invocation: MultiEditUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input } = invocation;
 

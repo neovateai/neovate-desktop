@@ -3,7 +3,7 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import type {
   ClaudeCodeUIEventRequest,
   ClaudeCodeUIMessage,
-} from "../../../../shared/features/agent/chat-types";
+} from "../../../../shared/claude-code/types";
 
 export interface ClaudeCodeChatStoreState {
   messages: ClaudeCodeUIMessage[];

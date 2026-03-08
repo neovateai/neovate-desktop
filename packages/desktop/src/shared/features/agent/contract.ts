@@ -22,7 +22,7 @@ import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
-} from "./chat-types";
+} from "../../claude-code/types";
 
 const promptErrorDataSchema = type<{
   source: "agent";

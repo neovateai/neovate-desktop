@@ -38,8 +38,10 @@ export function useNewSession() {
 
       const startActiveId = useAgentStore.getState().activeSessionId;
       newSessionLog("createNewSession: creating session cwd=%s", cwd);
-      const { sessionId, commands, models, currentModel } =
-        await claudeCodeChatManager.createSession(cwd);
+      const result = await claudeCodeChatManager.createSession(cwd);
+      const { sessionId, commands } = result;
+      const models = "models" in result ? (result as any).models : undefined;
+      const currentModel = "currentModel" in result ? (result as any).currentModel : undefined;
       newSessionLog("createNewSession: created %s currentModel=%s", sessionId, currentModel);
 
       // Guard: if user navigated to another session during the async gap, don't steal focus

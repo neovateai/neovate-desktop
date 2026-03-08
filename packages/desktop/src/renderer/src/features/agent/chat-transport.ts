@@ -6,7 +6,7 @@ import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
   ClaudeCodeUIMessage,
-} from "../../../../shared/features/agent/chat-types";
+} from "../../../../shared/claude-code/types";
 
 type AgentRpc = ContractRouterClient<{ agent: typeof agentContract }>["agent"];
 

@@ -1,4 +1,4 @@
-import type { SlashCommandUIToolInvocation } from "../../../../shared/claude-code";
+import type { SlashCommandUIToolInvocation } from "../../../../shared/claude-code/types";
 
 import { cn } from "../../lib/utils";
 import { MessageResponse } from "../ai-elements/message";
