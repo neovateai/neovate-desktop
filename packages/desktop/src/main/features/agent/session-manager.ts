@@ -22,7 +22,11 @@ import type {
 import { getShellEnvironment } from "./shell-env";
 import { EventPublisher } from "@orpc/server";
 import { Pushable } from "./pushable";
-import type { ClaudeCodeUIEvent, ClaudeCodeUIDispatch, ClaudeCodeUIDispatchResult } from "../../../shared/features/agent/chat-types";
+import type {
+  ClaudeCodeUIEvent,
+  ClaudeCodeUIDispatch,
+  ClaudeCodeUIDispatchResult,
+} from "../../../shared/features/agent/chat-types";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 
 const log = debug("neovate:session-manager");
@@ -49,17 +53,7 @@ export class SessionManager {
   private requestIdCounter = 0;
   private permissionEmitter: PermissionEmitter | null = null;
 
-  // V2: single global publisher — sessionId is the channel key
-  private publisher = new EventPublisher<Record<string, ClaudeCodeUIEvent>>();
-  // V2: per-session pending permission requests
-  private sessionsV2 = new Map<string, {
-    pendingRequests: Map<string, {
-      resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
-      timer: ReturnType<typeof setTimeout>;
-    }>;
-  }>();
-
-  private async buildOptions(cwd: string, model?: string, sessionId?: string): Promise<Options> {
+  private async buildOptions(cwd: string, model?: string): Promise<Options> {
     const t0 = performance.now();
     const shellEnv = await getShellEnvironment();
     const shellEnvMs = Math.round(performance.now() - t0);
@@ -74,7 +68,7 @@ export class SessionManager {
       ...(mergedPath ? { PATH: mergedPath } : {}),
     };
 
-    const canUseTool: CanUseTool = async (toolName, input, { signal, toolUseID, agentID, suggestions, blockedPath, decisionReason }) => {
+    const canUseTool: CanUseTool = async (toolName, input, { signal }) => {
       const requestId = String(++this.requestIdCounter);
       log(
         "canUseTool: requestId=%s tool=%s inputKeys=%o pendingCount=%d",
@@ -141,36 +135,6 @@ export class SessionManager {
             requestId,
           );
         }
-
-        // V2 path: push to per-session subscribe channel
-        if (sessionId) {
-          const v2 = this.sessionsV2.get(sessionId);
-          if (v2) {
-            v2.pendingRequests.set(requestId, {
-              resolve: (result) => {
-                clearTimeout(timer);
-                this.pendingPermissions.delete(requestId);
-                v2.pendingRequests.delete(requestId);
-                resolve(result);
-              },
-              timer,
-            });
-            this.publisher.publish(sessionId, {
-              kind: "request",
-              requestId,
-              request: {
-                type: "permission_request",
-                toolName,
-                input: input as Record<string, unknown>,
-                toolUseID,
-                ...(agentID !== undefined && { agentID }),
-                ...(suggestions !== undefined && { suggestions }),
-                ...(blockedPath !== undefined && { blockedPath }),
-                ...(decisionReason !== undefined && { decisionReason }),
-              },
-            });
-          }
-        }
       });
     };
 
@@ -194,9 +158,7 @@ export class SessionManager {
     log("createSession: START cwd=%s model=%s activeSessions=%d", cwd, model, this.sessions.size);
 
     const sessionId = randomUUID();
-    // Init V2 subscribe channel before buildOptions (canUseTool needs it)
-    this.sessionsV2.set(sessionId, { pendingRequests: new Map() });
-    const options = await this.buildOptions(cwd, model, sessionId);
+    const options = await this.buildOptions(cwd, model);
     log("createSession: options built in %dms", Math.round(performance.now() - t0));
     const input = new Pushable<SDKUserMessage>();
     const q = query({ prompt: input, options: { ...options, sessionId } });
@@ -480,75 +442,6 @@ export class SessionManager {
     log("closeAll: DONE");
   }
 
-  // ─── V2 API ───────────────────────────────────────────────────────────────────
-
-  /** V2: get subscribe async generator for a session */
-  getSubscribeIterator(sessionId: string, signal?: AbortSignal): AsyncGenerator<ClaudeCodeUIEvent> | undefined {
-    if (!this.sessionsV2.has(sessionId)) return undefined;
-    return this.publisher.subscribe(sessionId, { signal });
-  }
-
-  /**
-   * V2: stream a user message as UIMessageChunks.
-   * Events from the SDK are routed to the session's subscribe channel.
-   */
-  async *streamV2(
-    sessionId: string,
-    message: import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessage,
-  ): AsyncGenerator<import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessageChunk> {
-    const managed = this.sessions.get(sessionId);
-    if (!managed) throw new Error(`Unknown session: ${sessionId}`);
-
-    const v2 = this.sessionsV2.get(sessionId);
-    const transformer = new SDKMessageTransformer();
-
-    // Extract text content from UIMessage parts (AI SDK format)
-    const text = message.parts
-      .filter((p): p is { type: "text"; text: string } => p.type === "text")
-      .map((p) => p.text)
-      .join("");
-
-    managed.input.push({
-      type: "user",
-      message: { role: "user", content: text },
-      parent_tool_use_id: null,
-      session_id: sessionId,
-    });
-
-    while (true) {
-      const { value: msg, done } = await managed.query.next();
-      if (done || !msg) break;
-
-      // Route to message stream
-      yield* transformer.transform(msg as any);
-
-      // Route events to subscribe channel
-      if (v2) {
-        const event = toUIEvent(msg as any);
-        if (event) this.publisher.publish(sessionId, event);
-      }
-
-      if (msg.type === "result") break;
-    }
-  }
-
-  /** V2: handle dispatch — respond to permission request or configure session */
-  handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
-    if (dispatch.kind === "respond") {
-      const v2 = this.sessionsV2.get(sessionId);
-      const pending = v2?.pendingRequests.get(dispatch.requestId);
-      if (!pending) {
-        log("handleDispatch: unknown requestId=%s", dispatch.requestId);
-        return { kind: "respond", ok: false };
-      }
-      pending.resolve(dispatch.respond.result);
-      return { kind: "respond", ok: true };
-    }
-    // configure: stub for future use
-    log("handleDispatch: configure sessionId=%s", sessionId);
-    return { kind: "configure", ok: false, configure: (dispatch as any).configure };
-  }
-
   private *convertReplayMessage(sessionId: string, msg: SessionMessage): Generator<StreamEvent> {
     const message = msg.message as any;
 
@@ -803,5 +696,212 @@ export class SessionManager {
         break;
       }
     }
+  }
+
+  // ─── V2 API ───────────────────────────────────────────────────────────────────
+
+  // V2: single global publisher — sessionId is the channel key
+  readonly eventPublisher = new EventPublisher<Record<string, ClaudeCodeUIEvent>>();
+  // V2: per-session pending permission requests
+  private sessionsV2 = new Map<
+    string,
+    {
+      input: Pushable<SDKUserMessage>;
+      query: Query;
+      cwd: string;
+      pendingRequests: Map<
+        string,
+        {
+          resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
+          timer: ReturnType<typeof setTimeout>;
+        }
+      >;
+    }
+  >();
+
+  private queryOptions({
+    sessionId,
+    model,
+    cwd,
+  }: {
+    sessionId: string;
+    model?: string;
+    cwd: string;
+  }): Options {
+    return {
+      sessionId,
+      model,
+      cwd,
+      settingSources: ["local", "project", "user"],
+      permissionMode: "default",
+      systemPrompt: {
+        type: "preset",
+        preset: "claude_code",
+      },
+      tools: {
+        type: "preset",
+        preset: "claude_code",
+      },
+      canUseTool: async (toolName, input, { signal, ...options }) => {
+        console.log("[canUseTool] START toolName=%s input=%o options=%o", toolName, input, options);
+        const requestId = randomUUID();
+        const session = this.sessionsV2.get(sessionId);
+        if (!session) throw new Error(`Unknown session: ${sessionId}`);
+
+        return new Promise((resolve) => {
+          const timer = setTimeout(() => {
+            session.pendingRequests.delete(requestId);
+            resolve({ behavior: "deny", message: "Permission request timed out" });
+          }, PERMISSION_TIMEOUT_MS);
+          session.pendingRequests.set(requestId, {
+            resolve: (result) => {
+              clearTimeout(timer);
+              console.log("[canUseTool] RESOLVED requestId=%s result=%o", requestId, result);
+              session.pendingRequests.delete(requestId);
+              resolve(result);
+            },
+            timer,
+          });
+          this.eventPublisher.publish(sessionId, {
+            kind: "request",
+            requestId,
+            request: {
+              type: "permission_request",
+              toolName,
+              input,
+              options,
+            },
+          });
+          signal.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(timer);
+              session.pendingRequests.delete(requestId);
+              resolve({ behavior: "deny", message: "Permission request cancelled" });
+            },
+            { once: true },
+          );
+        });
+      },
+      stderr(data) {
+        console.error("[claude-stderr]", data.trimEnd());
+      },
+    };
+  }
+
+  /** V2: create a session with shell env + V2 canUseTool wired to eventPublisher. */
+  async createSessionV2(
+    cwd: string,
+    model?: string,
+  ): Promise<{ sessionId: string } & Awaited<ReturnType<Query["initializationResult"]>>> {
+    const sessionId = randomUUID();
+    const input = new Pushable<SDKUserMessage>();
+    const pendingRequests = new Map<
+      string,
+      {
+        resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
+        timer: ReturnType<typeof setTimeout>;
+      }
+    >();
+
+    const shellEnv = await getShellEnvironment();
+    const mergedPath = [shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+      ...shellEnv,
+      ...(mergedPath ? { PATH: mergedPath } : {}),
+    };
+
+    const options: Options = {
+      ...this.queryOptions({ sessionId, cwd, model: model ?? "sonnet" }),
+      env,
+      permissionMode: "default",
+      stderr: (output) => console.error("[claude-stderr]", output.trimEnd()),
+    };
+
+    const q = query({ prompt: input, options });
+    // Pre-register sessionsV2 so queryOptions.canUseTool can look up pendingRequests
+    this.sessionsV2.set(sessionId, { input, query: q, cwd, pendingRequests });
+    const initResult = await q.initializationResult();
+
+    console.log("[createSessionV2] DONE initResult=%o", initResult);
+
+    return {
+      ...initResult,
+      sessionId,
+    };
+  }
+
+  /**
+   * V2: stream a user message as UIMessageChunks.
+   * Events from the SDK are routed to the event publisher.
+   */
+  async *stream(
+    sessionId: string,
+    message: import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessage,
+  ): AsyncGenerator<import("../../../shared/features/agent/chat-types").ClaudeCodeUIMessageChunk> {
+    const session = this.sessionsV2.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const transformer = new SDKMessageTransformer();
+
+    // TODO: UIMessage -> SDKUserMessage abstraction
+    const text = message.parts
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join("");
+
+    session.input.push({
+      type: "user",
+      message: { role: "user", content: text },
+      parent_tool_use_id: null,
+      session_id: sessionId,
+    });
+
+    while (true) {
+      const { value, done } = await session.query.next();
+      if (done || !value) break;
+
+      // Publish to subscribe stream (result event included — carries cost/usage/stop_reason)
+      const event = toUIEvent(value);
+      if (event) {
+        this.eventPublisher.publish(sessionId, event);
+      }
+
+      // Route to message stream (result → finish-step + finish, error → error chunk)
+      for (const chunk of transformer.transform(value)) {
+        yield chunk;
+      }
+
+      // Break AFTER transformer so finish/finish-step chunks are sent before closing the stream
+      if (value.type === "result") break;
+    }
+  }
+
+  /** V2: handle dispatch — respond to permission request or configure session */
+  handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
+    console.log("[handleDispatch] START sessionId=%s dispatch=%o", sessionId, dispatch);
+    if (dispatch.kind === "respond") {
+      const session = this.sessionsV2.get(sessionId);
+      if (!session) throw new Error(`Unknown session: ${sessionId}`);
+      const pending = session.pendingRequests.get(dispatch.requestId);
+      if (!pending) {
+        log("handleDispatch: unknown requestId=%s knownIds=%o", dispatch.requestId, [
+          ...session.pendingRequests.keys(),
+        ]);
+        return { kind: "respond", ok: false };
+      }
+      log(
+        "handleDispatch: resolving requestId=%s result=%o",
+        dispatch.requestId,
+        dispatch.respond.result,
+      );
+      pending.resolve(dispatch.respond.result);
+      session.pendingRequests.delete(dispatch.requestId);
+      clearTimeout(pending.timer);
+      return { kind: "respond", ok: true };
+    }
+    // configure: stub for future use
+    log("handleDispatch: configure sessionId=%s", sessionId);
+    return { kind: "configure", ok: false, configure: (dispatch as any).configure };
   }
 }

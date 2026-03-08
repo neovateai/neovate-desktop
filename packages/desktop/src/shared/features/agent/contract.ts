@@ -64,6 +64,11 @@ export const agentContract = {
 
   // V2: new transport endpoints under a dedicated sub-namespace
   claudeCode: {
+    // create session
+    createSession: oc
+      .input(z.object({ cwd: z.string(), model: z.string().optional() }))
+      .output(type<{ sessionId: string; commands?: SlashCommandInfo[] }>()),
+
     // message stream — UIMessage in, UIMessageChunk out
     stream: oc
       .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())

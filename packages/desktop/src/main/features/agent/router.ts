@@ -227,20 +227,28 @@ export const agentRouter = os.agent.router({
 
   // V2: new transport endpoints under claudeCode sub-namespace
   claudeCode: os.agent.claudeCode.router({
+    createSession: os.agent.claudeCode.createSession.handler(async ({ input, context }) => {
+      console.log("[claudeCode.createSession] START cwd=%s model=%s", input.cwd, input.model);
+      try {
+        return await context.sessionManager.createSessionV2(input.cwd, input.model);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to create session";
+        throw new ORPCError("BAD_GATEWAY", { defined: true, message });
+      }
+    }),
+
     // message stream handler
     stream: os.agent.claudeCode.stream.handler(async function* ({ input, context }) {
-      for await (const chunk of context.sessionManager.streamV2(input.sessionId, input.message)) {
+      for await (const chunk of context.sessionManager.stream(input.sessionId, input.message)) {
         yield chunk;
       }
     }),
 
     // subscribe handler — long-lived stream until session closes
-    subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context }) {
-      const iterator = context.sessionManager.getSubscribeIterator(input.sessionId);
-      if (!iterator) {
-        throw new ORPCError("NOT_FOUND", { message: `Unknown session: ${input.sessionId}` });
-      }
-      for await (const event of iterator) {
+    subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context, signal }) {
+      for await (const event of context.sessionManager.eventPublisher.subscribe(input.sessionId, {
+        signal,
+      })) {
         yield event;
       }
     }),

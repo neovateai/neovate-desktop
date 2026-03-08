@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import debug from "debug";
-import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import { claudeCodeChatManager } from "../chat-manager";
 
 const newSessionLog = debug("neovate:agent-new-session");
 
@@ -36,7 +36,7 @@ export function useNewSession() {
 
       const startActiveId = useAgentStore.getState().activeSessionId;
       newSessionLog("createNewSession: creating session cwd=%s", cwd);
-      const { sessionId, commands } = await client.agent.newSession({ cwd });
+      const { sessionId, commands } = await claudeCodeChatManager.createSession(cwd);
       newSessionLog("createNewSession: created %s", sessionId);
 
       // Guard: if user navigated to another session during the async gap, don't steal focus
@@ -76,7 +76,7 @@ export function useNewSession() {
       }
 
       newSessionLog("preWarmSession: creating background session cwd=%s", cwd);
-      const { sessionId, commands } = await client.agent.newSession({ cwd });
+      const { sessionId, commands } = await claudeCodeChatManager.createSession(cwd);
       newSessionLog("preWarmSession: created %s", sessionId);
 
       createBackgroundSession(sessionId, {

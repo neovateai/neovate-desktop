@@ -26,7 +26,7 @@
     "test:e2e:no-build": "playwright test"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.62",
+    "@anthropic-ai/claude-agent-sdk": "0.2.69",
     "@anthropic-ai/sdk": "~0.78.0",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",

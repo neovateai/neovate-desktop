@@ -43,10 +43,7 @@ export type ClaudeCodeDataParts = DataPartEntry<SDKSystemMessage> & // → { "sy
 
 // ─── UIMessage / UIMessageChunk ───────────────────────────────────────────────
 
-export type ClaudeCodeUIMessage = UIMessage<
-  ClaudeCodeMessageMetadata,
-  ClaudeCodeDataParts
->;
+export type ClaudeCodeUIMessage = UIMessage<ClaudeCodeMessageMetadata, ClaudeCodeDataParts>;
 
 export type ClaudeCodeUIMessageChunk = InferUIMessageChunk<ClaudeCodeUIMessage>;
 export type ClaudeCodeDataUIPart = DataUIPart<ClaudeCodeDataParts>;
@@ -80,9 +77,10 @@ export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
 
 type ClaudeCodePermissionRequest = {
   type: "permission_request";
-  toolName: Parameters<CanUseTool>[0];
-  input: Parameters<CanUseTool>[1];
-} & Omit<Parameters<CanUseTool>[2], "signal">;
+  toolName: string;
+  input: Record<string, unknown>;
+  options: Omit<Parameters<CanUseTool>[2], "signal">;
+};
 
 // Union — extend here as new request types are added
 export type ClaudeCodeUIEventRequest = ClaudeCodePermissionRequest;
