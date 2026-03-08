@@ -75,7 +75,7 @@ export class SessionManager {
       ...(mergedPath ? { PATH: mergedPath } : {}),
     };
 
-    const canUseTool: CanUseTool = async (toolName, input, { signal }) => {
+    const canUseTool: CanUseTool = async (toolName, input, { signal, toolUseID, agentID, suggestions, blockedPath, decisionReason }) => {
       const requestId = String(++this.requestIdCounter);
       log(
         "canUseTool: requestId=%s tool=%s inputKeys=%o pendingCount=%d",
@@ -163,7 +163,11 @@ export class SessionManager {
                 type: "permission_request",
                 toolName,
                 input: input as Record<string, unknown>,
-                toolUseId: requestId,
+                toolUseID,
+                ...(agentID !== undefined && { agentID }),
+                ...(suggestions !== undefined && { suggestions }),
+                ...(blockedPath !== undefined && { blockedPath }),
+                ...(decisionReason !== undefined && { decisionReason }),
               },
             });
           }

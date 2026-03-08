@@ -1,7 +1,7 @@
 import type {
+  CanUseTool,
   PermissionMode,
   PermissionResult,
-  PermissionUpdate,
   SDKCompactBoundaryMessage,
   SDKSystemMessage,
   SDKResultMessage,
@@ -76,17 +76,13 @@ export type ClaudeCodeUIEventPart =
 export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
 
 // ─── Interactive request (backend → frontend via subscribe stream) ────────────
-
+// Derive from CanUseTool options rather than manually redeclaring the same fields.
+// Omit `signal` (AbortSignal is internal to the callback, not serialized to the client).
 export type ClaudeCodeUIEventRequest = {
   type: "permission_request";
   toolName: string;
   input: Record<string, unknown>;
-  toolUseId: string;
-  suggestions?: PermissionUpdate[];
-  blockedPath?: string;
-  decisionReason?: string;
-  agentId?: string;
-};
+} & Omit<Parameters<CanUseTool>[2], "signal">;
 
 // ─── Subscribe stream output ──────────────────────────────────────────────────
 

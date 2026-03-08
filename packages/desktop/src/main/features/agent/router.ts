@@ -225,26 +225,29 @@ export const agentRouter = os.agent.router({
     await context.sessionManager.cancel(input.sessionId);
   }),
 
-  // V2: message stream handler
-  stream: os.agent.stream.handler(async function* ({ input, context }) {
-    for await (const chunk of context.sessionManager.streamV2(input.sessionId, input.message)) {
-      yield chunk;
-    }
-  }),
+  // V2: new transport endpoints under claudeCode sub-namespace
+  claudeCode: os.agent.claudeCode.router({
+    // message stream handler
+    stream: os.agent.claudeCode.stream.handler(async function* ({ input, context }) {
+      for await (const chunk of context.sessionManager.streamV2(input.sessionId, input.message)) {
+        yield chunk;
+      }
+    }),
 
-  // V2: subscribe handler — long-lived stream until session closes
-  subscribe: os.agent.subscribe.handler(async function* ({ input, context }) {
-    const channel = context.sessionManager.getSubscribeChannel(input.sessionId);
-    if (!channel) {
-      throw new ORPCError("NOT_FOUND", { message: `Unknown session: ${input.sessionId}` });
-    }
-    for await (const event of channel) {
-      yield event;
-    }
-  }),
+    // subscribe handler — long-lived stream until session closes
+    subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context }) {
+      const channel = context.sessionManager.getSubscribeChannel(input.sessionId);
+      if (!channel) {
+        throw new ORPCError("NOT_FOUND", { message: `Unknown session: ${input.sessionId}` });
+      }
+      for await (const event of channel) {
+        yield event;
+      }
+    }),
 
-  // V2: dispatch handler
-  dispatch: os.agent.dispatch.handler(({ input, context }) => {
-    return context.sessionManager.handleDispatch(input.sessionId, input.dispatch);
+    // dispatch handler
+    dispatch: os.agent.claudeCode.dispatch.handler(({ input, context }) => {
+      return context.sessionManager.handleDispatch(input.sessionId, input.dispatch);
+    }),
   }),
 });

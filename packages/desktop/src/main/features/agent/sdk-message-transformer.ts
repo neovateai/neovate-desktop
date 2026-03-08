@@ -64,11 +64,7 @@ export class SDKMessageTransformer {
         case "thinking": {
           yield { type: "reasoning-start", id: msg.message.id };
           yield { type: "reasoning-delta", id: msg.message.id, delta: part.thinking };
-          yield {
-            type: "reasoning-end",
-            id: msg.message.id,
-            providerMetadata: { claudeCode: { signature: (part as { type: "thinking"; thinking: string; signature: string }).signature } },
-          };
+          yield { type: "reasoning-end", id: msg.message.id };
           break;
         }
         case "tool_use": {

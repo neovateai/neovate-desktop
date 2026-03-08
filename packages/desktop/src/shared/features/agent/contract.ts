@@ -62,18 +62,21 @@ export const agentContract = {
 
   cancel: oc.input(z.object({ sessionId: z.string() })).output(type<void>()),
 
-  // V2: message stream — UIMessage in, UIMessageChunk out
-  stream: oc
-    .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())
-    .output(eventIterator(type<ClaudeCodeUIMessageChunk>())),
+  // V2: new transport endpoints under a dedicated sub-namespace
+  claudeCode: {
+    // message stream — UIMessage in, UIMessageChunk out
+    stream: oc
+      .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())
+      .output(eventIterator(type<ClaudeCodeUIMessageChunk>())),
 
-  // V2: subscribe stream — events + interaction requests
-  subscribe: oc
-    .input(type<{ sessionId: string }>())
-    .output(eventIterator(type<ClaudeCodeUIEvent>())),
+    // subscribe stream — events + interaction requests
+    subscribe: oc
+      .input(type<{ sessionId: string }>())
+      .output(eventIterator(type<ClaudeCodeUIEvent>())),
 
-  // V2: dispatch — respond / configure
-  dispatch: oc
-    .input(type<{ sessionId: string; dispatch: ClaudeCodeUIDispatch }>())
-    .output(type<ClaudeCodeUIDispatchResult>()),
+    // dispatch — respond / configure
+    dispatch: oc
+      .input(type<{ sessionId: string; dispatch: ClaudeCodeUIDispatch }>())
+      .output(type<ClaudeCodeUIDispatchResult>()),
+  },
 };
