@@ -198,28 +198,6 @@ export function usePrompt() {
       } finally {
         setStreaming(resolvedSessionId, false);
         abortRef.current = null;
-
-        // Save session cache for instant restore on next load
-        const session = useAgentStore.getState().sessions.get(resolvedSessionId!);
-        if (session && session.messages.length > 0) {
-          client.agent.saveSessionCache({
-            sessionId: resolvedSessionId!,
-            data: {
-              messages: session.messages.map((m) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                thinking: m.thinking,
-                toolCalls: m.toolCalls,
-                images: m.images,
-              })),
-              title: session.title,
-              cwd: session.cwd,
-              updatedAt: new Date().toISOString(),
-              usage: session.usage,
-            },
-          });
-        }
       }
     },
     [

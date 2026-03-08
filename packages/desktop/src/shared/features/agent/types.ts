@@ -160,27 +160,3 @@ export type LoadSessionResult = {
 export type PromptResult = {
   stopReason: string;
 };
-
-/** Cached message for persisted session display */
-export type CachedMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  thinking?: string;
-  toolCalls?: Array<{ toolCallId: string; name: string; status?: string; input?: unknown }>;
-  images?: Array<{ mediaType: string; base64: string }>;
-};
-
-/** Persisted session cache for instant resume */
-export type CachedSession = {
-  messages: CachedMessage[];
-  title?: string;
-  cwd?: string;
-  updatedAt: string;
-  usage?: {
-    totalCostUsd: number;
-    totalDurationMs: number;
-    totalInputTokens: number;
-    totalOutputTokens: number;
-  };
-};

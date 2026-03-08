@@ -374,10 +374,9 @@ export class SessionManager {
     sessionId: string,
     cwd?: string,
     emitter?: (event: StreamEvent) => void,
-    skipReplay?: boolean,
   ): AsyncGenerator<StreamEvent> {
     const t0 = performance.now();
-    log("loadSession: START sessionId=%s cwd=%s skipReplay=%s", sessionId, cwd, !!skipReplay);
+    log("loadSession: START sessionId=%s cwd=%s", sessionId, cwd);
 
     const resolvedCwd = cwd ?? process.cwd();
     const options = await this.buildOptions(resolvedCwd);
@@ -430,19 +429,15 @@ export class SessionManager {
         yield { type: "current_model", sessionId, model: currentModel };
       }
 
-      // Replay history from persisted messages (skip if renderer has cache)
-      if (!skipReplay) {
-        const messages = await getSessionMessages(sessionId);
-        log("loadSession: replaying %d historical messages", messages.length);
+      // Replay history from persisted messages
+      const messages = await getSessionMessages(sessionId);
+      log("loadSession: replaying %d historical messages", messages.length);
 
-        for (const msg of messages) {
-          for (const event of this.convertReplayMessage(sessionId, msg)) {
-            eventCount++;
-            yield event;
-          }
+      for (const msg of messages) {
+        for (const event of this.convertReplayMessage(sessionId, msg)) {
+          eventCount++;
+          yield event;
         }
-      } else {
-        log("loadSession: skipReplay=true, skipping message replay");
       }
     } catch (error) {
       log(

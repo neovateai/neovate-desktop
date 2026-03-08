@@ -7,7 +7,6 @@ import type {
   TimingEntry,
   SlashCommandInfo,
   ModelInfo,
-  CachedSession,
 } from "../../../../shared/features/agent/types";
 import debug from "debug";
 
@@ -103,7 +102,6 @@ type AgentState = {
   setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
   setCurrentModel: (sessionId: string, model: string) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
-  restoreFromCache: (sessionId: string, cached: CachedSession) => void;
   setSdkReady: (sessionId: string, ready: boolean) => void;
   addTiming: (entry: TimingEntry) => void;
   clearTimings: () => void;
@@ -292,35 +290,6 @@ export const useAgentStore = create<AgentState>()(
     },
 
     clearTimings: () => set({ timings: [] }),
-
-    restoreFromCache: (sessionId, cached) => {
-      storeLog(
-        "restoreFromCache: sid=%s msgs=%d title=%s",
-        sessionId,
-        cached.messages.length,
-        cached.title,
-      );
-      set((state) => {
-        const session = state.sessions.get(sessionId);
-        if (!session) {
-          storeLog("restoreFromCache: WARNING session not found sid=%s", sessionId);
-          return;
-        }
-        session.messages = cached.messages.map((m) => {
-          state._nextMessageId += 1;
-          return {
-            ...m,
-            id: String(state._nextMessageId),
-            toolCalls: m.toolCalls,
-            images: m.images,
-          };
-        });
-        if (cached.title) session.title = cached.title;
-        if (cached.cwd) session.cwd = cached.cwd;
-        if (cached.usage) session.usage = cached.usage;
-        session.sdkReady = false;
-      });
-    },
 
     setSdkReady: (sessionId, ready) => {
       storeLog("setSdkReady: sid=%s ready=%s", sessionId, ready);
