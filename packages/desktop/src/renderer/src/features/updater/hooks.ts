@@ -9,10 +9,14 @@ export function useUpdaterState(): UpdaterState {
     let cancelled = false;
     let iter: AsyncIterableIterator<UpdaterState> | undefined;
     (async () => {
-      iter = await client.updater.watchState();
-      for await (const s of iter) {
-        if (cancelled) break;
-        setState(s);
+      try {
+        iter = await client.updater.watchState();
+        for await (const s of iter) {
+          if (cancelled) break;
+          setState(s);
+        }
+      } catch {
+        // Stream disconnected or failed — UI stays at last known state
       }
     })();
     return () => {

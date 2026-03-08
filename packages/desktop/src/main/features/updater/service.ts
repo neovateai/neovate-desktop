@@ -48,7 +48,9 @@ export class UpdaterService {
   check() {
     if (
       this.state.status === "checking" ||
-      this.state.status === "downloading"
+      this.state.status === "downloading" ||
+      this.state.status === "ready" ||
+      this.state.status === "available"
     )
       return;
     this.setState({ status: "checking" });
