@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("../../../orpc", () => ({
+  client: {
+    agent: {
+      renameSession: vi.fn(),
+    },
+  },
+}));
+
 import { useAgentStore } from "../store";
 
 describe("AgentStore", () => {

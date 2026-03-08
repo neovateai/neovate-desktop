@@ -8,6 +8,7 @@ import type {
   SlashCommandInfo,
   ModelInfo,
 } from "../../../../shared/features/agent/types";
+import { client } from "../../orpc";
 import debug from "debug";
 
 const storeLog = debug("neovate:agent-store");
@@ -103,7 +104,7 @@ type AgentState = {
   setCurrentModel: (sessionId: string, model: string) => void;
   appendChunk: (sessionId: string, event: StreamEvent) => void;
   setSdkReady: (sessionId: string, ready: boolean) => void;
-  setSessionTitle: (sessionId: string, title: string) => void;
+  renameSession: (sessionId: string, title: string) => Promise<void>;
   addTiming: (entry: TimingEntry) => void;
   clearTimings: () => void;
 };
@@ -300,8 +301,9 @@ export const useAgentStore = create<AgentState>()(
       });
     },
 
-    setSessionTitle: (sessionId, title) => {
-      storeLog("setSessionTitle: sid=%s title=%s", sessionId, title);
+    renameSession: async (sessionId, title) => {
+      storeLog("renameSession: sid=%s title=%s", sessionId, title);
+      await client.agent.renameSession({ sessionId, title });
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.title = title;

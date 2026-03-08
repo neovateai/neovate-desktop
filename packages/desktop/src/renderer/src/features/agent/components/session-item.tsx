@@ -14,7 +14,6 @@ import {
 import { Spinner } from "../../../components/ui/spinner";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
-import { client } from "../../../orpc";
 
 function formatRelativeTime(iso: string): string {
   const distance = formatDistanceToNowStrict(new Date(iso), { addSuffix: false });
@@ -37,6 +36,7 @@ interface SessionItemProps {
   isStreaming?: boolean;
   hasPendingPermission?: boolean;
   onClick: () => void;
+  onAfterArchive?: () => void;
   projectPath: string;
 }
 
@@ -50,11 +50,12 @@ export const SessionItem = memo(function SessionItem({
   isStreaming = false,
   hasPendingPermission = false,
   onClick,
+  onAfterArchive,
   projectPath,
 }: SessionItemProps) {
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
-  const setSessionTitle = useAgentStore((s) => s.setSessionTitle);
+  const renameSession = useAgentStore((s) => s.renameSession);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
@@ -68,6 +69,13 @@ export const SessionItem = memo(function SessionItem({
     togglePinSession(projectPath, sessionId);
   };
 
+  const handleArchive = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    archiveSession(projectPath, sessionId);
+    setIsConfirming(false);
+    if (isActive) onAfterArchive?.();
+  };
+
   const handleStartRename = () => {
     setIsEditing(true);
     setEditingValue(displayTitle);
@@ -77,8 +85,7 @@ export const SessionItem = memo(function SessionItem({
     const trimmed = editingValue.trim();
     if (trimmed && trimmed !== title) {
       try {
-        await client.agent.renameSession({ sessionId, title: trimmed });
-        setSessionTitle(sessionId, trimmed);
+        await renameSession(sessionId, trimmed);
       } catch (error) {
         console.error("Failed to rename session:", error);
       }
@@ -93,12 +100,6 @@ export const SessionItem = memo(function SessionItem({
   const handleStartArchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsConfirming(true);
-  };
-
-  const handleConfirmArchive = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    archiveSession(projectPath, sessionId);
-    setIsConfirming(false);
   };
 
   const handleMouseLeave = () => {
@@ -178,7 +179,7 @@ export const SessionItem = memo(function SessionItem({
           {isConfirming ? (
             <button
               className="text-xs text-destructive cursor-pointer rounded bg-muted px-2 py-0.5 hover:bg-destructive/10 transition-colors"
-              onClick={handleConfirmArchive}
+              onClick={(e) => handleArchive(e)}
             >
               Confirm
             </button>
@@ -196,9 +197,7 @@ export const SessionItem = memo(function SessionItem({
           <ContextMenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
             {isPinned ? "Unpin" : "Pin"}
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => archiveSession(projectPath, sessionId)}>
-            Archive
-          </ContextMenuItem>
+          <ContextMenuItem onClick={() => handleArchive()}>Archive</ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onClick={handleCopySessionId}>Copy session ID</ContextMenuItem>
         </ContextMenuPopup>
