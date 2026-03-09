@@ -31,12 +31,6 @@ export type ToolCallState = {
   input?: unknown;
 };
 
-export type PendingPermission = {
-  requestId: string;
-  toolName: string;
-  input: unknown;
-};
-
 export type TaskState = {
   taskId: string;
   description: string;
@@ -62,9 +56,7 @@ export type ChatSession = {
   createdAt: string;
   isNew: boolean;
   messages: ChatMessage[];
-  streaming: boolean;
   promptError: string | null;
-  pendingPermission: PendingPermission | null;
   availableCommands: SlashCommandInfo[];
   availableModels: ModelInfo[];
   currentModel?: string;
@@ -96,9 +88,7 @@ type AgentState = {
     content: string,
     images?: Array<{ mediaType: string; base64: string }>,
   ) => void;
-  setStreaming: (sessionId: string, streaming: boolean) => void;
   setPromptError: (sessionId: string, error: string | null) => void;
-  setPendingPermission: (sessionId: string, perm: PendingPermission | null) => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
   setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
   setCurrentModel: (sessionId: string, model: string) => void;
@@ -137,9 +127,7 @@ export const useAgentStore = create<AgentState>()(
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           isNew: meta?.isNew ?? false,
           messages: [],
-          streaming: false,
           promptError: null,
-          pendingPermission: null,
           availableCommands: [],
           availableModels: [],
           sdkReady: true,
@@ -160,9 +148,7 @@ export const useAgentStore = create<AgentState>()(
           createdAt: meta?.createdAt ?? new Date().toISOString(),
           isNew: meta?.isNew ?? false,
           messages: [],
-          streaming: false,
           promptError: null,
-          pendingPermission: null,
           availableCommands: [],
           availableModels: [],
           sdkReady: true,
@@ -219,31 +205,11 @@ export const useAgentStore = create<AgentState>()(
       });
     },
 
-    setStreaming: (sessionId, streaming) => {
-      storeLog("setStreaming: sid=%s streaming=%s", sessionId, streaming);
-      set((state) => {
-        const session = state.sessions.get(sessionId);
-        if (session) session.streaming = streaming;
-      });
-    },
-
     setPromptError: (sessionId, promptError) => {
       storeLog("setPromptError: sid=%s error=%s", sessionId, promptError);
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.promptError = promptError;
-      });
-    },
-
-    setPendingPermission: (sessionId, perm) => {
-      storeLog(
-        "setPendingPermission: sid=%s perm=%o",
-        sessionId,
-        perm ? { requestId: perm.requestId, toolName: perm.toolName } : null,
-      );
-      set((state) => {
-        const session = state.sessions.get(sessionId);
-        if (session) session.pendingPermission = perm;
       });
     },
 
@@ -333,19 +299,6 @@ export const useAgentStore = create<AgentState>()(
               event.entry.durationMs,
             );
             state.timings.push(event.entry);
-            break;
-
-          case "permission_request":
-            storeLog(
-              "appendChunk: permission_request requestId=%s tool=%s",
-              event.requestId,
-              event.toolName,
-            );
-            session.pendingPermission = {
-              requestId: event.requestId,
-              toolName: event.toolName,
-              input: event.input,
-            };
             break;
 
           case "available_commands":

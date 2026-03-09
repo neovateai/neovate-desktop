@@ -136,33 +136,6 @@ describe("AgentStore", () => {
     expect(session.messages[0].toolCalls![0].status).toBe("completed");
   });
 
-  it("appendChunk with permission_request sets pendingPermission", () => {
-    useAgentStore.getState().createSession("s1");
-
-    useAgentStore.getState().appendChunk("s1", {
-      type: "permission_request",
-      requestId: "req1",
-      toolName: "Edit",
-      input: { file: "test.ts" },
-    });
-
-    const session = useAgentStore.getState().sessions.get("s1")!;
-    expect(session.pendingPermission).toMatchObject({
-      requestId: "req1",
-      toolName: "Edit",
-    });
-  });
-
-  it("setStreaming updates streaming state", () => {
-    useAgentStore.getState().createSession("s1");
-    useAgentStore.getState().setStreaming("s1", true);
-
-    expect(useAgentStore.getState().sessions.get("s1")!.streaming).toBe(true);
-
-    useAgentStore.getState().setStreaming("s1", false);
-    expect(useAgentStore.getState().sessions.get("s1")!.streaming).toBe(false);
-  });
-
   it("createSession initializes promptError as null", () => {
     useAgentStore.getState().createSession("s1");
 

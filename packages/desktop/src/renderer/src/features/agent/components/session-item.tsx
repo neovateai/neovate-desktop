@@ -132,15 +132,15 @@ export const SessionItem = memo(function SessionItem({
             )}
           </button>
           <div className="group-hover:hidden">
-            {isProcessing ? (
-              <Spinner className="size-3.5" />
-            ) : hasPendingPermission ? (
+            {hasPendingPermission ? (
               <HugeiconsIcon
                 icon={HelpCircleIcon}
                 size={14}
                 strokeWidth={1.5}
                 className="text-warning-foreground"
               />
+            ) : isProcessing ? (
+              <Spinner className="size-3.5" />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
             ) : (
