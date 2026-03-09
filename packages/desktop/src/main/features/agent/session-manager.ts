@@ -1028,14 +1028,13 @@ export class SessionManager {
   /** V2: resume an existing session, returning converted historical messages. */
   async loadSessionV2(
     sessionId: string,
-    cwd?: string,
+    cwd: string,
   ): Promise<{
     sessionId: string;
     capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
     messages: ClaudeCodeUIMessage[];
   }> {
-    const resolvedCwd = cwd ?? process.cwd();
-    const capabilities = await this.initSessionV2(sessionId, resolvedCwd, { resume: sessionId });
+    const capabilities = await this.initSessionV2(sessionId, cwd, { resume: sessionId });
 
     const sessionMessages = await getSessionMessages(sessionId);
     const messages = await this.toUIMessages(sessionMessages);

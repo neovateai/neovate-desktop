@@ -153,7 +153,7 @@ export const agentContract = {
       .input(type<{ sessionId: string; dispatch: ClaudeCodeUIDispatch }>())
       .output(type<ClaudeCodeUIDispatchResult>()),
 
-    loadSession: oc.input(z.object({ sessionId: z.string(), cwd: z.string().optional() })).output(
+    loadSession: oc.input(z.object({ sessionId: z.string(), cwd: z.string() })).output(
       type<{
         sessionId: string;
         capabilities: Awaited<ReturnType<Query["initializationResult"]>>;

@@ -40,7 +40,7 @@ export function useLoadSession(activeProjectPath: string | undefined) {
       const info = agentSessions.find((s) => s.sessionId === sessionId);
 
       try {
-        await claudeCodeChatManager.loadSession(sessionId, activeProjectPath);
+        await claudeCodeChatManager.loadSession(sessionId, activeProjectPath!);
 
         // Register in old store AFTER chat is created in manager,
         // so React render finds getChat() ready before useClaudeCodeChat runs

@@ -25,7 +25,7 @@ export class ClaudeCodeChatManager {
     return { sessionId, ...capabilities };
   }
 
-  async loadSession(sessionId: string, cwd?: string) {
+  async loadSession(sessionId: string, cwd: string) {
     const { capabilities, messages } = await this.rpc.claudeCode.loadSession({
       sessionId,
       cwd,
