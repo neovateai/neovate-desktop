@@ -42,6 +42,7 @@ export function SessionActionsMenu({
   const sessions = useAgentStore((s) => s.sessions);
   const session = sessions.get(sessionId);
   const cwd = session?.cwd ?? projectPath;
+  const isNew = session?.isNew ?? false;
 
   const handleCopySessionId = () => {
     log("copySessionId: %s", sessionId.slice(0, 8));
@@ -63,11 +64,18 @@ export function SessionActionsMenu({
       <ContextMenu>
         <ContextMenuTrigger render={children as ReactElement}></ContextMenuTrigger>
         <ContextMenuPopup>
-          <ContextMenuItem onClick={onRenameStart}>Rename</ContextMenuItem>
-          <ContextMenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
+          <ContextMenuItem disabled={isNew} onClick={onRenameStart}>
+            Rename
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={isNew}
+            onClick={() => togglePinSession(projectPath, sessionId)}
+          >
             {isPinned ? "Unpin" : "Pin"}
           </ContextMenuItem>
-          <ContextMenuItem onClick={handleArchive}>Archive</ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleArchive}>
+            Archive
+          </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onClick={handleCopyWorkingDirectory}>
             Copy working directory
@@ -90,11 +98,15 @@ export function SessionActionsMenu({
         }
       />
       <MenuPopup side="bottom" align="end" className="text-xs">
-        <MenuItem onClick={onRenameStart}>Rename</MenuItem>
-        <MenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
+        <MenuItem disabled={isNew} onClick={onRenameStart}>
+          Rename
+        </MenuItem>
+        <MenuItem disabled={isNew} onClick={() => togglePinSession(projectPath, sessionId)}>
           {isPinned ? "Unpin" : "Pin"}
         </MenuItem>
-        <MenuItem onClick={handleArchive}>Archive</MenuItem>
+        <MenuItem disabled={isNew} onClick={handleArchive}>
+          Archive
+        </MenuItem>
         <MenuSeparator />
         <MenuItem onClick={handleCopyWorkingDirectory}>Copy working directory</MenuItem>
         <MenuItem onClick={handleCopySessionId}>Copy session ID</MenuItem>
