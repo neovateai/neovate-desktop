@@ -9,6 +9,8 @@ export function useLoadSession(activeProjectPath: string | undefined) {
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const createSession = useAgentStore((s) => s.createSession);
   const removeSession = useAgentStore((s) => s.removeSession);
+  const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
+  const setAvailableModels = useAgentStore((s) => s.setAvailableModels);
 
   const loadAbortRef = useRef<AbortController | null>(null);
 
@@ -40,7 +42,10 @@ export function useLoadSession(activeProjectPath: string | undefined) {
       const info = agentSessions.find((s) => s.sessionId === sessionId);
 
       try {
-        await claudeCodeChatManager.loadSession(sessionId, activeProjectPath!);
+        const { commands, models } = await claudeCodeChatManager.loadSession(
+          sessionId,
+          activeProjectPath!,
+        );
 
         // Register in old store AFTER chat is created in manager,
         // so React render finds getChat() ready before useClaudeCodeChat runs
@@ -48,6 +53,13 @@ export function useLoadSession(activeProjectPath: string | undefined) {
           sessionId,
           info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
         );
+
+        if (commands?.length) {
+          setAvailableCommands(sessionId, commands);
+        }
+        if (models?.length) {
+          setAvailableModels(sessionId, models);
+        }
 
         loadLog("DONE sid=%s in %dms", sessionId.slice(0, 8), Math.round(performance.now() - t0));
       } catch (error) {
@@ -65,7 +77,14 @@ export function useLoadSession(activeProjectPath: string | undefined) {
         }
       }
     },
-    [setActiveSession, createSession, removeSession, activeProjectPath],
+    [
+      setActiveSession,
+      createSession,
+      removeSession,
+      setAvailableCommands,
+      setAvailableModels,
+      activeProjectPath,
+    ],
   );
 
   return loadSession;

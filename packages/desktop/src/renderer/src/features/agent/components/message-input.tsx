@@ -35,12 +35,6 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   const { createNewSession } = useNewSession();
 
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
-  const availableModels = useAgentStore((s) =>
-    activeSessionId ? s.sessions.get(activeSessionId)?.availableModels : undefined,
-  );
-  const currentModel = useAgentStore((s) =>
-    activeSessionId ? s.sessions.get(activeSessionId)?.currentModel : undefined,
-  );
 
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const attachmentsRef = useLatestRef(attachments);
@@ -224,8 +218,6 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
           onSend={send}
           onCancel={onCancel}
           onAttach={() => fileInputRef.current?.click()}
-          availableModels={availableModels}
-          currentModel={currentModel}
           activeSessionId={activeSessionId}
         />
       </div>
