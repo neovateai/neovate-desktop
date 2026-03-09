@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { CODE_SERVER_PORT, DATA_DIR, EXTENSIONS_DIR } from "./constants";
+import { CODE_SERVER_PORT, DATA_DIR, EXTENSION_BRIDGE_PORT, EXTENSIONS_DIR } from "./constants";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
 import { installExtension } from "./installer";
 import { overrideCodeServerSettings } from "./settings";
@@ -109,7 +109,8 @@ export class CodeServerManager {
     killProcessOnPort(CODE_SERVER_PORT);
     try {
       // code server extension bridge server
-      await bridge.start();
+      const bridgePort = await bridge.start(EXTENSION_BRIDGE_PORT);
+      process.env.NEOVATE_BRIDGE_PORT = String(bridgePort);
       // preset extension
       await installExtension();
       // overwrite vscode dist style
