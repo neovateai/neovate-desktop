@@ -1,4 +1,4 @@
-import { buildContributions, PluginContributions } from "./contributions";
+import { buildContributions, PluginContributions, type WindowContribution } from "./contributions";
 import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
@@ -7,6 +7,10 @@ type HookFn = (...args: unknown[]) => unknown;
 export class PluginManager {
   readonly #plugins: RendererPlugin[];
   contributions: Required<PluginContributions> = buildContributions([]);
+  private _windowContributions: WindowContribution[] = [];
+  get windowContributions(): readonly WindowContribution[] {
+    return this._windowContributions;
+  }
 
   constructor(rawPlugins: RendererPlugin[] = []) {
     this.#plugins = [
@@ -23,6 +27,28 @@ export class PluginManager {
   /** Collect i18n contributions from all plugins */
   async configI18n(): Promise<I18nContributions[]> {
     return this.applyParallel("configI18n");
+  }
+
+  /** Collect window contributions from all plugins (sequential, deduplicates by windowType) */
+  async configWindowContributions(): Promise<void> {
+    const seen = new Map<string, string>();
+    const result: WindowContribution[] = [];
+    for (const plugin of this.#plugins) {
+      if (typeof plugin.configWindowContributions !== "function") continue;
+      const contributions = await plugin.configWindowContributions();
+      for (const w of contributions) {
+        const existing = seen.get(w.windowType);
+        if (existing) {
+          console.warn(
+            `Plugin "${plugin.name}" registers duplicate window type "${w.windowType}" (already registered by "${existing}"), skipping`,
+          );
+          continue;
+        }
+        seen.set(w.windowType, plugin.name);
+        result.push(w);
+      }
+    }
+    this._windowContributions = result;
   }
 
   /** Collect and merge configContributions from all plugins (parallel) */

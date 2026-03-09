@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense, lazy, useRef } from "react";
 import {
   ArrowDown01Icon,
   FolderIcon,
@@ -13,6 +13,8 @@ import { motion } from "motion/react";
 import { Button } from "../ui/button";
 import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
+import { useConfigStore } from "../../features/config/store";
+import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { OpenAppButton } from "../../features/open-in";
 import { useLayoutStore } from "./store";
 import { ResizeHandle } from "./resize-handle";
@@ -23,7 +25,19 @@ import {
   APP_LAYOUT_GRID_AREA,
 } from "./constants";
 import type { SeparatorId } from "./types";
+import { useRendererApp } from "../../core/app";
+import type { TitlebarItem } from "../../core/plugin/contributions";
 import { useSettingsStore } from "../../features/settings";
+
+function useLazyComponents(items: TitlebarItem[]) {
+  const cache = useRef(new Map<string, React.LazyExoticComponent<React.ComponentType>>());
+  for (const item of items) {
+    if (!cache.current.has(item.id)) {
+      cache.current.set(item.id, lazy(item.component));
+    }
+  }
+  return cache.current;
+}
 
 export function AppLayoutRoot({ children }: { children: ReactNode }) {
   usePanelResize();
@@ -111,6 +125,18 @@ export function AppLayoutTrafficLights() {
 
 export function AppLayoutPrimaryTitleBar() {
   const activeProject = useProjectStore((s) => s.activeProject);
+  const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
+
+  if (multiProjectSupport) {
+    return (
+      <div
+        data-slot="primary-titlebar"
+        className="[-webkit-app-region:no-drag] relative flex shrink-0 items-center gap-1 pl-2"
+      >
+        <SessionInfoBar />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -141,6 +167,9 @@ export function AppLayoutSecondaryTitleBar() {
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
   const setShowSettings = useSettingsStore((s) => s.setShowSettings);
+  const app = useRendererApp();
+  const items = app.pluginManager.contributions.secondaryTitlebarItems;
+  const lazyComponents = useLazyComponents(items);
 
   return (
     <div
@@ -150,6 +179,14 @@ export function AppLayoutSecondaryTitleBar() {
       <div className="flex-1" />
       <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-2">
         {activeProject && <OpenAppButton cwd={activeProject.path} />}
+        {items.map((item) => {
+          const Component = lazyComponents.get(item.id)!;
+          return (
+            <Suspense key={item.id}>
+              <Component />
+            </Suspense>
+          );
+        })}
         <Button
           variant="ghost"
           size="icon-sm"

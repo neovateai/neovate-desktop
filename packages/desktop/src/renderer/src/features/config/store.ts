@@ -26,6 +26,11 @@ const DEFAULT_CONFIG: AppConfig = {
   terminalFont: "",
   developerMode: false,
 
+  // Sidebar Settings (multi-project mode)
+  sidebarOrganize: "byProject",
+  sidebarSortBy: "created",
+  closedProjectAccordions: [],
+
   // Chat Settings
   sendMessageWith: "enter",
   agentLanguage: "English",

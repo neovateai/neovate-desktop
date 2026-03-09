@@ -1,4 +1,4 @@
-import { StrictMode, createContext, useContext, useEffect } from "react";
+import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider, useTheme } from "next-themes";
 import { I18nManager } from "./i18n";
@@ -17,6 +17,7 @@ import terminalPlugin from "../plugins/terminal";
 import searchPlugin from "../plugins/search";
 import editorPlugin from "../plugins/editor";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
+// import demoWindowPlugin from "../plugins/demo-window";
 
 import { client } from "../orpc";
 import { SettingsService } from "../features/settings/service";
@@ -89,6 +90,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   editorPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
+  // demoWindowPlugin,
 ];
 
 export interface RendererAppOptions {
@@ -98,6 +100,9 @@ export interface RendererAppOptions {
 export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
+  readonly #windowType: string;
+  // @ts-expect-error reserved for future use
+  readonly #windowId: string;
   readonly subscriptions = new DisposableStore();
   readonly settings = new SettingsService({
     load: async () => {
@@ -111,8 +116,25 @@ export class RendererApp implements IRendererApp {
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
+    const { windowType, windowId } = this.#resolveWindowParams();
+    this.#windowType = windowType;
+    this.#windowId = windowId;
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
     this.i18nManager = new I18nManager();
+  }
+
+  /** Read window params from URL and stamp them onto <html> */
+  #resolveWindowParams(): { windowType: string; windowId: string } {
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const params = new URLSearchParams(search);
+    const windowType = params.get("windowType") ?? "main";
+    const windowId = params.get("windowId") ?? "main";
+    if (typeof document !== "undefined") {
+      const html = document.documentElement;
+      html.dataset.windowType = windowType;
+      html.dataset.windowId = windowId;
+    }
+    return { windowType, windowId };
   }
 
   initWorkbench(): void {
@@ -132,26 +154,33 @@ export class RendererApp implements IRendererApp {
 
   async start(): Promise<void> {
     const ctx: PluginContext = { app: this, orpcClient: client };
-    // Load persistent config (single source of truth)
+
+    // Infrastructure — all windows
     await useConfigStore.getState().load();
-    // Initialize i18n with locale from config store
     await this.i18nManager.init({ store: useConfigStore as any });
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
-    // TODO: hydrate blocks render — should run in background so UI renders immediately
     await this.hydrate();
-    await this.pluginManager.configContributions();
-    this.initWorkbench();
 
-    await this.workbench.contentPanel.hydrate();
+    // Collect window contributions — all windows (needed for lookup)
+    await this.pluginManager.configWindowContributions();
+
+    if (this.#windowType === "main") {
+      // Main window — full plugin UI
+      await this.pluginManager.configContributions();
+      this.initWorkbench();
+      await this.workbench.contentPanel.hydrate();
+    }
 
     await this.pluginManager.activate(ctx);
-    await this.render(ctx);
+    this.render(ctx);
   }
 
   async stop(): Promise<void> {
     await this.pluginManager.deactivate();
-    this.workbench.contentPanel.dispose();
+    if (this.#windowType === "main") {
+      this.workbench.contentPanel.dispose();
+    }
     this.settings.dispose();
     this.subscriptions.dispose();
   }
@@ -161,19 +190,60 @@ export class RendererApp implements IRendererApp {
     await this.settings.hydrate();
   }
 
-  private async render(ctx: PluginContext): Promise<void> {
-    const root = document.getElementById("root");
-    if (!root) throw new Error("Missing #root element");
-    const { default: App } = await import("../App");
-    ReactDOM.createRoot(root).render(
+  private render(ctx: PluginContext): void {
+    const rootElement = document.getElementById("root");
+    if (!rootElement) throw new Error("Missing #root element");
+
+    const reactDomRoot = ReactDOM.createRoot(rootElement);
+
+    if (this.#windowType === "main") {
+      const AppComponent = lazy(() => import("../App"));
+      return reactDomRoot.render(
+        <StrictMode>
+          <RendererAppContext.Provider value={this}>
+            <PluginContextReact.Provider value={ctx}>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <ToastProvider>
+                  <ThemeSync />
+                  <MenuCommandHandler />
+                  <Suspense
+                    fallback={
+                      <div className="flex h-screen items-center justify-center">
+                        <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
+                      </div>
+                    }
+                  >
+                    <AppComponent />
+                  </Suspense>
+                </ToastProvider>
+              </ThemeProvider>
+            </PluginContextReact.Provider>
+          </RendererAppContext.Provider>
+        </StrictMode>,
+      );
+    }
+    const windowDef = this.pluginManager.windowContributions.find(
+      (w) => w.windowType === this.#windowType,
+    );
+    if (!windowDef) return reactDomRoot.render(<div>Unknown window type: {this.#windowType}</div>);
+    const WindowComponent = lazy(windowDef.component);
+
+    reactDomRoot.render(
       <StrictMode>
         <RendererAppContext.Provider value={this}>
           <PluginContextReact.Provider value={ctx}>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <ToastProvider>
                 <ThemeSync />
-                <MenuCommandHandler />
-                <App />
+                <Suspense
+                  fallback={
+                    <div className="flex h-screen items-center justify-center">
+                      <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
+                    </div>
+                  }
+                >
+                  <WindowComponent />
+                </Suspense>
               </ToastProvider>
             </ThemeProvider>
           </PluginContextReact.Provider>

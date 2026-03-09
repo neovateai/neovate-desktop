@@ -4,6 +4,7 @@ import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import { client } from "../../../orpc";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import { useConfigStore } from "../../config/store";
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const chatLog = debug("neovate:agent-chat");
@@ -22,6 +23,7 @@ import { WelcomePanel } from "./welcome-panel";
 import { TaskProgress } from "./task-progress";
 
 export function AgentChat() {
+  const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const activeProject = useProjectStore((s) => s.activeProject);
   const activeProjectPath = activeProject?.path ?? "";
   const [cwd, setCwd] = useState("");
@@ -48,24 +50,28 @@ export function AgentChat() {
 
   // On project switch: list sessions and create a new empty session
   useEffect(() => {
-    chatLog("effect[project-switch]: projectPath=%s", activeProjectPath);
+    chatLog(
+      "effect[project-switch]: projectPath=%s multiProject=%s",
+      activeProjectPath,
+      multiProjectSupport,
+    );
     if (activeProjectPath) setCwd(activeProjectPath);
-    setActiveSession(null);
+    if (!multiProjectSupport) setActiveSession(null);
 
-    if (!activeProjectPath) {
+    if (!activeProjectPath && !multiProjectSupport) {
       chatLog("effect[project-switch]: no project, clearing sessions");
       setAgentSessions([]);
       return;
     }
 
-    chatLog("effect[project-switch]: listing sessions for cwd=%s", activeProjectPath);
+    // In multi-project mode, fetch ALL sessions (no cwd filter)
+    // In single-project mode, fetch only for the active project
+    const listArgs = multiProjectSupport ? {} : { cwd: activeProjectPath };
+    chatLog("effect[project-switch]: listing sessions args=%o", listArgs);
     client.agent
-      .listSessions({ cwd: activeProjectPath })
+      .listSessions(listArgs)
       .then((sessions) => {
-        chatLog(
-          "effect[project-switch]: listSessions returned total=%d sessions=%o",
-          sessions.length,
-        );
+        chatLog("effect[project-switch]: listSessions returned total=%d", sessions.length);
         setAgentSessions(sessions);
       })
       .catch((error) => {
@@ -75,7 +81,7 @@ export function AgentChat() {
         );
         setAgentSessions([]);
       });
-  }, [activeProjectPath, setActiveSession, setAgentSessions]);
+  }, [activeProjectPath, multiProjectSupport, setActiveSession, setAgentSessions]);
 
   // Auto-create a new session when project is active and no session exists
   useEffect(() => {

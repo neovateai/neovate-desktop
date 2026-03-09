@@ -97,6 +97,7 @@
     "react": "^19.2.1",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.1",
+    "react-grab": "^0.1.26",
     "react-scan": "^0.5.3",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",

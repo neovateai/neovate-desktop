@@ -7,8 +7,6 @@ export type AppContext = {
 };
 
 export interface OpenWindowOptions {
-  /** Unique window ID — re-focuses existing window if already open */
-  windowId: string;
   /** Passed to renderer via URL param — renderer uses this to decide what to render */
   windowType: string;
   width?: number;

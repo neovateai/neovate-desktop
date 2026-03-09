@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import debug from "debug";
 import { Plus } from "lucide-react";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import { useConfigStore } from "../../config/store";
+
+const log = debug("neovate:session-list");
 
 import { Button } from "../../../components/ui/button";
 import { useNewSession } from "../hooks/use-new-session";
 import { useLoadSession } from "../hooks/use-load-session";
 import { SessionItem } from "./session-item";
+import { SidebarTitleBar } from "./sidebar-title-bar";
+import { PinnedSessionList } from "./pinned-session-list";
+import { ProjectAccordionList } from "./project-accordion-list";
+import { ChronologicalList } from "./chronological-list";
 import type { ChatSession } from "../store";
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
 
@@ -72,6 +80,44 @@ function UnifiedSessionItem({
 // --- SessionList ---
 
 export function SessionList() {
+  const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
+  log("render: multiProjectSupport=%s", multiProjectSupport);
+
+  if (multiProjectSupport) {
+    return <MultiProjectSessionList />;
+  }
+
+  return <SingleProjectSessionList />;
+}
+
+// --- Multi-project mode ---
+
+function MultiProjectSessionList() {
+  const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
+  const loadSessionPreferences = useProjectStore((s) => s.loadSessionPreferences);
+  const projects = useProjectStore((s) => s.projects);
+
+  log("multi-project: organize=%s projects=%d", sidebarOrganize, projects.length);
+
+  useEffect(() => {
+    log("multi-project: loading session preferences for %d projects", projects.length);
+    for (const project of projects) {
+      loadSessionPreferences(project.path);
+    }
+  }, [projects, loadSessionPreferences]);
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <PinnedSessionList />
+      <SidebarTitleBar />
+      {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
+    </div>
+  );
+}
+
+// --- Single-project mode (existing behavior) ---
+
+function SingleProjectSessionList() {
   const sessions = useAgentStore((s) => s.sessions);
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
