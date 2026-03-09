@@ -45,6 +45,14 @@ export function useGlobalKeybindings(): void {
         return;
       }
 
+      // Toggle Multi-Project Support
+      if (matchesBinding(e, keybindings.toggleMultiProject)) {
+        e.preventDefault();
+        const { multiProjectSupport, setConfig } = useConfigStore.getState();
+        setConfig("multiProjectSupport", !multiProjectSupport);
+        return;
+      }
+
       // Don't handle other shortcuts when in settings
       if (showSettings) return;
 
