@@ -152,5 +152,13 @@ export const agentContract = {
     dispatch: oc
       .input(type<{ sessionId: string; dispatch: ClaudeCodeUIDispatch }>())
       .output(type<ClaudeCodeUIDispatchResult>()),
+
+    loadSession: oc.input(z.object({ sessionId: z.string(), cwd: z.string().optional() })).output(
+      type<{
+        sessionId: string;
+        capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
+        message: ClaudeCodeUIMessage | undefined;
+      }>(),
+    ),
   },
 };

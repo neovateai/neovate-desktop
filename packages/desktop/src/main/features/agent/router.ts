@@ -323,5 +323,16 @@ export const agentRouter = os.agent.router({
     dispatch: os.agent.claudeCode.dispatch.handler(({ input, context }) => {
       return context.sessionManager.handleDispatch(input.sessionId, input.dispatch);
     }),
+
+    loadSession: os.agent.claudeCode.loadSession.handler(async ({ input, context }) => {
+      agentLog("claudeCode.loadSession: sessionId=%s cwd=%s", input.sessionId, input.cwd);
+      try {
+        return await context.sessionManager.loadSessionV2(input.sessionId, input.cwd);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load session";
+        agentLog("claudeCode.loadSession: FAILED error=%s", message);
+        throw new ORPCError("BAD_GATEWAY", { defined: true, message });
+      }
+    }),
   }),
 });

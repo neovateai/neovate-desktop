@@ -40,9 +40,11 @@ import { readModelFromSettings } from "./claude-settings";
 import { Pushable } from "./pushable";
 import type {
   ClaudeCodeUIEvent,
+  ClaudeCodeUIMessage,
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../../shared/claude-code/types";
+import { createUIMessageStream, readUIMessageStream } from "ai";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 
 const log = debug("neovate:session-manager");
@@ -1013,12 +1015,47 @@ export class SessionManager {
     };
   }
 
-  /** V2: create a session with shell env + V2 canUseTool wired to eventPublisher. */
+  /** V2: start a new session. */
   async createSessionV2(
     cwd: string,
     model?: string,
   ): Promise<{ sessionId: string } & Awaited<ReturnType<Query["initializationResult"]>>> {
     const sessionId = randomUUID();
+    const initResult = await this.initSessionV2(sessionId, cwd, { model });
+    return { ...initResult, sessionId };
+  }
+
+  /** V2: resume an existing session, returning converted historical messages. */
+  async loadSessionV2(
+    sessionId: string,
+    cwd?: string,
+  ): Promise<{
+    sessionId: string;
+    capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
+    message: ClaudeCodeUIMessage | undefined;
+  }> {
+    const resolvedCwd = cwd ?? process.cwd();
+    const capabilities = await this.initSessionV2(sessionId, resolvedCwd, { resume: sessionId });
+
+    const sessionMessages = await getSessionMessages(sessionId);
+    const message = await this.toUIMessage(sessionMessages);
+
+    log(
+      "loadSessionV2: sessionId=%s raw=%d parts=%d",
+      sessionId,
+      sessionMessages.length,
+      message?.parts.length ?? 0,
+    );
+
+    return { sessionId, capabilities, message };
+  }
+
+  /** Shared V2 session initialization: shell env, query, canUseTool wiring. */
+  private async initSessionV2(
+    sessionId: string,
+    cwd: string,
+    opts?: { model?: string; resume?: string },
+  ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     const input = new Pushable<SDKUserMessage>();
     const pendingRequests = new Map<
       string,
@@ -1036,22 +1073,44 @@ export class SessionManager {
       ...(mergedPath ? { PATH: mergedPath } : {}),
     };
 
+    const queryOpts = this.queryOptions({ sessionId, cwd, model: opts?.model ?? "sonnet" });
     const options: Options = {
-      ...this.queryOptions({ sessionId, cwd, model: model ?? "sonnet" }),
+      ...queryOpts,
       env,
       permissionMode: "default",
+      ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
       stderr: (output) => console.error("[claude-stderr]", output.trimEnd()),
     };
 
     const q = query({ prompt: input, options });
-    // Pre-register sessionsV2 so queryOptions.canUseTool can look up pendingRequests
     this.sessionsV2.set(sessionId, { input, query: q, cwd, pendingRequests });
-    const initResult = await q.initializationResult();
 
-    return {
-      ...initResult,
-      sessionId,
-    };
+    return q.initializationResult();
+  }
+
+  /** Convert SDK SessionMessages to a single ClaudeCodeUIMessage using SDKMessageTransformer + AI SDK stream utilities. */
+  private async toUIMessage(
+    sessionMessages: SessionMessage[],
+  ): Promise<ClaudeCodeUIMessage | undefined> {
+    const transformer = new SDKMessageTransformer();
+
+    const stream = createUIMessageStream<ClaudeCodeUIMessage>({
+      execute({ writer }) {
+        for (const msg of sessionMessages) {
+          for (const chunk of transformer.transform(msg as SDKMessage)) {
+            writer.write(chunk);
+          }
+        }
+      },
+    });
+
+    const messageStream = readUIMessageStream<ClaudeCodeUIMessage>({ stream });
+    let result: ClaudeCodeUIMessage | undefined;
+    for await (const msg of messageStream) {
+      result = msg;
+    }
+
+    return result;
   }
 
   /**
