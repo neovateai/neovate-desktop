@@ -7,6 +7,7 @@ import type {
   SessionInfo,
   SlashCommandInfo,
   ModelInfo,
+  ModelScope,
 } from "../../../../shared/features/agent/types";
 
 import { client } from "../../orpc";
@@ -58,6 +59,7 @@ export type ChatSession = {
   availableCommands: SlashCommandInfo[];
   availableModels: ModelInfo[];
   currentModel?: string;
+  modelScope?: ModelScope;
   usage?: SessionUsage;
   tasks: Map<string, TaskState>;
 };
@@ -83,6 +85,7 @@ type AgentState = {
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
   setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
   setCurrentModel: (sessionId: string, model: string) => void;
+  setModelScope: (sessionId: string, scope: ModelScope | undefined) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
 };
 
@@ -210,6 +213,14 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.currentModel = model;
+      });
+    },
+
+    setModelScope: (sessionId, scope) => {
+      storeLog("setModelScope: sid=%s scope=%s", sessionId, scope);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.modelScope = scope;
       });
     },
 

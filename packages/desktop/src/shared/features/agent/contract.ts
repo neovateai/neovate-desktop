@@ -10,7 +10,7 @@ import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../claude-code/types";
-import type { SessionInfo } from "./types";
+import type { ModelScope, SessionInfo } from "./types";
 
 export const agentContract = {
   listSessions: oc.input(z.object({ cwd: z.string().optional() })).output(type<SessionInfo[]>()),
@@ -22,7 +22,13 @@ export const agentContract = {
   claudeCode: {
     createSession: oc
       .input(z.object({ cwd: z.string(), model: z.string().optional() }))
-      .output(type<{ sessionId: string } & Awaited<ReturnType<Query["initializationResult"]>>>()),
+      .output(
+        type<
+          { sessionId: string; currentModel?: string; modelScope?: ModelScope } & Awaited<
+            ReturnType<Query["initializationResult"]>
+          >
+        >(),
+      ),
 
     stream: oc
       .input(type<{ sessionId: string; message: ClaudeCodeUIMessage }>())
@@ -41,7 +47,19 @@ export const agentContract = {
         sessionId: string;
         capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
         messages: ClaudeCodeUIMessage[];
+        currentModel?: string;
+        modelScope?: ModelScope;
       }>(),
     ),
   },
+
+  setModelSetting: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        model: z.string().nullable(),
+        scope: z.enum(["session", "project", "global"]),
+      }),
+    )
+    .output(type<{ currentModel?: string; modelScope?: ModelScope }>()),
 };

@@ -4,6 +4,7 @@ import debug from "debug";
 import type { AppContext } from "../../router";
 
 import { agentContract } from "../../../shared/features/agent/contract";
+import { readModelSetting, writeModelSetting } from "./claude-settings";
 
 const agentLog = debug("neovate:agent-router");
 
@@ -61,5 +62,20 @@ export const agentRouter = os.agent.router({
         throw new ORPCError("BAD_GATEWAY", { defined: true, message });
       }
     }),
+  }),
+
+  setModelSetting: os.agent.setModelSetting.handler(({ input, context }) => {
+    const { sessionId, model, scope } = input;
+    const cwd = context.sessionManager.getSessionCwd(sessionId);
+    agentLog(
+      "setModelSetting: sessionId=%s model=%s scope=%s cwd=%s",
+      sessionId,
+      model,
+      scope,
+      cwd,
+    );
+    writeModelSetting(scope, model, { sessionId, cwd });
+    const effective = readModelSetting(sessionId, cwd);
+    return { currentModel: effective?.model, modelScope: effective?.scope };
   }),
 });

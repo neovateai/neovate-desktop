@@ -25,8 +25,9 @@ import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../../shared/claude-code/types";
-import type { SessionInfo } from "../../../shared/features/agent/types";
+import type { ModelScope, SessionInfo } from "../../../shared/features/agent/types";
 
+import { readModelSetting } from "./claude-settings";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 import { getShellEnvironment } from "./shell-env";
@@ -153,10 +154,23 @@ export class SessionManager {
   async createSession(
     cwd: string,
     model?: string,
-  ): Promise<{ sessionId: string } & Awaited<ReturnType<Query["initializationResult"]>>> {
+  ): Promise<
+    { sessionId: string; currentModel?: string; modelScope?: ModelScope } & Awaited<
+      ReturnType<Query["initializationResult"]>
+    >
+  > {
     const sessionId = randomUUID();
-    const initResult = await this.initSession(sessionId, cwd, { model });
-    return { ...initResult, sessionId };
+    // Resolve model: explicit param > project/global settings
+    const modelSetting = model
+      ? { model, scope: "session" as const }
+      : readModelSetting(sessionId, cwd);
+    const initResult = await this.initSession(sessionId, cwd, { model: modelSetting?.model });
+    return {
+      ...initResult,
+      sessionId,
+      currentModel: modelSetting?.model,
+      modelScope: modelSetting?.scope,
+    };
   }
 
   /** Resume an existing session, returning converted historical messages. */
@@ -167,20 +181,35 @@ export class SessionManager {
     sessionId: string;
     capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
     messages: ClaudeCodeUIMessage[];
+    currentModel?: string;
+    modelScope?: ModelScope;
   }> {
-    const capabilities = await this.initSession(sessionId, cwd, { resume: sessionId });
+    // Read persisted model setting before initializing SDK query
+    const modelSetting = readModelSetting(sessionId, cwd);
+    const capabilities = await this.initSession(sessionId, cwd, {
+      model: modelSetting?.model,
+      resume: sessionId,
+    });
 
     const sessionMessages = await getSessionMessages(sessionId);
     const messages = await sessionMessagesToUIMessages(sessionMessages);
 
     log(
-      "loadSession: sessionId=%s raw=%d messages=%d",
+      "loadSession: sessionId=%s raw=%d messages=%d currentModel=%s modelScope=%s",
       sessionId,
       sessionMessages.length,
       messages.length,
+      modelSetting?.model ?? "(default)",
+      modelSetting?.scope ?? "(none)",
     );
 
-    return { sessionId, capabilities, messages };
+    return {
+      sessionId,
+      capabilities,
+      messages,
+      currentModel: modelSetting?.model,
+      modelScope: modelSetting?.scope,
+    };
   }
 
   /** Shared session initialization: shell env, query, canUseTool wiring. */
@@ -206,7 +235,7 @@ export class SessionManager {
       ...(mergedPath ? { PATH: mergedPath } : {}),
     };
 
-    const queryOpts = this.queryOptions({ sessionId, cwd, model: opts?.model ?? "sonnet" });
+    const queryOpts = this.queryOptions({ sessionId, cwd, model: opts?.model });
     const options: Options = {
       ...queryOpts,
       env,
@@ -265,6 +294,12 @@ export class SessionManager {
     const entry = JSON.stringify({ type: "custom-title", customTitle: title, sessionId });
     await appendFile(matches[0], entry + "\n");
     log("renameSession: DONE sessionId=%s", sessionId);
+  }
+
+  getSessionCwd(sessionId: string): string {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    return session.cwd;
   }
 
   async closeSession(sessionId: string): Promise<void> {

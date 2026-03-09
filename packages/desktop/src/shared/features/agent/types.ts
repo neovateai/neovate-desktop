@@ -16,6 +16,8 @@ export type AccountInfo = {
   apiKeySource?: string;
 };
 
+export type ModelScope = "session" | "project" | "global";
+
 export type FastModeState = "off" | "cooldown" | "on";
 
 export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";

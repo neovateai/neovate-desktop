@@ -12,6 +12,8 @@ export function useLoadSession(fallbackCwd?: string) {
   const removeSession = useAgentStore((s) => s.removeSession);
   const setAvailableCommands = useAgentStore((s) => s.setAvailableCommands);
   const setAvailableModels = useAgentStore((s) => s.setAvailableModels);
+  const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
+  const setModelScope = useAgentStore((s) => s.setModelScope);
 
   const loadAbortRef = useRef<AbortController | null>(null);
 
@@ -51,7 +53,8 @@ export function useLoadSession(fallbackCwd?: string) {
       );
 
       try {
-        const { commands, models } = await claudeCodeChatManager.loadSession(sessionId, cwd);
+        const { commands, models, currentModel, modelScope } =
+          await claudeCodeChatManager.loadSession(sessionId, cwd);
 
         // Register in old store AFTER chat is created in manager,
         // so React render finds getChat() ready before useClaudeCodeChat runs
@@ -65,6 +68,12 @@ export function useLoadSession(fallbackCwd?: string) {
         }
         if (models?.length) {
           setAvailableModels(sessionId, models);
+        }
+        if (currentModel) {
+          setCurrentModel(sessionId, currentModel);
+        }
+        if (modelScope) {
+          setModelScope(sessionId, modelScope);
         }
 
         loadLog("DONE sid=%s in %dms", sessionId.slice(0, 8), Math.round(performance.now() - t0));
@@ -89,6 +98,8 @@ export function useLoadSession(fallbackCwd?: string) {
       removeSession,
       setAvailableCommands,
       setAvailableModels,
+      setCurrentModel,
+      setModelScope,
       fallbackCwd,
     ],
   );

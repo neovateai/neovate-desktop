@@ -1,13 +1,29 @@
 import type { StoreApi } from "zustand";
 
 import debug from "debug";
-import { SendHorizonal, Square, Paperclip } from "lucide-react";
+import { ChevronDown, FolderOpen, Globe, Paperclip, SendHorizonal, Square } from "lucide-react";
 import { useCallback } from "react";
 import { useStore } from "zustand";
 
+import type { ModelScope } from "../../../../../shared/features/agent/types";
 import type { ClaudeCodeChatStoreState } from "../chat-state";
 
 import { Button } from "../../../components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuPopup,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "../../../components/ui/context-menu";
+import {
+  Menu,
+  MenuTrigger,
+  MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
+} from "../../../components/ui/menu";
+import { client } from "../../../orpc";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useAgentStore } from "../store";
 
@@ -63,6 +79,12 @@ export function InputToolbar({
   );
 }
 
+function ScopeBadge({ scope }: { scope?: ModelScope }) {
+  if (scope === "project") return <FolderOpen className="h-3 w-3 text-muted-foreground" />;
+  if (scope === "global") return <Globe className="h-3 w-3 text-muted-foreground" />;
+  return null;
+}
+
 function ModelSelect({
   activeSessionId,
   disabled,
@@ -92,37 +114,95 @@ function ConnectedModelSelect({
   disabled: boolean;
 }) {
   const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
+  const setModelScope = useAgentStore((s) => s.setModelScope);
   const currentModel = useAgentStore((s) => s.sessions.get(activeSessionId)?.currentModel);
+  const modelScope = useAgentStore((s) => s.sessions.get(activeSessionId)?.modelScope);
   const availableModels = useStore(chatStore, (state) => state.capabilities?.models);
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const model = e.target.value;
-      log("handleModelChange: model=%s sessionId=%s", model, activeSessionId);
+  const handleModelSelect = useCallback(
+    (value: unknown) => {
+      const model = value as string;
+      log("handleModelSelect: model=%s sessionId=%s", model, activeSessionId);
       setCurrentModel(activeSessionId, model);
+      setModelScope(activeSessionId, "session");
       claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
         kind: "configure",
         configure: { type: "set_model", model },
       });
+      client.agent.setModelSetting({ sessionId: activeSessionId, model, scope: "session" });
     },
-    [activeSessionId, setCurrentModel],
+    [activeSessionId, setCurrentModel, setModelScope],
+  );
+
+  const handleScopeAction = useCallback(
+    (scope: ModelScope | "clear") => {
+      if (scope === "clear") {
+        log("clearSessionOverride: sessionId=%s", activeSessionId);
+        client.agent
+          .setModelSetting({ sessionId: activeSessionId, model: null, scope: "session" })
+          .then((result) => {
+            if (result.currentModel) {
+              setCurrentModel(activeSessionId, result.currentModel);
+            }
+            setModelScope(activeSessionId, result.modelScope);
+          });
+        return;
+      }
+      const model = currentModel;
+      if (!model) return;
+      log("setModelSetting: scope=%s model=%s sessionId=%s", scope, model, activeSessionId);
+      client.agent.setModelSetting({ sessionId: activeSessionId, model, scope });
+    },
+    [activeSessionId, currentModel, setCurrentModel, setModelScope],
   );
 
   if (!availableModels || availableModels.length === 0) return null;
 
+  const displayModel =
+    availableModels.find((m) => m.value === currentModel)?.displayName ??
+    currentModel ??
+    availableModels[0]?.displayName;
+
   return (
-    <select
-      value={currentModel ?? availableModels[0]?.value ?? ""}
-      onChange={handleChange}
-      disabled={disabled}
-      className="h-7 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-      title="Select model"
-    >
-      {availableModels.map((m) => (
-        <option key={m.value} value={m.value}>
-          {m.displayName}
-        </option>
-      ))}
-    </select>
+    <ContextMenu>
+      <ContextMenuTrigger className="inline-flex">
+        <Menu>
+          <MenuTrigger
+            disabled={disabled}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+          >
+            <ScopeBadge scope={modelScope} />
+            <span>{displayModel}</span>
+            <ChevronDown className="h-3 w-3 opacity-50" />
+          </MenuTrigger>
+          <MenuPopup side="top" align="start">
+            <MenuRadioGroup
+              value={currentModel ?? availableModels[0]?.value ?? ""}
+              onValueChange={handleModelSelect}
+            >
+              {availableModels.map((m) => (
+                <MenuRadioItem key={m.value} value={m.value}>
+                  {m.displayName}
+                </MenuRadioItem>
+              ))}
+            </MenuRadioGroup>
+          </MenuPopup>
+        </Menu>
+      </ContextMenuTrigger>
+      <ContextMenuPopup>
+        <ContextMenuItem onClick={() => handleScopeAction("project")}>
+          <FolderOpen className="h-4 w-4" />
+          Set as project default
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => handleScopeAction("global")}>
+          <Globe className="h-4 w-4" />
+          Set as global default
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => handleScopeAction("clear")}>
+          Clear session override
+        </ContextMenuItem>
+      </ContextMenuPopup>
+    </ContextMenu>
   );
 }
