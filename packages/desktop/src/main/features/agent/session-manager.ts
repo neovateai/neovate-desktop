@@ -298,15 +298,42 @@ export class SessionManager {
 
     for (const msg of sessionMessages) {
       const content = (msg as any).message?.content;
-      const isHumanPrompt =
+      const isHumanTextPrompt =
         msg.type === "user" && typeof content === "string" && !content.startsWith("<");
+      const isHumanArrayPrompt =
+        msg.type === "user" &&
+        Array.isArray(content) &&
+        content.some((b: any) => b.type === "text" || b.type === "image");
 
-      if (isHumanPrompt) {
+      if (isHumanTextPrompt || isHumanArrayPrompt) {
         await flushBatch();
+        const parts: ClaudeCodeUIMessage["parts"] = [];
+
+        if (typeof content === "string") {
+          parts.push({ type: "text", text: content, state: "done" } as any);
+        } else if (Array.isArray(content)) {
+          const textStr = content
+            .filter((b: any) => b.type === "text")
+            .map((b: any) => b.text)
+            .join("");
+          if (textStr) {
+            parts.push({ type: "text", text: textStr, state: "done" } as any);
+          }
+          for (const b of content) {
+            if (b.type === "image" && b.source?.type === "base64") {
+              parts.push({
+                type: "file",
+                mediaType: b.source.media_type ?? "image/png",
+                url: `data:${b.source.media_type ?? "image/png"};base64,${b.source.data}`,
+              } as any);
+            }
+          }
+        }
+
         results.push({
           id: (msg as any).uuid ?? crypto.randomUUID(),
           role: "user",
-          parts: [{ type: "text", text: content, state: "done" }],
+          parts,
           metadata: { sessionId: (msg as any).session_id, parentToolUseId: null },
         } as ClaudeCodeUIMessage);
       } else {
@@ -330,15 +357,39 @@ export class SessionManager {
     if (!session) throw new Error(`Unknown session: ${sessionId}`);
     const transformer = new SDKMessageTransformer();
 
-    // TODO: UIMessage -> SDKUserMessage abstraction
+    // UIMessage -> SDKUserMessage: extract text + image parts
     const text = message.parts
       .filter((p): p is { type: "text"; text: string } => p.type === "text")
       .map((p) => p.text)
       .join("");
 
+    const imageBlocks = message.parts
+      .filter(
+        (p): p is { type: "file"; mediaType: string; url: string } =>
+          p.type === "file" &&
+          typeof (p as any).mediaType === "string" &&
+          (p as any).mediaType.startsWith("image/"),
+      )
+      .map((p) => {
+        const base64 = p.url.startsWith("data:") ? p.url.split(",")[1] : p.url;
+        return {
+          type: "image" as const,
+          source: {
+            type: "base64" as const,
+            media_type: p.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+            data: base64,
+          },
+        };
+      });
+
+    const content =
+      imageBlocks.length > 0
+        ? [...(text ? [{ type: "text" as const, text }] : []), ...imageBlocks]
+        : text;
+
     session.input.push({
       type: "user",
-      message: { role: "user", content: text },
+      message: { role: "user", content },
       parent_tool_use_id: null,
       session_id: sessionId,
     });
