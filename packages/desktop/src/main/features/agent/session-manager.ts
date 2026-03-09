@@ -17,7 +17,7 @@ import { EventPublisher } from "@orpc/server";
 import { createUIMessageStream, readUIMessageStream } from "ai";
 import debug from "debug";
 import { randomUUID } from "node:crypto";
-import { globSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -35,6 +35,33 @@ import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 import { getShellEnvironment } from "./shell-env";
 
 const log = debug("neovate:session-manager");
+
+/** List .jsonl files one level deep under `~/.claude/projects/` */
+function listSessionFiles(filter?: string): string[] {
+  const baseDir = path.join(homedir(), ".claude", "projects");
+  let dirs: string[];
+  try {
+    dirs = readdirSync(baseDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch {
+    return [];
+  }
+  const results: string[] = [];
+  for (const dir of dirs) {
+    try {
+      const files = readdirSync(path.join(baseDir, dir));
+      for (const f of files) {
+        if (filter ? f === filter : f.endsWith(".jsonl")) {
+          results.push(path.join(baseDir, dir, f));
+        }
+      }
+    } catch {
+      // ignore unreadable dirs
+    }
+  }
+  return results;
+}
 
 /** Auto-cancel permission requests after 5 minutes of no UI response. */
 export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
@@ -208,7 +235,7 @@ export class SessionManager {
     );
 
     // Build sessionId -> file birthtime map for accurate createdAt
-    const sessionFiles = globSync(path.join(homedir(), ".claude", "projects", "*", "*.jsonl"));
+    const sessionFiles = listSessionFiles();
     const birthtimeMap = new Map<string, Date>();
     for (const file of sessionFiles) {
       const id = path.basename(file, ".jsonl");
@@ -233,9 +260,7 @@ export class SessionManager {
 
   async renameSession(sessionId: string, title: string): Promise<void> {
     log("renameSession: sessionId=%s title=%s", sessionId, title);
-    const matches = globSync(
-      path.join(homedir(), ".claude", "projects", "*", `${sessionId}.jsonl`),
-    );
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
     if (matches.length === 0) {
       throw new Error(`Session file not found: ${sessionId}`);
     }
