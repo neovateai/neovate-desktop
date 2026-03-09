@@ -1,10 +1,8 @@
 import type {
   Query,
   Options,
-  SDKMessage,
   SDKUserMessage,
   SDKSessionInfo,
-  SessionMessage,
   PermissionMode as SDKPermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
 
@@ -14,7 +12,6 @@ import {
   listSessions as sdkListSessions,
 } from "@anthropic-ai/claude-agent-sdk";
 import { EventPublisher } from "@orpc/server";
-import { createUIMessageStream, readUIMessageStream } from "ai";
 import debug from "debug";
 import { randomUUID } from "node:crypto";
 import { globSync, statSync } from "node:fs";
@@ -33,6 +30,7 @@ import type { SessionInfo } from "../../../shared/features/agent/types";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 import { getShellEnvironment } from "./shell-env";
+import { sessionMessagesToUIMessages } from "./utils/session-messages-to-ui-messages";
 
 const log = debug("neovate:session-manager");
 
@@ -146,7 +144,7 @@ export class SessionManager {
     const capabilities = await this.initSession(sessionId, cwd, { resume: sessionId });
 
     const sessionMessages = await getSessionMessages(sessionId);
-    const messages = await this.toUIMessages(sessionMessages);
+    const messages = await sessionMessagesToUIMessages(sessionMessages);
 
     log(
       "loadSession: sessionId=%s raw=%d messages=%d",
@@ -265,84 +263,6 @@ export class SessionManager {
       await this.closeSession(sessionId);
     }
     log("closeAll: DONE");
-  }
-
-  /** Convert SDK SessionMessages to ClaudeCodeUIMessages, split by human prompt boundaries. */
-  private async toUIMessages(sessionMessages: SessionMessage[]): Promise<ClaudeCodeUIMessage[]> {
-    const results: ClaudeCodeUIMessage[] = [];
-    let batch: SessionMessage[] = [];
-
-    const flushBatch = async () => {
-      if (batch.length === 0) return;
-      const batchCopy = batch;
-      batch = [];
-      const transformer = new SDKMessageTransformer();
-
-      const stream = createUIMessageStream<ClaudeCodeUIMessage>({
-        execute({ writer }) {
-          for (const msg of batchCopy) {
-            for (const chunk of transformer.transform(msg as SDKMessage)) {
-              writer.write(chunk);
-            }
-          }
-        },
-      });
-
-      const messageStream = readUIMessageStream<ClaudeCodeUIMessage>({ stream });
-      let last: ClaudeCodeUIMessage | undefined;
-      for await (const msg of messageStream) {
-        last = msg;
-      }
-      if (last) results.push(last);
-    };
-
-    for (const msg of sessionMessages) {
-      const content = (msg as any).message?.content;
-      const isHumanTextPrompt =
-        msg.type === "user" && typeof content === "string" && !content.startsWith("<");
-      const isHumanArrayPrompt =
-        msg.type === "user" &&
-        Array.isArray(content) &&
-        content.some((b: any) => b.type === "text" || b.type === "image");
-
-      if (isHumanTextPrompt || isHumanArrayPrompt) {
-        await flushBatch();
-        const parts: ClaudeCodeUIMessage["parts"] = [];
-
-        if (typeof content === "string") {
-          parts.push({ type: "text", text: content, state: "done" } as any);
-        } else if (Array.isArray(content)) {
-          const textStr = content
-            .filter((b: any) => b.type === "text")
-            .map((b: any) => b.text)
-            .join("");
-          if (textStr) {
-            parts.push({ type: "text", text: textStr, state: "done" } as any);
-          }
-          for (const b of content) {
-            if (b.type === "image" && b.source?.type === "base64") {
-              parts.push({
-                type: "file",
-                mediaType: b.source.media_type ?? "image/png",
-                url: `data:${b.source.media_type ?? "image/png"};base64,${b.source.data}`,
-              } as any);
-            }
-          }
-        }
-
-        results.push({
-          id: (msg as any).uuid ?? crypto.randomUUID(),
-          role: "user",
-          parts,
-          metadata: { sessionId: (msg as any).session_id, parentToolUseId: null },
-        } as ClaudeCodeUIMessage);
-      } else {
-        batch.push(msg);
-      }
-    }
-
-    await flushBatch();
-    return results;
   }
 
   /**

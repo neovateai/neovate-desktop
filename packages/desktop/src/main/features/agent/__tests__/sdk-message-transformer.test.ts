@@ -51,7 +51,35 @@ describe("SDKMessageTransformer", () => {
     expect(chunks[1].type).toBe("data-system/init");
   });
 
-  it("assistant text → start-step + text-start/delta/end", () => {
+  it("assistant without prior system/init → start + start-step + text", () => {
+    const chunks = collect(
+      t.transform(makeAssistantMsg("msg-A", [{ type: "text", text: "Hello" }]) as any),
+    );
+    expect(chunks.map((c: any) => c.type)).toEqual([
+      "start",
+      "start-step",
+      "text-start",
+      "text-delta",
+      "text-end",
+    ]);
+    expect(chunks[0]).toMatchObject({ type: "start", messageId: "msg-A" });
+    expect(chunks.find((c: any) => c.type === "text-delta").delta).toBe("Hello");
+  });
+
+  it("assistant after system/init → no extra start", () => {
+    const initMsg = {
+      type: "system" as const,
+      subtype: "init" as const,
+      uuid: "uuid-1",
+      session_id: "sess-1",
+      model: "claude-3",
+      tools: [],
+      slash_commands: [],
+      cwd: "/tmp",
+      mcp_servers: [],
+      api_key_source: "env",
+    };
+    collect(t.transform(initMsg as any));
     const chunks = collect(
       t.transform(makeAssistantMsg("msg-A", [{ type: "text", text: "Hello" }]) as any),
     );
@@ -61,7 +89,6 @@ describe("SDKMessageTransformer", () => {
       "text-delta",
       "text-end",
     ]);
-    expect(chunks.find((c: any) => c.type === "text-delta").delta).toBe("Hello");
   });
 
   it("same message.id does not emit start-step again", () => {
@@ -77,9 +104,14 @@ describe("SDKMessageTransformer", () => {
     const second = collect(
       t.transform(makeAssistantMsg("msg-B", [{ type: "text", text: "B" }]) as any),
     );
-    const types = second.map((c: any) => c.type);
-    expect(types[0]).toBe("finish-step");
-    expect(types[1]).toBe("start-step");
+    // no second "start" — already started
+    expect(second.map((c: any) => c.type)).toEqual([
+      "finish-step",
+      "start-step",
+      "text-start",
+      "text-delta",
+      "text-end",
+    ]);
   });
 
   it("result/success → finish-step + finish (no error chunk)", () => {
@@ -179,6 +211,112 @@ describe("SDKMessageTransformer", () => {
     );
     const tool = chunks.find((c: any) => c.type === "tool-input-available");
     expect(tool).toMatchObject({ toolCallId: "tc-1", toolName: "Read", providerExecuted: true });
+  });
+
+  it("assistant with empty content → start + start-step only", () => {
+    const chunks = collect(t.transform(makeAssistantMsg("msg-A", []) as any));
+    expect(chunks.map((c: any) => c.type)).toEqual(["start", "start-step"]);
+  });
+
+  it("multiple tool_use in one message → multiple tool-input-available", () => {
+    const chunks = collect(
+      t.transform(
+        makeAssistantMsg("msg-A", [
+          { type: "tool_use", id: "tc-1", name: "Read", input: { path: "/a" } },
+          { type: "tool_use", id: "tc-2", name: "Write", input: { path: "/b" } },
+        ]) as any,
+      ),
+    );
+    const tools = chunks.filter((c: any) => c.type === "tool-input-available");
+    expect(tools).toHaveLength(2);
+    expect(tools[0].toolCallId).toBe("tc-1");
+    expect(tools[1].toolCallId).toBe("tc-2");
+  });
+
+  it("mixed content: thinking + text + tool_use in one message", () => {
+    const chunks = collect(
+      t.transform(
+        makeAssistantMsg("msg-A", [
+          { type: "thinking", thinking: "hmm" },
+          { type: "text", text: "I will read the file" },
+          { type: "tool_use", id: "tc-1", name: "Read", input: { path: "/tmp" } },
+        ]) as any,
+      ),
+    );
+    const types = chunks.map((c: any) => c.type);
+    expect(types).toEqual([
+      "start",
+      "start-step",
+      "reasoning-start",
+      "reasoning-delta",
+      "reasoning-end",
+      "text-start",
+      "text-delta",
+      "text-end",
+      "tool-input-available",
+    ]);
+  });
+
+  it("multiple tool_results in one user message", () => {
+    const msg = {
+      type: "user" as const,
+      uuid: "u",
+      session_id: "s",
+      parent_tool_use_id: null,
+      message: {
+        role: "user" as const,
+        content: [
+          { type: "tool_result", tool_use_id: "tc-1", content: "ok", is_error: false },
+          { type: "tool_result", tool_use_id: "tc-2", content: "fail", is_error: true },
+        ],
+      },
+    };
+    const chunks = collect(t.transform(msg as any));
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]).toMatchObject({ type: "tool-output-available", toolCallId: "tc-1" });
+    expect(chunks[1]).toMatchObject({ type: "tool-output-error", toolCallId: "tc-2" });
+  });
+
+  it("compact_boundary does not break step tracking", () => {
+    collect(t.transform(makeAssistantMsg("msg-A", [{ type: "text", text: "A" }]) as any));
+    const compactChunks = collect(
+      t.transform({
+        type: "system" as const,
+        subtype: "compact_boundary" as const,
+        uuid: "cb",
+        session_id: "s",
+      } as any),
+    );
+    expect(compactChunks.map((c: any) => c.type)).toEqual(["data-system/compact_boundary"]);
+    // Next assistant should still detect new step
+    const nextChunks = collect(
+      t.transform(makeAssistantMsg("msg-B", [{ type: "text", text: "B" }]) as any),
+    );
+    expect(nextChunks.map((c: any) => c.type)).toContain("finish-step");
+    expect(nextChunks.map((c: any) => c.type)).toContain("start-step");
+  });
+
+  it("tool_use with parent_tool_use_id passes metadata", () => {
+    const chunks = collect(
+      t.transform({
+        ...makeAssistantMsg("msg-A", [{ type: "tool_use", id: "tc-1", name: "Read", input: {} }]),
+        parent_tool_use_id: "parent-tc",
+      } as any),
+    );
+    const tool = chunks.find((c: any) => c.type === "tool-input-available");
+    expect(tool.providerMetadata).toEqual({ claudeCode: { parentToolUseId: "parent-tc" } });
+  });
+
+  it("tool_use without parent_tool_use_id has no metadata", () => {
+    const chunks = collect(
+      t.transform(
+        makeAssistantMsg("msg-A", [
+          { type: "tool_use", id: "tc-1", name: "Read", input: {} },
+        ]) as any,
+      ),
+    );
+    const tool = chunks.find((c: any) => c.type === "tool-input-available");
+    expect(tool.providerMetadata).toBeUndefined();
   });
 });
 

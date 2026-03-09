@@ -7,6 +7,7 @@ import type {
 
 export class SDKMessageTransformer {
   private inStep = false;
+  private hasStarted = false;
   private currentMessageId: string | null = null;
 
   *transform(msg: SDKMessage): Generator<ClaudeCodeUIMessageChunk> {
@@ -14,6 +15,7 @@ export class SDKMessageTransformer {
       case "system": {
         if (msg.subtype === "init") {
           this.inStep = false;
+          this.hasStarted = true;
           this.currentMessageId = null;
           yield {
             type: "start",
@@ -28,6 +30,10 @@ export class SDKMessageTransformer {
       }
 
       case "assistant": {
+        if (!this.hasStarted) {
+          this.hasStarted = true;
+          yield { type: "start", messageId: msg.message.id };
+        }
         const isNewStep = msg.message.id !== this.currentMessageId;
         if (isNewStep) {
           if (this.inStep) yield { type: "finish-step" };
