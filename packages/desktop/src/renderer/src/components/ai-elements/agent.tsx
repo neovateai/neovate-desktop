@@ -3,12 +3,12 @@
 import type { Tool } from "ai";
 import type { ComponentProps } from "react";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { Badge } from "../ui/badge";
-import { cn } from "../../lib/utils";
 import { BotIcon } from "lucide-react";
 import { memo } from "react";
 
+import { cn } from "../../lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { Badge } from "../ui/badge";
 import { CodeBlock } from "./code-block";
 
 export type AgentProps = ComponentProps<"div">;

@@ -2,6 +2,10 @@
 
 import type { ComponentProps } from "react";
 
+import { ChevronsUpDownIcon } from "lucide-react";
+import { createContext, useContext } from "react";
+
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -13,10 +17,6 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { cn } from "../../lib/utils";
-import { ChevronsUpDownIcon } from "lucide-react";
-import { createContext, useContext } from "react";
-
 import { Shimmer } from "./shimmer";
 
 interface PlanContextValue {

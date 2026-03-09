@@ -1,6 +1,8 @@
 import { implement } from "@orpc/server";
-import { stateContract } from "../../../shared/features/state/contract";
+
 import type { AppContext } from "../../router";
+
+import { stateContract } from "../../../shared/features/state/contract";
 
 const os = implement({ state: stateContract }).$context<AppContext>();
 

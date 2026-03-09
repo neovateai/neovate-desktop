@@ -1,4 +1,5 @@
 import type { PanelDescriptor, PanelId } from "./types";
+
 import { open, overflow } from "./behaviors";
 import { APP_LAYOUT_CHAT_PANEL_MIN_WIDTH } from "./constants";
 

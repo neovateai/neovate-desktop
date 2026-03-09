@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 type Props = {

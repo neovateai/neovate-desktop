@@ -1,14 +1,15 @@
 import type { ContractRouterClient } from "@orpc/contract";
-import { useEffect, useRef } from "react";
-import { useTheme } from "next-themes";
-import { Terminal } from "@xterm/xterm";
+
 import { FitAddon } from "@xterm/addon-fit";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
+import { Terminal } from "@xterm/xterm";
+import { useTheme } from "next-themes";
+import { useEffect, useRef } from "react";
 import "@xterm/xterm/css/xterm.css";
+import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
-import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
 

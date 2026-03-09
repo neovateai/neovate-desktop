@@ -1,8 +1,8 @@
+import type { SettingsSchema } from "../../../shared/features/settings/schema";
+import type { ContentPanel } from "../features/content-panel/content-panel";
+import type { SettingsStore } from "../features/settings/store";
 import type { Disposable, Unsubscribe } from "./disposable";
 import type { I18nManager } from "./i18n";
-import type { SettingsSchema } from "../../../shared/features/settings/schema";
-import type { SettingsStore } from "../features/settings/store";
-import type { ContentPanel } from "../features/content-panel/content-panel";
 
 export interface IScopedSettings<T extends Record<string, unknown> = Record<string, unknown>> {
   get<K extends string & keyof T>(key: K): T[K] | undefined;

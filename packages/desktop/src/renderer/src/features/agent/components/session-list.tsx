@@ -1,20 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
 import debug from "debug";
 import { Plus } from "lucide-react";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
-import { Button } from "../../../components/ui/button";
-import { useNewSession } from "../hooks/use-new-session";
-import { useLoadSession } from "../hooks/use-load-session";
-import { UnifiedSessionItem } from "./unified-session-item";
-import { SidebarTitleBar } from "./sidebar-title-bar";
-import { PinnedSessionList } from "./pinned-session-list";
-import { ProjectAccordionList } from "./project-accordion-list";
-import { ChronologicalList } from "./chronological-list";
+import { useEffect, useMemo, useState } from "react";
+
+import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
 import type { ChatSession } from "../store";
-import type { SessionInfo } from "../../../../../shared/features/agent/types";
+
+import { Button } from "../../../components/ui/button";
+import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
+import { useLoadSession } from "../hooks/use-load-session";
+import { useNewSession } from "../hooks/use-new-session";
+import { useAgentStore } from "../store";
+import { ChronologicalList } from "./chronological-list";
+import { PinnedSessionList } from "./pinned-session-list";
+import { ProjectAccordionList } from "./project-accordion-list";
+import { SidebarTitleBar } from "./sidebar-title-bar";
+import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:session-list");
 

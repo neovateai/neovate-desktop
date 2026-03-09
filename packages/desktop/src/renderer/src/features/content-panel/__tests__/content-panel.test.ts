@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ContentPanel } from "../content-panel";
-import type { ContentPanelOptions } from "../content-panel";
+
 import type { ContentPanelView } from "../../../core/plugin/contributions";
+import type { ContentPanelOptions } from "../content-panel";
+
+import { ContentPanel } from "../content-panel";
 
 const PROJECT = "/test/project";
 

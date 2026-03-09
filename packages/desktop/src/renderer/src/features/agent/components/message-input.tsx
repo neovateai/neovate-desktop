@@ -1,21 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import debug from "debug";
-import { Extension, useEditor, EditorContent } from "@tiptap/react";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
-import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import { createSlashCommandsExtension } from "./slash-commands-extension";
-import { createMentionExtension } from "./mention-extension";
-import { createImagePasteExtension } from "./image-paste-extension";
-import { AttachmentPreview } from "./attachment-preview";
-import { InputToolbar } from "./input-toolbar";
-import { useAgentStore } from "../store";
-import { useNewSession } from "../hooks/use-new-session";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Extension, useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import debug from "debug";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import type { ImageAttachment } from "../../../../../shared/features/agent/types";
+
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
+import { useNewSession } from "../hooks/use-new-session";
+import { useAgentStore } from "../store";
 import { extractText } from "../utils/extract-text";
 import { readFileAsAttachment } from "../utils/read-file-as-attachment";
-import type { ImageAttachment } from "../../../../../shared/features/agent/types";
+import { AttachmentPreview } from "./attachment-preview";
+import { createImagePasteExtension } from "./image-paste-extension";
+import { InputToolbar } from "./input-toolbar";
+import { createMentionExtension } from "./mention-extension";
+import { createSlashCommandsExtension } from "./slash-commands-extension";
 
 const log = debug("neovate:message-input");
 

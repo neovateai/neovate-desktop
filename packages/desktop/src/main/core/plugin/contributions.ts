@@ -1,4 +1,5 @@
 import type { AnyRouter } from "@orpc/server";
+
 import type { PluginContributions } from "./types";
 
 export type Contributions = {

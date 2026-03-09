@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 
-import { resolve } from "node:path";
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKUserMessage, SDKMessage, Query } from "@anthropic-ai/claude-agent-sdk";
+
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import { resolve } from "node:path";
 
 // The SDK refuses to run inside a Claude Code session (detects CLAUDECODE env var).
 // Clear it so this script works when invoked from within Claude Code.

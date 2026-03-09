@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect } from "react";
-import { useLayoutStore, layoutStore } from "./store";
+
+import { client } from "../../orpc";
 import { shrinkPanelsToFit, computeMinWindowWidth, setPanelWidth } from "./layout-coordinator";
 import { applyDelta } from "./layout-coordinator";
-import { client } from "../../orpc";
+import { useLayoutStore, layoutStore } from "./store";
 
 /** Syncs the OS minimum window width via IPC whenever panels change (debounced 100ms). */
 function useSyncWindowMinWidth() {

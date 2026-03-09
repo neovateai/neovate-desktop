@@ -1,8 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
 import { call } from "@orpc/server";
-import { agentRouter } from "../router";
-import type { SessionManager } from "../session-manager";
+import { describe, it, expect, vi } from "vitest";
+
 import type { AppContext } from "../../../router";
+import type { SessionManager } from "../session-manager";
+
+import { agentRouter } from "../router";
 
 function makeContext(overrides?: Partial<AppContext>): AppContext {
   return {

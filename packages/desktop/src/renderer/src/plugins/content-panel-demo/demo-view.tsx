@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useStore } from "zustand";
-import { useContentPanelViewContext } from "../../features/content-panel";
+
 import type { ContentPanelStoreState } from "../../features/content-panel";
-import { useRendererApp } from "../../core/app";
+
 import { Button } from "../../components/ui/button";
 import { ScrollArea } from "../../components/ui/scroll-area";
+import { useRendererApp } from "../../core/app";
+import { useContentPanelViewContext } from "../../features/content-panel";
 
 export default function DemoView() {
   const { viewId, viewState: state } = useContentPanelViewContext();

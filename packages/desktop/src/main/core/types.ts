@@ -1,4 +1,5 @@
 import type { BrowserWindow } from "electron";
+
 import type { SessionManager } from "../features/agent/session-manager";
 import type { Disposable } from "./disposable";
 

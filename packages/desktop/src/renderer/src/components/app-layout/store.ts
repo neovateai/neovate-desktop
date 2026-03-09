@@ -1,15 +1,17 @@
-import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
+import { createStore } from "zustand/vanilla";
+
 import type { PanelId, PanelMap, PanelState } from "./types";
-import { PANEL_DESCRIPTORS } from "./panel-descriptors";
+
+import { client } from "../../orpc";
 import {
   openPanel,
   collapsePanel,
   computeMinWindowWidthWithPanel,
   setPanelWidth,
 } from "./layout-coordinator";
-import { client } from "../../orpc";
+import { PANEL_DESCRIPTORS } from "./panel-descriptors";
 
 function isPanelId(id: string, panels: Record<PanelId, PanelState>): id is PanelId {
   return Object.prototype.hasOwnProperty.call(panels, id);

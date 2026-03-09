@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process";
 import debug from "debug";
+import { spawn } from "node:child_process";
 
 const shellEnvLog = debug("neovate:acp-shell-env");
 

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+
 import type { Project } from "../../../../shared/features/project/types";
+
 import { client } from "../../orpc";
 
 type ProjectState = {

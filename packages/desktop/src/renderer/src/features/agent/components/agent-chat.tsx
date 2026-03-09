@@ -1,26 +1,29 @@
-import { useEffect, useRef, useState } from "react";
-import debug from "debug";
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
-import { client } from "../../../orpc";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
+
+import debug from "debug";
+import { useEffect, useRef, useState } from "react";
+
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
+import { client } from "../../../orpc";
+import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
+import { useAgentStore } from "../store";
+
 const chatLog = debug("neovate:agent-chat");
-import { useNewSession } from "../hooks/use-new-session";
-import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
-import { claudeCodeChatManager } from "../chat-manager";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "../../../components/ai-elements/conversation";
-import { MessageParts } from "./message-parts";
+import { claudeCodeChatManager } from "../chat-manager";
+import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
+import { useNewSession } from "../hooks/use-new-session";
 import { MessageInput } from "./message-input";
+import { MessageParts } from "./message-parts";
 import { PermissionDialog } from "./permission-dialog";
-import { WelcomePanel } from "./welcome-panel";
 import { TaskProgress } from "./task-progress";
+import { WelcomePanel } from "./welcome-panel";
 
 export function AgentChat() {
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);

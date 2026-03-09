@@ -8,8 +8,10 @@ import {
   Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "../../../lib/utils";
+
 import type { SettingsMenuId } from "../store";
+
+import { cn } from "../../../lib/utils";
 import { useSettingsStore } from "../store";
 
 interface MenuItem {

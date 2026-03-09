@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { open, overflow } from "../behaviors";
+
 import type { LayoutContext } from "../types";
+
+import { open, overflow } from "../behaviors";
 
 function makeCtx(overrides: Partial<LayoutContext> = {}): LayoutContext {
   return {

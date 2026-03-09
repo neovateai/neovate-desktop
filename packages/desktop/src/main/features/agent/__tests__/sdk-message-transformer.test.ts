@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+
 import { SDKMessageTransformer, toUIEvent } from "../sdk-message-transformer";
 
 function collect(gen: Generator<any>): any[] {

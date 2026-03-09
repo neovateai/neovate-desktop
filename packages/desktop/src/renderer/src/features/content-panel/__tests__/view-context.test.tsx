@@ -1,13 +1,15 @@
-// @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
+// @vitest-environment jsdom
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+import type { ContentPanelView } from "../../../core/plugin/contributions";
+
 import {
   ContentPanelViewContextProvider,
   useContentPanelViewContext,
 } from "../components/view-context";
 import { ContentPanel } from "../content-panel";
-import type { ContentPanelView } from "../../../core/plugin/contributions";
 
 // Mock useRendererApp to return our test contentPanel
 let panel: ContentPanel;

@@ -1,4 +1,5 @@
 import type { PanelDescriptor, PanelId, PanelMap, LayoutContext } from "./types";
+
 import { APP_LAYOUT_FIXED_WIDTH, APP_LAYOUT_RESIZE_HANDLE_WIDTH, PANEL_ORDER } from "./constants";
 import { getDescriptor, PANEL_DESCRIPTORS } from "./panel-descriptors";
 

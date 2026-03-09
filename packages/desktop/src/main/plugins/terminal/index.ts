@@ -1,4 +1,5 @@
 import type { MainPlugin } from "../../core/plugin/types";
+
 import { PtyManager } from "./pty-manager";
 import { createTerminalRouter } from "./router";
 

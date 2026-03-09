@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { ISettingsService, IScopedSettings } from "../../../core/types";
+
 import type { Preferences } from "../../../../../shared/features/settings/schema";
+import type { ISettingsService, IScopedSettings } from "../../../core/types";
 
 declare const service: ISettingsService;
 

@@ -1,19 +1,21 @@
-import debug from "debug";
+import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import debug from "debug";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
-import { useNewSession } from "../hooks/use-new-session";
-import { useLoadSession } from "../hooks/use-load-session";
-import { useProject } from "../../project/hooks/use-project";
-import { useFilteredSessions } from "../hooks/use-unified-sessions";
-import { UnifiedSessionItem } from "./unified-session-item";
-import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
-import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
+
 import type { Project } from "../../../../../shared/features/project/types";
+
+import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
+import { useConfigStore } from "../../config/store";
+import { useProject } from "../../project/hooks/use-project";
+import { useProjectStore } from "../../project/store";
+import { useLoadSession } from "../hooks/use-load-session";
+import { useNewSession } from "../hooks/use-new-session";
+import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { useAgentStore } from "../store";
+import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:project-accordion");
 

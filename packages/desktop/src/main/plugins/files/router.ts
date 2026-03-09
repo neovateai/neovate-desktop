@@ -1,6 +1,8 @@
-import type { PluginContext } from "../../core/plugin/types";
 import fs from "fs";
 import path from "path";
+
+import type { PluginContext } from "../../core/plugin/types";
+
 import { getFileTree } from "./tree";
 import { unwatchWorkspace, watchWorkspace } from "./watch";
 

@@ -1,7 +1,9 @@
 import { memo } from "react";
-import { SessionItem } from "./session-item";
+
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
+
 import { useSessionChatStatus } from "../hooks/use-session-chat-status";
+import { SessionItem } from "./session-item";
 
 interface UnifiedSessionItemProps {
   item: UnifiedItem;

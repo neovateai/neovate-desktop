@@ -1,5 +1,6 @@
 import { SquareLock01Icon, Copy01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+
 import type { RendererPlugin } from "../../core/plugin";
 
 const SingletonIcon = ({ className }: { className?: string }) => (

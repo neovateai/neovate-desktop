@@ -1,8 +1,3 @@
-import {
-  query,
-  getSessionMessages,
-  listSessions as sdkListSessions,
-} from "@anthropic-ai/claude-agent-sdk";
 import type {
   Query,
   Options,
@@ -12,24 +7,32 @@ import type {
   SessionMessage,
   PermissionMode as SDKPermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
+
+import {
+  query,
+  getSessionMessages,
+  listSessions as sdkListSessions,
+} from "@anthropic-ai/claude-agent-sdk";
+import { EventPublisher } from "@orpc/server";
+import { createUIMessageStream, readUIMessageStream } from "ai";
+import debug from "debug";
 import { randomUUID } from "node:crypto";
-import { appendFile } from "node:fs/promises";
 import { globSync } from "node:fs";
+import { appendFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import debug from "debug";
-import type { SessionInfo } from "../../../shared/features/agent/types";
-import { getShellEnvironment } from "./shell-env";
-import { EventPublisher } from "@orpc/server";
-import { Pushable } from "./pushable";
+
 import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIMessage,
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../../shared/claude-code/types";
-import { createUIMessageStream, readUIMessageStream } from "ai";
+import type { SessionInfo } from "../../../shared/features/agent/types";
+
+import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
+import { getShellEnvironment } from "./shell-env";
 
 const log = debug("neovate:session-manager");
 

@@ -1,4 +1,3 @@
-import { type ReactNode, Suspense, lazy, useRef } from "react";
 import {
   ArrowDown01Icon,
   FolderIcon,
@@ -10,24 +9,27 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
-import { Button } from "../ui/button";
+import { type ReactNode, Suspense, lazy, useRef } from "react";
+
+import type { TitlebarItem } from "../../core/plugin/contributions";
+import type { SeparatorId } from "./types";
+
+import { useRendererApp } from "../../core/app";
+import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
+import { useConfigStore } from "../../features/config/store";
+import { OpenAppButton } from "../../features/open-in";
 import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
-import { useConfigStore } from "../../features/config/store";
-import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
-import { OpenAppButton } from "../../features/open-in";
-import { useLayoutStore } from "./store";
-import { ResizeHandle } from "./resize-handle";
-import { usePanelResize } from "./hooks";
+import { useSettingsStore } from "../../features/settings";
+import { Button } from "../ui/button";
 import {
   APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
   APP_LAYOUT_GRID,
   APP_LAYOUT_GRID_AREA,
 } from "./constants";
-import type { SeparatorId } from "./types";
-import { useRendererApp } from "../../core/app";
-import type { TitlebarItem } from "../../core/plugin/contributions";
-import { useSettingsStore } from "../../features/settings";
+import { usePanelResize } from "./hooks";
+import { ResizeHandle } from "./resize-handle";
+import { useLayoutStore } from "./store";
 
 function useLazyComponents(items: TitlebarItem[]) {
   const cache = useRef(new Map<string, React.LazyExoticComponent<React.ComponentType>>());

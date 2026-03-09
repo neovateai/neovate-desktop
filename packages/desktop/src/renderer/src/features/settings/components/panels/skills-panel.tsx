@@ -1,11 +1,12 @@
 import { Loader2, Plus, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { cn } from "../../../../lib/utils";
-import { useConfigStore } from "../../../config/store";
+
 import { Button } from "../../../../components/ui/button";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { Input } from "../../../../components/ui/input";
+import { cn } from "../../../../lib/utils";
+import { useConfigStore } from "../../../config/store";
 
 // Types
 interface Skill {

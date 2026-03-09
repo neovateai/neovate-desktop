@@ -1,8 +1,9 @@
-import { useCallback } from "react";
 import debug from "debug";
-import { useAgentStore } from "../store";
+import { useCallback } from "react";
+
 import { useProjectStore } from "../../project/store";
 import { claudeCodeChatManager } from "../chat-manager";
+import { useAgentStore } from "../store";
 
 const newSessionLog = debug("neovate:agent-new-session");
 

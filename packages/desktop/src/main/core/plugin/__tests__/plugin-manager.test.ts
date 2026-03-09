@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { PluginManager } from "../plugin-manager";
+
 import type { MainPlugin, PluginContext } from "../types";
+
+import { PluginManager } from "../plugin-manager";
 
 function makeCtx(): PluginContext {
   return {

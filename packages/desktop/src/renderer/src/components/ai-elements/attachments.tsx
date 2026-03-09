@@ -3,9 +3,6 @@
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 
-import { Button } from "../ui/button";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
-import { cn } from "../../lib/utils";
 import {
   FileTextIcon,
   GlobeIcon,
@@ -16,6 +13,10 @@ import {
   XIcon,
 } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo } from "react";
+
+import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
 
 // ============================================================================
 // Types

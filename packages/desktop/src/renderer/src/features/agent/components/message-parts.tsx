@@ -1,7 +1,9 @@
-import type { ClaudeCodeUIMessage } from "../../../../../shared/claude-code/types";
 import { isToolUIPart } from "ai";
-import { ClaudeCodeToolUIPart } from "./tool-parts";
+
+import type { ClaudeCodeUIMessage } from "../../../../../shared/claude-code/types";
+
 import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
+import { ClaudeCodeToolUIPart } from "./tool-parts";
 
 export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
   return (

@@ -1,5 +1,6 @@
 import { eventIterator } from "@orpc/server";
 import { z } from "zod";
+
 import type { PluginContext } from "../../core/plugin/types";
 import type { PtyManager } from "./pty-manager";
 

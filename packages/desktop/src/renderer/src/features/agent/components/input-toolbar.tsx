@@ -1,12 +1,15 @@
-import { useCallback } from "react";
-import debug from "debug";
 import type { StoreApi } from "zustand";
-import { useStore } from "zustand";
-import { Button } from "../../../components/ui/button";
+
+import debug from "debug";
 import { SendHorizonal, Square, Paperclip } from "lucide-react";
-import { useAgentStore } from "../store";
-import { claudeCodeChatManager } from "../chat-manager";
+import { useCallback } from "react";
+import { useStore } from "zustand";
+
 import type { ClaudeCodeChatStoreState } from "../chat-state";
+
+import { Button } from "../../../components/ui/button";
+import { claudeCodeChatManager } from "../chat-manager";
+import { useAgentStore } from "../store";
 
 const log = debug("neovate:input-toolbar");
 

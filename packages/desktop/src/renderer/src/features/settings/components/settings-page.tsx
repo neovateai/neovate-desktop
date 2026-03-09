@@ -1,8 +1,8 @@
 import { useEffect } from "react";
+
 import { matchesBinding } from "../../../lib/keybindings";
-import { useSettingsStore } from "../store";
 import { useConfigStore } from "../../config/store";
-import { SettingsMenu } from "./settings-menu";
+import { useSettingsStore } from "../store";
 import { AboutPanel } from "./panels/about-panel";
 import { ChatPanel } from "./panels/chat-panel";
 import { GeneralPanel } from "./panels/general-panel";
@@ -10,6 +10,7 @@ import { KeybindingsPanel } from "./panels/keybindings-panel";
 import { MCPPanel } from "./panels/mcp-panel";
 import { RulesPanel } from "./panels/rules-panel";
 import { SkillsPanel } from "./panels/skills-panel";
+import { SettingsMenu } from "./settings-menu";
 
 export const SettingsPage = () => {
   // UI state from useSettingsStore

@@ -1,12 +1,15 @@
-import { os } from "@orpc/server";
 import type { AnyRouter } from "@orpc/server";
-import { PluginManager } from "./core/plugin/plugin-manager";
-import { DisposableStore } from "./core/disposable";
-import type { IBrowserWindowManager, IMainApp } from "./core/types";
+
+import { os } from "@orpc/server";
+
 import type { MainPlugin } from "./core/plugin/types";
-import { buildRouter } from "./router";
+import type { IBrowserWindowManager, IMainApp } from "./core/types";
+
 import { BrowserWindowManager } from "./core";
+import { DisposableStore } from "./core/disposable";
+import { PluginManager } from "./core/plugin/plugin-manager";
 import { StorageService } from "./core/storage-service";
+import { buildRouter } from "./router";
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];

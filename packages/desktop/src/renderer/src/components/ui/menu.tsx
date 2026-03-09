@@ -1,8 +1,9 @@
 "use client";
 
+import type * as React from "react";
+
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { ChevronRightIcon } from "lucide-react";
-import type * as React from "react";
 
 import { cn } from "../../lib/utils";
 

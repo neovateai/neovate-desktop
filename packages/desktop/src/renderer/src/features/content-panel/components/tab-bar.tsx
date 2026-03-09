@@ -1,7 +1,8 @@
-import { ScrollArea } from "../../../components/ui/scroll-area";
 import type { Tab } from "../types";
-import { TabItem } from "./tab-item";
+
+import { ScrollArea } from "../../../components/ui/scroll-area";
 import { NewTabMenu } from "./new-tab-menu";
+import { TabItem } from "./tab-item";
 
 export function TabBar({
   tabs,

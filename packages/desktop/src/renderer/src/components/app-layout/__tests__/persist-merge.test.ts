@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+
 import type { PanelId, PanelState } from "../types";
 
 // Mock orpc to avoid window dependency

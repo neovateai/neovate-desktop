@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { buildContributions, EMPTY_CONTRIBUTIONS } from "../contributions";
 
 describe("buildContributions", () => {

@@ -1,4 +1,5 @@
 import { MessageCircle } from "lucide-react";
+
 import { ProjectSelector } from "../../project/components/project-selector";
 
 export function WelcomePanel() {

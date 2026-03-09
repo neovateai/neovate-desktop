@@ -1,12 +1,14 @@
+import { is } from "@electron-toolkit/utils";
+import { shell, screen, BrowserWindow } from "electron";
+import Store from "electron-store";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import Store from "electron-store";
 import { join } from "path";
-import { shell, screen, BrowserWindow } from "electron";
-import { is } from "@electron-toolkit/utils";
-import icon from "../../../resources/icon.png?asset";
-import { randomUUID } from "node:crypto";
+
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
+
+import icon from "../../../resources/icon.png?asset";
 
 type WindowStore = { bounds: Electron.Rectangle };
 

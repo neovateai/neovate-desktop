@@ -2,11 +2,12 @@
 
 import type { ComponentProps } from "react";
 
+import { ChevronDownIcon, PaperclipIcon } from "lucide-react";
+
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn } from "../../lib/utils";
-import { ChevronDownIcon, PaperclipIcon } from "lucide-react";
 
 export interface QueueMessagePart {
   type: string;

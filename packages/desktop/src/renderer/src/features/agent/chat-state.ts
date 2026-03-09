@@ -1,10 +1,12 @@
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import type { ChatState, ChatStatus } from "ai";
+
 import { createStore, type StoreApi } from "zustand/vanilla";
+
 import type {
   ClaudeCodeUIEventRequest,
   ClaudeCodeUIMessage,
 } from "../../../../shared/claude-code/types";
-import type { Query } from "@anthropic-ai/claude-agent-sdk";
 
 export type ClaudeCodeChatCapabilities = Awaited<ReturnType<Query["initializationResult"]>>;
 

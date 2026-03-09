@@ -1,5 +1,6 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
+
 import { buildRouter, type AppDependencies } from "../router";
 
 const router = buildRouter(new Map());

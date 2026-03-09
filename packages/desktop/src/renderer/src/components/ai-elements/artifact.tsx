@@ -3,10 +3,11 @@
 import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes } from "react";
 
+import { XIcon } from "lucide-react";
+
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { cn } from "../../lib/utils";
-import { XIcon } from "lucide-react";
 
 export type ArtifactProps = HTMLAttributes<HTMLDivElement>;
 

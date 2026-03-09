@@ -1,7 +1,9 @@
-import chokidar from "chokidar";
 import type { FSWatcher } from "chokidar";
-import type { FileWatchEvent } from "../../../shared/plugins/files/contract";
+
 import { EventPublisher } from "@orpc/server";
+import chokidar from "chokidar";
+
+import type { FileWatchEvent } from "../../../shared/plugins/files/contract";
 
 // 防抖函数
 function debounce<T extends (...args: any[]) => any>(

@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from "react";
 import type { ContractRouterClient } from "@orpc/contract";
+
 import { Search, FileText, Loader2, ChevronRight, CaseSensitive, WholeWord } from "lucide-react";
-import { utilsContract } from "../../../../shared/features/utils/contract";
+import { useState, useEffect, useRef } from "react";
+
 import type { Project } from "../../../../shared/features/project/types";
+
+import { utilsContract } from "../../../../shared/features/utils/contract";
+import { Input } from "../../components/ui/input";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
-import { useSearchTranslation } from "./i18n";
-import { Input } from "../../components/ui/input";
 import { cn } from "../../lib/utils";
+import { useSearchTranslation } from "./i18n";
 
 // File icon component
 function FileLangIcon({ path, size = 14 }: { path: string; size?: number }) {

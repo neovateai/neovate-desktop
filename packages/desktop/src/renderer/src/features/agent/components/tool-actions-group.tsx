@@ -1,12 +1,14 @@
-import { useState } from "react";
 import { ChevronDown, FileText, Pencil, Terminal, Search, Wrench } from "lucide-react";
-import { cn } from "../../../lib/utils";
+import { useState } from "react";
+
+import type { ToolCallState } from "../store";
+
 import {
   Collapsible,
   CollapsibleTrigger,
   CollapsiblePanel,
 } from "../../../components/ui/collapsible";
-import type { ToolCallState } from "../store";
+import { cn } from "../../../lib/utils";
 
 function categorize(name: string): "read" | "write" | "bash" | "search" | "other" {
   if (/read|glob|grep/i.test(name)) return "read";

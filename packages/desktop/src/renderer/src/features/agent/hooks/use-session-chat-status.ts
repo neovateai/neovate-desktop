@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+
 import { claudeCodeChatManager } from "../chat-manager";
 
 const noop = () => () => {};

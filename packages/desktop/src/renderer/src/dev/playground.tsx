@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
-import { cn } from "../lib/utils";
+
 import { ErrorBoundary } from "../components/ui/error-boundary";
+import { cn } from "../lib/utils";
 
 const PLAYGROUNDS = [
   {

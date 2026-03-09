@@ -1,12 +1,11 @@
-import debug from "debug";
 import { FolderAddIcon, FilterIcon, FolderIcon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import debug from "debug";
 import { CheckIcon, Plus } from "lucide-react";
 import { memo } from "react";
-import { useConfigStore } from "../../config/store";
-import { useProjectStore } from "../../project/store";
-import { useProject } from "../../project/hooks/use-project";
-import { useNewSession } from "../hooks/use-new-session";
+
+import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
+
 import { Button } from "../../../components/ui/button";
 import {
   Menu,
@@ -17,7 +16,10 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "../../../components/ui/menu";
-import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
+import { useConfigStore } from "../../config/store";
+import { useProject } from "../../project/hooks/use-project";
+import { useProjectStore } from "../../project/store";
+import { useNewSession } from "../hooks/use-new-session";
 
 const log = debug("neovate:sidebar-title-bar");
 

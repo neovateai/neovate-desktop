@@ -1,12 +1,14 @@
 import { Node, type Editor, mergeAttributes } from "@tiptap/react";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
-import { createRoot } from "react-dom/client";
-import { createElement, createRef } from "react";
+import debug from "debug";
 import { Terminal } from "lucide-react";
+import { createElement, createRef } from "react";
+import { createRoot } from "react-dom/client";
+
+import type { SlashCommandInfo } from "../../../../../shared/features/agent/types";
+
 import { SuggestionList, type SuggestionItem, type SuggestionListHandle } from "./suggestion-list";
 import { positionAboveInput } from "./suggestion-position";
-import type { SlashCommandInfo } from "../../../../../shared/features/agent/types";
-import debug from "debug";
 
 const slashLog = debug("neovate:slash-commands");
 

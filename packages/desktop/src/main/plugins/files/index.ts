@@ -1,4 +1,5 @@
 import type { MainPlugin } from "../../core/plugin/types";
+
 import { createFilesRouter } from "./router";
 
 export default {

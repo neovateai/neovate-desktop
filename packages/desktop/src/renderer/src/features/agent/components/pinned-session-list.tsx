@@ -1,8 +1,9 @@
 import debug from "debug";
 import { memo, useState } from "react";
-import { useAgentStore } from "../store";
+
 import { useLoadSession } from "../hooks/use-load-session";
 import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { useAgentStore } from "../store";
 import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:pinned-session-list");

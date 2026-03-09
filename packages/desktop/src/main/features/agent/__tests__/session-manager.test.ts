@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+
 import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
 
 describe("SessionManager", () => {

@@ -1,5 +1,6 @@
 import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+
 import type { RendererPlugin } from "../../core/plugin";
 
 const FilesIcon = ({ className }: { className?: string }) => (

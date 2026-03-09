@@ -1,7 +1,9 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useStore } from "zustand";
-import { useRendererApp } from "../../../core";
+
 import type { ContentPanelStoreState } from "../types";
+
+import { useRendererApp } from "../../../core";
 
 const ViewIdContext = createContext<string | null>(null);
 

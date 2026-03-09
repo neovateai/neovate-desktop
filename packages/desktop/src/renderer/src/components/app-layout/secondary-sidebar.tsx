@@ -1,10 +1,12 @@
-import { Activity, lazy, Suspense, useRef } from "react";
 import { motion } from "motion/react";
-import { cn } from "../../lib/utils";
+import { Activity, lazy, Suspense, useRef } from "react";
+
+import type { SecondarySidebarView } from "../../core/plugin/contributions";
+
 import { useRendererApp } from "../../core";
+import { cn } from "../../lib/utils";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
 import { usePanelState, useLayoutStore } from "./store";
-import type { SecondarySidebarView } from "../../core/plugin/contributions";
 
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 };
 

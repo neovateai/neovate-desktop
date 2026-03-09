@@ -1,11 +1,13 @@
-import { useMemo } from "react";
 import { Plus } from "lucide-react";
+import { useMemo } from "react";
 import { useStore } from "zustand";
+
+import type { ContentPanelStoreState, Tab } from "../types";
+
+import { Button } from "../../../components/ui/button";
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/menu";
 import { useRendererApp } from "../../../core";
 import { useProjectStore } from "../../project/store";
-import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/menu";
-import { Button } from "../../../components/ui/button";
-import type { ContentPanelStoreState, Tab } from "../types";
 
 const EMPTY_TABS: Tab[] = [];
 

@@ -1,6 +1,6 @@
-import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
 import debug from "debug";
+import { contextBridge, ipcRenderer } from "electron";
 
 const log = debug("neovate:orpc:preload");
 

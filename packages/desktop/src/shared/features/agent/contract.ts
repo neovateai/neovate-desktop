@@ -1,6 +1,8 @@
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
+
 import { oc, type, eventIterator } from "@orpc/contract";
 import { z } from "zod";
-import type { SessionInfo } from "./types";
+
 import type {
   ClaudeCodeUIMessage,
   ClaudeCodeUIMessageChunk,
@@ -8,7 +10,7 @@ import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../claude-code/types";
-import type { Query } from "@anthropic-ai/claude-agent-sdk";
+import type { SessionInfo } from "./types";
 
 export const agentContract = {
   listSessions: oc.input(z.object({ cwd: z.string().optional() })).output(type<SessionInfo[]>()),

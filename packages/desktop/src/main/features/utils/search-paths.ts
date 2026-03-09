@@ -1,8 +1,8 @@
-import { accessSync, chmodSync, constants } from "node:fs";
+import debug from "debug";
 import { execFile } from "node:child_process";
+import { accessSync, chmodSync, constants } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
-import debug from "debug";
 
 const log = debug("neovate:search-paths");
 const require = createRequire(import.meta.url);

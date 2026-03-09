@@ -1,8 +1,9 @@
-import { type ReactNode } from "react";
 import { motion } from "motion/react";
+import { type ReactNode } from "react";
+
 import { cn } from "../../lib/utils";
-import { AppLayoutPanelActivity } from "./panel-activity";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
+import { AppLayoutPanelActivity } from "./panel-activity";
 import { usePanelState } from "./store";
 
 const SPRING = { type: "spring" as const, stiffness: 600, damping: 49 };

@@ -1,7 +1,9 @@
 import { FileEditIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { RendererPlugin } from "../../core/plugin";
 import { ContractRouterClient } from "@orpc/contract";
+
+import type { RendererPlugin } from "../../core/plugin";
+
 import { editorContract } from "../../../../shared/plugins/editor/contract";
 
 const EditorIcon = ({ className }: { className?: string }) => (

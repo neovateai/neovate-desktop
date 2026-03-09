@@ -1,4 +1,5 @@
 import type { OpenBehavior, OverflowBehavior } from "./types";
+
 import {
   APP_LAYOUT_ACTIVITY_BAR_WIDTH,
   APP_LAYOUT_EDGE_SPACING,

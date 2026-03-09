@@ -1,27 +1,28 @@
+import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
-import { ThemeProvider, useTheme } from "next-themes";
-import { I18nManager } from "./i18n";
-import { useConfigStore } from "../features/config/store";
-import { useSettingsStore } from "../features/settings/store";
-import { DisposableStore } from "./disposable";
-import { ToastProvider } from "../components/ui/toast";
-import type { IRendererApp, IWorkbench } from "./types";
-import type { RendererPlugin, PluginContext } from "./plugin";
-import { PluginManager } from "./plugin";
-import { ContentPanel } from "../features/content-panel";
+
+import type { SettingsSchema } from "../../../shared/features/settings/schema";
 import type { ProjectTabState } from "../features/content-panel";
+import type { RendererPlugin, PluginContext } from "./plugin";
+import type { IRendererApp, IWorkbench } from "./types";
+
+import { ToastProvider } from "../components/ui/toast";
+import { useConfigStore } from "../features/config/store";
+import { ContentPanel } from "../features/content-panel";
+import { SettingsService } from "../features/settings/service";
+import { useSettingsStore } from "../features/settings/store";
+import { client } from "../orpc";
+import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
-import terminalPlugin from "../plugins/terminal";
 import searchPlugin from "../plugins/search";
-import editorPlugin from "../plugins/editor";
+import terminalPlugin from "../plugins/terminal";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 // import demoWindowPlugin from "../plugins/demo-window";
-
-import { client } from "../orpc";
-import { SettingsService } from "../features/settings/service";
-import type { SettingsSchema } from "../../../shared/features/settings/schema";
+import { DisposableStore } from "./disposable";
+import { I18nManager } from "./i18n";
+import { PluginManager } from "./plugin";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
 const RendererAppContext: React.Context<RendererApp | null> =

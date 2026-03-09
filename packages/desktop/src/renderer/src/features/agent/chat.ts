@@ -1,16 +1,19 @@
-import { consumeEventIterator } from "@orpc/client";
-import type { ChatInit } from "ai";
-import { AbstractChat } from "ai";
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
+import type { ChatInit } from "ai";
+
+import { consumeEventIterator } from "@orpc/client";
+import { AbstractChat } from "ai";
+import { StoreApi } from "zustand";
+
 import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIEvent,
   ClaudeCodeUIEventMessage,
   ClaudeCodeUIMessage,
 } from "../../../../shared/claude-code/types";
-import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
 import type { ClaudeCodeChatTransport } from "./chat-transport";
-import { StoreApi } from "zustand";
+
+import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
 
 export interface ClaudeCodeChatInit extends Omit<ChatInit<ClaudeCodeUIMessage>, "transport"> {
   id: string;

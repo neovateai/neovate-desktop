@@ -1,6 +1,8 @@
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
-import { Button } from "../../../components/ui/button";
+
 import type { ClaudeCodeUIEventRequest } from "../../../../../shared/claude-code/types";
+
+import { Button } from "../../../components/ui/button";
 
 type Props = {
   requestId: string;

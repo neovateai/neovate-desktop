@@ -1,7 +1,9 @@
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
-import { agentContract } from "../../../shared/features/agent/contract";
+
 import type { AppContext } from "../../router";
+
+import { agentContract } from "../../../shared/features/agent/contract";
 
 const agentLog = debug("neovate:agent-router");
 

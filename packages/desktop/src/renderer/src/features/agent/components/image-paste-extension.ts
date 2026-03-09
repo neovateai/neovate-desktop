@@ -1,8 +1,10 @@
-import { Extension } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Extension } from "@tiptap/react";
 import debug from "debug";
-import { readFileAsAttachment } from "../utils/read-file-as-attachment";
+
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
+
+import { readFileAsAttachment } from "../utils/read-file-as-attachment";
 
 const log = debug("neovate:image-paste");
 

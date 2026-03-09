@@ -1,6 +1,7 @@
 import type { MainPlugin } from "../../core/plugin/types";
-import { CodeServerManager } from "./utils";
+
 import { createEditorRouter } from "./router";
+import { CodeServerManager } from "./utils";
 import { ExtensionBridgeServer } from "./utils/bridge";
 
 const codeServerManager = new CodeServerManager();

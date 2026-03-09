@@ -1,13 +1,15 @@
+import debug from "debug";
+import { enableMapSet } from "immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { enableMapSet } from "immer";
+
 import type {
   SessionInfo,
   SlashCommandInfo,
   ModelInfo,
 } from "../../../../shared/features/agent/types";
+
 import { client } from "../../orpc";
-import debug from "debug";
 
 const storeLog = debug("neovate:agent-store");
 
