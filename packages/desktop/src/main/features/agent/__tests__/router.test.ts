@@ -11,6 +11,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
       createSession: vi.fn().mockResolvedValue({ sessionId: "s1" }),
       resolvePermission: vi.fn(),
       cancel: vi.fn().mockResolvedValue(undefined),
+      renameSession: vi.fn().mockResolvedValue(undefined),
       closeSession: vi.fn(),
       closeAll: vi.fn(),
     } as unknown as SessionManager,

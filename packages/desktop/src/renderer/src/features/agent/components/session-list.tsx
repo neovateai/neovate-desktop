@@ -1,125 +1,71 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Pin, PinOff, Archive, Copy, Plus } from "lucide-react";
-import debug from "debug";
+import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
-import { client } from "../../../orpc";
 
-const listLog = debug("neovate:agent-session-list");
-import { cn } from "../../../lib/utils";
-import {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuPopup,
-  ContextMenuItem,
-  ContextMenuSeparator,
-} from "../../../components/ui/context-menu";
 import { Button } from "../../../components/ui/button";
 import { useNewSession } from "../hooks/use-new-session";
+import { useLoadSession } from "../hooks/use-load-session";
+import { SessionItem } from "./session-item";
 import type { ChatSession } from "../store";
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
 
-function timeAgo(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
+// --- UnifiedSessionItem ---
 
-// --- SessionItemRow ---
+type UnifiedItem =
+  | { kind: "memory"; session: ChatSession }
+  | { kind: "persisted"; info: SessionInfo };
 
-function SessionItemRow({
-  sessionId,
-  title,
-  createdAt,
-  isActive,
+function UnifiedSessionItem({
+  item,
+  activeSessionId,
   isPinned,
-  isRestoring,
-  subtitle,
-  onClick,
+  restoring,
   projectPath,
+  onActivate,
+  onLoad,
+  onAfterArchive,
 }: {
-  sessionId: string;
-  title?: string;
-  createdAt: string;
-  isActive: boolean;
+  item: UnifiedItem;
+  activeSessionId: string | null;
   isPinned: boolean;
-  isRestoring: boolean;
-  subtitle?: string;
-  onClick: () => void;
+  restoring: string | null;
   projectPath: string;
+  onActivate: (sessionId: string) => void;
+  onLoad: (sessionId: string) => void;
+  onAfterArchive: () => void;
 }) {
-  const archiveSession = useProjectStore((s) => s.archiveSession);
-  const togglePinSession = useProjectStore((s) => s.togglePinSession);
-
-  const handleCopySessionId = () => {
-    navigator.clipboard.writeText(sessionId);
-  };
-
+  if (item.kind === "memory") {
+    const s = item.session;
+    return (
+      <SessionItem
+        sessionId={s.sessionId}
+        title={s.title}
+        createdAt={s.createdAt}
+        isActive={s.sessionId === activeSessionId}
+        isPinned={isPinned}
+        isRestoring={false}
+        isStreaming={s.streaming}
+        hasPendingPermission={s.pendingPermission !== null}
+        onClick={() => onActivate(s.sessionId)}
+        onAfterArchive={onAfterArchive}
+        projectPath={projectPath}
+      />
+    );
+  }
+  const info = item.info;
   return (
-    <li>
-      <ContextMenu>
-        <ContextMenuTrigger
-          className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors cursor-pointer group",
-            isActive
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent/50",
-          )}
-          onClick={onClick}
-        >
-          <div className="flex-1 min-w-0">
-            <span className="block truncate">
-              {isRestoring ? "Restoring..." : title || sessionId.slice(0, 8)}
-            </span>
-            <span className="block truncate text-[10px] opacity-60">
-              {subtitle ? `${subtitle} · ` : ""}
-              {timeAgo(createdAt)}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="hidden shrink-0 group-hover:block"
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePinSession(projectPath, sessionId);
-            }}
-          >
-            {isPinned ? (
-              <PinOff size={12} strokeWidth={1.5} />
-            ) : (
-              <Pin size={12} strokeWidth={1.5} />
-            )}
-          </button>
-        </ContextMenuTrigger>
-        <ContextMenuPopup>
-          <ContextMenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
-            {isPinned ? (
-              <>
-                <PinOff size={14} /> Unpin
-              </>
-            ) : (
-              <>
-                <Pin size={14} /> Pin
-              </>
-            )}
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => archiveSession(projectPath, sessionId)}>
-            <Archive size={14} /> Archive
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={handleCopySessionId}>
-            <Copy size={14} /> Copy session ID
-          </ContextMenuItem>
-        </ContextMenuPopup>
-      </ContextMenu>
-    </li>
+    <SessionItem
+      sessionId={info.sessionId}
+      title={info.title}
+      createdAt={info.createdAt}
+      isActive={false}
+      isPinned={isPinned}
+      isRestoring={restoring === info.sessionId}
+      onClick={() => onLoad(info.sessionId)}
+      onAfterArchive={onAfterArchive}
+      projectPath={projectPath}
+    />
   );
 }
 
@@ -130,11 +76,6 @@ export function SessionList() {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const agentSessions = useAgentStore((s) => s.agentSessions);
-  const createSession = useAgentStore((s) => s.createSession);
-  const removeSession = useAgentStore((s) => s.removeSession);
-  const appendChunk = useAgentStore((s) => s.appendChunk);
-  const restoreFromCache = useAgentStore((s) => s.restoreFromCache);
-  const setSdkReady = useAgentStore((s) => s.setSdkReady);
 
   const activeProject = useProjectStore((s) => s.activeProject);
   const archivedSessions = useProjectStore((s) => s.archivedSessions);
@@ -144,150 +85,69 @@ export function SessionList() {
   const { createNewSession } = useNewSession();
   const [restoring, setRestoring] = useState<string | null>(null);
 
-  // Hydrate archived/pinned state from main process on mount / project change
+  const projectPath = activeProject?.path;
+  const loadSession = useLoadSession(projectPath);
+
   useEffect(() => {
-    if (activeProject?.path) {
-      loadSessionPreferences(activeProject.path);
+    if (projectPath) {
+      loadSessionPreferences(projectPath);
     }
-  }, [activeProject?.path, loadSessionPreferences]);
-  const loadAbortRef = useRef<AbortController | null>(null);
+  }, [projectPath, loadSessionPreferences]);
 
-  // Abort any in-flight load on unmount
-  useEffect(() => {
-    return () => {
-      loadAbortRef.current?.abort();
-      loadAbortRef.current = null;
+  const handleLoad = async (sessionId: string) => {
+    setRestoring(sessionId);
+    try {
+      await loadSession(sessionId);
+    } finally {
+      setRestoring((prev) => (prev === sessionId ? null : prev));
+    }
+  };
+
+  const handleAfterArchive = () => {
+    if (projectPath) createNewSession(projectPath);
+  };
+
+  const { pinnedItems, regularItems, pinned } = useMemo(() => {
+    if (!projectPath) return { pinnedItems: [], regularItems: [], pinned: new Set<string>() };
+
+    const archived = new Set(archivedSessions[projectPath] ?? []);
+    const pinnedSet = new Set(pinnedSessions[projectPath] ?? []);
+    const matchesProject = (cwd?: string) => cwd?.startsWith(projectPath) ?? false;
+
+    const loadedIds = new Set(sessions.keys());
+
+    const allInMemory = (Array.from(sessions.values()) as ChatSession[]).filter(
+      (s) => matchesProject(s.cwd) && !archived.has(s.sessionId) && !s.isNew,
+    );
+
+    const allPersisted = agentSessions.filter(
+      (s) => !loadedIds.has(s.sessionId) && matchesProject(s.cwd) && !archived.has(s.sessionId),
+    );
+
+    const toUnified = (items: ChatSession[], persisted: SessionInfo[]): UnifiedItem[] => {
+      const mem: UnifiedItem[] = items.map((s) => ({ kind: "memory", session: s }));
+      const per: UnifiedItem[] = persisted.map((s) => ({ kind: "persisted", info: s }));
+      return [...mem, ...per].sort((a, b) => {
+        const aDate = a.kind === "memory" ? a.session.createdAt : a.info.createdAt;
+        const bDate = b.kind === "memory" ? b.session.createdAt : b.info.createdAt;
+        return bDate.localeCompare(aDate);
+      });
     };
-  }, []);
 
-  const loadSession = useCallback(
-    async (sessionId: string) => {
-      if (sessions.has(sessionId)) {
-        listLog("loadSession: already loaded sid=%s, switching", sessionId.slice(0, 8));
-        setActiveSession(sessionId);
-        return;
-      }
+    return {
+      pinnedItems: toUnified(
+        allInMemory.filter((s) => pinnedSet.has(s.sessionId)),
+        allPersisted.filter((s) => pinnedSet.has(s.sessionId)),
+      ),
+      regularItems: toUnified(
+        allInMemory.filter((s) => !pinnedSet.has(s.sessionId)),
+        allPersisted.filter((s) => !pinnedSet.has(s.sessionId)),
+      ),
+      pinned: pinnedSet,
+    };
+  }, [sessions, agentSessions, archivedSessions, pinnedSessions, projectPath]);
 
-      // Abort any previous in-flight load
-      loadAbortRef.current?.abort();
-      const ac = new AbortController();
-      loadAbortRef.current = ac;
-
-      listLog("loadSession: START sid=%s cwd=%s", sessionId.slice(0, 8), activeProject?.path);
-      const t0 = performance.now();
-      setRestoring(sessionId);
-
-      const info = agentSessions.find((s) => s.sessionId === sessionId);
-      listLog(
-        "loadSession: info=%o",
-        info ? { title: info.title, cwd: info.cwd } : "not found in agentSessions",
-      );
-      createSession(
-        sessionId,
-        info ? { title: info.title, createdAt: info.createdAt, cwd: info.cwd } : undefined,
-      );
-
-      // Phase 1: Try loading from cache for instant display
-      let hasCachedMessages = false;
-      try {
-        const cached = await client.agent.getSessionCache({ sessionId });
-        if (cached && cached.messages.length > 0) {
-          restoreFromCache(sessionId, cached);
-          hasCachedMessages = true;
-          listLog(
-            "loadSession: cache HIT sid=%s msgs=%d in %dms",
-            sessionId.slice(0, 8),
-            cached.messages.length,
-            Math.round(performance.now() - t0),
-          );
-          // Stop showing "Restoring..." since messages are visible now
-          setRestoring((prev) => (prev === sessionId ? null : prev));
-        } else {
-          listLog("loadSession: cache MISS sid=%s", sessionId.slice(0, 8));
-        }
-      } catch (error) {
-        listLog(
-          "loadSession: cache read error sid=%s error=%s",
-          sessionId.slice(0, 8),
-          error instanceof Error ? error.message : String(error),
-        );
-      }
-
-      // Phase 2: Resume SDK session (skip replay if we loaded from cache)
-      try {
-        const iterator = await client.agent.loadSession(
-          { sessionId, cwd: activeProject?.path, skipReplay: hasCachedMessages },
-          { signal: ac.signal },
-        );
-        let eventCount = 0;
-        for await (const event of iterator) {
-          eventCount++;
-          appendChunk(sessionId, event);
-        }
-        setSdkReady(sessionId, true);
-        listLog(
-          "loadSession: SDK ready sid=%s in %dms events=%d cached=%s",
-          sessionId.slice(0, 8),
-          Math.round(performance.now() - t0),
-          eventCount,
-          hasCachedMessages,
-        );
-
-        // Save cache for future loads (always save to keep it fresh)
-        const session = useAgentStore.getState().sessions.get(sessionId);
-        if (session && session.messages.length > 0) {
-          client.agent.saveSessionCache({
-            sessionId,
-            data: {
-              messages: session.messages.map((m) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                thinking: m.thinking,
-                toolCalls: m.toolCalls,
-              })),
-              title: session.title,
-              cwd: session.cwd,
-              updatedAt: new Date().toISOString(),
-              usage: session.usage,
-            },
-          });
-        }
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        listLog(
-          "loadSession: FAILED sid=%s in %dms error=%s",
-          sessionId.slice(0, 8),
-          Math.round(performance.now() - t0),
-          error instanceof Error ? error.message : String(error),
-        );
-        // Only remove session if we didn't already show cached messages
-        if (!hasCachedMessages) {
-          removeSession(sessionId);
-        }
-      } finally {
-        if (loadAbortRef.current === ac) {
-          loadAbortRef.current = null;
-        }
-        setRestoring((prev) => (prev === sessionId ? null : prev));
-      }
-    },
-    [
-      sessions,
-      setActiveSession,
-      createSession,
-      removeSession,
-      appendChunk,
-      restoreFromCache,
-      setSdkReady,
-      agentSessions,
-      activeProject?.path,
-    ],
-  );
-
-  if (!activeProject) {
+  if (!activeProject || !projectPath) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-xs text-muted-foreground">Select a project</p>
@@ -295,94 +155,13 @@ export function SessionList() {
     );
   }
 
-  const projectPath = activeProject.path;
-  const archived = new Set(archivedSessions[projectPath] ?? []);
-  const pinned = new Set(pinnedSessions[projectPath] ?? []);
-  const matchesProject = (cwd?: string) => cwd?.startsWith(projectPath) ?? false;
-  const isArchived = (id: string) => archived.has(id);
-  const isPinned = (id: string) => pinned.has(id);
-
-  const loadedIds = new Set(sessions.keys());
-
-  // In-memory sessions filtered by project, excluding archived
-  const allInMemory = (Array.from(sessions.values()) as ChatSession[]).filter(
-    (s) => matchesProject(s.cwd) && !isArchived(s.sessionId) && !s.isNew,
-  );
-
-  // Persisted sessions not loaded, filtered by project, excluding archived
-  const allPersisted = agentSessions.filter(
-    (s) => !loadedIds.has(s.sessionId) && matchesProject(s.cwd) && !isArchived(s.sessionId),
-  );
-
-  // Unified sorted lists: pinned and regular
-  type UnifiedItem =
-    | { kind: "memory"; session: ChatSession }
-    | { kind: "persisted"; info: SessionInfo };
-
-  const toUnified = (items: ChatSession[], persisted: SessionInfo[]): UnifiedItem[] => {
-    const mem: UnifiedItem[] = items.map((s) => ({ kind: "memory", session: s }));
-    const per: UnifiedItem[] = persisted.map((s) => ({ kind: "persisted", info: s }));
-    return [...mem, ...per].sort((a, b) => {
-      const aDate = a.kind === "memory" ? a.session.createdAt : a.info.createdAt;
-      const bDate = b.kind === "memory" ? b.session.createdAt : b.info.createdAt;
-      return bDate.localeCompare(aDate);
-    });
-  };
-
-  const pinnedItems = toUnified(
-    allInMemory.filter((s) => isPinned(s.sessionId)),
-    allPersisted.filter((s) => isPinned(s.sessionId)),
-  );
-  const regularItems = toUnified(
-    allInMemory.filter((s) => !isPinned(s.sessionId)),
-    allPersisted.filter((s) => !isPinned(s.sessionId)),
-  );
-
-  const renderItem = (item: UnifiedItem) => {
-    if (item.kind === "memory") {
-      const s = item.session;
-      return (
-        <SessionItemRow
-          key={s.sessionId}
-          sessionId={s.sessionId}
-          title={s.title}
-          createdAt={s.createdAt}
-          isActive={s.sessionId === activeSessionId}
-          isPinned={isPinned(s.sessionId)}
-          isRestoring={false}
-          subtitle={`${s.messages.length} msg${s.messages.length !== 1 ? "s" : ""}${s.streaming ? " · streaming" : ""}`}
-          onClick={() => setActiveSession(s.sessionId)}
-          projectPath={projectPath}
-        />
-      );
-    }
-    const info = item.info;
-    return (
-      <SessionItemRow
-        key={info.sessionId}
-        sessionId={info.sessionId}
-        title={info.title}
-        createdAt={info.createdAt}
-        isActive={false}
-        isPinned={isPinned(info.sessionId)}
-        isRestoring={restoring === info.sessionId}
-        onClick={() => loadSession(info.sessionId)}
-        projectPath={projectPath}
-      />
-    );
-  };
-
   return (
     <div className="flex flex-1 flex-col gap-1">
       <Button
         variant="outline"
         size="sm"
         className="mt-1 w-full"
-        onClick={() => {
-          if (projectPath) {
-            createNewSession(projectPath);
-          }
-        }}
+        onClick={() => createNewSession(projectPath)}
       >
         <Plus size={14} />
         <span>New Chat</span>
@@ -394,10 +173,40 @@ export function SessionList() {
             <li className="px-2 pt-2">
               <span className="text-[10px] font-medium text-muted-foreground">Pinned</span>
             </li>
-            {pinnedItems.map(renderItem)}
+            {pinnedItems.map((item) => {
+              const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+              return (
+                <UnifiedSessionItem
+                  key={id}
+                  item={item}
+                  activeSessionId={activeSessionId}
+                  isPinned={true}
+                  restoring={restoring}
+                  projectPath={projectPath}
+                  onActivate={setActiveSession}
+                  onLoad={handleLoad}
+                  onAfterArchive={handleAfterArchive}
+                />
+              );
+            })}
           </>
         )}
-        {regularItems.map(renderItem)}
+        {regularItems.map((item) => {
+          const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+          return (
+            <UnifiedSessionItem
+              key={id}
+              item={item}
+              activeSessionId={activeSessionId}
+              isPinned={pinned.has(id)}
+              restoring={restoring}
+              projectPath={projectPath}
+              onActivate={setActiveSession}
+              onLoad={handleLoad}
+              onAfterArchive={handleAfterArchive}
+            />
+          );
+        })}
       </ul>
     </div>
   );

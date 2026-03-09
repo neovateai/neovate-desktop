@@ -1,6 +1,7 @@
 import { Extension } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import debug from "debug";
+import { readFileAsAttachment } from "../utils/read-file-as-attachment";
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
 const log = debug("neovate:image-paste");
@@ -8,35 +9,6 @@ const log = debug("neovate:image-paste");
 type ImagePasteOptions = {
   onImages: (images: ImageAttachment[]) => void;
 };
-
-function readFileAsAttachment(file: File): Promise<ImageAttachment> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      // strip "data:<mediaType>;base64," prefix
-      const base64 = dataUrl.split(",")[1];
-      log(
-        "readFile: name=%s type=%s size=%d base64Len=%d",
-        file.name,
-        file.type,
-        file.size,
-        base64?.length ?? 0,
-      );
-      resolve({
-        id: crypto.randomUUID(),
-        filename: file.name || "image",
-        mediaType: file.type || "image/png",
-        base64,
-      });
-    };
-    reader.onerror = (err) => {
-      log("readFile: ERROR name=%s error=%o", file.name, err);
-      reject(err);
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 function extractImageFiles(dataTransfer: DataTransfer): File[] {
   const files: File[] = [];

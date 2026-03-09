@@ -2,7 +2,7 @@ import { AgentChat, SessionList } from "./features/agent";
 import { ContentPanelRenderer } from "./features/content-panel";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import {
   AppLayoutActivityBar,
@@ -18,6 +18,7 @@ import {
   AppLayoutTrafficLights,
 } from "./components/app-layout";
 import { ThemeToggle } from "./components/ui/theme-toggle";
+import { useConfigStore } from "./features/config/store";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
 const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) : null;
@@ -25,6 +26,15 @@ const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) 
 export default function App() {
   useGlobalKeybindings();
   const showSettings = useSettingsStore((state) => state.showSettings);
+  const developerMode = useConfigStore((s) => s.developerMode);
+
+  useEffect(() => {
+    if (import.meta.env.DEV && developerMode) {
+      void import("react-scan").then(({ scan }) => {
+        scan({ enabled: true });
+      });
+    }
+  }, [developerMode]);
 
   if (import.meta.env.DEV && Playground && import.meta.env.VITE_UI_PLAYGROUND === "1") {
     return (
