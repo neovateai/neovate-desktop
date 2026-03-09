@@ -38,6 +38,9 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
       ensureWidth: os.window.ensureWidth.handler(({ input, context }) => {
         context.mainApp.windowManager.ensureMinWidth(input.minWidth);
       }),
+      open: os.window.open.handler(({ input, context }) => {
+        context.mainApp.windowManager.open(input);
+      }),
     },
     ...Object.fromEntries(pluginRouters),
   };

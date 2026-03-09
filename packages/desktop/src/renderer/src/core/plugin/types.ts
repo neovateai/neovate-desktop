@@ -1,4 +1,4 @@
-import type { PluginContributions } from "./contributions";
+import type { PluginContributions, WindowContribution } from "./contributions";
 import type { I18nContributions } from "../i18n/i18next";
 import type { IRendererApp } from "../types";
 
@@ -10,6 +10,9 @@ export interface PluginContext {
 export interface RendererPluginHooks {
   /** Return UI contributions — collected and merged before render */
   configContributions(): PluginContributions;
+
+  /** Return window type contributions — custom window root components */
+  configWindowContributions(): WindowContribution[];
 
   /** Return i18n contributions — lazy-loaded translation namespaces */
   configI18n(): I18nContributions;
