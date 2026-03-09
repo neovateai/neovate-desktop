@@ -22,6 +22,7 @@ export interface OpenWindowOptions {
 export interface IBrowserWindowManager {
   readonly mainWindow: BrowserWindow | null;
   createMainWindow(): BrowserWindow;
+  setAutoUpdateQuiting(value: boolean): void;
   open(options: OpenWindowOptions): void;
   close(windowId: string): void;
   destroyAll(): void;

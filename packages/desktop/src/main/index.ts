@@ -33,10 +33,10 @@ const sessionManager = new SessionManager(providerStore);
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
 const stateStore = new StateStore();
-const updaterService = new UpdaterService();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin],
 });
+const updaterService = new UpdaterService(mainApp.windowManager);
 
 const appContext: AppContext = {
   sessionManager,

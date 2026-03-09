@@ -11,6 +11,7 @@ function makeCtx(): PluginContext {
       windowManager: {
         mainWindow: null,
         createMainWindow: vi.fn(),
+        setAutoUpdateQuiting: vi.fn(),
         open: vi.fn(),
         close: vi.fn(),
         destroyAll: vi.fn(),

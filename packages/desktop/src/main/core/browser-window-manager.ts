@@ -28,8 +28,18 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     cwd: path.join(os.homedir(), ".neovate-desktop"),
   });
 
+  constructor() {
+    app.on("before-quit", () => {
+      this.#isQuitting = true;
+    });
+  }
+
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
+  }
+
+  setAutoUpdateQuiting(value: boolean): void {
+    this.#autoUpdateQuiting = value;
   }
 
   createMainWindow(): BrowserWindow {
@@ -61,7 +71,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     // Persist bounds before close/hide
     win.on("close", (event) => {
       this.#store.set("bounds", win.getNormalBounds());
-      if (process.platform === "darwin" && !app.isQuiting) {
+      if (process.platform === "darwin" && !this.#isQuitting && !this.#autoUpdateQuiting) {
         event.preventDefault();
         win.hide();
       }
