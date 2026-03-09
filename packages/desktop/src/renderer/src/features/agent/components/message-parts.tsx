@@ -38,6 +38,18 @@ export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
                 {part.text}
               </div>
             );
+          case "file":
+            if (part.mediaType.startsWith("image/")) {
+              return (
+                <img
+                  key={`${message.id}-${index}`}
+                  src={part.url}
+                  alt={part.filename ?? ""}
+                  className="max-h-48 rounded-md object-cover"
+                />
+              );
+            }
+            return null;
           default:
             return null;
         }

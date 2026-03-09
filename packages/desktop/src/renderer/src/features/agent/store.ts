@@ -21,7 +21,6 @@ export type ChatMessage = {
   content: string;
   thinking?: string;
   toolCalls?: ToolCallState[];
-  images?: Array<{ mediaType: string; base64: string }>;
 };
 
 export type ToolCallState = {
@@ -80,11 +79,7 @@ type AgentState = {
     meta?: { title?: string; createdAt?: string; cwd?: string; isNew?: boolean },
   ) => void;
   removeSession: (sessionId: string) => void;
-  addUserMessage: (
-    sessionId: string,
-    content: string,
-    images?: Array<{ mediaType: string; base64: string }>,
-  ) => void;
+  addUserMessage: (sessionId: string, content: string) => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
   setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
   setCurrentModel: (sessionId: string, model: string) => void;
@@ -160,13 +155,8 @@ export const useAgentStore = create<AgentState>()(
       });
     },
 
-    addUserMessage: (sessionId, content, images) => {
-      storeLog(
-        "addUserMessage: sid=%s len=%d images=%d",
-        sessionId,
-        content.length,
-        images?.length ?? 0,
-      );
+    addUserMessage: (sessionId, content) => {
+      storeLog("addUserMessage: sid=%s len=%d", sessionId, content.length);
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (!session) {
@@ -182,7 +172,6 @@ export const useAgentStore = create<AgentState>()(
           id: String(state._nextMessageId),
           role: "user",
           content,
-          ...(images && images.length > 0 ? { images } : {}),
         });
         storeLog(
           "addUserMessage: msgCount=%d msgId=%d",

@@ -1,4 +1,5 @@
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
+import type { FileUIPart } from "ai";
 
 import debug from "debug";
 import { useEffect, useRef, useState } from "react";
@@ -11,6 +12,16 @@ import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
 
 const chatLog = debug("neovate:agent-chat");
+
+function attachmentsToFileParts(attachments?: ImageAttachment[]): FileUIPart[] {
+  if (!attachments || attachments.length === 0) return [];
+  return attachments.map((a) => ({
+    type: "file" as const,
+    mediaType: a.mediaType,
+    filename: a.filename,
+    url: `data:${a.mediaType};base64,${a.base64}`,
+  }));
+}
 import {
   Conversation,
   ConversationContent,
@@ -109,8 +120,10 @@ export function AgentChat() {
     );
     if (!activeSessionId) return;
     useAgentStore.getState().addUserMessage(activeSessionId, message);
+    const files = attachmentsToFileParts(attachments);
     claudeCodeChatManager.getChat(activeSessionId)?.sendMessage({
       text: message,
+      files: files.length > 0 ? files : undefined,
       metadata: { sessionId: activeSessionId, parentToolUseId: null },
     });
   };
@@ -154,9 +167,19 @@ function AgentChatSession({
   const { messages, status, error, pendingRequests, sendMessage, respondToRequest, stop } =
     useClaudeCodeChat(sessionId);
 
-  const handleSend = (text: string) => {
-    chatLog("handleSend: sessionId=%s msgLen=%d", sessionId.slice(0, 8), text.length);
-    sendMessage({ text, metadata: { sessionId, parentToolUseId: null } });
+  const handleSend = (text: string, attachments?: ImageAttachment[]) => {
+    chatLog(
+      "handleSend: sessionId=%s msgLen=%d attachments=%d",
+      sessionId.slice(0, 8),
+      text.length,
+      attachments?.length ?? 0,
+    );
+    const files = attachmentsToFileParts(attachments);
+    sendMessage({
+      text,
+      files: files.length > 0 ? files : undefined,
+      metadata: { sessionId, parentToolUseId: null },
+    });
   };
 
   const handleCancel = () => {
