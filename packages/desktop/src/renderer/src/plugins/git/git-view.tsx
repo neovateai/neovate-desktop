@@ -1,12 +1,14 @@
 import { memo, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, RefreshCw, Undo2 } from "lucide-react";
 import { type GitFile } from "../../../../shared/plugins/git/contract";
-import { useGit_v2 as useGit } from "./hooks/useGit";
+import { useGit } from "./hooks/useGit";
 import { useGitTranslation } from "./i18n";
 import { useProjectStore } from "../../features/project/store";
+import { usePluginContext } from "../../core/app";
 
 export default memo(function GitView() {
   const { t } = useGitTranslation();
+  const { app } = usePluginContext();
   const activeProject = useProjectStore((s) => s.activeProject);
 
   const [workingCollapsed, setWorkingCollapsed] = useState(false);
@@ -25,9 +27,16 @@ export default memo(function GitView() {
     revert,
   } = useGit(activeProject?.path || "");
 
-  const showDiff = (filePath: string) => {
-    console.log("Show diff for file:", filePath);
-    // TODO: Implement diff view when ready
+  const showDiff = (file: { relPath: string }, isStaged: boolean) => {
+    app.workbench.contentPanel.openView("git-diff");
+    // 发送事件让diff组件加载指定文件
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("neovate:open-git-diff", {
+          detail: { relPath: file.relPath, isStaged },
+        }),
+      );
+    }, 100);
   };
 
   useEffect(() => {
@@ -144,7 +153,7 @@ export default memo(function GitView() {
                 key={file.fullPath}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-accent/50 border-b border-border/50 cursor-pointer"
                 title={file.relPath}
-                onClick={() => showDiff(file.fullPath)}
+                onClick={() => showDiff(file, isStaged)}
               >
                 <div className="flex-shrink-0">{getFileIcon(file.extName)}</div>
 

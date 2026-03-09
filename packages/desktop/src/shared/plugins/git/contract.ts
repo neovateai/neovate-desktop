@@ -31,10 +31,22 @@ export interface GitOperationResponse {
   error?: string;
 }
 
+export interface GitDiffResponse {
+  success: boolean;
+  data?: {
+    oldContent: string;
+    newContent: string;
+  };
+  error?: string;
+}
+
 export const gitContract = {
   status: oc.output(type<GitStatus>()),
   files: oc.input(type<{ cwd: string }>()).output(type<GitFilesResponse>()),
   add: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
   reset: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
   checkout: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
+  diff: oc
+    .input(type<{ cwd: string; file: string; type: "working" | "staged" }>())
+    .output(type<GitDiffResponse>()),
 };

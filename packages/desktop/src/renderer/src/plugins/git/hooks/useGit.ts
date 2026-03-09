@@ -5,12 +5,12 @@ import { gitContract } from "../../../../../shared/plugins/git/contract";
 import { utilsContract } from "../../../../../shared/features/utils/contract";
 import { usePluginContext } from "../../../core/app";
 
-type Client = ContractRouterClient<{
+export type Client = ContractRouterClient<{
   git: typeof gitContract;
   utils: typeof utilsContract;
 }>;
 
-export function useGit_v2(cwd: string) {
+export function useGit(cwd: string) {
   const { orpcClient } = usePluginContext();
   const client = orpcClient as Client;
 
@@ -20,7 +20,6 @@ export function useGit_v2(cwd: string) {
 
   const refreshGitStatus = async (workingDir: string) => {
     setLoading(true);
-    console.log("1111");
     try {
       const res = await client.git.files({ cwd: workingDir });
       if (res.success && res.data) {
@@ -34,7 +33,6 @@ export function useGit_v2(cwd: string) {
         return res;
       }
     } finally {
-      console.log("2222");
       setLoading(false);
     }
   };

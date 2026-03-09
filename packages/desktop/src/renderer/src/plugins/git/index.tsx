@@ -40,6 +40,16 @@ const plugin: RendererPlugin = {
           component: () => import("./git-view"),
         },
       ],
+      contentPanelViews: [
+        {
+          viewType: "git-diff",
+          name: "Git Diff",
+          singleton: true,
+          deactivation: "unmount",
+          icon: GitIcon,
+          component: () => import("./git-diff-view"),
+        },
+      ],
     };
   },
 };

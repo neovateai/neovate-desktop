@@ -13,5 +13,18 @@
   "git.revertFile": "还原文件",
   "git.addAllToStage": "暂存所有更改",
   "git.removeAllFromStage": "取消所有暂存",
-  "git.revertAllFiles": "还原所有更改"
+  "git.revertAllFiles": "还原所有更改",
+  "git.diff.selectFile": "请选择一个文件来查看差异",
+  "git.diff.loading": "正在加载差异...",
+  "git.diff.error": "加载差异失败",
+  "git.diff.loadFailed": "无法加载文件差异",
+  "git.diff.noChanges": "文件无更改",
+  "git.diff.fileAdded": "文件已添加",
+  "git.diff.newFile": "此文件是新文件",
+  "git.diff.fileDeleted": "文件已删除",
+  "git.diff.deletedFile": "此文件已被删除",
+  "git.diff.oldVersion": "旧版本",
+  "git.diff.newVersion": "新版本",
+  "git.diff.close": "关闭差异视图",
+  "git.diff.linesHidden": "行已隐藏"
 }

@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 import type { PluginContext } from "../../core/plugin/types";
 import git from "simple-git";
 
@@ -63,6 +64,81 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
 
         return { success: true, data: {} };
       } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
+    diff: orpcServer.handler(async ({ input }) => {
+      const {
+        cwd,
+        file,
+        type: diffType,
+      } = input as { cwd: string; file: string; type: "working" | "staged" };
+      try {
+        const gitClient = git(cwd);
+
+        let oldContent = "";
+        let newContent = "";
+
+        try {
+          if (diffType === "staged") {
+            try {
+              // 获取暂存区内容
+              newContent = await gitClient.show([`:${file}`]);
+            } catch {
+              // 暂存区不存在（可能是删除）
+              newContent = "";
+            }
+
+            // 获取 HEAD 版本
+            try {
+              oldContent = await gitClient.show([`HEAD:${file}`]);
+            } catch {
+              // HEAD 版本不存在（新文件）
+              oldContent = "";
+            }
+          } else {
+            // working: 比较 暂存区 vs 工作区
+            const filePath = path.resolve(cwd, file);
+
+            // 获取工作区内容
+            try {
+              newContent = fs.readFileSync(filePath, "utf8");
+            } catch {
+              // 文件不存在（可能是删除状态）
+              newContent = "";
+            }
+
+            // 获取对比基准：如果有暂存就用暂存区，否则用 HEAD
+            try {
+              const status = await gitClient.status();
+              const isStaged = status.staged.includes(file);
+
+              if (isStaged) {
+                oldContent = await gitClient.show([`:${file}`]); // 文件已暂存，用暂存区作为对比基准
+              } else {
+                oldContent = await gitClient.show([`HEAD:${file}`]); // 文件未暂存，用 HEAD 作为对比基准
+              }
+            } catch {
+              // 暂存区/HEAD 都不存在（全新文件）
+              oldContent = "";
+            }
+          }
+        } catch (error) {
+          console.error("Error reading file contents:", error);
+        }
+
+        return {
+          success: true,
+          data: {
+            oldContent: oldContent || "",
+            newContent: newContent || "",
+          },
+        };
+      } catch (error) {
+        console.error("Error in diff handler:", error);
         return {
           success: false,
           error: error instanceof Error ? error.message : "Unknown error occurred",

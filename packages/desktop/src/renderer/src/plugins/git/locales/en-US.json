@@ -13,5 +13,18 @@
   "git.revertFile": "Revert File",
   "git.addAllToStage": "Stage All Changes",
   "git.removeAllFromStage": "Unstage All",
-  "git.revertAllFiles": "Revert All Changes"
+  "git.revertAllFiles": "Revert All Changes",
+  "git.diff.selectFile": "Select a file to view diff",
+  "git.diff.loading": "Loading diff...",
+  "git.diff.error": "Failed to load diff",
+  "git.diff.loadFailed": "Unable to load file diff",
+  "git.diff.noChanges": "File has no changes",
+  "git.diff.fileAdded": "File added",
+  "git.diff.newFile": "This file is new",
+  "git.diff.fileDeleted": "File deleted",
+  "git.diff.deletedFile": "This file has been deleted",
+  "git.diff.oldVersion": "Old version",
+  "git.diff.newVersion": "New version",
+  "git.diff.close": "Close diff view",
+  "git.diff.linesHidden": "lines hidden"
 }
