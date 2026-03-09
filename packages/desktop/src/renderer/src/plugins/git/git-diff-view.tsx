@@ -1,5 +1,5 @@
-import { memo, useEffect, useState, useMemo } from "react";
-import { type FileContents, MultiFileDiff } from "@pierre/diffs/react";
+import { memo, useEffect, useState } from "react";
+import { MultiFileDiff } from "@pierre/diffs/react";
 import { Client } from "./hooks/useGit";
 import { useProjectStore } from "../../features/project/store";
 import { useGitTranslation } from "./i18n";
