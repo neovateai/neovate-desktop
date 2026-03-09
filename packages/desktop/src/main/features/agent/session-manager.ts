@@ -973,45 +973,39 @@ export class SessionManager {
         preset: "claude_code",
       },
       canUseTool: async (toolName, input, { signal, ...options }) => {
-        console.log("[canUseTool] START toolName=%s input=%o options=%o", toolName, input, options);
         const requestId = randomUUID();
         const session = this.sessionsV2.get(sessionId);
         if (!session) throw new Error(`Unknown session: ${sessionId}`);
 
-        return new Promise((resolve) => {
-          const timer = setTimeout(() => {
-            session.pendingRequests.delete(requestId);
-            resolve({ behavior: "deny", message: "Permission request timed out" });
-          }, PERMISSION_TIMEOUT_MS);
-          session.pendingRequests.set(requestId, {
-            resolve: (result) => {
-              clearTimeout(timer);
-              console.log("[canUseTool] RESOLVED requestId=%s result=%o", requestId, result);
-              session.pendingRequests.delete(requestId);
-              resolve(result);
-            },
-            timer,
-          });
-          this.eventPublisher.publish(sessionId, {
-            kind: "request",
-            requestId,
-            request: {
-              type: "permission_request",
-              toolName,
-              input,
-              options,
-            },
-          });
-          signal.addEventListener(
-            "abort",
-            () => {
-              clearTimeout(timer);
-              session.pendingRequests.delete(requestId);
-              resolve({ behavior: "deny", message: "Permission request cancelled" });
-            },
-            { once: true },
+        const { promise, resolve } =
+          Promise.withResolvers<import("@anthropic-ai/claude-agent-sdk").PermissionResult>();
+        let settled = false;
+        const settle = (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          signal.removeEventListener("abort", onAbort);
+          session.pendingRequests.delete(requestId);
+          // SDK expects updatedInput on allow results to execute the tool
+          resolve(
+            result.behavior === "allow"
+              ? { ...result, updatedInput: result.updatedInput ?? input }
+              : result,
           );
+        };
+        const timer = setTimeout(
+          () => settle({ behavior: "deny", message: "Permission request timed out" }),
+          PERMISSION_TIMEOUT_MS,
+        );
+        const onAbort = () => settle({ behavior: "deny", message: "Permission request cancelled" });
+        session.pendingRequests.set(requestId, { resolve: settle, timer });
+        this.eventPublisher.publish(sessionId, {
+          kind: "request",
+          requestId,
+          request: { type: "permission_request", toolName, input, options },
         });
+        signal.addEventListener("abort", onAbort, { once: true });
+        return promise;
       },
       stderr(data) {
         console.error("[claude-stderr]", data.trimEnd());
@@ -1053,8 +1047,6 @@ export class SessionManager {
     // Pre-register sessionsV2 so queryOptions.canUseTool can look up pendingRequests
     this.sessionsV2.set(sessionId, { input, query: q, cwd, pendingRequests });
     const initResult = await q.initializationResult();
-
-    console.log("[createSessionV2] DONE initResult=%o", initResult);
 
     return {
       ...initResult,
@@ -1109,7 +1101,6 @@ export class SessionManager {
 
   /** V2: handle dispatch — respond to permission request or configure session */
   handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
-    console.log("[handleDispatch] START sessionId=%s dispatch=%o", sessionId, dispatch);
     if (dispatch.kind === "respond") {
       const session = this.sessionsV2.get(sessionId);
       if (!session) throw new Error(`Unknown session: ${sessionId}`);
@@ -1120,11 +1111,6 @@ export class SessionManager {
         ]);
         return { kind: "respond", ok: false };
       }
-      log(
-        "handleDispatch: resolving requestId=%s result=%o",
-        dispatch.requestId,
-        dispatch.respond.result,
-      );
       pending.resolve(dispatch.respond.result);
       session.pendingRequests.delete(dispatch.requestId);
       clearTimeout(pending.timer);
@@ -1141,7 +1127,7 @@ export class SessionManager {
 
     if (dispatch.kind === "configure") {
       const { configure } = dispatch;
-      console.log("[handleDispatch] configure.type=%s", JSON.stringify(configure, null, 2));
+      log("handleDispatch: configure type=%s", configure.type);
       switch (configure.type) {
         case "set_permission_mode": {
           log(

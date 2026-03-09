@@ -44,11 +44,6 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   #handleMessage(message: ClaudeCodeUIEvent) {
     if (message.kind === "request") {
-      console.log(
-        "[handleMessage] START requestId=%s request=%o",
-        message.requestId,
-        JSON.stringify(message.request),
-      );
       this.store.setState((state) => ({
         pendingRequests: state.pendingRequests.some((item) => item.requestId === message.requestId)
           ? state.pendingRequests
@@ -75,8 +70,6 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     requestId: string,
     respond: { type: "permission_request"; result: PermissionResult },
   ) => {
-    console.log("[respondToRequest] START requestId=%s respond=%o", requestId, respond);
-
     if (respond.type === "permission_request") {
       const request = this.store
         .getState()
