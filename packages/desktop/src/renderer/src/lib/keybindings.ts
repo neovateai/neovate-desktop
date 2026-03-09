@@ -128,7 +128,8 @@ export type KeybindingAction =
   | "clearTerminal"
   | "prevSession"
   | "nextSession"
-  | "copyPath";
+  | "copyPath"
+  | "toggleMultiProject";
 
 /**
  * Actions that are read-only (not customizable by user)
@@ -152,6 +153,7 @@ export const KEYBINDING_LABEL_KEYS = {
   prevSession: "settings.keybindings.prevSession",
   nextSession: "settings.keybindings.nextSession",
   copyPath: "settings.keybindings.copyPath",
+  toggleMultiProject: "settings.keybindings.toggleMultiProject",
 } as const satisfies Record<KeybindingAction, string>;
 
 /**
@@ -166,6 +168,7 @@ export const KEYBINDING_LABELS: Record<KeybindingAction, string> = {
   prevSession: "Previous Session",
   nextSession: "Next Session",
   copyPath: "Copy Path",
+  toggleMultiProject: "Toggle Multi-Project Support",
 };
 
 /**
@@ -180,4 +183,5 @@ export const DEFAULT_KEYBINDINGS: Record<KeybindingAction, string> = {
   prevSession: "Cmd+Option+ArrowUp",
   nextSession: "Cmd+Option+ArrowDown",
   copyPath: "Cmd+Shift+C",
+  toggleMultiProject: "Cmd+E",
 };

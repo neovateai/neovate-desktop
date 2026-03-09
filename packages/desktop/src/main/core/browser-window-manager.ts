@@ -158,8 +158,10 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
   #pipeConsole(win: BrowserWindow): void {
     win.webContents.on("console-message", (_e, level, message) => {
+      const clean = stripColors(message);
+      if (clean.includes("react-grab.com")) return;
       const tag = BrowserWindowManager.#levels[level] ?? "log";
-      process.stderr.write(`[renderer:${tag}] ${stripColors(message)}\n`);
+      process.stderr.write(`[renderer:${tag}] ${clean}\n`);
     });
   }
 

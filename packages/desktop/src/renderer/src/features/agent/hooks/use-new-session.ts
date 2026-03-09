@@ -28,7 +28,8 @@ export function useNewSession() {
   const createNewSession = useCallback(
     async (cwd: string) => {
       // Dedup guard: if any in-memory session is already new (empty), activate it
-      const projectPath = useProjectStore.getState().activeProject?.path ?? cwd;
+      const projectPath = cwd || useProjectStore.getState().activeProject?.path;
+      if (!projectPath) return;
       const existing = findPreWarmedSession(projectPath);
       if (existing) {
         newSessionLog("createNewSession: reusing pre-warmed session %s", existing);
@@ -75,7 +76,8 @@ export function useNewSession() {
   /** Pre-warm a new empty session in the background (no activation). */
   const preWarmSession = useCallback(
     async (cwd: string) => {
-      const projectPath = useProjectStore.getState().activeProject?.path ?? cwd;
+      const projectPath = cwd || useProjectStore.getState().activeProject?.path;
+      if (!projectPath) return;
 
       // Already have one warming up
       if (findPreWarmedSession(projectPath)) {

@@ -4,16 +4,11 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { Archive, Pin, PinOff } from "lucide-react";
 import { memo, useState } from "react";
 import { cn } from "../../../lib/utils";
-import {
-  ContextMenu,
-  ContextMenuItem,
-  ContextMenuPopup,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "../../../components/ui/context-menu";
 import { Spinner } from "../../../components/ui/spinner";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import { useConfigStore } from "../../config/store";
+import { SessionActionsMenu } from "./session-actions-menu";
 
 function formatRelativeTime(iso: string): string {
   const distance = formatDistanceToNowStrict(new Date(iso), { addSuffix: false });
@@ -56,6 +51,7 @@ export const SessionItem = memo(function SessionItem({
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const renameSession = useAgentStore((s) => s.renameSession);
+  const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
@@ -106,14 +102,18 @@ export const SessionItem = memo(function SessionItem({
     if (isConfirming) setIsConfirming(false);
   };
 
-  const handleCopySessionId = () => {
-    navigator.clipboard.writeText(sessionId);
-  };
-
   return (
     <li>
-      <ContextMenu>
-        <ContextMenuTrigger
+      <SessionActionsMenu
+        variant="context"
+        sessionId={sessionId}
+        projectPath={projectPath}
+        onRenameStart={handleStartRename}
+        onAfterArchive={() => {
+          if (isActive) onAfterArchive?.();
+        }}
+      >
+        <div
           className={cn(
             "flex items-center gap-2 px-3 py-1.5 mb-1 cursor-pointer rounded transition-colors group",
             isActive
@@ -143,7 +143,12 @@ export const SessionItem = memo(function SessionItem({
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
             ) : (
-              <HugeiconsIcon icon={Comment01Icon} size={14} strokeWidth={1.5} />
+              <HugeiconsIcon
+                icon={Comment01Icon}
+                size={14}
+                strokeWidth={1.5}
+                className={multiProjectSupport ? "invisible" : undefined}
+              />
             )}
           </div>
           {isEditing ? (
@@ -191,17 +196,8 @@ export const SessionItem = memo(function SessionItem({
               <Archive size={14} strokeWidth={1.5} />
             </button>
           )}
-        </ContextMenuTrigger>
-        <ContextMenuPopup>
-          <ContextMenuItem onClick={handleStartRename}>Rename</ContextMenuItem>
-          <ContextMenuItem onClick={() => togglePinSession(projectPath, sessionId)}>
-            {isPinned ? "Unpin" : "Pin"}
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => handleArchive()}>Archive</ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={handleCopySessionId}>Copy session ID</ContextMenuItem>
-        </ContextMenuPopup>
-      </ContextMenu>
+        </div>
+      </SessionActionsMenu>
     </li>
   );
 });

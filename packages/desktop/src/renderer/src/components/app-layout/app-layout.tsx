@@ -13,6 +13,8 @@ import { motion } from "motion/react";
 import { Button } from "../ui/button";
 import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
+import { useConfigStore } from "../../features/config/store";
+import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { OpenAppButton } from "../../features/open-in";
 import { useLayoutStore } from "./store";
 import { ResizeHandle } from "./resize-handle";
@@ -123,6 +125,18 @@ export function AppLayoutTrafficLights() {
 
 export function AppLayoutPrimaryTitleBar() {
   const activeProject = useProjectStore((s) => s.activeProject);
+  const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
+
+  if (multiProjectSupport) {
+    return (
+      <div
+        data-slot="primary-titlebar"
+        className="[-webkit-app-region:no-drag] relative flex shrink-0 items-center gap-1 pl-2"
+      >
+        <SessionInfoBar />
+      </div>
+    );
+  }
 
   return (
     <div

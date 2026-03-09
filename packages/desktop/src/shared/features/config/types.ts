@@ -4,6 +4,8 @@ export type Locales = "en-US" | "zh-CN";
 export type ApprovalMode = "default" | "autoEdit" | "yolo";
 export type NotificationSound = "off" | "default" | "Glass" | "Ping" | "Pop" | "Funk";
 export type AgentLanguage = "English" | "Chinese";
+export type SidebarOrganize = "byProject" | "chronological";
+export type SidebarSortBy = "created" | "updated";
 
 export type AppConfig = {
   // General Settings
@@ -14,6 +16,11 @@ export type AppConfig = {
   terminalFontSize: number;
   terminalFont: string;
   developerMode: boolean;
+
+  // Sidebar Settings (multi-project mode)
+  sidebarOrganize: SidebarOrganize;
+  sidebarSortBy: SidebarSortBy;
+  closedProjectAccordions: string[];
 
   // Chat Settings
   sendMessageWith: SendMessageWith;
