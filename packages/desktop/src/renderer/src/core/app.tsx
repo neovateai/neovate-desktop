@@ -10,6 +10,7 @@ import type { IRendererApp, IWorkbench } from "./types";
 import { ToastProvider } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
+import { useProjectStore } from "../features/project/store";
 import { SettingsService } from "../features/settings/service";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
@@ -105,6 +106,31 @@ export class RendererApp implements IRendererApp {
   // @ts-expect-error reserved for future use
   readonly #windowId: string;
   readonly subscriptions = new DisposableStore();
+  readonly project = {
+    getActiveProject: () => {
+      const activeProject = useProjectStore.getState().activeProject;
+      if (!activeProject) return activeProject;
+      const { id, name, path } = activeProject;
+      return { id, name, path };
+    },
+    subscribe: (
+      listener: (project: ReturnType<typeof useProjectStore.getState>["activeProject"]) => void,
+    ) =>
+      useProjectStore.subscribe((state, prevState) => {
+        if (state.activeProject === prevState.activeProject) return;
+        listener(state.activeProject);
+      }),
+    refresh: async () => {
+      const [projects, activeProject] = await Promise.all([
+        client.project.list(),
+        client.project.getActive(),
+      ]);
+      const state = useProjectStore.getState();
+      state.setProjects(projects);
+      state.setActiveProject(activeProject);
+      return activeProject;
+    },
+  };
   readonly settings = new SettingsService({
     load: async () => {
       const all = await client.storage.getAll({ namespace: "config" });
@@ -162,6 +188,7 @@ export class RendererApp implements IRendererApp {
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
     await this.hydrate();
+    await this.project.refresh();
 
     // Collect window contributions — all windows (needed for lookup)
     await this.pluginManager.configWindowContributions();
