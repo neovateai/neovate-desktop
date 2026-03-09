@@ -37,6 +37,8 @@ function EditorViewCore(props: { cwd: string }) {
       return () => {
         disposable.forEach((fn) => fn());
       };
+    } else {
+      return () => {};
     }
   }, [extReady]);
 
