@@ -109,6 +109,14 @@ export async function sessionMessagesToUIMessages(
         }
       }
 
+      if (parts.length === 0) {
+        parts.push({
+          type: "text",
+          text: typeof content === "string" ? content : "",
+          state: "done",
+        } as ClaudeCodeUIMessage["parts"][number]);
+      }
+
       results.push({
         id: msg.uuid ?? crypto.randomUUID(),
         role: "user",
