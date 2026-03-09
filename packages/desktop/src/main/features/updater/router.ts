@@ -13,10 +13,7 @@ export const updaterRouter = os.updater.router({
     context.updaterService.install();
   }),
 
-  watchState: os.updater.watchState.handler(async function* ({
-    signal,
-    context,
-  }) {
+  watchState: os.updater.watchState.handler(async function* ({ signal, context }) {
     yield* context.updaterService.watchState(signal);
   }),
 });

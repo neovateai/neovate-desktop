@@ -15,6 +15,7 @@
 ### Task 1: Shared types and contract
 
 **Files:**
+
 - Create: `src/shared/features/updater/types.ts`
 - Create: `src/shared/features/updater/contract.ts`
 - Modify: `src/shared/contract.ts`
@@ -78,6 +79,7 @@ feat: add updater shared types and oRPC contract
 ### Task 2: UpdaterService
 
 **Files:**
+
 - Create: `src/main/features/updater/service.ts`
 
 **Step 1: Create UpdaterService**
@@ -158,8 +160,15 @@ export class UpdaterService {
     });
 
     autoUpdater.on("download-progress", (p) => {
-      if (this.currentVersion && (this.state.status === "available" || this.state.status === "downloading")) {
-        this.setState({ status: "downloading", version: this.currentVersion, percent: Math.round(p.percent) });
+      if (
+        this.currentVersion &&
+        (this.state.status === "available" || this.state.status === "downloading")
+      ) {
+        this.setState({
+          status: "downloading",
+          version: this.currentVersion,
+          percent: Math.round(p.percent),
+        });
       }
     });
 
@@ -200,6 +209,7 @@ feat: add UpdaterService with state machine and event iterator
 ### Task 3: Router and wiring
 
 **Files:**
+
 - Create: `src/main/features/updater/router.ts`
 - Modify: `src/main/router.ts`
 - Modify: `src/main/index.ts`
@@ -285,6 +295,7 @@ feat: wire updater router and service into app lifecycle
 ### Task 4: Renderer hook
 
 **Files:**
+
 - Create: `src/renderer/src/features/updater/hooks.ts`
 
 **Step 1: Create useUpdaterState hook**
@@ -332,6 +343,7 @@ feat: add useUpdaterState hook for renderer
 ### Task 5: UpdaterToast component
 
 **Files:**
+
 - Create: `src/renderer/src/features/updater/UpdaterToast.tsx`
 - Modify: `src/renderer/src/App.tsx`
 
@@ -404,7 +416,7 @@ Add `<UpdaterToast />` as the last child inside `<AppLayoutRoot>`:
 import { UpdaterToast } from "./features/updater/UpdaterToast";
 
 // Inside App component, before closing </AppLayoutRoot>:
-<UpdaterToast />
+<UpdaterToast />;
 ```
 
 **Step 3: Verify types compile and dev server runs**

@@ -1,9 +1,7 @@
 import { execSync } from "node:child_process";
 
-const localUpdateServer =
-  process.env.LOCAL_UPDATE_SERVER || "http://localhost:8080";
-const signIdentity =
-  process.env.LOCAL_UPDATE_SIGN_IDENTITY || "Neovate Local Code Sign";
+const localUpdateServer = process.env.LOCAL_UPDATE_SERVER || "http://localhost:8080";
+const signIdentity = process.env.LOCAL_UPDATE_SIGN_IDENTITY || "Neovate Local Code Sign";
 
 /**
  * @type {import('electron-builder').Configuration}
@@ -56,10 +54,7 @@ const config = {
   afterPack: async (context) => {
     const appPath = `${context.appOutDir}/${context.packager.appInfo.productFilename}.app`;
     console.log(`Codesigning with identity: ${signIdentity}`);
-    execSync(
-      `codesign --force --deep --sign "${signIdentity}" "${appPath}"`,
-      { stdio: "inherit" },
-    );
+    execSync(`codesign --force --deep --sign "${signIdentity}" "${appPath}"`, { stdio: "inherit" });
   },
 };
 

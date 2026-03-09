@@ -1,4 +1,5 @@
 import { autoUpdater } from "electron-updater";
+import { app } from "electron";
 import type { UpdaterState } from "../../../shared/features/updater/types";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
@@ -51,8 +52,9 @@ export class UpdaterService {
       this.state.status === "downloading" ||
       this.state.status === "ready" ||
       this.state.status === "available"
-    )
+    ) {
       return;
+    }
     this.setState({ status: "checking" });
     autoUpdater.checkForUpdates().catch((err: unknown) => {
       this.setState({
@@ -63,8 +65,13 @@ export class UpdaterService {
   }
 
   install() {
-    if (this.state.status !== "ready") return;
+    if (this.state.status !== "ready") {
+      return;
+    }
     autoUpdater.quitAndInstall();
+    setTimeout(() => {
+      app.quit();
+    }, 3000);
   }
 
   init() {
@@ -83,8 +90,7 @@ export class UpdaterService {
     autoUpdater.on("download-progress", (p) => {
       if (
         this.currentVersion &&
-        (this.state.status === "available" ||
-          this.state.status === "downloading")
+        (this.state.status === "available" || this.state.status === "downloading")
       ) {
         this.setState({
           status: "downloading",

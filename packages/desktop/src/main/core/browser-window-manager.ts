@@ -1,5 +1,5 @@
 import { is } from "@electron-toolkit/utils";
-import { shell, screen, BrowserWindow } from "electron";
+import { app, shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
@@ -61,7 +61,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     // Persist bounds before close/hide
     win.on("close", (event) => {
       this.#store.set("bounds", win.getNormalBounds());
-      if (process.platform === "darwin") {
+      if (process.platform === "darwin" && !app.isQuiting) {
         event.preventDefault();
         win.hide();
       }

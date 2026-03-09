@@ -32,7 +32,7 @@ type UpdaterState =
   | { status: "available"; version: string }
   | { status: "downloading"; version: string; percent: number }
   | { status: "ready"; version: string }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string };
 ```
 
 No `up-to-date` state. The renderer infers "no update" from `checking -> idle`.
@@ -85,7 +85,10 @@ class UpdaterService {
   async *watchState(signal?: AbortSignal): AsyncGenerator<UpdaterState> {
     const queue: UpdaterState[] = [];
     let resolve: (() => void) | null = null;
-    const listener = (s: UpdaterState) => { queue.push(s); resolve?.(); };
+    const listener = (s: UpdaterState) => {
+      queue.push(s);
+      resolve?.();
+    };
     this.listeners.add(listener);
     signal?.addEventListener("abort", () => resolve?.(), { once: true });
 
@@ -95,7 +98,9 @@ class UpdaterService {
         if (queue.length > 0) {
           yield queue.shift()!;
         } else {
-          await new Promise<void>((r) => { resolve = r; });
+          await new Promise<void>((r) => {
+            resolve = r;
+          });
           resolve = null;
         }
       }
@@ -126,10 +131,16 @@ class UpdaterService {
     });
     autoUpdater.on("download-progress", (p) => {
       if (this.state.status === "available" || this.state.status === "downloading") {
-        this.setState({ status: "downloading", version: (this.state as any).version, percent: Math.round(p.percent) });
+        this.setState({
+          status: "downloading",
+          version: (this.state as any).version,
+          percent: Math.round(p.percent),
+        });
       }
     });
-    autoUpdater.on("update-downloaded", (info) => this.setState({ status: "ready", version: info.version }));
+    autoUpdater.on("update-downloaded", (info) =>
+      this.setState({ status: "ready", version: info.version }),
+    );
     autoUpdater.on("error", (err) => this.setState({ status: "error", message: err.message }));
 
     this.check();
@@ -249,18 +260,21 @@ function CheckForUpdatesButton() {
 ```
 
 **UI flow — manual check:**
+
 ```
 Button: [spinner] ──found──> [clear]
 Toast:                        [Downloading 50%] ──> [v1.2.3 ready — Later / Restart]
 ```
 
 **UI flow — manual check, no update:**
+
 ```
 Button: [spinner] ──> [Up to date (3s)] ──> [clear]
 Toast:  (nothing)
 ```
 
 **UI flow — auto check:**
+
 ```
 Button: (nothing)
 Toast:  [Downloading 50%] ──> [v1.2.3 ready — Later / Restart]
