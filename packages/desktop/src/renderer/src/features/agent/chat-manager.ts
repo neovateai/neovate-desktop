@@ -26,7 +26,7 @@ export class ClaudeCodeChatManager {
   }
 
   async loadSession(sessionId: string, cwd?: string) {
-    const { capabilities, message } = await this.rpc.claudeCode.loadSession({
+    const { capabilities, messages } = await this.rpc.claudeCode.loadSession({
       sessionId,
       cwd,
     });
@@ -34,7 +34,7 @@ export class ClaudeCodeChatManager {
     const chat = new ClaudeCodeChat({
       id: sessionId,
       transport: this.transport,
-      messages: message ? [message] : [],
+      messages,
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);

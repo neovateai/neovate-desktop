@@ -136,7 +136,14 @@ export function AgentChat() {
   }
 
   // State 2: Active session — full chat
-  return <AgentChatSession sessionId={activeSessionId!} cwd={cwd} tasks={activeSession?.tasks} />;
+  return (
+    <AgentChatSession
+      key={activeSessionId}
+      sessionId={activeSessionId!}
+      cwd={cwd}
+      tasks={activeSession?.tasks}
+    />
+  );
 }
 
 function AgentChatSession({

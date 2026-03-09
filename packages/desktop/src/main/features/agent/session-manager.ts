@@ -1032,22 +1032,22 @@ export class SessionManager {
   ): Promise<{
     sessionId: string;
     capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
-    message: ClaudeCodeUIMessage | undefined;
+    messages: ClaudeCodeUIMessage[];
   }> {
     const resolvedCwd = cwd ?? process.cwd();
     const capabilities = await this.initSessionV2(sessionId, resolvedCwd, { resume: sessionId });
 
     const sessionMessages = await getSessionMessages(sessionId);
-    const message = await this.toUIMessage(sessionMessages);
+    const messages = await this.toUIMessages(sessionMessages);
 
     log(
-      "loadSessionV2: sessionId=%s raw=%d parts=%d",
+      "loadSessionV2: sessionId=%s raw=%d messages=%d",
       sessionId,
       sessionMessages.length,
-      message?.parts.length ?? 0,
+      messages.length,
     );
 
-    return { sessionId, capabilities, message };
+    return { sessionId, capabilities, messages };
   }
 
   /** Shared V2 session initialization: shell env, query, canUseTool wiring. */
@@ -1088,29 +1088,55 @@ export class SessionManager {
     return q.initializationResult();
   }
 
-  /** Convert SDK SessionMessages to a single ClaudeCodeUIMessage using SDKMessageTransformer + AI SDK stream utilities. */
-  private async toUIMessage(
-    sessionMessages: SessionMessage[],
-  ): Promise<ClaudeCodeUIMessage | undefined> {
-    const transformer = new SDKMessageTransformer();
+  /** Convert SDK SessionMessages to ClaudeCodeUIMessages, split by human prompt boundaries. */
+  private async toUIMessages(sessionMessages: SessionMessage[]): Promise<ClaudeCodeUIMessage[]> {
+    const results: ClaudeCodeUIMessage[] = [];
+    let batch: SessionMessage[] = [];
 
-    const stream = createUIMessageStream<ClaudeCodeUIMessage>({
-      execute({ writer }) {
-        for (const msg of sessionMessages) {
-          for (const chunk of transformer.transform(msg as SDKMessage)) {
-            writer.write(chunk);
+    const flushBatch = async () => {
+      if (batch.length === 0) return;
+      const batchCopy = batch;
+      batch = [];
+      const transformer = new SDKMessageTransformer();
+
+      const stream = createUIMessageStream<ClaudeCodeUIMessage>({
+        execute({ writer }) {
+          for (const msg of batchCopy) {
+            for (const chunk of transformer.transform(msg as SDKMessage)) {
+              writer.write(chunk);
+            }
           }
-        }
-      },
-    });
+        },
+      });
 
-    const messageStream = readUIMessageStream<ClaudeCodeUIMessage>({ stream });
-    let result: ClaudeCodeUIMessage | undefined;
-    for await (const msg of messageStream) {
-      result = msg;
+      const messageStream = readUIMessageStream<ClaudeCodeUIMessage>({ stream });
+      let last: ClaudeCodeUIMessage | undefined;
+      for await (const msg of messageStream) {
+        last = msg;
+      }
+      if (last) results.push(last);
+    };
+
+    for (const msg of sessionMessages) {
+      const content = (msg as any).message?.content;
+      const isHumanPrompt =
+        msg.type === "user" && typeof content === "string" && !content.startsWith("<");
+
+      if (isHumanPrompt) {
+        await flushBatch();
+        results.push({
+          id: (msg as any).uuid ?? crypto.randomUUID(),
+          role: "user",
+          parts: [{ type: "text", text: content, state: "done" }],
+          metadata: { sessionId: (msg as any).session_id, parentToolUseId: null },
+        } as ClaudeCodeUIMessage);
+      } else {
+        batch.push(msg);
+      }
     }
 
-    return result;
+    await flushBatch();
+    return results;
   }
 
   /**

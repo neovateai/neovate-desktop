@@ -157,7 +157,7 @@ export const agentContract = {
       type<{
         sessionId: string;
         capabilities: Awaited<ReturnType<Query["initializationResult"]>>;
-        message: ClaudeCodeUIMessage | undefined;
+        messages: ClaudeCodeUIMessage[];
       }>(),
     ),
   },
