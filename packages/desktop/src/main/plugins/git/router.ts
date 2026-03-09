@@ -122,8 +122,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
                 oldContent = await gitClient.show([`HEAD:${file}`]); // 文件未暂存，用 HEAD 作为对比基准
               }
             } catch {
-              // 暂存区/HEAD 都不存在（全新文件）
-              oldContent = "";
+              oldContent = ""; // 暂存区/HEAD 都不存在（全新文件）
             }
           }
         } catch (error) {
