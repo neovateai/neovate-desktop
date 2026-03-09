@@ -1,6 +1,7 @@
 import debug from "debug";
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 
+import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
 import { useFilteredSessions } from "../hooks/use-unified-sessions";
 import { useAgentStore } from "../store";
@@ -14,20 +15,33 @@ export const PinnedSessionList = memo(function PinnedSessionList() {
   const loadSession = useLoadSession();
   const [restoring, setRestoring] = useState<string | null>(null);
 
+  const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
   const items = useFilteredSessions({ filter: "pinned" });
+
+  const handleActivate = useCallback(
+    (sessionId: string, projectPath: string) => {
+      switchToProjectByPath(projectPath);
+      setActiveSession(sessionId);
+    },
+    [switchToProjectByPath, setActiveSession],
+  );
+
+  const handleLoad = useCallback(
+    async (sessionId: string, projectPath: string) => {
+      setRestoring(sessionId);
+      try {
+        switchToProjectByPath(projectPath);
+        await loadSession(sessionId);
+      } finally {
+        setRestoring((prev) => (prev === sessionId ? null : prev));
+      }
+    },
+    [switchToProjectByPath, loadSession],
+  );
 
   log("render: pinnedCount=%d", items.length);
 
   if (items.length === 0) return null;
-
-  const handleLoad = async (sessionId: string) => {
-    setRestoring(sessionId);
-    try {
-      await loadSession(sessionId);
-    } finally {
-      setRestoring((prev) => (prev === sessionId ? null : prev));
-    }
-  };
 
   return (
     <div className="pb-2">
@@ -41,8 +55,8 @@ export const PinnedSessionList = memo(function PinnedSessionList() {
               activeSessionId={activeSessionId}
               isPinned
               restoring={restoring}
-              onActivate={setActiveSession}
-              onLoad={handleLoad}
+              onActivate={(sid) => handleActivate(sid, item.projectPath)}
+              onLoad={(sid) => handleLoad(sid, item.projectPath)}
             />
           );
         })}

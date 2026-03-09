@@ -35,14 +35,28 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   const visibleItems = expanded ? items : items.slice(0, DEFAULT_SESSION_LIMIT);
   const hiddenCount = items.length - DEFAULT_SESSION_LIMIT;
 
-  const handleLoad = async (sessionId: string) => {
-    setRestoring(sessionId);
-    try {
-      await loadSession(sessionId);
-    } finally {
-      setRestoring((prev) => (prev === sessionId ? null : prev));
-    }
-  };
+  const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
+
+  const handleActivate = useCallback(
+    (sessionId: string) => {
+      switchToProjectByPath(project.path);
+      setActiveSession(sessionId);
+    },
+    [switchToProjectByPath, project.path, setActiveSession],
+  );
+
+  const handleLoad = useCallback(
+    async (sessionId: string) => {
+      setRestoring(sessionId);
+      try {
+        switchToProjectByPath(project.path);
+        await loadSession(sessionId);
+      } finally {
+        setRestoring((prev) => (prev === sessionId ? null : prev));
+      }
+    },
+    [switchToProjectByPath, project.path, loadSession],
+  );
 
   return (
     <ul className="flex flex-col gap-0.5">
@@ -55,7 +69,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
             activeSessionId={activeSessionId}
             isPinned={false}
             restoring={restoring}
-            onActivate={setActiveSession}
+            onActivate={handleActivate}
             onLoad={handleLoad}
           />
         );

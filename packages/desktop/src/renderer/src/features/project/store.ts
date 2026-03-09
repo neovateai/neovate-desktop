@@ -17,6 +17,7 @@ type ProjectState = {
   setProjects: (projects: Project[]) => void;
   setActiveProject: (project: Project | null) => void;
   setLoading: (loading: boolean) => void;
+  switchToProjectByPath: (projectPath: string) => void;
   archiveSession: (projectPath: string, sessionId: string) => void;
   togglePinSession: (projectPath: string, sessionId: string) => void;
   loadSessionPreferences: (projectPath: string) => Promise<void>;
@@ -33,6 +34,15 @@ export const useProjectStore = create<ProjectState>()(
     setProjects: (projects) => set({ projects }),
     setActiveProject: (activeProject) => set({ activeProject }),
     setLoading: (loading) => set({ loading }),
+    switchToProjectByPath: (projectPath) => {
+      const { activeProject, projects } = useProjectStore.getState();
+      if (activeProject?.path === projectPath) return;
+      const project = projects.find((p) => p.path === projectPath);
+      if (project) {
+        client.project.setActive({ id: project.id }).catch(() => {});
+        set({ activeProject: project });
+      }
+    },
     archiveSession: (projectPath, sessionId) => {
       client.project.archiveSession({ projectPath, sessionId }).catch(() => {});
       set((state) => {
