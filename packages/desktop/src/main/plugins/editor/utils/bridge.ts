@@ -30,92 +30,107 @@ export class ExtensionBridgeServer extends EventEmitter {
     this.webContents = webContents;
   }
 
-  start(port: number = 45000) {
-    return new Promise((resolve) => {
-      this.server = net.createServer((socket) => {
-        let currentCwd: string | null = null;
+  start(port: number, maxRetries: number = 10): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const tryListen = (currentPort: number, attempt: number) => {
+        this.server = net.createServer((socket) => {
+          let currentCwd: string | null = null;
 
-        socket.on("data", async (raw) => {
-          try {
-            const data = JSON.parse(raw.toString());
-            console.log("ExtensionBridgeServer Received", data);
-            const { operationType, params, cwd, result, requestId } = data || {};
+          socket.on("data", async (raw) => {
+            try {
+              const data = JSON.parse(raw.toString());
+              console.log("ExtensionBridgeServer Received", data);
+              const { operationType, params, cwd, result, requestId } = data || {};
 
-            // 处理响应（包含requestId的是响应消息）
-            if (requestId && this.pendingRequests.has(requestId)) {
-              const pending = this.pendingRequests.get(requestId);
-              if (pending) {
-                clearTimeout(pending.timeout);
-                this.pendingRequests.delete(requestId);
-                pending.resolve(result as { success: boolean; data: Record<string, any> });
+              // 处理响应（包含requestId的是响应消息）
+              if (requestId && this.pendingRequests.has(requestId)) {
+                const pending = this.pendingRequests.get(requestId);
+                if (pending) {
+                  clearTimeout(pending.timeout);
+                  this.pendingRequests.delete(requestId);
+                  pending.resolve(result as { success: boolean; data: Record<string, any> });
+                  return;
+                }
+              }
+
+              // 处理请求（包含operationType的是请求消息）
+              if (!operationType || !cwd) {
                 return;
               }
-            }
 
-            // 处理请求（包含operationType的是请求消息）
-            if (!operationType || !cwd) {
-              return;
-            }
-
-            // 首次连接或cwd变化时更新映射
-            if (currentCwd !== cwd) {
-              if (currentCwd) {
-                this.clients.delete(currentCwd);
+              // 首次连接或cwd变化时更新映射
+              if (currentCwd !== cwd) {
+                if (currentCwd) {
+                  this.clients.delete(currentCwd);
+                }
+                currentCwd = cwd;
+                this.clients.set(cwd, socket);
               }
-              currentCwd = cwd;
-              this.clients.set(cwd, socket);
-            }
 
-            const handler = this.handlers.get(operationType);
-            if (handler) {
-              try {
-                const result = await handler(params, cwd, this.webContents);
-                const response = JSON.stringify({
-                  ...result,
-                  requestId: data.requestId,
-                });
-                socket.write(Buffer.from(response));
-              } catch (error) {
+              const handler = this.handlers.get(operationType);
+              if (handler) {
+                try {
+                  const result = await handler(params, cwd, this.webContents);
+                  const response = JSON.stringify({
+                    ...result,
+                    requestId: data.requestId,
+                  });
+                  socket.write(Buffer.from(response));
+                } catch (error) {
+                  const response = JSON.stringify({
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error),
+                    requestId: data.requestId,
+                  });
+                  socket.write(Buffer.from(response));
+                }
+              } else {
                 const response = JSON.stringify({
                   success: false,
-                  error: error instanceof Error ? error.message : String(error),
+                  error: `No handler registered for operation: ${operationType}`,
                   requestId: data.requestId,
                 });
                 socket.write(Buffer.from(response));
               }
-            } else {
+            } catch (error) {
               const response = JSON.stringify({
                 success: false,
-                error: `No handler registered for operation: ${operationType}`,
-                requestId: data.requestId,
+                error: "Invalid JSON format",
               });
               socket.write(Buffer.from(response));
             }
-          } catch (error) {
-            const response = JSON.stringify({
-              success: false,
-              error: "Invalid JSON format",
-            });
-            socket.write(Buffer.from(response));
+          });
+
+          socket.on("close", () => {
+            if (currentCwd) {
+              this.clients.delete(currentCwd);
+            }
+            // 清理该cwd相关的所有pending请求
+            for (const [requestId, pending] of this.pendingRequests.entries()) {
+              pending.reject(new Error("Connection closed"));
+              clearTimeout(pending.timeout);
+              this.pendingRequests.delete(requestId);
+            }
+          });
+        });
+
+        this.server.once("error", (err: NodeJS.ErrnoException) => {
+          if (err.code === "EADDRINUSE" && attempt < maxRetries) {
+            console.warn(`Port ${currentPort} in use, trying ${currentPort + 1}...`);
+            this.server?.close();
+            tryListen(currentPort + 1, attempt + 1);
+          } else {
+            reject(err);
           }
         });
 
-        socket.on("close", () => {
-          if (currentCwd) {
-            this.clients.delete(currentCwd);
-          }
-          // 清理该cwd相关的所有pending请求
-          for (const [requestId, pending] of this.pendingRequests.entries()) {
-            pending.reject(new Error("Connection closed"));
-            clearTimeout(pending.timeout);
-            this.pendingRequests.delete(requestId);
-          }
+        this.server.listen(currentPort, () => {
+          console.log(`Extension Bridge server started on port ${currentPort}`, Date.now());
+          resolve(currentPort);
         });
-      });
-      this.server.listen(port, () => {
-        console.log(`Extension Bridge server started on port ${port}`, Date.now());
-        resolve("");
-      });
+      };
+
+      tryListen(port, 0);
     });
   }
 
