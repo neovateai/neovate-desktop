@@ -5,7 +5,7 @@ import { claudeCodeChatManager } from "../chat-manager";
 
 const loadLog = debug("neovate:agent-load-session");
 
-export function useLoadSession(activeProjectPath: string | undefined) {
+export function useLoadSession(fallbackCwd?: string) {
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const createSession = useAgentStore((s) => s.createSession);
   const removeSession = useAgentStore((s) => s.removeSession);
@@ -34,13 +34,18 @@ export function useLoadSession(activeProjectPath: string | undefined) {
       const ac = new AbortController();
       loadAbortRef.current = ac;
 
-      loadLog("START sid=%s cwd=%s", sessionId.slice(0, 8), activeProjectPath);
+      const info = agentSessions.find((s) => s.sessionId === sessionId);
+      const cwd = info?.cwd ?? fallbackCwd;
+      loadLog("START sid=%s cwd=%s", sessionId.slice(0, 8), cwd);
       const t0 = performance.now();
 
-      const info = agentSessions.find((s) => s.sessionId === sessionId);
+      loadLog(
+        "info=%o",
+        info ? { title: info.title, cwd: info.cwd } : "not found in agentSessions",
+      );
 
       try {
-        await claudeCodeChatManager.loadSession(sessionId, activeProjectPath!);
+        await claudeCodeChatManager.loadSession(sessionId, cwd!);
 
         // Register in old store AFTER chat is created in manager,
         // so React render finds getChat() ready before useClaudeCodeChat runs
@@ -65,7 +70,7 @@ export function useLoadSession(activeProjectPath: string | undefined) {
         }
       }
     },
-    [setActiveSession, createSession, removeSession, activeProjectPath],
+    [setActiveSession, createSession, removeSession, fallbackCwd],
   );
 
   return loadSession;

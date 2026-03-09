@@ -4,91 +4,31 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useAgentStore } from "../store";
-
-const log = debug("neovate:project-accordion");
 import { useProjectStore } from "../../project/store";
 import { useConfigStore } from "../../config/store";
 import { useNewSession } from "../hooks/use-new-session";
 import { useLoadSession } from "../hooks/use-load-session";
 import { useProject } from "../../project/hooks/use-project";
-import { SessionItem } from "./session-item";
+import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { UnifiedSessionItem } from "./unified-session-item";
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
-import type { ChatSession } from "../store";
-import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { Project } from "../../../../../shared/features/project/types";
 
-const DEFAULT_SESSION_LIMIT = 5;
+const log = debug("neovate:project-accordion");
 
-type UnifiedItem =
-  | { kind: "memory"; session: ChatSession }
-  | { kind: "persisted"; info: SessionInfo };
+const DEFAULT_SESSION_LIMIT = 5;
 
 // --- ProjectSessions ---
 
 const ProjectSessions = memo(function ProjectSessions({ project }: { project: Project }) {
-  const sessions = useAgentStore((s) => s.sessions);
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
-  const agentSessions = useAgentStore((s) => s.agentSessions);
-
-  const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
-  const archivedSessions = useProjectStore((s) => s.archivedSessions);
-
-  const sidebarSortBy = useConfigStore((s) => s.sidebarSortBy);
-
   const loadSession = useLoadSession(project.path);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const matchesProject = (cwd?: string) => cwd?.startsWith(project.path) ?? false;
-
-  const items = useMemo<UnifiedItem[]>(() => {
-    const archived = new Set(archivedSessions[project.path] ?? []);
-    const pinned = new Set(pinnedSessions[project.path] ?? []);
-    const loadedIds = new Set(sessions.keys());
-
-    const memItems: UnifiedItem[] = [];
-    for (const [, session] of sessions) {
-      if (
-        matchesProject(session.cwd) &&
-        !archived.has(session.sessionId) &&
-        !pinned.has(session.sessionId) &&
-        !session.isNew
-      ) {
-        memItems.push({ kind: "memory", session });
-      }
-    }
-
-    const perItems: UnifiedItem[] = agentSessions
-      .filter(
-        (s) =>
-          !loadedIds.has(s.sessionId) &&
-          matchesProject(s.cwd) &&
-          !archived.has(s.sessionId) &&
-          !pinned.has(s.sessionId),
-      )
-      .map((info) => ({ kind: "persisted", info }));
-
-    const all = [...memItems, ...perItems];
-    all.sort((a, b) => {
-      const aDate =
-        a.kind === "memory"
-          ? a.session.createdAt
-          : sidebarSortBy === "updated"
-            ? a.info.updatedAt
-            : a.info.createdAt;
-      const bDate =
-        b.kind === "memory"
-          ? b.session.createdAt
-          : sidebarSortBy === "updated"
-            ? b.info.updatedAt
-            : b.info.createdAt;
-      return bDate.localeCompare(aDate);
-    });
-
-    return all;
-  }, [sessions, agentSessions, archivedSessions, pinnedSessions, project.path, sidebarSortBy]);
+  const items = useFilteredSessions({ projectPath: project.path, filter: "unpinned" });
 
   const visibleItems = expanded ? items : items.slice(0, DEFAULT_SESSION_LIMIT);
   const hiddenCount = items.length - DEFAULT_SESSION_LIMIT;
@@ -105,36 +45,16 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   return (
     <ul className="flex flex-col gap-0.5">
       {visibleItems.map((item) => {
-        if (item.kind === "memory") {
-          const s = item.session;
-          return (
-            <SessionItem
-              key={s.sessionId}
-              sessionId={s.sessionId}
-              title={s.title}
-              createdAt={s.createdAt}
-              isActive={s.sessionId === activeSessionId}
-              isPinned={false}
-              isRestoring={false}
-              isStreaming={s.streaming}
-              hasPendingPermission={s.pendingPermission !== null}
-              onClick={() => setActiveSession(s.sessionId)}
-              projectPath={project.path}
-            />
-          );
-        }
-        const info = item.info;
+        const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
         return (
-          <SessionItem
-            key={info.sessionId}
-            sessionId={info.sessionId}
-            title={info.title}
-            createdAt={info.createdAt}
-            isActive={false}
+          <UnifiedSessionItem
+            key={id}
+            item={item}
+            activeSessionId={activeSessionId}
             isPinned={false}
-            isRestoring={restoring === info.sessionId}
-            onClick={() => handleLoad(info.sessionId)}
-            projectPath={project.path}
+            restoring={restoring}
+            onActivate={setActiveSession}
+            onLoad={handleLoad}
           />
         );
       })}

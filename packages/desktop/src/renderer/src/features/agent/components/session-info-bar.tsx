@@ -3,6 +3,7 @@ import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
+import { client } from "../../../orpc";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session-info-bar");
@@ -66,10 +67,19 @@ export function SessionInfoBar() {
         </span>
       )}
       {hasSession && projectName && (
-        <span className="flex items-center gap-1 text-muted-foreground">
+        <button
+          type="button"
+          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => {
+            if (projectPath) {
+              client.utils.openIn({ cwd: projectPath, app: "finder" });
+            }
+          }}
+          title={projectPath}
+        >
           <FolderOpen size={14} strokeWidth={1.5} />
           <span className="max-w-32 truncate">{projectName}</span>
-        </span>
+        </button>
       )}
       {hasSession && (
         <SessionActionsMenu
