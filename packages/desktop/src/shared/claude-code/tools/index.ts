@@ -15,7 +15,6 @@ export { WebFetch, type WebFetchUIToolInvocation } from "./web-fetch";
 export { WebSearch, type WebSearchUIToolInvocation } from "./web-search";
 export { TodoWrite, type TodoWriteUIToolInvocation } from "./todo-write";
 export { BashOutput, type BashOutputUIToolInvocation } from "./bash-output";
-export { KillShell, type KillShellUIToolInvocation } from "./kill-shell";
 export { SlashCommand, type SlashCommandUIToolInvocation } from "./slash-command";
 export { ExitPlanMode, type ExitPlanModeUIToolInvocation } from "./exit-plan-mode";
 export { NotebookEdit, type NotebookEditUIToolInvocation } from "./notebook-edit";
@@ -40,7 +39,6 @@ import { WebFetch } from "./web-fetch";
 import { WebSearch } from "./web-search";
 import { TodoWrite } from "./todo-write";
 import { BashOutput } from "./bash-output";
-import { KillShell } from "./kill-shell";
 import { SlashCommand } from "./slash-command";
 import { ExitPlanMode } from "./exit-plan-mode";
 import { NotebookEdit } from "./notebook-edit";
@@ -71,7 +69,6 @@ export const toolSet = {
   WebSearch,
   TodoWrite,
   BashOutput,
-  KillShell,
   SlashCommand,
   ExitPlanMode,
   NotebookEdit,

@@ -8,11 +8,6 @@ const PLAYGROUNDS = [
     label: "AI Elements",
     component: lazy(() => import("./playgrounds/ai-elements")),
   },
-  {
-    id: "chat",
-    label: "Chat",
-    component: lazy(() => import("./playgrounds/chat")),
-  },
 ] as const;
 
 type PlaygroundId = (typeof PLAYGROUNDS)[number]["id"];

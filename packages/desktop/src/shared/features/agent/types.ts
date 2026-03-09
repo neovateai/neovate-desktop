@@ -76,71 +76,7 @@ export type ImageAttachment = {
   base64: string;
 };
 
-export type TimingEntry = {
-  phase: string;
-  label: string;
-  durationMs: number;
-  timestamp: number;
-};
-
 export type SlashCommandInfo = { name: string; description?: string; argumentHint?: string };
-
-/** What the eventIterator yields to the renderer */
-export type StreamEvent =
-  | { type: "text_delta"; sessionId: string; text: string }
-  | { type: "thinking_delta"; sessionId: string; text: string }
-  | {
-      type: "tool_use";
-      sessionId: string;
-      toolId: string;
-      name: string;
-      status: string;
-      input?: unknown;
-    }
-  | {
-      type: "user_message";
-      sessionId: string;
-      text: string;
-      images?: Array<{ mediaType: string; base64: string }>;
-    }
-  | {
-      type: "result";
-      sessionId: string;
-      stopReason: string;
-      costUsd?: number;
-      durationMs?: number;
-      inputTokens?: number;
-      outputTokens?: number;
-    }
-  | { type: "permission_request"; requestId: string; toolName: string; input: unknown }
-  | { type: "available_commands"; sessionId: string; commands: SlashCommandInfo[] }
-  | { type: "available_models"; sessionId: string; models: ModelInfo[] }
-  | { type: "current_model"; sessionId: string; model: string }
-  | { type: "timing"; entry: TimingEntry }
-  | { type: "status"; sessionId: string; message: string }
-  | {
-      type: "task_started";
-      sessionId: string;
-      taskId: string;
-      description: string;
-      taskType?: string;
-    }
-  | {
-      type: "task_progress";
-      sessionId: string;
-      taskId: string;
-      description: string;
-      toolUses: number;
-      durationMs: number;
-      lastToolName?: string;
-    }
-  | {
-      type: "task_notification";
-      sessionId: string;
-      taskId: string;
-      status: "completed" | "failed" | "stopped";
-      summary: string;
-    };
 
 /** Lightweight session metadata for the sidebar list */
 export type SessionInfo = {
@@ -149,14 +85,4 @@ export type SessionInfo = {
   cwd?: string;
   updatedAt: string;
   createdAt: string;
-};
-
-/** Final return value when loadSession replay completes */
-export type LoadSessionResult = {
-  sessionId: string;
-};
-
-/** Final return value when prompt completes */
-export type PromptResult = {
-  stopReason: string;
 };
