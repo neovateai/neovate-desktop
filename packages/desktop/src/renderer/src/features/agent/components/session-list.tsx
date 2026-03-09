@@ -4,78 +4,19 @@ import { Plus } from "lucide-react";
 import { useAgentStore } from "../store";
 import { useProjectStore } from "../../project/store";
 import { useConfigStore } from "../../config/store";
-
-const log = debug("neovate:session-list");
-
 import { Button } from "../../../components/ui/button";
 import { useNewSession } from "../hooks/use-new-session";
 import { useLoadSession } from "../hooks/use-load-session";
-import { SessionItem } from "./session-item";
+import { UnifiedSessionItem } from "./unified-session-item";
 import { SidebarTitleBar } from "./sidebar-title-bar";
 import { PinnedSessionList } from "./pinned-session-list";
 import { ProjectAccordionList } from "./project-accordion-list";
 import { ChronologicalList } from "./chronological-list";
+import type { UnifiedItem } from "../hooks/use-unified-sessions";
 import type { ChatSession } from "../store";
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
 
-// --- UnifiedSessionItem ---
-
-type UnifiedItem =
-  | { kind: "memory"; session: ChatSession }
-  | { kind: "persisted"; info: SessionInfo };
-
-function UnifiedSessionItem({
-  item,
-  activeSessionId,
-  isPinned,
-  restoring,
-  projectPath,
-  onActivate,
-  onLoad,
-  onAfterArchive,
-}: {
-  item: UnifiedItem;
-  activeSessionId: string | null;
-  isPinned: boolean;
-  restoring: string | null;
-  projectPath: string;
-  onActivate: (sessionId: string) => void;
-  onLoad: (sessionId: string) => void;
-  onAfterArchive: () => void;
-}) {
-  if (item.kind === "memory") {
-    const s = item.session;
-    return (
-      <SessionItem
-        sessionId={s.sessionId}
-        title={s.title}
-        createdAt={s.createdAt}
-        isActive={s.sessionId === activeSessionId}
-        isPinned={isPinned}
-        isRestoring={false}
-        isStreaming={s.streaming}
-        hasPendingPermission={s.pendingPermission !== null}
-        onClick={() => onActivate(s.sessionId)}
-        onAfterArchive={onAfterArchive}
-        projectPath={projectPath}
-      />
-    );
-  }
-  const info = item.info;
-  return (
-    <SessionItem
-      sessionId={info.sessionId}
-      title={info.title}
-      createdAt={info.createdAt}
-      isActive={false}
-      isPinned={isPinned}
-      isRestoring={restoring === info.sessionId}
-      onClick={() => onLoad(info.sessionId)}
-      onAfterArchive={onAfterArchive}
-      projectPath={projectPath}
-    />
-  );
-}
+const log = debug("neovate:session-list");
 
 // --- SessionList ---
 
@@ -171,8 +112,16 @@ function SingleProjectSessionList() {
     );
 
     const toUnified = (items: ChatSession[], persisted: SessionInfo[]): UnifiedItem[] => {
-      const mem: UnifiedItem[] = items.map((s) => ({ kind: "memory", session: s }));
-      const per: UnifiedItem[] = persisted.map((s) => ({ kind: "persisted", info: s }));
+      const mem: UnifiedItem[] = items.map((s) => ({
+        kind: "memory",
+        session: s,
+        projectPath,
+      }));
+      const per: UnifiedItem[] = persisted.map((s) => ({
+        kind: "persisted",
+        info: s,
+        projectPath,
+      }));
       return [...mem, ...per].sort((a, b) => {
         const aDate = a.kind === "memory" ? a.session.createdAt : a.info.createdAt;
         const bDate = b.kind === "memory" ? b.session.createdAt : b.info.createdAt;
@@ -228,7 +177,6 @@ function SingleProjectSessionList() {
                   activeSessionId={activeSessionId}
                   isPinned={true}
                   restoring={restoring}
-                  projectPath={projectPath}
                   onActivate={setActiveSession}
                   onLoad={handleLoad}
                   onAfterArchive={handleAfterArchive}
@@ -246,7 +194,6 @@ function SingleProjectSessionList() {
               activeSessionId={activeSessionId}
               isPinned={pinned.has(id)}
               restoring={restoring}
-              projectPath={projectPath}
               onActivate={setActiveSession}
               onLoad={handleLoad}
               onAfterArchive={handleAfterArchive}

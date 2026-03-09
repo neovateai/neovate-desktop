@@ -1,12 +1,12 @@
 import debug from "debug";
 import { FolderAddIcon, FilterIcon, FolderIcon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, Plus } from "lucide-react";
 import { memo } from "react";
 import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
 import { useProject } from "../../project/hooks/use-project";
-
-const log = debug("neovate:sidebar-title-bar");
+import { useNewSession } from "../hooks/use-new-session";
 import { Button } from "../../../components/ui/button";
 import {
   Menu,
@@ -19,11 +19,15 @@ import {
 } from "../../../components/ui/menu";
 import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
 
+const log = debug("neovate:sidebar-title-bar");
+
 export const SidebarTitleBar = memo(function SidebarTitleBar() {
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
   const sidebarSortBy = useConfigStore((s) => s.sidebarSortBy);
   const setConfig = useConfigStore((s) => s.setConfig);
+  const activeProject = useProjectStore((s) => s.activeProject);
   const { openProject } = useProject();
+  const { createNewSession } = useNewSession();
 
   const handleOrganizeChange = (value: SidebarOrganize) => {
     log("organizeChange: %s", value);
@@ -39,6 +43,16 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
     <div className="flex items-center justify-between px-3 py-2">
       <span className="text-sm font-medium text-foreground">Sessions</span>
       <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          onClick={() => activeProject && createNewSession(activeProject.path)}
+          disabled={!activeProject}
+          title="New chat"
+        >
+          <Plus size={16} strokeWidth={1.5} />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

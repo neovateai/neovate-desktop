@@ -1,98 +1,31 @@
 import debug from "debug";
-import { memo, useMemo } from "react";
+import { memo, useState } from "react";
 import { useAgentStore } from "../store";
+import { useLoadSession } from "../hooks/use-load-session";
+import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:pinned-session-list");
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
-import { useLoadSession } from "../hooks/use-load-session";
-import { SessionItem } from "./session-item";
-import type { ChatSession } from "../store";
-import type { SessionInfo } from "../../../../../shared/features/agent/types";
-
-type UnifiedItem =
-  | { kind: "memory"; session: ChatSession }
-  | { kind: "persisted"; info: SessionInfo };
 
 export const PinnedSessionList = memo(function PinnedSessionList() {
-  const sessions = useAgentStore((s) => s.sessions);
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
-  const agentSessions = useAgentStore((s) => s.agentSessions);
+  const loadSession = useLoadSession();
+  const [restoring, setRestoring] = useState<string | null>(null);
 
-  const projects = useProjectStore((s) => s.projects);
-  const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
-  const archivedSessions = useProjectStore((s) => s.archivedSessions);
+  const items = useFilteredSessions({ filter: "pinned" });
 
-  const sidebarSortBy = useConfigStore((s) => s.sidebarSortBy);
+  log("render: pinnedCount=%d", items.length);
 
-  // We need a project path for loadSession — use the first project as fallback
-  const firstProjectPath = projects[0]?.path;
-  const loadSession = useLoadSession(firstProjectPath);
+  if (items.length === 0) return null;
 
-  const pinnedItems = useMemo(() => {
-    const allPinnedIds = new Set<string>();
-    for (const ids of Object.values(pinnedSessions)) {
-      for (const id of ids) allPinnedIds.add(id);
+  const handleLoad = async (sessionId: string) => {
+    setRestoring(sessionId);
+    try {
+      await loadSession(sessionId);
+    } finally {
+      setRestoring((prev) => (prev === sessionId ? null : prev));
     }
-    if (allPinnedIds.size === 0) return [];
-
-    const archivedIds = new Set<string>();
-    for (const ids of Object.values(archivedSessions)) {
-      for (const id of ids) archivedIds.add(id);
-    }
-
-    const loadedIds = new Set(sessions.keys());
-
-    const memItems: UnifiedItem[] = [];
-    for (const [, session] of sessions) {
-      if (
-        allPinnedIds.has(session.sessionId) &&
-        !archivedIds.has(session.sessionId) &&
-        !session.isNew
-      ) {
-        memItems.push({ kind: "memory", session });
-      }
-    }
-
-    const perItems: UnifiedItem[] = agentSessions
-      .filter(
-        (s) =>
-          !loadedIds.has(s.sessionId) &&
-          allPinnedIds.has(s.sessionId) &&
-          !archivedIds.has(s.sessionId),
-      )
-      .map((info) => ({ kind: "persisted", info }));
-
-    const all = [...memItems, ...perItems];
-    all.sort((a, b) => {
-      const aDate =
-        a.kind === "memory"
-          ? a.session.createdAt
-          : sidebarSortBy === "updated"
-            ? a.info.updatedAt
-            : a.info.createdAt;
-      const bDate =
-        b.kind === "memory"
-          ? b.session.createdAt
-          : sidebarSortBy === "updated"
-            ? b.info.updatedAt
-            : b.info.createdAt;
-      return bDate.localeCompare(aDate);
-    });
-
-    return all;
-  }, [sessions, agentSessions, pinnedSessions, archivedSessions, sidebarSortBy]);
-
-  log("render: pinnedCount=%d", pinnedItems.length);
-
-  if (pinnedItems.length === 0) return null;
-
-  // Find the project path for a given session
-  const getProjectPath = (cwd?: string): string => {
-    if (!cwd) return firstProjectPath ?? "";
-    const project = projects.find((p) => cwd.startsWith(p.path));
-    return project?.path ?? firstProjectPath ?? "";
   };
 
   return (
@@ -101,37 +34,17 @@ export const PinnedSessionList = memo(function PinnedSessionList() {
         <span className="text-[10px] font-medium text-muted-foreground">Pinned</span>
       </div>
       <ul className="flex flex-col gap-0.5">
-        {pinnedItems.map((item) => {
-          if (item.kind === "memory") {
-            const s = item.session;
-            return (
-              <SessionItem
-                key={s.sessionId}
-                sessionId={s.sessionId}
-                title={s.title}
-                createdAt={s.createdAt}
-                isActive={s.sessionId === activeSessionId}
-                isPinned
-                isRestoring={false}
-                isStreaming={s.streaming}
-                hasPendingPermission={s.pendingPermission !== null}
-                onClick={() => setActiveSession(s.sessionId)}
-                projectPath={getProjectPath(s.cwd)}
-              />
-            );
-          }
-          const info = item.info;
+        {items.map((item) => {
+          const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
           return (
-            <SessionItem
-              key={info.sessionId}
-              sessionId={info.sessionId}
-              title={info.title}
-              createdAt={info.createdAt}
-              isActive={false}
+            <UnifiedSessionItem
+              key={id}
+              item={item}
+              activeSessionId={activeSessionId}
               isPinned
-              isRestoring={false}
-              onClick={() => loadSession(info.sessionId)}
-              projectPath={getProjectPath(info.cwd)}
+              restoring={restoring}
+              onActivate={setActiveSession}
+              onLoad={handleLoad}
             />
           );
         })}
