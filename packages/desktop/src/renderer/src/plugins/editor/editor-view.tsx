@@ -15,52 +15,60 @@ function EditorViewCore(props: { cwd: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [status, setStatus] = useState<EditorStatus>("idle");
   const initRef = useRef(false);
+  const [extReady, seExtReady] = useState(false); // vscode 扩展就绪情况
 
   const { orpcClient } = usePluginContext();
   const client = orpcClient as EditorClient;
 
   useEffect(() => {
+    if (!cwd) {
+      return;
+    }
     if (initRef.current && status === "ready") return;
     initRef.current = true;
-    const disposable = connectToExtension();
+
     startEditor();
-    return () => {
-      disposable.forEach((fn) => fn());
-    };
-  }, []);
+    client.editor.connect().then(() => seExtReady(true));
+  }, [cwd]);
 
-  const connectToExtension = () => {
+  useEffect(() => {
+    if (extReady) {
+      const disposable = initExtensionHandlers();
+      return () => {
+        disposable.forEach((fn) => fn());
+      };
+    }
+  }, [extReady]);
+
+  const initExtensionHandlers = () => {
     const disposable: Array<() => void> = [];
-    client.editor.connect({ cwd }).then(() => {
-      console.log("Extension connected");
 
-      const openEditor = (fullPath: string, line: number) => {
-        if (!fullPath) {
-          return;
-        }
-        client.editor.open({ cwd, filePath: fullPath, line });
-        // @ts-ignore 清理
-        window.pendingEditorRequest = undefined;
-      };
-      // @ts-ignore 避免初始化前未收到事件
-      const pendingEditorRequest = window.pendingEditorRequest as {
-        fullPath: string;
-        line?: number;
-      };
-      if (pendingEditorRequest?.fullPath) {
-        openEditor(pendingEditorRequest.fullPath, pendingEditorRequest.line || 1);
+    const openEditor = (fullPath: string, line: number) => {
+      if (!fullPath) {
+        return;
       }
+      client.editor.open({ cwd, filePath: fullPath, line });
+      // @ts-ignore 清理
+      window.pendingEditorRequest = undefined;
+    };
+    // @ts-ignore 避免初始化前未收到事件
+    const pendingEditorRequest = window.pendingEditorRequest as {
+      fullPath: string;
+      line?: number;
+    };
+    if (pendingEditorRequest?.fullPath) {
+      openEditor(pendingEditorRequest.fullPath, pendingEditorRequest.line || 1);
+    }
 
-      // 连接成功后初始化插件可接受的操作事件响应函数
-      const openEditorEvent = (e: Event) => {
-        const { fullPath = "", line = 1 } =
-          (e as CustomEvent<{ fullPath: string; line?: number }>)?.detail || {};
-        openEditor(fullPath, line);
-      };
+    // 连接成功后初始化插件可接受的操作事件响应函数
+    const openEditorEvent = (e: Event) => {
+      const { fullPath = "", line = 1 } =
+        (e as CustomEvent<{ fullPath: string; line?: number }>)?.detail || {};
+      openEditor(fullPath, line);
+    };
+    window.addEventListener("neovate:open-editor", openEditorEvent);
+    disposable.push(() => {
       window.addEventListener("neovate:open-editor", openEditorEvent);
-      disposable.push(() => {
-        window.addEventListener("neovate:open-editor", openEditorEvent);
-      });
     });
 
     return disposable;

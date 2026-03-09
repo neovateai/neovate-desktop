@@ -84,6 +84,7 @@ export class ExtensionBridgeServer extends EventEmitter {
                   });
                   socket.write(Buffer.from(response));
                 }
+                socket.write("\n\n"); // 分隔符避免粘包
               } else {
                 const response = JSON.stringify({
                   success: false,
@@ -91,6 +92,7 @@ export class ExtensionBridgeServer extends EventEmitter {
                   requestId: data.requestId,
                 });
                 socket.write(Buffer.from(response));
+                socket.write("\n\n");
               }
             } catch (error) {
               const response = JSON.stringify({
@@ -173,6 +175,7 @@ export class ExtensionBridgeServer extends EventEmitter {
 
       // 发送请求
       client.write(data);
+      client.write("\n\n");
     });
   }
 

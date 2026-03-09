@@ -4,8 +4,8 @@ import fs from "fs";
 import { EXTENSIONS_DIR } from "./constants";
 
 const RESOURCE_PATH =
-  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*XtoJQpzujs0AAAAAQGAAAAgAegAAAQ"; // 0.0.7
-const VSIX_FILENAME = "neovate-code-extension-0.0.7.vsix";
+  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*mYEoTqA5CSMAAAAAQGAAAAgAegAAAQ"; // 0.0.8
+const VSIX_FILENAME = "neovate-code-extension-0.0.8.vsix";
 
 export function ensureExtension(): Promise<string> {
   return new Promise((resolve, reject) => {

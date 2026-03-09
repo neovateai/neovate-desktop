@@ -162,7 +162,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
       }),
     );
     // @ts-ignore 避免 dispatchEvent 时未初始化完成
-    window.pendingEditorRequest = { fullPath: item.fullPath, line };
+    window.pendingEditorRequest = { fullPath: result.fullPath, line };
   };
 
   const highlightMatch = (text: string, searchQuery: string) => {
@@ -329,7 +329,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
                           onClick={() => handleMatchClick(result, match.line)}
                         >
                           <span className="text-muted-foreground">L{match.line}: </span>
-                          {highlightMatch(match.text, query)}
+                          {highlightMatch(match?.text || "", query)}
                         </div>
                       ))}
                     </div>

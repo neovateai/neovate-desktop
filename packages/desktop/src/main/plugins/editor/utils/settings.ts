@@ -33,6 +33,8 @@ const OVERRIDE_SETTINGS = {
   "editor.minimap.enabled": false,
   /** 自动主题 */
   "window.autoDetectColorScheme": false,
+  /** 拒绝插件推荐 */
+  "extensions.ignoreRecommendations": true,
   // 'workbench.editor.showTabs': 'multiple',
   // 'workbench.editor.editorActionsLocation': 'hidden',
   // 'breadcrumbs.enabled': false,
