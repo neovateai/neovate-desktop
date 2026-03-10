@@ -12,6 +12,7 @@ function createMockApp(): IRendererApp {
     i18nManager: {} as IRendererApp["i18nManager"],
     settings: {} as IRendererApp["settings"],
     workbench: { contentPanel: {} as any },
+    project: {} as any,
   };
 }
 
