@@ -30,6 +30,7 @@ beforeEach(() => {
     projectStore: {} as any,
     mainApp: {} as any,
     stateStore: {} as any,
+    updaterService: {} as any,
   };
 });
 

@@ -20,6 +20,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
     mainApp: { windowManager: { mainWindow: null } } as any,
     storage: {} as any,
     stateStore: {} as any,
+    updaterService: {} as any,
     ...overrides,
   };
 }
