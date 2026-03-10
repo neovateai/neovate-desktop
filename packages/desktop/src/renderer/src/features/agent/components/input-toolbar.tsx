@@ -174,8 +174,7 @@ function ConnectedModelSelect({
           });
         return;
       }
-      const model = currentModel;
-      if (!model) return;
+      const model = currentModel ?? null;
       log(
         "setModelSetting: scope=%s model=%s sessionId=%s providerId=%s",
         scope,
@@ -184,6 +183,7 @@ function ConnectedModelSelect({
         providerId ?? "(sdk)",
       );
       if (providerId) {
+        if (!model) return;
         // Provider active: only write to our provider config files
         client.provider.setSelection({
           sessionId: activeSessionId,
@@ -192,7 +192,7 @@ function ConnectedModelSelect({
           scope,
         });
       } else {
-        // SDK Default: write to .claude/ settings files
+        // SDK Default: write to .claude/ settings files (model can be null to just clear provider)
         client.agent.setModelSetting({ sessionId: activeSessionId, model, scope });
       }
     },
