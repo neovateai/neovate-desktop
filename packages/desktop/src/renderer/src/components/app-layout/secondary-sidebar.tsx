@@ -20,7 +20,7 @@ function useLazyComponents(views: SecondarySidebarView[]) {
   return cache.current;
 }
 
-function SecondarySidebarViewRenderer({
+function WithDeactivation({
   children,
   isActive,
   deactivation = "activity",
@@ -29,7 +29,8 @@ function SecondarySidebarViewRenderer({
   isActive: boolean;
   deactivation?: SecondarySidebarView["deactivation"];
 }) {
-  // offscreen: left off-screen (Hyper's approach — pauses xterm via IntersectionObserver)
+  if (deactivation === "unmount" && !isActive) return null;
+
   if (deactivation === "offscreen") {
     return (
       <div className={cn("absolute top-0 h-full w-full", isActive ? "left-0" : "-left-[9999em]")}>
@@ -38,7 +39,18 @@ function SecondarySidebarViewRenderer({
     );
   }
 
-  // activity: React <Activity>, preserves state + cleans up effects when hidden
+  if (deactivation === "hidden") {
+    return (
+      <div
+        className={cn("absolute inset-0", !isActive && "hidden")}
+        aria-hidden={!isActive || undefined}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  // activity (default)
   return (
     <Activity mode={isActive ? "visible" : "hidden"}>
       <div className="absolute inset-0">{children}</div>
@@ -65,11 +77,11 @@ export function AppLayoutSecondarySidebar() {
       animate={{ width: collapsed ? 0 : width }}
       transition={isResizing ? { duration: 0 } : SPRING}
     >
-      <div className="h-full pb-2 relative" style={{ width }}>
+      <div className="relative h-full pb-2" style={{ width }}>
         {views.map((view) => {
           const LazyComponent = lazyComponents.get(view.id)!;
           return (
-            <SecondarySidebarViewRenderer
+            <WithDeactivation
               key={view.id}
               isActive={activeView === view.id}
               deactivation={view.deactivation}
@@ -77,7 +89,7 @@ export function AppLayoutSecondarySidebar() {
               <Suspense>
                 <LazyComponent />
               </Suspense>
-            </SecondarySidebarViewRenderer>
+            </WithDeactivation>
           );
         })}
       </div>
