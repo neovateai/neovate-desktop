@@ -1,6 +1,8 @@
 import type { StoreApi } from "zustand/vanilla";
+
 import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
+
 import { createContentPanelStore } from "./store";
 
 export interface ContentPanelOptions {

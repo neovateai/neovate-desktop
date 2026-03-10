@@ -1,6 +1,8 @@
 import { DashboardSquare01FreeIcons } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+
 import type { ActivityBarItem } from "../../core/plugin/contributions";
+
 import { useRendererApp } from "../../core";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";

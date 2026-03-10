@@ -1,6 +1,6 @@
+import { minimatch } from "minimatch";
 import fs from "node:fs";
 import path from "node:path";
-import { minimatch } from "minimatch";
 
 export interface FileTreeNode {
   fileName: string;

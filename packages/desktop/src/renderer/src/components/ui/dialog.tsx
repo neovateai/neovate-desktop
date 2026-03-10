@@ -2,6 +2,7 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
+
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 import { ScrollArea } from "./scroll-area";

@@ -1,7 +1,8 @@
-import path from "node:path";
 import fs from "node:fs";
-import type { PluginContext } from "../../core/plugin/types";
+import path from "node:path";
 import git from "simple-git";
+
+import type { PluginContext } from "../../core/plugin/types";
 
 function str2file(cwd: string, file: string) {
   return {

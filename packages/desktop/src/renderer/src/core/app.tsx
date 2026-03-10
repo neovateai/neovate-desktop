@@ -1,27 +1,29 @@
+import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
-import { ThemeProvider, useTheme } from "next-themes";
-import { I18nManager } from "./i18n";
-import { useConfigStore } from "../features/config/store";
-import { useSettingsStore } from "../features/settings/store";
-import { DisposableStore } from "./disposable";
-import { ToastProvider } from "../components/ui/toast";
-import type { IRendererApp, IWorkbench } from "./types";
-import type { RendererPlugin, PluginContext } from "./plugin";
-import { PluginManager } from "./plugin";
-import { ContentPanel } from "../features/content-panel";
+
+import type { SettingsSchema } from "../../../shared/features/settings/schema";
 import type { ProjectTabState } from "../features/content-panel";
+import type { RendererPlugin, PluginContext } from "./plugin";
+import type { IRendererApp, IWorkbench } from "./types";
+
+import { ToastProvider } from "../components/ui/toast";
+import { useConfigStore } from "../features/config/store";
+import { ContentPanel } from "../features/content-panel";
+import { useProjectStore } from "../features/project/store";
+import { SettingsService } from "../features/settings/service";
+import { useSettingsStore } from "../features/settings/store";
+import { client } from "../orpc";
+import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
-import terminalPlugin from "../plugins/terminal";
 import searchPlugin from "../plugins/search";
-import editorPlugin from "../plugins/editor";
+import terminalPlugin from "../plugins/terminal";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 // import demoWindowPlugin from "../plugins/demo-window";
-
-import { client } from "../orpc";
-import { SettingsService } from "../features/settings/service";
-import type { SettingsSchema } from "../../../shared/features/settings/schema";
+import { DisposableStore } from "./disposable";
+import { I18nManager } from "./i18n";
+import { PluginManager } from "./plugin";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
 const RendererAppContext: React.Context<RendererApp | null> =
@@ -104,6 +106,31 @@ export class RendererApp implements IRendererApp {
   // @ts-expect-error reserved for future use
   readonly #windowId: string;
   readonly subscriptions = new DisposableStore();
+  readonly project = {
+    getActiveProject: () => {
+      const activeProject = useProjectStore.getState().activeProject;
+      if (!activeProject) return activeProject;
+      const { id, name, path } = activeProject;
+      return { id, name, path };
+    },
+    subscribe: (
+      listener: (project: ReturnType<typeof useProjectStore.getState>["activeProject"]) => void,
+    ) =>
+      useProjectStore.subscribe((state, prevState) => {
+        if (state.activeProject === prevState.activeProject) return;
+        listener(state.activeProject);
+      }),
+    refresh: async () => {
+      const [projects, activeProject] = await Promise.all([
+        client.project.list(),
+        client.project.getActive(),
+      ]);
+      const state = useProjectStore.getState();
+      state.setProjects(projects);
+      state.setActiveProject(activeProject);
+      return activeProject;
+    },
+  };
   readonly settings = new SettingsService({
     load: async () => {
       const all = await client.storage.getAll({ namespace: "config" });
@@ -161,6 +188,7 @@ export class RendererApp implements IRendererApp {
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
     await this.hydrate();
+    await this.project.refresh();
 
     // Collect window contributions — all windows (needed for lookup)
     await this.pluginManager.configWindowContributions();

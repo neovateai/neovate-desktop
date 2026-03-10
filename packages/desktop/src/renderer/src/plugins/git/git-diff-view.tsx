@@ -1,11 +1,12 @@
-import { memo, useEffect, useState } from "react";
 import { MultiFileDiff } from "@pierre/diffs/react";
-import { Client } from "./hooks/useGit";
-import { useProjectStore } from "../../features/project/store";
-import { useGitTranslation } from "./i18n";
-import { useTheme } from "next-themes";
 import { File, GitBranch } from "lucide-react";
+import { useTheme } from "next-themes";
+import { memo, useEffect, useState } from "react";
+
 import { usePluginContext } from "../../core/app";
+import { useProjectStore } from "../../features/project/store";
+import { Client } from "./hooks/useGit";
+import { useGitTranslation } from "./i18n";
 
 interface DiffData {
   oldContent: string;

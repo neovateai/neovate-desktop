@@ -1,5 +1,5 @@
-import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
+import { Streamdown } from "streamdown";
 
 type Props = { content: string; streaming?: boolean };
 

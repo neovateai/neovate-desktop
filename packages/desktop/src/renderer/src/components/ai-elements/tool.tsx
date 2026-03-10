@@ -3,9 +3,6 @@
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import type { ComponentProps, ReactNode } from "react";
 
-import { Badge } from "../ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { cn } from "../../lib/utils";
 import {
   CheckCircleIcon,
   ChevronDownIcon,
@@ -16,6 +13,9 @@ import {
 } from "lucide-react";
 import { isValidElement } from "react";
 
+import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { CodeBlock } from "./code-block";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;

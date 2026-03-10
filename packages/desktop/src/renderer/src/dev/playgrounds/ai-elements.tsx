@@ -1,5 +1,5 @@
+import { CheckIcon, CopyIcon, MessageSquareIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useState } from "react";
-import { ScrollArea } from "../../components/ui/scroll-area";
 
 import {
   Agent,
@@ -124,9 +124,8 @@ import {
   ToolInput,
   ToolOutput,
 } from "../../components/ai-elements/tool";
-
 import { Button } from "../../components/ui/button";
-import { CheckIcon, CopyIcon, MessageSquareIcon, RefreshCwIcon, XIcon } from "lucide-react";
+import { ScrollArea } from "../../components/ui/scroll-area";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

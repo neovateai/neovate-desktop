@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { PluginManager } from "../plugin/plugin-manager";
-import type { IRendererApp } from "../types";
+
 import type { RendererPlugin } from "../plugin";
 import type { SecondarySidebarView, ContentPanelView } from "../plugin/contributions";
+import type { IRendererApp } from "../types";
+
+import { PluginManager } from "../plugin/plugin-manager";
 
 function createMockApp(): IRendererApp {
   return {
@@ -10,6 +12,7 @@ function createMockApp(): IRendererApp {
     i18nManager: {} as IRendererApp["i18nManager"],
     settings: {} as IRendererApp["settings"],
     workbench: { contentPanel: {} as any },
+    project: {} as any,
   };
 }
 

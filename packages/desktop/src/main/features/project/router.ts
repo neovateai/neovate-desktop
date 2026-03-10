@@ -1,9 +1,11 @@
+import { implement } from "@orpc/server";
+import { dialog } from "electron";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { dialog } from "electron";
-import { implement } from "@orpc/server";
-import { projectContract } from "../../../shared/features/project/contract";
+
 import type { AppContext } from "../../router";
+
+import { projectContract } from "../../../shared/features/project/contract";
 
 const os = implement({ project: projectContract }).$context<AppContext>();
 

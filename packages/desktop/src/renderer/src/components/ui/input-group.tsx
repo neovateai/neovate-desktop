@@ -1,7 +1,8 @@
 "use client";
 
-import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
+
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "../../lib/utils";
 import { Input, type InputProps } from "./input";

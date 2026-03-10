@@ -2,9 +2,10 @@
 
 import type { ComponentProps } from "react";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { cn } from "../../lib/utils";
 import { BookIcon, ChevronDownIcon } from "lucide-react";
+
+import { cn } from "../../lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 
 export type SourcesProps = ComponentProps<"div">;
 

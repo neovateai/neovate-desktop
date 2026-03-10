@@ -1,9 +1,10 @@
 import debug from "debug";
 import { FolderOpen } from "lucide-react";
 import { useState } from "react";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
+
 import { client } from "../../../orpc";
+import { useProjectStore } from "../../project/store";
+import { useAgentStore } from "../store";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session-info-bar");

@@ -1,8 +1,10 @@
 import debug from "debug";
-import { memo, useState } from "react";
-import { useAgentStore } from "../store";
+import { memo, useCallback, useState } from "react";
+
+import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
 import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { useAgentStore } from "../store";
 import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:chronological-list");
@@ -23,14 +25,28 @@ export const ChronologicalList = memo(function ChronologicalList() {
   const visibleItems = showAll ? items : items.slice(0, CHRONOLOGICAL_SESSION_LIMIT);
   const hiddenCount = items.length - CHRONOLOGICAL_SESSION_LIMIT;
 
-  const handleLoad = async (sessionId: string) => {
-    setRestoring(sessionId);
-    try {
-      await loadSession(sessionId);
-    } finally {
-      setRestoring((prev) => (prev === sessionId ? null : prev));
-    }
-  };
+  const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
+
+  const handleActivate = useCallback(
+    (sessionId: string, projectPath: string) => {
+      switchToProjectByPath(projectPath);
+      setActiveSession(sessionId);
+    },
+    [switchToProjectByPath, setActiveSession],
+  );
+
+  const handleLoad = useCallback(
+    async (sessionId: string, projectPath: string) => {
+      setRestoring(sessionId);
+      try {
+        switchToProjectByPath(projectPath);
+        await loadSession(sessionId);
+      } finally {
+        setRestoring((prev) => (prev === sessionId ? null : prev));
+      }
+    },
+    [switchToProjectByPath, loadSession],
+  );
 
   return (
     <ul className="flex flex-col gap-0.5">
@@ -43,8 +59,8 @@ export const ChronologicalList = memo(function ChronologicalList() {
             activeSessionId={activeSessionId}
             isPinned={false}
             restoring={restoring}
-            onActivate={setActiveSession}
-            onLoad={handleLoad}
+            onActivate={(sid) => handleActivate(sid, item.projectPath)}
+            onLoad={(sid) => handleLoad(sid, item.projectPath)}
           />
         );
       })}

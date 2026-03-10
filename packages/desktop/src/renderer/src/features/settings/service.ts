@@ -1,10 +1,12 @@
 import { shallow } from "zustand/shallow";
+
+import type { ISettingsService, IScopedSettings } from "../../core/types";
+
 import {
   settingsSchema,
   DEFAULT_SETTINGS,
   type SettingsSchema,
 } from "../../../../shared/features/settings/schema";
-import type { ISettingsService, IScopedSettings } from "../../core/types";
 import { createSettingsStore, type SettingsStore, type SettingsState } from "./store";
 
 const FLUSH_DELAY = 500;

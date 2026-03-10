@@ -1,6 +1,7 @@
+import Store from "electron-store";
 import os from "node:os";
 import path from "node:path";
-import Store from "electron-store";
+
 import type { AppConfig } from "../../../shared/features/config/types";
 
 const DEFAULT_CONFIG: AppConfig = {

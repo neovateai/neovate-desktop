@@ -1,9 +1,11 @@
 import { useMemo } from "react";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
-import type { ChatSession } from "../store";
+
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
+import type { ChatSession } from "../store";
+
+import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
+import { useAgentStore } from "../store";
 
 export type UnifiedItem =
   | { kind: "memory"; session: ChatSession; projectPath: string }

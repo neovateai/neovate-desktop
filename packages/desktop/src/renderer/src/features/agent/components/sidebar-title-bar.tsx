@@ -1,12 +1,11 @@
-import debug from "debug";
 import { FolderAddIcon, FilterIcon, FolderIcon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import debug from "debug";
 import { CheckIcon, Plus } from "lucide-react";
 import { memo } from "react";
-import { useConfigStore } from "../../config/store";
-import { useProjectStore } from "../../project/store";
-import { useProject } from "../../project/hooks/use-project";
-import { useNewSession } from "../hooks/use-new-session";
+
+import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
+
 import { Button } from "../../../components/ui/button";
 import {
   Menu,
@@ -17,7 +16,10 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "../../../components/ui/menu";
-import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
+import { useConfigStore } from "../../config/store";
+import { useProject } from "../../project/hooks/use-project";
+import { useProjectStore } from "../../project/store";
+import { useNewSession } from "../hooks/use-new-session";
 
 const log = debug("neovate:sidebar-title-bar");
 
@@ -43,16 +45,18 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
     <div className="flex items-center justify-between px-3 py-2">
       <span className="text-sm font-medium text-foreground">Sessions</span>
       <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          onClick={() => activeProject && createNewSession(activeProject.path)}
-          disabled={!activeProject}
-          title="New chat"
-        >
-          <Plus size={16} strokeWidth={1.5} />
-        </Button>
+        {sidebarOrganize === "chronological" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={() => activeProject && createNewSession(activeProject.path)}
+            disabled={!activeProject}
+            title="New chat"
+          >
+            <Plus size={16} strokeWidth={1.5} />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

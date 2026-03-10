@@ -1,8 +1,10 @@
 import debug from "debug";
-import { memo, useState } from "react";
-import { useAgentStore } from "../store";
+import { memo, useCallback, useState } from "react";
+
+import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
 import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { useAgentStore } from "../store";
 import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:pinned-session-list");
@@ -13,27 +15,37 @@ export const PinnedSessionList = memo(function PinnedSessionList() {
   const loadSession = useLoadSession();
   const [restoring, setRestoring] = useState<string | null>(null);
 
+  const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
   const items = useFilteredSessions({ filter: "pinned" });
+
+  const handleActivate = useCallback(
+    (sessionId: string, projectPath: string) => {
+      switchToProjectByPath(projectPath);
+      setActiveSession(sessionId);
+    },
+    [switchToProjectByPath, setActiveSession],
+  );
+
+  const handleLoad = useCallback(
+    async (sessionId: string, projectPath: string) => {
+      setRestoring(sessionId);
+      try {
+        switchToProjectByPath(projectPath);
+        await loadSession(sessionId);
+      } finally {
+        setRestoring((prev) => (prev === sessionId ? null : prev));
+      }
+    },
+    [switchToProjectByPath, loadSession],
+  );
 
   log("render: pinnedCount=%d", items.length);
 
   if (items.length === 0) return null;
 
-  const handleLoad = async (sessionId: string) => {
-    setRestoring(sessionId);
-    try {
-      await loadSession(sessionId);
-    } finally {
-      setRestoring((prev) => (prev === sessionId ? null : prev));
-    }
-  };
-
   return (
-    <div className="px-2 pb-2">
-      <div className="px-2 pb-1">
-        <span className="text-[10px] font-medium text-muted-foreground">Pinned</span>
-      </div>
-      <ul className="flex flex-col gap-0.5">
+    <div className="pb-2">
+      <ul className="flex flex-col">
         {items.map((item) => {
           const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
           return (
@@ -43,8 +55,8 @@ export const PinnedSessionList = memo(function PinnedSessionList() {
               activeSessionId={activeSessionId}
               isPinned
               restoring={restoring}
-              onActivate={setActiveSession}
-              onLoad={handleLoad}
+              onActivate={(sid) => handleActivate(sid, item.projectPath)}
+              onLoad={(sid) => handleLoad(sid, item.projectPath)}
             />
           );
         })}

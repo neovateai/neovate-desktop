@@ -1,5 +1,6 @@
-import { buildContributions, EMPTY_CONTRIBUTIONS, type Contributions } from "./contributions";
 import type { MainPlugin, PluginContext } from "./types";
+
+import { buildContributions, EMPTY_CONTRIBUTIONS, type Contributions } from "./contributions";
 
 export class PluginManager {
   readonly #plugins: MainPlugin[];

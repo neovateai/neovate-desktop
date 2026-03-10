@@ -1,10 +1,10 @@
-import { HugeiconsIcon } from "@hugeicons/react";
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronRight, ChevronDown, FilePlus, FolderPlus, Edit, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
-import { useFilesTranslation } from "./i18n";
-import { cn } from "../../lib/utils";
+
 import type { FileTreeItem } from "../../../../shared/plugins/files/contract";
+
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -12,6 +12,8 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "../../components/ui/context-menu";
+import { cn } from "../../lib/utils";
+import { useFilesTranslation } from "./i18n";
 
 interface TreeNodeProps {
   item: FileTreeItem;

@@ -1,19 +1,21 @@
-import debug from "debug";
+import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import debug from "debug";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
-import { useNewSession } from "../hooks/use-new-session";
-import { useLoadSession } from "../hooks/use-load-session";
-import { useProject } from "../../project/hooks/use-project";
-import { useFilteredSessions } from "../hooks/use-unified-sessions";
-import { UnifiedSessionItem } from "./unified-session-item";
-import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
-import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
+
 import type { Project } from "../../../../../shared/features/project/types";
+
+import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
+import { useConfigStore } from "../../config/store";
+import { useProject } from "../../project/hooks/use-project";
+import { useProjectStore } from "../../project/store";
+import { useLoadSession } from "../hooks/use-load-session";
+import { useNewSession } from "../hooks/use-new-session";
+import { useFilteredSessions } from "../hooks/use-unified-sessions";
+import { useAgentStore } from "../store";
+import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:project-accordion");
 
@@ -33,14 +35,28 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   const visibleItems = expanded ? items : items.slice(0, DEFAULT_SESSION_LIMIT);
   const hiddenCount = items.length - DEFAULT_SESSION_LIMIT;
 
-  const handleLoad = async (sessionId: string) => {
-    setRestoring(sessionId);
-    try {
-      await loadSession(sessionId);
-    } finally {
-      setRestoring((prev) => (prev === sessionId ? null : prev));
-    }
-  };
+  const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
+
+  const handleActivate = useCallback(
+    (sessionId: string) => {
+      switchToProjectByPath(project.path);
+      setActiveSession(sessionId);
+    },
+    [switchToProjectByPath, project.path, setActiveSession],
+  );
+
+  const handleLoad = useCallback(
+    async (sessionId: string) => {
+      setRestoring(sessionId);
+      try {
+        switchToProjectByPath(project.path);
+        await loadSession(sessionId);
+      } finally {
+        setRestoring((prev) => (prev === sessionId ? null : prev));
+      }
+    },
+    [switchToProjectByPath, project.path, loadSession],
+  );
 
   return (
     <ul className="flex flex-col gap-0.5">
@@ -53,7 +69,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
             activeSessionId={activeSessionId}
             isPinned={false}
             restoring={restoring}
-            onActivate={setActiveSession}
+            onActivate={handleActivate}
             onLoad={handleLoad}
           />
         );

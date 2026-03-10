@@ -1,8 +1,9 @@
+import type { Project } from "../../../shared/features/project/types";
+import type { SettingsSchema } from "../../../shared/features/settings/schema";
+import type { ContentPanel } from "../features/content-panel/content-panel";
+import type { SettingsStore } from "../features/settings/store";
 import type { Disposable, Unsubscribe } from "./disposable";
 import type { I18nManager } from "./i18n";
-import type { SettingsSchema } from "../../../shared/features/settings/schema";
-import type { SettingsStore } from "../features/settings/store";
-import type { ContentPanel } from "../features/content-panel/content-panel";
 
 export interface IScopedSettings<T extends Record<string, unknown> = Record<string, unknown>> {
   get<K extends string & keyof T>(key: K): T[K] | undefined;
@@ -16,6 +17,12 @@ export interface ISettingsService extends Disposable {
   scoped<K extends string & keyof SettingsSchema>(namespace: K): IScopedSettings<SettingsSchema[K]>;
 }
 
+export interface IProjectService {
+  getActiveProject(): Pick<Project, "id" | "name" | "path"> | null;
+  subscribe(listener: (project: Project | null) => void): Unsubscribe;
+  refresh(): Promise<Project | null>;
+}
+
 export interface IWorkbench {
   readonly contentPanel: ContentPanel;
 }
@@ -26,6 +33,7 @@ export interface IRendererApp {
   readonly subscriptions: {
     push(...disposables: (Disposable | Unsubscribe)[]): void;
   };
+  readonly project: IProjectService;
   readonly settings: ISettingsService;
   readonly workbench: IWorkbench;
 }

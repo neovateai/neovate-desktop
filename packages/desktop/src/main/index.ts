@@ -1,19 +1,21 @@
-import { app, ipcMain } from "electron";
 import { electronApp, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";
+import { app, ipcMain } from "electron";
+
+import type { AppContext } from "./router";
+
+import { MainApp } from "./app";
+import { setupApplicationMenu } from "./core/menu";
 import { SessionManager } from "./features/agent/session-manager";
 import { getShellEnvironment } from "./features/agent/shell-env";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
 import { StateStore } from "./features/state/state-store";
-import { MainApp } from "./app";
-import type { AppContext } from "./router";
-import gitPlugin from "./plugins/git";
-import filesPlugin from "./plugins/files";
-import terminalPlugin from "./plugins/terminal";
 import editorPlugin from "./plugins/editor";
-import { setupApplicationMenu } from "./core/menu";
+import filesPlugin from "./plugins/files";
+import gitPlugin from "./plugins/git";
+import terminalPlugin from "./plugins/terminal";
 
 const log = debug("neovate:orpc");
 

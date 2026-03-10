@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
+
+import type { PanelMap } from "../types";
+
 import {
   shrinkPanelsToFit,
   computeMinWindowWidth,
   applyDelta,
   isSeparatorVisible,
 } from "../layout-coordinator";
-import type { PanelMap } from "../types";
 
 describe("resize flow integration", () => {
   it("opening all panels then fitting to small window shrinks by priority", () => {

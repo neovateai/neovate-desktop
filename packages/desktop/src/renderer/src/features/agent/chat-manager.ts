@@ -1,4 +1,5 @@
 import type { ContractRouterClient } from "@orpc/contract";
+
 import { agentContract } from "../../../../shared/features/agent/contract";
 import { client } from "../../orpc";
 import { ClaudeCodeChat } from "./chat";
@@ -15,21 +16,23 @@ export class ClaudeCodeChatManager {
   }
 
   async createSession(cwd: string) {
-    const { sessionId, ...capabilities } = await this.rpc.claudeCode.createSession({ cwd });
+    const { sessionId, currentModel, modelScope, ...capabilities } =
+      await this.rpc.claudeCode.createSession({ cwd });
     const chat = new ClaudeCodeChat({
       id: sessionId,
       transport: this.transport,
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);
-    return { sessionId, ...capabilities };
+    return { sessionId, currentModel, modelScope, ...capabilities };
   }
 
   async loadSession(sessionId: string, cwd: string) {
-    const { capabilities, messages } = await this.rpc.claudeCode.loadSession({
-      sessionId,
-      cwd,
-    });
+    const { capabilities, messages, currentModel, modelScope } =
+      await this.rpc.claudeCode.loadSession({
+        sessionId,
+        cwd,
+      });
 
     const chat = new ClaudeCodeChat({
       id: sessionId,
@@ -38,7 +41,7 @@ export class ClaudeCodeChatManager {
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);
-    return { sessionId, ...capabilities };
+    return { sessionId, currentModel, modelScope, ...capabilities };
   }
 
   getChat(sessionId: string) {

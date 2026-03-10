@@ -1,20 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
 import debug from "debug";
 import { Plus } from "lucide-react";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
-import { useConfigStore } from "../../config/store";
-import { Button } from "../../../components/ui/button";
-import { useNewSession } from "../hooks/use-new-session";
-import { useLoadSession } from "../hooks/use-load-session";
-import { UnifiedSessionItem } from "./unified-session-item";
-import { SidebarTitleBar } from "./sidebar-title-bar";
-import { PinnedSessionList } from "./pinned-session-list";
-import { ProjectAccordionList } from "./project-accordion-list";
-import { ChronologicalList } from "./chronological-list";
+import { useEffect, useMemo, useState } from "react";
+
+import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
 import type { ChatSession } from "../store";
-import type { SessionInfo } from "../../../../../shared/features/agent/types";
+
+import { Button } from "../../../components/ui/button";
+import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
+import { useLoadSession } from "../hooks/use-load-session";
+import { useNewSession } from "../hooks/use-new-session";
+import { useAgentStore } from "../store";
+import { ChronologicalList } from "./chronological-list";
+import { PinnedSessionList } from "./pinned-session-list";
+import { ProjectAccordionList } from "./project-accordion-list";
+import { SidebarTitleBar } from "./sidebar-title-bar";
+import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:session-list");
 
@@ -155,19 +157,16 @@ function SingleProjectSessionList() {
       <Button
         variant="outline"
         size="sm"
-        className="mt-1 w-full"
+        className="mb-2 w-full"
         onClick={() => createNewSession(projectPath)}
       >
         <Plus size={14} />
         <span>New Chat</span>
       </Button>
 
-      <ul className="flex flex-col gap-0.5">
+      <ul className="flex flex-col">
         {pinnedItems.length > 0 && (
           <>
-            <li className="px-2 pt-2">
-              <span className="text-[10px] font-medium text-muted-foreground">Pinned</span>
-            </li>
             {pinnedItems.map((item) => {
               const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
               return (

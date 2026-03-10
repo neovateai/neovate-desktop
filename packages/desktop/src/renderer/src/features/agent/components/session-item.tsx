@@ -3,11 +3,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Archive, Pin, PinOff } from "lucide-react";
 import { memo, useState } from "react";
-import { cn } from "../../../lib/utils";
+
 import { Spinner } from "../../../components/ui/spinner";
-import { useAgentStore } from "../store";
-import { useProjectStore } from "../../project/store";
+import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
+import { useAgentStore } from "../store";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 function formatRelativeTime(iso: string): string {
@@ -132,15 +133,15 @@ export const SessionItem = memo(function SessionItem({
             )}
           </button>
           <div className="group-hover:hidden">
-            {isProcessing ? (
-              <Spinner className="size-3.5" />
-            ) : hasPendingPermission ? (
+            {hasPendingPermission ? (
               <HugeiconsIcon
                 icon={HelpCircleIcon}
                 size={14}
                 strokeWidth={1.5}
                 className="text-warning-foreground"
               />
+            ) : isProcessing ? (
+              <Spinner className="size-3.5" />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
             ) : (

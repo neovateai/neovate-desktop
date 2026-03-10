@@ -1,5 +1,6 @@
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
+
 import { getCodeServerBinaryPath } from "./constants";
 
 /** 通过修改产物的方式实现强制样式修改 */

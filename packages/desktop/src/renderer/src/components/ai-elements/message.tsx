@@ -3,10 +3,6 @@
 import type { UIMessage } from "ai";
 import type { ComponentProps, FC, HTMLAttributes, ReactElement } from "react";
 
-import { Button } from "../ui/button";
-import { ButtonGroup, ButtonGroupText } from "../ui/group";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { cn } from "../../lib/utils";
 import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
@@ -14,6 +10,11 @@ import { mermaid } from "@streamdown/mermaid";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
+
+import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { ButtonGroup, ButtonGroupText } from "../ui/group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];

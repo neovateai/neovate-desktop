@@ -1,12 +1,13 @@
 import { MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useConfigStore } from "../../../config/store";
+
 import type {
   ApprovalMode,
   NotificationSound,
   AgentLanguage,
   SendMessageWith,
 } from "../../../../../../shared/features/config/types";
+
 import {
   Select,
   SelectItem,
@@ -16,6 +17,7 @@ import {
 } from "../../../../components/ui/select";
 import { Spinner } from "../../../../components/ui/spinner";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
+import { useConfigStore } from "../../../config/store";
 import { SettingsRow } from "../settings-row";
 
 // Translation key mappings

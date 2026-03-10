@@ -1,13 +1,14 @@
 import { Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { localeOptions, type Locales } from "../../../../core/i18n";
-import { useRendererApp } from "../../../../core";
-import { useConfigStore } from "../../../config/store";
-import { client } from "../../../../orpc";
+
 import { Input } from "../../../../components/ui/input";
 import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
+import { useRendererApp } from "../../../../core";
+import { localeOptions, type Locales } from "../../../../core/i18n";
+import { client } from "../../../../orpc";
+import { useConfigStore } from "../../../config/store";
 import { SettingsRow } from "../settings-row";
 
 export const GeneralPanel = () => {

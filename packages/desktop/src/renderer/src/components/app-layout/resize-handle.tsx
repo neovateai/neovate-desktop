@@ -1,9 +1,11 @@
 import { type CSSProperties, useRef, useCallback } from "react";
-import { cn } from "../../lib/utils";
-import { useLayoutStore } from "./store";
+
 import type { SeparatorId } from "./types";
+
+import { cn } from "../../lib/utils";
 import { separatorIdToIndex } from "./constants";
 import { isSeparatorVisible } from "./layout-coordinator";
+import { useLayoutStore } from "./store";
 
 function useGradientTracker(separatorIndex: number) {
   const ref = useRef<HTMLDivElement>(null);

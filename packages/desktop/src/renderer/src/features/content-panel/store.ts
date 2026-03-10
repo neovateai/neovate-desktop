@@ -1,5 +1,6 @@
-import { createStore } from "zustand/vanilla";
 import { immer } from "zustand/middleware/immer";
+import { createStore } from "zustand/vanilla";
+
 import type { ProjectTabState, ContentPanelStoreState } from "./types";
 
 const EMPTY_PROJECT: ProjectTabState = { tabs: [], activeTabId: null };

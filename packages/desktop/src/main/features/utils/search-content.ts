@@ -1,6 +1,7 @@
+import debug from "debug";
 import { execFile } from "node:child_process";
 import { relative, basename, extname } from "node:path";
-import debug from "debug";
+
 import { resolveRgPath } from "./search-paths";
 
 const log = debug("neovate:search-content");

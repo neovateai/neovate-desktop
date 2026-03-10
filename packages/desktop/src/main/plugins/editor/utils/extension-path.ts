@@ -1,6 +1,7 @@
-import path from "path";
-import https from "https";
 import fs from "fs";
+import https from "https";
+import path from "path";
+
 import { EXTENSIONS_DIR } from "./constants";
 
 const RESOURCE_PATH =

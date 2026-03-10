@@ -1,10 +1,11 @@
-import { memo, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, RefreshCw, Undo2 } from "lucide-react";
+import { memo, useEffect, useState } from "react";
+
 import { type GitFile } from "../../../../shared/plugins/git/contract";
+import { usePluginContext } from "../../core/app";
+import { useProjectStore } from "../../features/project/store";
 import { useGit } from "./hooks/useGit";
 import { useGitTranslation } from "./i18n";
-import { useProjectStore } from "../../features/project/store";
-import { usePluginContext } from "../../core/app";
 
 export default memo(function GitView() {
   const { t } = useGitTranslation();

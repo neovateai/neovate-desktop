@@ -1,8 +1,9 @@
+import AdmZip from "adm-zip";
 import fs from "node:fs";
 import path from "node:path";
-import AdmZip from "adm-zip";
-import { ensureExtension } from "./extension-path";
+
 import { EXTENSIONS_DIR } from "./constants";
+import { ensureExtension } from "./extension-path";
 
 interface ExtensionManifest {
   publisher: string;

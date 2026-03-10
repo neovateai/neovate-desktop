@@ -1,12 +1,14 @@
 import { Activity, lazy, Suspense, useEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { useRendererApp } from "../../../core";
-import { useProjectStore } from "../../project/store";
-import { cn } from "../../../lib/utils";
-import { ContentPanelViewContextProvider } from "./view-context";
-import { TabBar } from "./tab-bar";
+
 import type { ContentPanelView } from "../../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../types";
+
+import { useRendererApp } from "../../../core";
+import { cn } from "../../../lib/utils";
+import { useProjectStore } from "../../project/store";
+import { TabBar } from "./tab-bar";
+import { ContentPanelViewContextProvider } from "./view-context";
 
 function useLazyComponents(views: ContentPanelView[]) {
   const cache = useRef(new Map<string, React.LazyExoticComponent<React.ComponentType>>());

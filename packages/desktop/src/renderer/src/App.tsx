@@ -1,7 +1,3 @@
-import { AgentChat, SessionList } from "./features/agent";
-import { ContentPanelRenderer } from "./features/content-panel";
-import { useSettingsStore } from "./features/settings";
-import { SettingsPage } from "./features/settings/components/settings-page";
 import { lazy, Suspense, useEffect } from "react";
 
 import {
@@ -17,7 +13,11 @@ import {
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
 } from "./components/app-layout";
+import { AgentChat, SessionList } from "./features/agent";
 import { useConfigStore } from "./features/config/store";
+import { ContentPanelRenderer } from "./features/content-panel";
+import { useSettingsStore } from "./features/settings";
+import { SettingsPage } from "./features/settings/components/settings-page";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
 const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) : null;

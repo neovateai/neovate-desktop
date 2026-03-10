@@ -1,14 +1,16 @@
-import { spawn, execSync } from "node:child_process";
-import { existsSync, statSync, rmSync, unlinkSync } from "node:fs";
+import { implement } from "@orpc/server";
 import debug from "debug";
 import { app } from "electron";
-import { implement } from "@orpc/server";
-import { utilsContract } from "../../../shared/features/utils/contract";
+import { spawn, execSync } from "node:child_process";
+import { existsSync, statSync, rmSync, unlinkSync } from "node:fs";
+
 import type { App } from "../../../shared/features/utils/types";
 import type { AppContext } from "../../router";
+
+import { utilsContract } from "../../../shared/features/utils/contract";
 import { getShellEnvironment } from "../agent/shell-env";
-import { searchPaths } from "./search-paths";
 import { searchWithContent } from "./search-content";
+import { searchPaths } from "./search-paths";
 
 const log = debug("neovate:utils-router");
 

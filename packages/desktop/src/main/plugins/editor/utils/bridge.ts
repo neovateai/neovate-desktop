@@ -1,6 +1,7 @@
+import type { WebContents } from "electron";
+
 import { EventEmitter } from "events";
 import net from "net";
-import type { WebContents } from "electron";
 import { randomUUID } from "node:crypto";
 
 interface IBridgeRequestParams {

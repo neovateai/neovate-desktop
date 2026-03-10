@@ -1,6 +1,9 @@
 import { memo } from "react";
-import { SessionItem } from "./session-item";
+
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
+
+import { useSessionChatStatus } from "../hooks/use-session-chat-status";
+import { SessionItem } from "./session-item";
 
 interface UnifiedSessionItemProps {
   item: UnifiedItem;
@@ -21,6 +24,9 @@ export const UnifiedSessionItem = memo(function UnifiedSessionItem({
   onLoad,
   onAfterArchive,
 }: UnifiedSessionItemProps) {
+  const sessionId = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+  const { isStreaming, hasPendingRequests } = useSessionChatStatus(sessionId);
+
   if (item.kind === "memory") {
     const s = item.session;
     return (
@@ -31,8 +37,8 @@ export const UnifiedSessionItem = memo(function UnifiedSessionItem({
         isActive={s.sessionId === activeSessionId}
         isPinned={isPinned}
         isRestoring={false}
-        isStreaming={s.streaming}
-        hasPendingPermission={s.pendingPermission !== null}
+        isStreaming={isStreaming}
+        hasPendingPermission={hasPendingRequests}
         onClick={() => onActivate(s.sessionId)}
         onAfterArchive={onAfterArchive}
         projectPath={item.projectPath}
@@ -48,6 +54,8 @@ export const UnifiedSessionItem = memo(function UnifiedSessionItem({
       isActive={false}
       isPinned={isPinned}
       isRestoring={restoring === info.sessionId}
+      isStreaming={isStreaming}
+      hasPendingPermission={hasPendingRequests}
       onClick={() => onLoad(info.sessionId)}
       onAfterArchive={onAfterArchive}
       projectPath={item.projectPath}

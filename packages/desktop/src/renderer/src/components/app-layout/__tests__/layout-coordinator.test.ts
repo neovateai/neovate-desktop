@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+
+import type { PanelMap, LayoutContext } from "../types";
+
 import {
   constrainWidth,
   computeMaxAvailableWidth,
@@ -8,7 +11,6 @@ import {
   isSeparatorVisible,
 } from "../layout-coordinator";
 import { getDescriptor } from "../panel-descriptors";
-import type { PanelMap, LayoutContext } from "../types";
 
 function makePanels(
   overrides: Partial<Record<string, { width: number; collapsed: boolean }>> = {},

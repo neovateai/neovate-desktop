@@ -1,5 +1,19 @@
 import { ChevronDown, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import type { App } from "../../../../../shared/features/utils/types";
+
+import antigravityIcon from "../../../assets/icons/antigravity.png";
+import cursorIcon from "../../../assets/icons/cursor.png";
+import finderIcon from "../../../assets/icons/finder.png";
+import itermIcon from "../../../assets/icons/iterm.png";
+import sourcetreeIcon from "../../../assets/icons/sourcetree.png";
+import terminalIcon from "../../../assets/icons/terminal.png";
+import vscodeInsidersIcon from "../../../assets/icons/vscode-insiders.png";
+import vscodeIcon from "../../../assets/icons/vscode.png";
+import warpIcon from "../../../assets/icons/warp.png";
+import windsurfIcon from "../../../assets/icons/windsurf.png";
+import zedIcon from "../../../assets/icons/zed.png";
 import { Button } from "../../../components/ui/button";
 import {
   DropdownMenu,
@@ -8,21 +22,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "../../../components/ui/menu";
+import { DEFAULT_KEYBINDINGS, formatKeyForDisplay } from "../../../lib/keybindings";
 import { client } from "../../../orpc";
 import { useConfigStore } from "../../config/store";
-import { DEFAULT_KEYBINDINGS, formatKeyForDisplay } from "../../../lib/keybindings";
-import type { App } from "../../../../../shared/features/utils/types";
-import antigravityIcon from "../../../assets/icons/antigravity.png";
-import cursorIcon from "../../../assets/icons/cursor.png";
-import finderIcon from "../../../assets/icons/finder.png";
-import itermIcon from "../../../assets/icons/iterm.png";
-import sourcetreeIcon from "../../../assets/icons/sourcetree.png";
-import terminalIcon from "../../../assets/icons/terminal.png";
-import vscodeIcon from "../../../assets/icons/vscode.png";
-import vscodeInsidersIcon from "../../../assets/icons/vscode-insiders.png";
-import warpIcon from "../../../assets/icons/warp.png";
-import windsurfIcon from "../../../assets/icons/windsurf.png";
-import zedIcon from "../../../assets/icons/zed.png";
 
 const APP_NAMES: Record<App, string> = {
   cursor: "Cursor",

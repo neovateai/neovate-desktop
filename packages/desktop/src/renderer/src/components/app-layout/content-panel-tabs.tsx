@@ -1,11 +1,13 @@
+import { X, Plus } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { X, Plus } from "lucide-react";
-import { useRendererApp } from "../../core";
-import { useProjectStore } from "../../features/project/store";
-import { ContentPanelViewContextProvider } from "../../features/content-panel";
+
 import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../../features/content-panel/types";
+
+import { useRendererApp } from "../../core";
+import { ContentPanelViewContextProvider } from "../../features/content-panel";
+import { useProjectStore } from "../../features/project/store";
 
 function useLazyComponents(views: ContentPanelView[]) {
   const cache = useRef(new Map<string, React.LazyExoticComponent<React.ComponentType>>());

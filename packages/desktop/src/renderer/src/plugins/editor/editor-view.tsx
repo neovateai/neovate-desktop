@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { usePluginContext } from "../../core/app";
 import { ContractRouterClient } from "@orpc/contract";
+import { useEffect, useRef, useState } from "react";
+
 import { editorContract } from "../../../../shared/plugins/editor/contract";
+import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
-import { EditorStatus } from "./type";
 import { ErrorState, LoadingState } from "./status";
+import { EditorStatus } from "./type";
 
 type EditorClient = ContractRouterClient<{ editor: typeof editorContract }>;
 

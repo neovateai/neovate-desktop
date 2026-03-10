@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { SettingsService, type SettingsServiceOptions } from "../service";
+
 import { DEFAULT_SETTINGS } from "../../../../../shared/features/settings/schema";
+import { SettingsService, type SettingsServiceOptions } from "../service";
 
 describe("SettingsService", () => {
   let load: ReturnType<typeof vi.fn<SettingsServiceOptions["load"]>>;

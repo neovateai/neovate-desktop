@@ -1,6 +1,7 @@
+import type { IPty } from "node-pty";
+
 import { EventPublisher } from "@orpc/server";
 import * as pty from "node-pty";
-import type { IPty } from "node-pty";
 
 export interface PtySession {
   pty: IPty;

@@ -1,6 +1,8 @@
 import { implement } from "@orpc/server";
-import { storageContract } from "../../../shared/features/storage/contract";
+
 import type { AppContext } from "../../router";
+
+import { storageContract } from "../../../shared/features/storage/contract";
 
 const os = implement({ storage: storageContract }).$context<AppContext>();
 

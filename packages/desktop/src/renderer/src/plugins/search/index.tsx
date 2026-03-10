@@ -1,5 +1,6 @@
 import { Search02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+
 import type { RendererPlugin } from "../../core/plugin";
 
 const SearchIcon = ({ className }: { className?: string }) => (

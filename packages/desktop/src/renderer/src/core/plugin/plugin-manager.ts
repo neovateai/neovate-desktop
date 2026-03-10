@@ -1,6 +1,7 @@
-import { buildContributions, PluginContributions, type WindowContribution } from "./contributions";
 import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
+
+import { buildContributions, PluginContributions, type WindowContribution } from "./contributions";
 
 type HookFn = (...args: unknown[]) => unknown;
 

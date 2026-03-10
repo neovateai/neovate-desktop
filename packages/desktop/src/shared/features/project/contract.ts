@@ -1,5 +1,6 @@
 import { oc, type } from "@orpc/contract";
 import { z } from "zod";
+
 import type { Project } from "./types";
 
 export const projectContract = {

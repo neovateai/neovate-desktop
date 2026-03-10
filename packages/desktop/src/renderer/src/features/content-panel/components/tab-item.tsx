@@ -1,10 +1,13 @@
 import type React from "react";
+
 import { X, TriangleAlert } from "lucide-react";
-import { useRendererApp } from "../../../core";
-import { cn } from "../../../lib/utils";
+
+import type { Tab } from "../types";
+
 import { Button } from "../../../components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../../../components/ui/tooltip";
-import type { Tab } from "../types";
+import { useRendererApp } from "../../../core";
+import { cn } from "../../../lib/utils";
 
 function TabButton({
   tab,

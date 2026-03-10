@@ -1,8 +1,10 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+
 import type { AppConfig } from "../../../../shared/features/config/types";
-import { client } from "../../orpc";
+
 import { DEFAULT_KEYBINDINGS, type KeybindingAction } from "../../lib/keybindings";
+import { client } from "../../orpc";
 
 type KeybindingsConfig = Record<KeybindingAction, string>;
 

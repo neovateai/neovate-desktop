@@ -1,6 +1,6 @@
+import Store from "electron-store";
 import os from "node:os";
 import path from "node:path";
-import Store from "electron-store";
 
 const DEFAULT_BASE_DIR = path.join(os.homedir(), ".neovate-desktop");
 

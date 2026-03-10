@@ -1,5 +1,7 @@
-import { os } from "@orpc/server";
 import type { AnyRouter } from "@orpc/server";
+
+import { os } from "@orpc/server";
+
 import type { IMainApp } from "../types";
 
 export interface PluginContext {

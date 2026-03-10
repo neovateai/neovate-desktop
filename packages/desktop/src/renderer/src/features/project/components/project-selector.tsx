@@ -1,7 +1,9 @@
+import type React from "react";
+
 import { Delete02Icon, FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
-import type React from "react";
+
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../../../components/ui/menu";
 import { useProject } from "../hooks/use-project";
 

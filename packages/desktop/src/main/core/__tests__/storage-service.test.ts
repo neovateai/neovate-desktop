@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { StorageService } from "../storage-service";
 
 // Mock electron-store — replicate its dot-path get/set behavior

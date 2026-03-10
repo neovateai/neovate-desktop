@@ -1,4 +1,5 @@
 import { Activity, type ReactNode, useEffect, useRef, useState } from "react";
+
 import { useLayoutStore } from "./store";
 
 type AppLayoutPanelActivityProps = {

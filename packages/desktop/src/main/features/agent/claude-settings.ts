@@ -1,7 +1,9 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import debug from "debug";
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+import type { ModelScope } from "../../../shared/features/agent/types";
 
 const log = debug("neovate:claude-settings");
 
@@ -11,68 +13,106 @@ function sessionConfigPath(sessionId: string): string {
   return join(SESSIONS_DIR, `${sessionId}.json`);
 }
 
+function readJsonFile(filePath: string): Record<string, unknown> | undefined {
+  try {
+    return JSON.parse(readFileSync(filePath, "utf-8"));
+  } catch {
+    return undefined;
+  }
+}
+
+function writeJsonFile(filePath: string, data: Record<string, unknown>): void {
+  const dir = join(filePath, "..");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf-8");
+}
+
 /**
  * Read the effective model for a session.
  * Priority:
  *   1. ~/.neovate-desktop/sessions/<sessionId>.json  (session-scoped)
- *   2. <cwd>/.claude/settings.local.json
- *   3. <cwd>/.claude/settings.json
- *   4. ~/.claude/settings.json
+ *   2. <cwd>/.claude/settings.local.json             (project-scoped)
+ *   3. ~/.claude/settings.json                       (global)
  */
-export function readModelFromSettings(sessionId: string, cwd: string): string | undefined {
-  // 1. Session-scoped config (highest priority)
-  try {
-    const raw = readFileSync(sessionConfigPath(sessionId), "utf-8");
-    const json = JSON.parse(raw);
-    if (typeof json.model === "string" && json.model) {
-      log("readModelFromSettings: found model=%s in session config sid=%s", json.model, sessionId);
-      return json.model;
-    }
-  } catch {
-    // not found — fall through
+export function readModelSetting(
+  sessionId: string,
+  cwd: string,
+): { model: string; scope: ModelScope } | undefined {
+  // 1. Session-scoped
+  const sessionJson = readJsonFile(sessionConfigPath(sessionId));
+  if (typeof sessionJson?.model === "string" && sessionJson.model) {
+    log("readModelSetting: session scope model=%s sid=%s", sessionJson.model, sessionId);
+    return { model: sessionJson.model, scope: "session" };
   }
 
-  // 2. Claude settings chain
-  const sources = [
-    join(cwd, ".claude", "settings.local.json"),
-    join(cwd, ".claude", "settings.json"),
-    join(homedir(), ".claude", "settings.json"),
-  ];
-
-  for (const path of sources) {
-    try {
-      const raw = readFileSync(path, "utf-8");
-      const json = JSON.parse(raw);
-      if (typeof json.model === "string" && json.model) {
-        log("readModelFromSettings: found model=%s in %s", json.model, path);
-        return json.model;
-      }
-    } catch {
-      // file doesn't exist or invalid JSON — skip
-    }
+  // 2. Project-scoped
+  const projectJson = readJsonFile(join(cwd, ".claude", "settings.local.json"));
+  if (typeof projectJson?.model === "string" && projectJson.model) {
+    log("readModelSetting: project scope model=%s cwd=%s", projectJson.model, cwd);
+    return { model: projectJson.model, scope: "project" };
   }
 
-  log("readModelFromSettings: no model found, sid=%s cwd=%s", sessionId, cwd);
+  // 3. Global
+  const globalJson = readJsonFile(join(homedir(), ".claude", "settings.json"));
+  if (typeof globalJson?.model === "string" && globalJson.model) {
+    log("readModelSetting: global scope model=%s", globalJson.model);
+    return { model: globalJson.model, scope: "global" };
+  }
+
   return undefined;
 }
 
 /**
- * Write the model to ~/.neovate-desktop/sessions/<sessionId>.json.
- * Merges with existing content if the file already exists.
+ * Write (or remove) a model setting at the given scope.
+ * Pass `null` to remove the model key (e.g. "Clear session override").
  */
-export function writeModelToSettings(sessionId: string, model: string): void {
-  const filePath = sessionConfigPath(sessionId);
-
-  let existing: Record<string, unknown> = {};
-  try {
-    existing = JSON.parse(readFileSync(filePath, "utf-8"));
-  } catch {
-    // file doesn't exist or invalid — start fresh
+export function writeModelSetting(
+  scope: ModelScope,
+  model: string | null,
+  opts: { sessionId?: string; cwd?: string },
+): void {
+  switch (scope) {
+    case "session": {
+      if (!opts.sessionId) throw new Error("sessionId required for session scope");
+      const filePath = sessionConfigPath(opts.sessionId);
+      if (model === null) {
+        try {
+          unlinkSync(filePath);
+          log("writeModelSetting: removed session config sid=%s", opts.sessionId);
+        } catch {
+          // File didn't exist — no-op
+        }
+        return;
+      }
+      const existing = readJsonFile(filePath) ?? {};
+      writeJsonFile(filePath, { ...existing, model });
+      log("writeModelSetting: session scope model=%s sid=%s", model, opts.sessionId);
+      break;
+    }
+    case "project": {
+      if (!opts.cwd) throw new Error("cwd required for project scope");
+      const filePath = join(opts.cwd, ".claude", "settings.local.json");
+      const existing = readJsonFile(filePath) ?? {};
+      if (model === null) {
+        delete existing.model;
+      } else {
+        existing.model = model;
+      }
+      writeJsonFile(filePath, existing);
+      log("writeModelSetting: project scope model=%s cwd=%s", model, opts.cwd);
+      break;
+    }
+    case "global": {
+      const filePath = join(homedir(), ".claude", "settings.json");
+      const existing = readJsonFile(filePath) ?? {};
+      if (model === null) {
+        delete existing.model;
+      } else {
+        existing.model = model;
+      }
+      writeJsonFile(filePath, existing);
+      log("writeModelSetting: global scope model=%s", model);
+      break;
+    }
   }
-
-  existing.model = model;
-
-  mkdirSync(SESSIONS_DIR, { recursive: true });
-  writeFileSync(filePath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
-  log("writeModelToSettings: wrote model=%s for sid=%s", model, sessionId);
 }

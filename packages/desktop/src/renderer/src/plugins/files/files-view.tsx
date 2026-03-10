@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
 import type { ContractRouterClient } from "@orpc/contract";
+
 import { consumeEventIterator } from "@orpc/client";
 import debug from "debug";
+import { useEffect, useState } from "react";
+
+import type { Project } from "../../../../shared/features/project/types";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
-import type { Project } from "../../../../shared/features/project/types";
 import { usePluginContext } from "../../core/app";
-import { TreeNode } from "./tree-node";
 import { useProjectStore } from "../../features/project/store";
 import { useFilesTranslation } from "./i18n";
+import { TreeNode } from "./tree-node";
 
 const log = debug("neovate:files-view");
 

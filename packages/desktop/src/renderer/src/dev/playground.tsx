@@ -1,17 +1,13 @@
 import { lazy, Suspense, useState } from "react";
-import { cn } from "../lib/utils";
+
 import { ErrorBoundary } from "../components/ui/error-boundary";
+import { cn } from "../lib/utils";
 
 const PLAYGROUNDS = [
   {
     id: "ai-elements",
     label: "AI Elements",
     component: lazy(() => import("./playgrounds/ai-elements")),
-  },
-  {
-    id: "chat",
-    label: "Chat",
-    component: lazy(() => import("./playgrounds/chat")),
   },
 ] as const;
 

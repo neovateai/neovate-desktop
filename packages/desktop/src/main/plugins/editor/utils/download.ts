@@ -5,6 +5,7 @@ import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { createGunzip } from "node:zlib";
 import { extract } from "tar";
+
 import { CODE_SERVER_DIR, getArtifactUrl, getCodeServerBinaryPath } from "./constants";
 
 export class CodeServerDownloadError extends Error {

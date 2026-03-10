@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import type { MainPlugin } from "../core/plugin/types";
 
 const { mockCreateMainWindow, mockDestroyAll } = vi.hoisted(() => ({

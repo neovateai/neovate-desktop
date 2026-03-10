@@ -1,12 +1,15 @@
-import { eventIteratorToUnproxiedDataStream } from "@orpc/client";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { ChatRequestOptions, ChatTransport } from "ai";
-import { agentContract } from "../../../../shared/features/agent/contract";
+
+import { eventIteratorToUnproxiedDataStream } from "@orpc/client";
+
 import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
   ClaudeCodeUIMessage,
 } from "../../../../shared/claude-code/types";
+
+import { agentContract } from "../../../../shared/features/agent/contract";
 
 type AgentRpc = ContractRouterClient<{ agent: typeof agentContract }>["agent"];
 

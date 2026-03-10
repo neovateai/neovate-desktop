@@ -1,7 +1,9 @@
 import { implement } from "@orpc/server";
-import { configContract } from "../../../shared/features/config/contract";
+
 import type { AppConfig } from "../../../shared/features/config/types";
 import type { AppContext } from "../../router";
+
+import { configContract } from "../../../shared/features/config/contract";
 
 const os = implement({ config: configContract }).$context<AppContext>();
 

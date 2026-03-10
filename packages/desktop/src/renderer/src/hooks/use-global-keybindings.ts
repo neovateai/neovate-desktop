@@ -1,11 +1,12 @@
+import { useTheme } from "next-themes";
 import { useEffect } from "react";
-import { matchesBinding, DEFAULT_KEYBINDINGS } from "../lib/keybindings";
-import { useSettingsStore } from "../features/settings/store";
+
+import { toastManager } from "../components/ui/toast";
+import { useNewSession } from "../features/agent/hooks/use-new-session";
 import { useConfigStore } from "../features/config/store";
 import { useProjectStore } from "../features/project/store";
-import { useNewSession } from "../features/agent/hooks/use-new-session";
-import { useTheme } from "next-themes";
-import { toastManager } from "../components/ui/toast";
+import { useSettingsStore } from "../features/settings/store";
+import { matchesBinding, DEFAULT_KEYBINDINGS } from "../lib/keybindings";
 
 /**
  * Global keybinding handler for app-wide shortcuts.

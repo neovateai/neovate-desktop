@@ -1,10 +1,12 @@
-import Mention from "@tiptap/extension-mention";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import { createRoot } from "react-dom/client";
-import { createElement, createRef } from "react";
+
+import Mention from "@tiptap/extension-mention";
 import { File } from "lucide-react";
-import { SuggestionList, type SuggestionItem, type SuggestionListHandle } from "./suggestion-list";
+import { createElement, createRef } from "react";
+import { createRoot } from "react-dom/client";
+
 import { client } from "../../../orpc";
+import { SuggestionList, type SuggestionItem, type SuggestionListHandle } from "./suggestion-list";
 import { positionAboveInput } from "./suggestion-position";
 
 function fileName(p: string): string {

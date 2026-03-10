@@ -1,8 +1,11 @@
 import type { ContractRouterClient } from "@orpc/contract";
+
 import { useState } from "react";
+
 import type { GitFile } from "../../../../../shared/plugins/git/contract";
-import { gitContract } from "../../../../../shared/plugins/git/contract";
+
 import { utilsContract } from "../../../../../shared/features/utils/contract";
+import { gitContract } from "../../../../../shared/plugins/git/contract";
 import { usePluginContext } from "../../../core/app";
 
 export type Client = ContractRouterClient<{

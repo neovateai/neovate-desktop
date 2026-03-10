@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+
 import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
 
 describe("SessionManager", () => {
@@ -6,14 +7,6 @@ describe("SessionManager", () => {
 
   beforeEach(() => {
     manager = new SessionManager();
-  });
-
-  it("resolvePermission for unknown requestId does not throw", () => {
-    expect(() => manager.resolvePermission("nonexistent", true)).not.toThrow();
-  });
-
-  it("cancel for unknown sessionId does not throw", async () => {
-    await expect(manager.cancel("nonexistent")).resolves.toBeUndefined();
   });
 
   it("closeSession for unknown sessionId does not throw", async () => {

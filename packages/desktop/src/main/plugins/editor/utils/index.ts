@@ -1,11 +1,12 @@
 import { execSync } from "node:child_process";
+
+import { ExtensionBridgeServer } from "./bridge";
 import { CODE_SERVER_PORT, DATA_DIR, EXTENSION_BRIDGE_PORT, EXTENSIONS_DIR } from "./constants";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
+import { injectStyle } from "./injector";
 import { installExtension } from "./installer";
 import { overrideCodeServerSettings } from "./settings";
 import { codeServerStarter } from "./starter";
-import { injectStyle } from "./injector";
-import { ExtensionBridgeServer } from "./bridge";
 
 export class CodeServerStartError extends Error {
   constructor(

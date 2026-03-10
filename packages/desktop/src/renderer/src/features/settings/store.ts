@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { createStore } from "zustand/vanilla";
-import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
+import { createStore } from "zustand/vanilla";
+
 import type { SettingsSchema } from "../../../../shared/features/settings/schema";
 
 // --- UI State (settings modal) ---

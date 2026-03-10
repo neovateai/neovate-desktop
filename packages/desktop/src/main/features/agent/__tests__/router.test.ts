@@ -1,16 +1,15 @@
-import { describe, it, expect, vi } from "vitest";
 import { call } from "@orpc/server";
-import { agentRouter } from "../router";
-import type { SessionManager } from "../session-manager";
+import { describe, it, expect, vi } from "vitest";
+
 import type { AppContext } from "../../../router";
+import type { SessionManager } from "../session-manager";
+
+import { agentRouter } from "../router";
 
 function makeContext(overrides?: Partial<AppContext>): AppContext {
   return {
     sessionManager: {
       listSessions: vi.fn().mockResolvedValue([]),
-      createSession: vi.fn().mockResolvedValue({ sessionId: "s1" }),
-      resolvePermission: vi.fn(),
-      cancel: vi.fn().mockResolvedValue(undefined),
       renameSession: vi.fn().mockResolvedValue(undefined),
       closeSession: vi.fn(),
       closeAll: vi.fn(),
@@ -32,22 +31,9 @@ describe("agentRouter", () => {
     expect(context.sessionManager.listSessions).toHaveBeenCalledWith("/test");
   });
 
-  it("newSession delegates to sessionManager.createSession", async () => {
+  it("renameSession delegates to sessionManager", async () => {
     const context = makeContext();
-    const result = await call(agentRouter.newSession, { cwd: "/test" }, { context });
-    expect(result).toEqual({ sessionId: "s1" });
-    expect(context.sessionManager.createSession).toHaveBeenCalledWith("/test", undefined);
-  });
-
-  it("resolvePermission delegates to sessionManager", async () => {
-    const context = makeContext();
-    await call(agentRouter.resolvePermission, { requestId: "r1", allow: true }, { context });
-    expect(context.sessionManager.resolvePermission).toHaveBeenCalledWith("r1", true);
-  });
-
-  it("cancel delegates to sessionManager", async () => {
-    const context = makeContext();
-    await call(agentRouter.cancel, { sessionId: "s1" }, { context });
-    expect(context.sessionManager.cancel).toHaveBeenCalledWith("s1");
+    await call(agentRouter.renameSession, { sessionId: "s1", title: "new title" }, { context });
+    expect(context.sessionManager.renameSession).toHaveBeenCalledWith("s1", "new title");
   });
 });
