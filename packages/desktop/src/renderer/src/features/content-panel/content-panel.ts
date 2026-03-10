@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
 
+import { layoutStore } from "../../components/app-layout/store";
 import { createContentPanelStore } from "./store";
 
 export interface ContentPanelOptions {
@@ -75,6 +76,13 @@ export class ContentPanel {
   openView(viewType: string, options?: { name?: string; activate?: boolean }): string {
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) throw new Error(`Unknown view: ${viewType}`);
+
+    // 检查内容面板是否处于打开状态，如果没有打开则先打开它
+    const { panels } = layoutStore.getState();
+    const contentPanelState = panels.contentPanel;
+    if (contentPanelState?.collapsed === true) {
+      layoutStore.getState().togglePanel("contentPanel");
+    }
 
     const store = this.store.getState();
     const activate = options?.activate !== false;

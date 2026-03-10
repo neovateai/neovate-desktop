@@ -38,6 +38,7 @@ const plugin: RendererPlugin = {
         {
           id: "files",
           title: "Files",
+          deactivation: "offscreen",
           component: () => import("./files-view"),
         },
       ],

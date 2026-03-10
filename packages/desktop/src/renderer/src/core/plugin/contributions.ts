@@ -21,6 +21,7 @@ export interface SecondarySidebarView {
   id: string;
   title: string;
   component: () => Promise<{ default: React.ComponentType }>;
+  deactivation?: "offscreen" | "activity"; // default "activity"
 }
 
 export interface ContentPanelView {
