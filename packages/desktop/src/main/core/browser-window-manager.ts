@@ -23,6 +23,7 @@ function stripColors(msg: string): string {
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
+  #isQuitting = false;
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: path.join(os.homedir(), ".neovate-desktop"),
@@ -36,10 +37,6 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
-  }
-
-  setAutoUpdateQuiting(value: boolean): void {
-    this.#autoUpdateQuiting = value;
   }
 
   createMainWindow(): BrowserWindow {
@@ -71,7 +68,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     // Persist bounds before close/hide
     win.on("close", (event) => {
       this.#store.set("bounds", win.getNormalBounds());
-      if (process.platform === "darwin" && !this.#isQuitting && !this.#autoUpdateQuiting) {
+      if (process.platform === "darwin" && !this.#isQuitting) {
         event.preventDefault();
         win.hide();
       }

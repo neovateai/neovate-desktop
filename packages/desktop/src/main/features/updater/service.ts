@@ -1,11 +1,9 @@
 import { autoUpdater } from "electron-updater";
-import type { IBrowserWindowManager } from "../../core/types";
 import type { UpdaterState } from "../../../shared/features/updater/types";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
 export class UpdaterService {
-  constructor(private readonly windowManager: IBrowserWindowManager) {}
 
   private state: UpdaterState = { status: "idle" };
   private listeners = new Set<(state: UpdaterState) => void>();
@@ -70,7 +68,6 @@ export class UpdaterService {
     if (this.state.status !== "ready") {
       return;
     }
-    this.windowManager.setAutoUpdateQuiting(true);
     autoUpdater.quitAndInstall();
   }
 

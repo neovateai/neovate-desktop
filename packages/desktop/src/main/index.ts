@@ -36,7 +36,7 @@ const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin],
 });
-const updaterService = new UpdaterService(mainApp.windowManager);
+const updaterService = new UpdaterService();
 
 const appContext: AppContext = {
   sessionManager,
