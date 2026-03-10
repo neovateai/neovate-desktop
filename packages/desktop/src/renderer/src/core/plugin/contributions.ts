@@ -22,7 +22,6 @@ export interface SecondarySidebarView {
   title: string;
   deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "activity"
   component: () => Promise<{ default: React.ComponentType }>;
-  deactivation?: "offscreen" | "activity"; // default "activity"
 }
 
 export interface ContentPanelView {
