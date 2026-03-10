@@ -103,6 +103,7 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   interrupt = async () => {
     await this.dispatch({ kind: "interrupt" });
+    this.store.setState({ pendingRequests: [] });
     await this.stop();
   };
 
