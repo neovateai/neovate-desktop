@@ -1,6 +1,7 @@
 ---
 name: test-auto-update
 description: E2E test the Electron auto-updater with local builds, screen recording, and verification. Use when asked to "test auto update", "verify updater", or "record update demo". macOS only.
+disable-model-invocation: true
 ---
 
 # Test Auto-Update
