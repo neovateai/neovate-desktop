@@ -1,4 +1,5 @@
 import { ContractRouterClient } from "@orpc/contract";
+import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
 import { editorContract } from "../../../../shared/plugins/editor/contract";
@@ -17,6 +18,7 @@ function EditorViewCore(props: { cwd: string }) {
   const [status, setStatus] = useState<EditorStatus>("idle");
   const initRef = useRef(false);
   const [extReady, seExtReady] = useState(false); // vscode 扩展就绪情况
+  const { resolvedTheme } = useTheme();
 
   const { orpcClient } = usePluginContext();
   const client = orpcClient as EditorClient;
@@ -42,6 +44,12 @@ function EditorViewCore(props: { cwd: string }) {
       return () => {};
     }
   }, [extReady]);
+
+  useEffect(() => {
+    if (extReady) {
+      client.editor.setTheme({ cwd, theme: resolvedTheme || "dark" });
+    }
+  }, [resolvedTheme, extReady]);
 
   const initExtensionHandlers = () => {
     const disposable: Array<() => void> = [];

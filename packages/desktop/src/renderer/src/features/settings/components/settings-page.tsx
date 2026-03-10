@@ -34,7 +34,7 @@ export const SettingsPage = () => {
   }, [setShowSettings, keybindings]);
 
   return (
-    <div className="flex h-full bg-card">
+    <div className="absolute inset-0 z-50 flex bg-card">
       {/* Left Sidebar */}
       <SettingsMenu activeMenu={activeMenu} onMenuSelect={setActiveMenu} />
 

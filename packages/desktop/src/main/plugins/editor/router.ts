@@ -37,5 +37,13 @@ export function createEditorRouter(
       );
       return res;
     }),
+    setTheme: orpcServer.handler(async ({ input }) => {
+      const { cwd = "", theme = "" } = input as { cwd: string; theme: string };
+      const res = await extBridge.send(
+        { operationType: "editor.theme.set", params: { theme } },
+        cwd,
+      );
+      return res;
+    }),
   });
 }

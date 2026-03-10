@@ -49,42 +49,41 @@ export default function App() {
     );
   }
 
-  // Show Settings page when settings mode is active
-  if (showSettings) {
-    return <SettingsPage />;
-  }
-
   return (
-    <AppLayoutRoot>
-      <AppLayoutTrafficLights />
+    <>
+      <AppLayoutRoot>
+        <AppLayoutTrafficLights />
 
-      <AppLayoutPrimarySidebar>
-        <div className="flex h-full flex-col p-3">
-          <SessionList />
-        </div>
-      </AppLayoutPrimarySidebar>
+        <AppLayoutPrimarySidebar>
+          <div className="flex h-full flex-col p-3">
+            <SessionList />
+          </div>
+        </AppLayoutPrimarySidebar>
 
-      <AppLayoutPanelSeparator id="primarySidebar:chatPanel" />
+        <AppLayoutPanelSeparator id="primarySidebar:chatPanel" />
 
-      <AppLayoutTitleBar>
-        <AppLayoutPrimaryTitleBar />
-        <AppLayoutSecondaryTitleBar />
-      </AppLayoutTitleBar>
+        <AppLayoutTitleBar>
+          <AppLayoutPrimaryTitleBar />
+          <AppLayoutSecondaryTitleBar />
+        </AppLayoutTitleBar>
 
-      <AppLayoutChatPanel>
-        <AgentChat />
-      </AppLayoutChatPanel>
+        <AppLayoutChatPanel>
+          <AgentChat />
+        </AppLayoutChatPanel>
 
-      <AppLayoutPanelSeparator id="chatPanel:contentPanel" />
+        <AppLayoutPanelSeparator id="chatPanel:contentPanel" />
 
-      <AppLayoutContentPanel>
-        <ContentPanelRenderer />
-      </AppLayoutContentPanel>
+        <AppLayoutContentPanel>
+          <ContentPanelRenderer />
+        </AppLayoutContentPanel>
 
-      <AppLayoutPanelSeparator id="contentPanel:secondarySidebar" />
+        <AppLayoutPanelSeparator id="contentPanel:secondarySidebar" />
 
-      <AppLayoutSecondarySidebar />
-      <AppLayoutActivityBar />
-    </AppLayoutRoot>
+        <AppLayoutSecondarySidebar />
+        <AppLayoutActivityBar />
+      </AppLayoutRoot>
+
+      {showSettings && <SettingsPage />}
+    </>
   );
 }
