@@ -10,6 +10,7 @@ describe("main router context wiring", () => {
     const context = {
       sessionManager: {} as unknown as AppDependencies["sessionManager"],
       configStore: {} as unknown as AppDependencies["configStore"],
+      providerStore: {} as unknown as AppDependencies["providerStore"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
       stateStore: {} as unknown as AppDependencies["stateStore"],
       mainApp: { windowManager: { mainWindow: null } } as any,

@@ -83,6 +83,22 @@
   "settings.keybindings.toggleMultiProject": "切换多项目支持",
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 
+  "settings.providers": "服务商",
+  "settings.providers.empty": "未配置服务商。添加一个以使用第三方 API 端点。",
+  "settings.providers.add": "添加服务商",
+  "settings.providers.name": "名称",
+  "settings.providers.baseURL": "API 地址",
+  "settings.providers.apiKey": "API 密钥",
+  "settings.providers.enabled": "启用",
+  "settings.providers.models": "模型",
+  "settings.providers.modelId": "模型 ID",
+  "settings.providers.displayName": "显示名称（可选）",
+  "settings.providers.modelMap": "模型映射",
+  "settings.providers.envOverrides": "环境变量覆盖",
+  "settings.providers.create": "创建",
+  "settings.providers.save": "保存",
+  "settings.providers.cancel": "取消",
+
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",
 

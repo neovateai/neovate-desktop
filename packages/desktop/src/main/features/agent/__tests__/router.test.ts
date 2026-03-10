@@ -15,6 +15,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
       closeAll: vi.fn(),
     } as unknown as SessionManager,
     configStore: {} as any,
+    providerStore: {} as any,
     projectStore: {} as any,
     mainApp: { windowManager: { mainWindow: null } } as any,
     storage: {} as any,

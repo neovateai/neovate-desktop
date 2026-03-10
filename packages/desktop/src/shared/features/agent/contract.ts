@@ -21,12 +21,21 @@ export const agentContract = {
 
   claudeCode: {
     createSession: oc
-      .input(z.object({ cwd: z.string(), model: z.string().optional() }))
+      .input(
+        z.object({
+          cwd: z.string(),
+          model: z.string().optional(),
+          providerId: z.string().nullable().optional(),
+        }),
+      )
       .output(
         type<
-          { sessionId: string; currentModel?: string; modelScope?: ModelScope } & Awaited<
-            ReturnType<Query["initializationResult"]>
-          >
+          {
+            sessionId: string;
+            currentModel?: string;
+            modelScope?: ModelScope;
+            providerId?: string;
+          } & Awaited<ReturnType<Query["initializationResult"]>>
         >(),
       ),
 
@@ -51,6 +60,7 @@ export const agentContract = {
         messages: ClaudeCodeUIMessage[];
         currentModel?: string;
         modelScope?: ModelScope;
+        providerId?: string;
       }>(),
     ),
   },

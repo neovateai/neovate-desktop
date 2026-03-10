@@ -4,6 +4,7 @@ import {
   HelpCircle,
   Keyboard,
   MessageSquare,
+  Server,
   Settings,
   Wand2,
 } from "lucide-react";
@@ -22,6 +23,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { id: "general", icon: Settings },
   { id: "chat", icon: MessageSquare },
+  { id: "providers", icon: Server },
   { id: "rules", icon: BookOpen },
   { id: "skills", icon: Wand2 },
   { id: "keybindings", icon: Keyboard },
@@ -31,6 +33,7 @@ const menuItems: MenuItem[] = [
 const MENU_LABEL_KEYS = {
   general: "settings.general",
   chat: "settings.chat",
+  providers: "settings.providers",
   rules: "settings.rules",
   skills: "settings.skills",
   keybindings: "settings.keybindings",

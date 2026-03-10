@@ -60,6 +60,7 @@ export type ChatSession = {
   availableModels: ModelInfo[];
   currentModel?: string;
   modelScope?: ModelScope;
+  providerId?: string;
   usage?: SessionUsage;
   tasks: Map<string, TaskState>;
 };
@@ -86,6 +87,7 @@ type AgentState = {
   setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
   setCurrentModel: (sessionId: string, model: string) => void;
   setModelScope: (sessionId: string, scope: ModelScope | undefined) => void;
+  setProviderId: (sessionId: string, providerId: string | undefined) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
 };
 
@@ -221,6 +223,14 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.modelScope = scope;
+      });
+    },
+
+    setProviderId: (sessionId, providerId) => {
+      storeLog("setProviderId: sid=%s providerId=%s", sessionId, providerId);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.providerId = providerId;
       });
     },
 

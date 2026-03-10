@@ -25,9 +25,14 @@ export const agentRouter = os.agent.router({
 
   claudeCode: os.agent.claudeCode.router({
     createSession: os.agent.claudeCode.createSession.handler(async ({ input, context }) => {
-      agentLog("claudeCode.createSession: cwd=%s model=%s", input.cwd, input.model);
+      agentLog(
+        "claudeCode.createSession: cwd=%s model=%s providerId=%s",
+        input.cwd,
+        input.model,
+        input.providerId,
+      );
       try {
-        return await context.sessionManager.createSession(input.cwd, input.model);
+        return await context.sessionManager.createSession(input.cwd, input.model, input.providerId);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to create session";
         throw new ORPCError("BAD_GATEWAY", { defined: true, message });

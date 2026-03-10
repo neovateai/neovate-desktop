@@ -21,9 +21,11 @@ import type {
   ClaudeCodeUIDispatchResult,
 } from "../../../shared/claude-code/types";
 import type { ModelScope, SessionInfo } from "../../../shared/features/agent/types";
+import type { Provider } from "../../../shared/features/provider/types";
+import type { ProviderStore } from "../provider/provider-store";
 
 import { createSpawnFunction, resolveSDKCliPath } from "./claude-code-utils";
-import { readModelSetting } from "./claude-settings";
+import { readModelSetting, readProviderSetting, readProviderModelSetting } from "./claude-settings";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
 import { getShellEnvironment } from "./shell-env";
@@ -61,6 +63,17 @@ function listSessionFiles(filter?: string): string[] {
 /** Auto-cancel permission requests after 5 minutes of no UI response. */
 export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 
+const ENV_BLOCKLIST = new Set([
+  "ELECTRON_RUN_AS_NODE",
+  "NODE_OPTIONS",
+  "PATH",
+  "HOME",
+  "SHELL",
+  "USER",
+  "LD_PRELOAD",
+  "DYLD_INSERT_LIBRARIES",
+]);
+
 export class SessionManager {
   // Single global publisher — sessionId is the channel key
   readonly eventPublisher = new EventPublisher<Record<string, ClaudeCodeUIEvent>>();
@@ -72,6 +85,7 @@ export class SessionManager {
       input: Pushable<SDKUserMessage>;
       query: Query;
       cwd: string;
+      providerId?: string;
       pendingRequests: Map<
         string,
         {
@@ -82,14 +96,18 @@ export class SessionManager {
     }
   >();
 
+  constructor(private providerStore: ProviderStore) {}
+
   private queryOptions({
     sessionId,
     model,
     cwd,
+    hasProvider,
   }: {
     sessionId: string;
     model?: string;
     cwd: string;
+    hasProvider?: boolean;
   }): Options {
     const cliPath = resolveSDKCliPath();
     return {
@@ -97,7 +115,7 @@ export class SessionManager {
       model,
       cwd,
       pathToClaudeCodeExecutable: cliPath,
-      settingSources: ["local", "project", "user"],
+      settingSources: hasProvider ? ["project"] : ["local", "project", "user"],
       permissionMode: "default",
       systemPrompt: {
         type: "preset",
@@ -153,22 +171,81 @@ export class SessionManager {
   async createSession(
     cwd: string,
     model?: string,
+    explicitProviderId?: string | null,
   ): Promise<
-    { sessionId: string; currentModel?: string; modelScope?: ModelScope } & Awaited<
-      ReturnType<Query["initializationResult"]>
-    >
+    {
+      sessionId: string;
+      currentModel?: string;
+      modelScope?: ModelScope;
+      providerId?: string;
+    } & Awaited<ReturnType<Query["initializationResult"]>>
   > {
     const sessionId = randomUUID();
-    // Resolve model: explicit param > project/global settings
-    const modelSetting = model
-      ? { model, scope: "session" as const }
-      : readModelSetting(sessionId, cwd);
-    const initResult = await this.initSession(sessionId, cwd, { model: modelSetting?.model });
+    log(
+      "createSession: sessionId=%s cwd=%s model=%s explicitProviderId=%s",
+      sessionId,
+      cwd,
+      model ?? "(auto)",
+      explicitProviderId ?? "(none)",
+    );
+
+    // Resolve provider: explicit param overrides settings chain
+    // null = force no provider (SDK Default), undefined = use settings chain
+    let provider: Provider | undefined;
+    if (explicitProviderId === null) {
+      log("createSession: explicit null providerId — forcing SDK Default");
+    } else if (explicitProviderId) {
+      const p = this.providerStore.getProvider(explicitProviderId);
+      if (p?.enabled) {
+        provider = p;
+        log("createSession: using explicit provider=%s", p.name);
+      } else {
+        log(
+          "createSession: explicit provider id=%s not found or disabled, falling through",
+          explicitProviderId,
+        );
+      }
+    }
+    if (explicitProviderId === undefined && !provider) {
+      const providerSetting = readProviderSetting(sessionId, cwd, this.providerStore);
+      provider = providerSetting?.provider;
+    }
+
+    if (provider && !explicitProviderId) {
+      log("createSession: resolved provider=%s from settings", provider.name);
+    }
+
+    // Resolve model: explicit param > settings chain (provider-aware or SDK-default)
+    // When explicitProviderId === null (force SDK Default), skip model settings
+    // to avoid picking up a provider-specific model from the settings chain.
+    let modelSetting: { model: string; scope: ModelScope } | undefined;
+    if (model) {
+      modelSetting = { model, scope: "session" };
+    } else if (explicitProviderId === null) {
+      // Let SDK use its own defaults
+    } else if (provider) {
+      modelSetting = readProviderModelSetting(sessionId, cwd, provider, this.providerStore);
+    } else {
+      modelSetting = readModelSetting(sessionId, cwd);
+    }
+
+    log(
+      "createSession: resolved model=%s scope=%s providerId=%s",
+      modelSetting?.model ?? "(default)",
+      modelSetting?.scope ?? "(none)",
+      provider?.id ?? "(none)",
+    );
+
+    const initResult = await this.initSession(sessionId, cwd, {
+      model: modelSetting?.model,
+      provider,
+    });
     return {
       ...initResult,
       sessionId,
       currentModel: modelSetting?.model,
       modelScope: modelSetting?.scope,
+      providerId: provider?.id,
     };
   }
 
@@ -182,13 +259,25 @@ export class SessionManager {
     messages: ClaudeCodeUIMessage[];
     currentModel?: string;
     modelScope?: ModelScope;
+    providerId?: string;
   }> {
+    // Resolve provider
+    const providerSetting = readProviderSetting(sessionId, cwd, this.providerStore);
+    const provider = providerSetting?.provider;
+
+    if (provider) {
+      log("loadSession: resolved provider=%s scope=%s", provider.name, providerSetting!.scope);
+    }
+
     // Read persisted model setting before initializing SDK query
-    const modelSetting = readModelSetting(sessionId, cwd);
+    const modelSetting = provider
+      ? readProviderModelSetting(sessionId, cwd, provider, this.providerStore)
+      : readModelSetting(sessionId, cwd);
 
     const capabilities = await this.initSession(sessionId, cwd, {
       model: modelSetting?.model,
       resume: sessionId,
+      provider,
     });
 
     const { getSessionMessages } = await import("@anthropic-ai/claude-agent-sdk");
@@ -196,12 +285,13 @@ export class SessionManager {
     const messages = await sessionMessagesToUIMessages(sessionMessages);
 
     log(
-      "loadSession: sessionId=%s raw=%d messages=%d currentModel=%s modelScope=%s",
+      "loadSession: sessionId=%s raw=%d messages=%d currentModel=%s modelScope=%s providerId=%s",
       sessionId,
       sessionMessages.length,
       messages.length,
       modelSetting?.model ?? "(default)",
       modelSetting?.scope ?? "(none)",
+      provider?.id ?? "(none)",
     );
 
     return {
@@ -210,6 +300,7 @@ export class SessionManager {
       messages,
       currentModel: modelSetting?.model,
       modelScope: modelSetting?.scope,
+      providerId: provider?.id,
     };
   }
 
@@ -217,7 +308,7 @@ export class SessionManager {
   private async initSession(
     sessionId: string,
     cwd: string,
-    opts?: { model?: string; resume?: string },
+    opts?: { model?: string; resume?: string; provider?: Provider },
   ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     const input = new Pushable<SDKUserMessage>();
     const pendingRequests = new Map<
@@ -236,7 +327,57 @@ export class SessionManager {
       ...(mergedPath ? { PATH: mergedPath } : {}),
     };
 
-    const queryOpts = this.queryOptions({ sessionId, cwd, model: opts?.model });
+    const provider = opts?.provider;
+
+    // Inject provider credentials and model mapping into env
+    if (provider) {
+      env.ANTHROPIC_AUTH_TOKEN = provider.apiKey;
+      env.ANTHROPIC_BASE_URL = provider.baseURL;
+      delete env.ANTHROPIC_API_KEY;
+
+      const fallback = provider.modelMap.model ?? Object.keys(provider.models)[0];
+      env.ANTHROPIC_MODEL = opts?.model ?? fallback;
+      env.ANTHROPIC_DEFAULT_HAIKU_MODEL = provider.modelMap.haiku ?? fallback;
+      env.ANTHROPIC_DEFAULT_OPUS_MODEL = provider.modelMap.opus ?? fallback;
+      env.ANTHROPIC_DEFAULT_SONNET_MODEL = provider.modelMap.sonnet ?? fallback;
+
+      const appliedOverrides: string[] = [];
+      for (const [key, value] of Object.entries(provider.envOverrides)) {
+        if (ENV_BLOCKLIST.has(key)) {
+          log("initSession: skipped blocked envOverride key=%s", key);
+          continue;
+        }
+        if (value === "") {
+          delete env[key];
+          appliedOverrides.push(`-${key}`);
+        } else {
+          env[key] = value;
+          appliedOverrides.push(key);
+        }
+      }
+
+      log(
+        "initSession: provider=%s baseURL=%s model=%s haiku=%s opus=%s sonnet=%s envOverrides=%o",
+        provider.name,
+        provider.baseURL,
+        env.ANTHROPIC_MODEL,
+        env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+        env.ANTHROPIC_DEFAULT_OPUS_MODEL,
+        env.ANTHROPIC_DEFAULT_SONNET_MODEL,
+        appliedOverrides,
+      );
+    }
+
+    const hasProvider = !!provider;
+    const settingSources = hasProvider ? ["project"] : ["local", "project", "user"];
+    log("initSession: settingSources=%o hasProvider=%s", settingSources, hasProvider);
+
+    const queryOpts = this.queryOptions({
+      sessionId,
+      cwd,
+      model: opts?.model,
+      hasProvider,
+    });
     const options: Options = {
       ...queryOpts,
       env,
@@ -247,7 +388,13 @@ export class SessionManager {
 
     const { query } = await import("@anthropic-ai/claude-agent-sdk");
     const q = query({ prompt: input, options });
-    this.sessions.set(sessionId, { input, query: q, cwd, pendingRequests });
+    this.sessions.set(sessionId, {
+      input,
+      query: q,
+      cwd,
+      providerId: provider?.id,
+      pendingRequests,
+    });
     return q.initializationResult();
   }
 
@@ -302,6 +449,10 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error(`Unknown session: ${sessionId}`);
     return session.cwd;
+  }
+
+  getSessionProviderId(sessionId: string): string | undefined {
+    return this.sessions.get(sessionId)?.providerId;
   }
 
   async closeSession(sessionId: string): Promise<void> {
@@ -436,9 +587,18 @@ export class SessionManager {
           return { kind: "configure", ok: true, configure };
         }
         case "set_model": {
-          log("handleDispatch: set_model sessionId=%s model=%s", sessionId, configure.model);
-          session.query.setModel(configure.model);
-          return { kind: "configure", ok: true, configure };
+          let model = configure.model;
+          // Validate model against provider catalog
+          if (session.providerId) {
+            const provider = this.providerStore.getProvider(session.providerId);
+            if (provider && !(model in provider.models)) {
+              model = provider.modelMap.model ?? Object.keys(provider.models)[0];
+              log("handleDispatch: set_model fallback model=%s (not in provider catalog)", model);
+            }
+          }
+          log("handleDispatch: set_model sessionId=%s model=%s", sessionId, model);
+          session.query.setModel(model);
+          return { kind: "configure", ok: true, configure: { ...configure, model } };
         }
       }
     }

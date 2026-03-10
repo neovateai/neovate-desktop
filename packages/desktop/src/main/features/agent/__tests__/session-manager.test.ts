@@ -4,13 +4,15 @@ vi.mock("@electron-toolkit/utils", () => ({
   is: { dev: true },
 }));
 
+import type { ProviderStore } from "../../provider/provider-store";
+
 import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
 
 describe("SessionManager", () => {
   let manager: SessionManager;
 
   beforeEach(() => {
-    manager = new SessionManager();
+    manager = new SessionManager({} as ProviderStore);
   });
 
   it("closeSession for unknown sessionId does not throw", async () => {
