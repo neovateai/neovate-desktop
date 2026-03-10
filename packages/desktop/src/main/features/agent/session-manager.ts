@@ -6,11 +6,6 @@ import type {
   PermissionMode as SDKPermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
 
-import {
-  query,
-  getSessionMessages,
-  listSessions as sdkListSessions,
-} from "@anthropic-ai/claude-agent-sdk";
 import { EventPublisher } from "@orpc/server";
 import debug from "debug";
 import { randomUUID } from "node:crypto";
@@ -27,6 +22,7 @@ import type {
 } from "../../../shared/claude-code/types";
 import type { ModelScope, SessionInfo } from "../../../shared/features/agent/types";
 
+import { createSpawnFunction, resolveSDKCliPath } from "./claude-code-utils";
 import { readModelSetting } from "./claude-settings";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
@@ -95,10 +91,12 @@ export class SessionManager {
     model?: string;
     cwd: string;
   }): Options {
+    const cliPath = resolveSDKCliPath();
     return {
       sessionId,
       model,
       cwd,
+      pathToClaudeCodeExecutable: cliPath,
       settingSources: ["local", "project", "user"],
       permissionMode: "default",
       systemPrompt: {
@@ -109,6 +107,7 @@ export class SessionManager {
         type: "preset",
         preset: "claude_code",
       },
+      spawnClaudeCodeProcess: createSpawnFunction(),
       canUseTool: async (toolName, input, { signal, ...options }) => {
         const requestId = randomUUID();
         const session = this.sessions.get(sessionId);
@@ -186,11 +185,13 @@ export class SessionManager {
   }> {
     // Read persisted model setting before initializing SDK query
     const modelSetting = readModelSetting(sessionId, cwd);
+
     const capabilities = await this.initSession(sessionId, cwd, {
       model: modelSetting?.model,
       resume: sessionId,
     });
 
+    const { getSessionMessages } = await import("@anthropic-ai/claude-agent-sdk");
     const sessionMessages = await getSessionMessages(sessionId);
     const messages = await sessionMessagesToUIMessages(sessionMessages);
 
@@ -244,9 +245,9 @@ export class SessionManager {
       stderr: (output) => console.error("[claude-stderr]", output.trimEnd()),
     };
 
+    const { query } = await import("@anthropic-ai/claude-agent-sdk");
     const q = query({ prompt: input, options });
     this.sessions.set(sessionId, { input, query: q, cwd, pendingRequests });
-
     return q.initializationResult();
   }
 
@@ -254,6 +255,7 @@ export class SessionManager {
     const t0 = performance.now();
     log("listSessions: START cwd=%s", cwd);
 
+    const { listSessions: sdkListSessions } = await import("@anthropic-ai/claude-agent-sdk");
     const sessions: SDKSessionInfo[] = await sdkListSessions(cwd ? { dir: cwd } : undefined);
     log(
       "listSessions: sdk returned %d sessions in %dms",

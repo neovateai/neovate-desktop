@@ -24,7 +24,11 @@ const config = {
   ],
 
   asar: true,
-  asarUnpack: ["resources/**", "**/node_modules/node-pty/**/*"],
+  asarUnpack: [
+    "resources/**",
+    "**/node_modules/node-pty/**/*",
+    "**/node_modules/@anthropic-ai/claude-agent-sdk/**/*",
+  ],
 
   files: [
     "dist/**/*",
@@ -37,7 +41,7 @@ const config = {
     "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
   ],
 
-  compression: "maximum",
+  compression: isDev ? "store" : "maximum",
 
   mac: {
     icon: isDev ? "build/icons/dev/icon.icns" : "build/icons/prod/icon.icns",
