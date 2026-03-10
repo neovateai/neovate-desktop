@@ -11,3 +11,4 @@ test-results/
 playwright-report/
 docs/plans
 .claude/settings.local.json
+packages/desktop/vendor/bun/

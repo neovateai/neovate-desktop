@@ -22,7 +22,7 @@ import type {
 } from "../../../shared/claude-code/types";
 import type { ModelScope, SessionInfo } from "../../../shared/features/agent/types";
 
-import { createSpawnFunction, resolveSDKCliPath } from "./claude-code-utils";
+import { resolveBunPath, resolveSDKCliPath } from "./claude-code-utils";
 import { readModelSetting } from "./claude-settings";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
@@ -97,6 +97,7 @@ export class SessionManager {
       model,
       cwd,
       pathToClaudeCodeExecutable: cliPath,
+      executable: "bun",
       settingSources: ["local", "project", "user"],
       permissionMode: "default",
       systemPrompt: {
@@ -107,7 +108,6 @@ export class SessionManager {
         type: "preset",
         preset: "claude_code",
       },
-      spawnClaudeCodeProcess: createSpawnFunction(),
       canUseTool: async (toolName, input, { signal, ...options }) => {
         const requestId = randomUUID();
         const session = this.sessions.get(sessionId);
@@ -229,7 +229,9 @@ export class SessionManager {
     >();
 
     const shellEnv = await getShellEnvironment();
-    const mergedPath = [shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
+    const bunPath = resolveBunPath();
+    const bunDir = bunPath !== "bun" ? path.dirname(bunPath) : undefined;
+    const mergedPath = [bunDir, shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
     const env: Record<string, string | undefined> = {
       ...process.env,
       ...shellEnv,
@@ -240,9 +242,7 @@ export class SessionManager {
     const options: Options = {
       ...queryOpts,
       env,
-      permissionMode: "default",
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
-      stderr: (output) => console.error("[claude-stderr]", output.trimEnd()),
     };
 
     const { query } = await import("@anthropic-ai/claude-agent-sdk");

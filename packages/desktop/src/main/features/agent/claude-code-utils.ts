@@ -1,7 +1,4 @@
-import type { SpawnedProcess, SpawnOptions } from "@anthropic-ai/claude-agent-sdk";
-
 import { is } from "@electron-toolkit/utils";
-import child_process from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -21,25 +18,15 @@ export function resolveSDKCliPath(): string {
 }
 
 /**
- * Create a custom spawn function for Claude Agent SDK.
+ * Resolve the path to the bundled bun binary.
  *
- * Uses Electron's own binary (`process.execPath`) with `ELECTRON_RUN_AS_NODE=1`
- * as the Node runtime, so there is no dependency on the user having `node` in PATH.
+ * In dev mode, uses the system bun from PATH (no bundled binary needed).
+ * In production, uses the bun binary bundled via electron-builder extraResources.
+ *
+ * Using bun instead of Electron-as-Node avoids macOS showing a Dock icon
+ * for each SDK subprocess (macOS identifies GUI apps by .app bundle path).
  */
-export function createSpawnFunction(): (options: SpawnOptions) => SpawnedProcess {
-  return ({ args, cwd, env, signal }: SpawnOptions): SpawnedProcess => {
-    const child = child_process.spawn(process.execPath, args, {
-      cwd,
-      env: { ...env, ELECTRON_RUN_AS_NODE: "1" },
-      stdio: ["pipe", "pipe", "pipe"],
-      signal,
-      windowsHide: true,
-    });
-
-    if (!child.stdin || !child.stdout) {
-      throw new Error("Failed to create process streams");
-    }
-
-    return child as unknown as SpawnedProcess;
-  };
+export function resolveBunPath(): string {
+  if (is.dev) return "bun";
+  return path.join(process.resourcesPath, "bun", "bun");
 }

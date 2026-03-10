@@ -4,6 +4,29 @@ const isDev = process.env.BUILD_ENV === "dev";
  * @type {import('electron-builder').Configuration}
  * @see https://www.electron.build/configuration
  */
+/** @param {import('electron-builder').BeforePackContext} context */
+async function beforePack(context) {
+  const { execSync } = await import("node:child_process");
+  const { existsSync } = await import("node:fs");
+  const path = await import("node:path");
+
+  const projectDir = context.packager.projectDir;
+  const bunBin = path.join(projectDir, "vendor", "bun", "bun");
+
+  if (existsSync(bunBin)) return;
+
+  // electron-builder Arch enum: 0=ia32, 1=x64, 2=armv7l, 3=arm64, 4=universal
+  const archMap = { 1: "x64", 3: "arm64" };
+  const arch = archMap[context.arch];
+  if (!arch) throw new Error(`Unsupported arch: ${context.arch}`);
+
+  console.log(`  • downloading bun for ${context.packager.platform.name}/${arch}...`);
+  execSync(`bun scripts/download-bun.ts --platform ${context.packager.platform.name} --arch ${arch}`, {
+    cwd: projectDir,
+    stdio: "inherit",
+  });
+}
+
 const config = {
   appId: isDev ? "com.neovateai.desktop.dev" : "com.neovateai.desktop",
   productName: isDev ? "Neovate Dev" : "Neovate",
@@ -28,6 +51,12 @@ const config = {
     "resources/**",
     "**/node_modules/node-pty/**/*",
     "**/node_modules/@anthropic-ai/claude-agent-sdk/**/*",
+  ],
+
+  beforePack,
+
+  extraResources: [
+    { from: "vendor/bun", to: "bun", filter: ["bun"] },
   ],
 
   files: [
