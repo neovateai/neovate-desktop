@@ -20,7 +20,7 @@ function useLazyComponents(views: SecondarySidebarView[]) {
   return cache.current;
 }
 
-function WithDeactivation({
+function SecondarySidebarViewRenderer({
   children,
   isActive,
   deactivation = "activity",
@@ -81,7 +81,7 @@ export function AppLayoutSecondarySidebar() {
         {views.map((view) => {
           const LazyComponent = lazyComponents.get(view.id)!;
           return (
-            <WithDeactivation
+            <SecondarySidebarViewRenderer
               key={view.id}
               isActive={activeView === view.id}
               deactivation={view.deactivation}
@@ -89,7 +89,7 @@ export function AppLayoutSecondarySidebar() {
               <Suspense>
                 <LazyComponent />
               </Suspense>
-            </WithDeactivation>
+            </SecondarySidebarViewRenderer>
           );
         })}
       </div>

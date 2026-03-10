@@ -38,6 +38,7 @@ const plugin: RendererPlugin = {
         {
           id: "search",
           title: "Search",
+          deactivation: "offscreen",
           component: () => import("./search-view"),
         },
       ],
