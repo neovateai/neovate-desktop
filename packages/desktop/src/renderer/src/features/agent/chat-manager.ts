@@ -15,20 +15,20 @@ export class ClaudeCodeChatManager {
     this.transport = new ClaudeCodeChatTransport(rpc);
   }
 
-  async createSession(cwd: string) {
-    const { sessionId, currentModel, modelScope, ...capabilities } =
-      await this.rpc.claudeCode.createSession({ cwd });
+  async createSession(cwd: string, opts?: { providerId?: string | null }) {
+    const { sessionId, currentModel, modelScope, providerId, ...capabilities } =
+      await this.rpc.claudeCode.createSession({ cwd, providerId: opts?.providerId });
     const chat = new ClaudeCodeChat({
       id: sessionId,
       transport: this.transport,
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);
-    return { sessionId, currentModel, modelScope, ...capabilities };
+    return { sessionId, currentModel, modelScope, providerId, ...capabilities };
   }
 
   async loadSession(sessionId: string, cwd: string) {
-    const { capabilities, messages, currentModel, modelScope } =
+    const { capabilities, messages, currentModel, modelScope, providerId } =
       await this.rpc.claudeCode.loadSession({
         sessionId,
         cwd,
@@ -41,7 +41,7 @@ export class ClaudeCodeChatManager {
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);
-    return { sessionId, currentModel, modelScope, ...capabilities };
+    return { sessionId, currentModel, modelScope, providerId, ...capabilities };
   }
 
   getChat(sessionId: string) {

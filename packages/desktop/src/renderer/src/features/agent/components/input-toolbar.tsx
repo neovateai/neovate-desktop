@@ -1,8 +1,16 @@
 import type { StoreApi } from "zustand";
 
 import debug from "debug";
-import { ChevronDown, FolderOpen, Globe, Paperclip, SendHorizonal, Square } from "lucide-react";
-import { useCallback } from "react";
+import {
+  ChevronDown,
+  FolderOpen,
+  Globe,
+  Paperclip,
+  SendHorizonal,
+  Settings,
+  Square,
+} from "lucide-react";
+import { useCallback, useEffect } from "react";
 import { useStore } from "zustand";
 
 import type { ModelScope } from "../../../../../shared/features/agent/types";
@@ -24,7 +32,10 @@ import {
   MenuRadioItem,
 } from "../../../components/ui/menu";
 import { client } from "../../../orpc";
+import { useProviderStore } from "../../provider/store";
+import { useSettingsStore } from "../../settings/store";
 import { claudeCodeChatManager } from "../chat-manager";
+import { registerSessionInStore } from "../session-utils";
 import { useAgentStore } from "../store";
 
 const log = debug("neovate:input-toolbar");
@@ -117,7 +128,22 @@ function ConnectedModelSelect({
   const setModelScope = useAgentStore((s) => s.setModelScope);
   const currentModel = useAgentStore((s) => s.sessions.get(activeSessionId)?.currentModel);
   const modelScope = useAgentStore((s) => s.sessions.get(activeSessionId)?.modelScope);
+  const providerId = useAgentStore((s) => s.sessions.get(activeSessionId)?.providerId);
+  const hasMessages = useAgentStore(
+    (s) => (s.sessions.get(activeSessionId)?.messages.length ?? 0) > 0,
+  );
   const availableModels = useStore(chatStore, (state) => state.capabilities?.models);
+
+  // Provider state
+  const providers = useProviderStore((s) => s.providers);
+  const loaded = useProviderStore((s) => s.loaded);
+  const loadProviders = useProviderStore((s) => s.load);
+
+  useEffect(() => {
+    if (!loaded) loadProviders();
+  }, [loaded, loadProviders]);
+
+  const activeProvider = providerId ? providers.find((p) => p.id === providerId) : undefined;
 
   const handleModelSelect = useCallback(
     (value: unknown) => {
@@ -148,20 +174,104 @@ function ConnectedModelSelect({
           });
         return;
       }
-      const model = currentModel;
-      if (!model) return;
-      log("setModelSetting: scope=%s model=%s sessionId=%s", scope, model, activeSessionId);
-      client.agent.setModelSetting({ sessionId: activeSessionId, model, scope });
+      const model = currentModel ?? null;
+      log(
+        "setModelSetting: scope=%s model=%s sessionId=%s providerId=%s",
+        scope,
+        model,
+        activeSessionId,
+        providerId ?? "(sdk)",
+      );
+      if (providerId) {
+        if (!model) return;
+        // Provider active: only write to our provider config files
+        client.provider.setSelection({
+          sessionId: activeSessionId,
+          providerId,
+          model,
+          scope,
+        });
+      } else {
+        // SDK Default: write to .claude/ settings files (model can be null to just clear provider)
+        client.agent.setModelSetting({ sessionId: activeSessionId, model, scope });
+      }
     },
-    [activeSessionId, currentModel, setCurrentModel, setModelScope],
+    [activeSessionId, currentModel, providerId, setCurrentModel, setModelScope],
   );
 
-  if (!availableModels || availableModels.length === 0) return null;
+  const sessionCwd = useAgentStore((s) => s.sessions.get(activeSessionId)?.cwd);
 
-  const displayModel =
-    availableModels.find((m) => m.value === currentModel)?.displayName ??
-    currentModel ??
-    availableModels[0]?.displayName;
+  /** Switch to a different provider by closing the empty session and creating a new one. */
+  const handleProviderSwitch = useCallback(
+    async (newProviderId: string | null) => {
+      if (hasMessages) return;
+      const isSame = newProviderId === (providerId ?? null);
+      if (isSame) return;
+      const cwd = sessionCwd;
+      if (!cwd) return;
+
+      log(
+        "handleProviderSwitch: from=%s to=%s cwd=%s",
+        providerId ?? "(sdk)",
+        newProviderId ?? "(sdk)",
+        cwd,
+      );
+
+      // Remove old empty session
+      const oldSessionId = activeSessionId;
+      useAgentStore.getState().removeSession(oldSessionId);
+      claudeCodeChatManager.removeSession(oldSessionId);
+
+      // Create new session with explicit provider
+      const {
+        sessionId,
+        commands,
+        models,
+        currentModel: cm,
+        modelScope: ms,
+        providerId: pid,
+      } = await claudeCodeChatManager.createSession(cwd, { providerId: newProviderId });
+
+      registerSessionInStore(
+        sessionId,
+        cwd,
+        { commands, models, currentModel: cm, modelScope: ms, providerId: pid },
+        true,
+      );
+    },
+    [activeSessionId, providerId, hasMessages, sessionCwd],
+  );
+
+  // Build model list: from provider catalog or SDK capabilities
+  const modelItems = activeProvider
+    ? Object.entries(activeProvider.models).map(([key, entry]) => {
+        // Build alias badges
+        const aliases: string[] = [];
+        const mm = activeProvider.modelMap;
+        if (mm.model === key) aliases.push("default");
+        if (mm.haiku === key) aliases.push("haiku");
+        if (mm.opus === key) aliases.push("opus");
+        if (mm.sonnet === key) aliases.push("sonnet");
+        const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
+        return {
+          value: key,
+          displayName: (entry.displayName ?? key) + badge,
+        };
+      })
+    : (availableModels ?? []).map((m) => ({ value: m.value, displayName: m.displayName }));
+
+  if (modelItems.length === 0 && !activeProvider) return null;
+
+  // Display label
+  const providerLabel = activeProvider?.name;
+  const modelLabel = activeProvider
+    ? (activeProvider.models[currentModel ?? ""]?.displayName ??
+      currentModel ??
+      Object.keys(activeProvider.models)[0])
+    : (availableModels?.find((m) => m.value === currentModel)?.displayName ??
+      currentModel ??
+      availableModels?.[0]?.displayName);
+  const buttonLabel = providerLabel ? `${providerLabel} / ${modelLabel}` : modelLabel;
 
   return (
     <ContextMenu>
@@ -172,20 +282,119 @@ function ConnectedModelSelect({
             className="inline-flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           >
             <ScopeBadge scope={modelScope} />
-            <span>{displayModel}</span>
+            <span className="max-w-[200px] truncate">{buttonLabel}</span>
             <ChevronDown className="h-3 w-3 opacity-50" />
           </MenuTrigger>
-          <MenuPopup side="top" align="start">
-            <MenuRadioGroup
-              value={currentModel ?? availableModels[0]?.value ?? ""}
-              onValueChange={handleModelSelect}
+          <MenuPopup side="top" align="start" className="max-h-80 overflow-y-auto">
+            {/* Provider groups — only show when providers exist */}
+            {providers.filter((p) => p.enabled).length > 0 && (
+              <>
+                {providers
+                  .filter((p) => p.enabled)
+                  .map((p) => (
+                    <div key={p.id}>
+                      <div
+                        className={`px-3 py-1.5 text-xs font-medium ${
+                          providerId === p.id
+                            ? "text-foreground"
+                            : hasMessages
+                              ? "text-muted-foreground/50 cursor-not-allowed"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+                        }`}
+                        title={
+                          hasMessages && providerId !== p.id
+                            ? "Provider switch requires a new session"
+                            : undefined
+                        }
+                        onClick={() => {
+                          if (providerId !== p.id && !hasMessages) {
+                            handleProviderSwitch(p.id);
+                          }
+                        }}
+                      >
+                        {providerId === p.id ? "\u2022 " : "\u25CB "}
+                        {p.name}
+                      </div>
+                      {providerId === p.id && (
+                        <MenuRadioGroup
+                          value={currentModel ?? ""}
+                          onValueChange={handleModelSelect}
+                        >
+                          {Object.entries(p.models).map(([key, entry]) => {
+                            const aliases: string[] = [];
+                            if (p.modelMap.model === key) aliases.push("default");
+                            if (p.modelMap.haiku === key) aliases.push("haiku");
+                            if (p.modelMap.opus === key) aliases.push("opus");
+                            if (p.modelMap.sonnet === key) aliases.push("sonnet");
+                            const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
+                            return (
+                              <MenuRadioItem key={key} value={key} className="pl-6">
+                                {(entry.displayName ?? key) + badge}
+                              </MenuRadioItem>
+                            );
+                          })}
+                        </MenuRadioGroup>
+                      )}
+                    </div>
+                  ))}
+                <div className="h-px bg-border my-1" />
+              </>
+            )}
+
+            {/* SDK Default section */}
+            <div>
+              {providers.filter((p) => p.enabled).length > 0 && (
+                <div
+                  className={`px-3 py-1.5 text-xs font-medium ${
+                    !providerId
+                      ? "text-foreground"
+                      : hasMessages
+                        ? "text-muted-foreground/50 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+                  }`}
+                  title={
+                    hasMessages && providerId ? "Provider switch requires a new session" : undefined
+                  }
+                  onClick={() => {
+                    if (providerId && !hasMessages) {
+                      handleProviderSwitch(null);
+                    }
+                  }}
+                >
+                  {!providerId ? "\u2022 " : "\u25CB "}
+                  SDK Default
+                </div>
+              )}
+              {!providerId && availableModels && (
+                <MenuRadioGroup
+                  value={currentModel ?? availableModels[0]?.value ?? ""}
+                  onValueChange={handleModelSelect}
+                >
+                  {availableModels.map((m) => (
+                    <MenuRadioItem
+                      key={m.value}
+                      value={m.value}
+                      className={providers.filter((p) => p.enabled).length > 0 ? "pl-6" : ""}
+                    >
+                      {m.displayName}
+                    </MenuRadioItem>
+                  ))}
+                </MenuRadioGroup>
+              )}
+            </div>
+
+            {/* Manage Providers link */}
+            {providers.length > 0 && <div className="h-px bg-border my-1" />}
+            <button
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+              onClick={() => {
+                useSettingsStore.getState().setActiveTab("providers");
+                useSettingsStore.getState().setShowSettings(true);
+              }}
             >
-              {availableModels.map((m) => (
-                <MenuRadioItem key={m.value} value={m.value}>
-                  {m.displayName}
-                </MenuRadioItem>
-              ))}
-            </MenuRadioGroup>
+              <Settings className="h-3 w-3" />
+              Manage Providers...
+            </button>
           </MenuPopup>
         </Menu>
       </ContextMenuTrigger>

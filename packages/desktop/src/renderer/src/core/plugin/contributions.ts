@@ -20,6 +20,7 @@ export interface ActivityBarItem {
 export interface SecondarySidebarView {
   id: string;
   title: string;
+  deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "activity"
   component: () => Promise<{ default: React.ComponentType }>;
 }
 

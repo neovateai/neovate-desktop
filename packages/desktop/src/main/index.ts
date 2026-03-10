@@ -11,6 +11,7 @@ import { SessionManager } from "./features/agent/session-manager";
 import { getShellEnvironment } from "./features/agent/shell-env";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
+import { ProviderStore } from "./features/provider/provider-store";
 import { StateStore } from "./features/state/state-store";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
@@ -26,7 +27,8 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
 // Eagerly warm the shell environment cache so it's ready before first session
 getShellEnvironment();
 
-const sessionManager = new SessionManager();
+const providerStore = new ProviderStore();
+const sessionManager = new SessionManager(providerStore);
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
 const stateStore = new StateStore();
@@ -37,6 +39,7 @@ const mainApp = new MainApp({
 const appContext: AppContext = {
   sessionManager,
   configStore,
+  providerStore,
   projectStore,
   stateStore,
   mainApp,

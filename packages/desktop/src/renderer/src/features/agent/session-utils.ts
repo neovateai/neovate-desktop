@@ -26,6 +26,7 @@ export function registerSessionInStore(
     models?: ModelInfo[];
     currentModel?: string;
     modelScope?: ModelScope;
+    providerId?: string;
   },
   activate: boolean,
 ) {
@@ -39,4 +40,5 @@ export function registerSessionInStore(
   if (capabilities.models?.length) store.setAvailableModels(sessionId, capabilities.models);
   if (capabilities.currentModel) store.setCurrentModel(sessionId, capabilities.currentModel);
   if (capabilities.modelScope) store.setModelScope(sessionId, capabilities.modelScope);
+  if (capabilities.providerId) store.setProviderId(sessionId, capabilities.providerId);
 }

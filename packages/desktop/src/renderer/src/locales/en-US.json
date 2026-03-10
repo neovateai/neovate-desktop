@@ -83,6 +83,22 @@
   "settings.keybindings.toggleMultiProject": "Toggle Multi-Project Support",
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
+  "settings.providers": "Providers",
+  "settings.providers.empty": "No providers configured. Add one to use third-party API endpoints.",
+  "settings.providers.add": "Add Provider",
+  "settings.providers.name": "Name",
+  "settings.providers.baseURL": "Base URL",
+  "settings.providers.apiKey": "API Key",
+  "settings.providers.enabled": "Enabled",
+  "settings.providers.models": "Models",
+  "settings.providers.modelId": "Model ID",
+  "settings.providers.displayName": "Display name (optional)",
+  "settings.providers.modelMap": "Model Map",
+  "settings.providers.envOverrides": "Environment Overrides",
+  "settings.providers.create": "Create",
+  "settings.providers.save": "Save",
+  "settings.providers.cancel": "Cancel",
+
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP configuration coming soon...",
 

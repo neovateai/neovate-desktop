@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, RefreshCw, Undo2 } from 
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
+import { layoutStore } from "../../components/app-layout/store";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useGit } from "./hooks/useGit";
@@ -29,6 +30,11 @@ export default memo(function GitView() {
   } = useGit(activeProject?.path || "");
 
   const showDiff = (file: { relPath: string }, isStaged: boolean) => {
+    const { panels } = layoutStore.getState();
+    const contentPanelState = panels.contentPanel;
+    if (contentPanelState?.collapsed === true) {
+      layoutStore.getState().togglePanel("contentPanel");
+    }
     app.workbench.contentPanel.openView("git-diff");
     // 发送事件让diff组件加载指定文件
     setTimeout(() => {

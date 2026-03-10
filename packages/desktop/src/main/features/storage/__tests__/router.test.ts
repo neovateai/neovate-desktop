@@ -26,6 +26,7 @@ beforeEach(() => {
     storage,
     sessionManager: {} as any,
     configStore: {} as any,
+    providerStore: {} as any,
     projectStore: {} as any,
     mainApp: {} as any,
     stateStore: {} as any,

@@ -4,6 +4,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import type { ModelScope } from "../../../shared/features/agent/types";
+import type { Provider } from "../../../shared/features/provider/types";
+import type { ProviderStore } from "../provider/provider-store";
 
 const log = debug("neovate:claude-settings");
 
@@ -115,4 +117,122 @@ export function writeModelSetting(
       break;
     }
   }
+}
+
+/**
+ * Resolve the active provider for a session.
+ * Priority: session -> project -> global.
+ * Skips nonexistent or disabled providers.
+ */
+export function readProviderSetting(
+  sessionId: string,
+  cwd: string,
+  providerStore: ProviderStore,
+): { provider: Provider; scope: ModelScope } | undefined {
+  // 1. Session-scoped
+  const sessionJson = readJsonFile(sessionConfigPath(sessionId));
+  if (typeof sessionJson?.provider === "string" && sessionJson.provider) {
+    const p = providerStore.getProvider(sessionJson.provider);
+    if (p?.enabled) {
+      log("readProviderSetting: session scope provider=%s sid=%s", p.name, sessionId);
+      return { provider: p, scope: "session" };
+    }
+  }
+
+  // 2. Project-scoped
+  const projectSel = providerStore.getProjectSelection(cwd);
+  if (projectSel.provider) {
+    const p = providerStore.getProvider(projectSel.provider);
+    if (p?.enabled) {
+      log("readProviderSetting: project scope provider=%s cwd=%s", p.name, cwd);
+      return { provider: p, scope: "project" };
+    }
+  }
+
+  // 3. Global
+  const globalSel = providerStore.getGlobalSelection();
+  if (globalSel.provider) {
+    const p = providerStore.getProvider(globalSel.provider);
+    if (p?.enabled) {
+      log("readProviderSetting: global scope provider=%s", p.name);
+      return { provider: p, scope: "global" };
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Write (or remove) a provider selection at the given scope.
+ */
+export function writeProviderSetting(
+  scope: ModelScope,
+  providerId: string | null,
+  opts: { sessionId?: string; cwd?: string },
+  providerStore: ProviderStore,
+): void {
+  switch (scope) {
+    case "session": {
+      if (!opts.sessionId) throw new Error("sessionId required for session scope");
+      const filePath = sessionConfigPath(opts.sessionId);
+      const existing = readJsonFile(filePath) ?? {};
+      if (providerId === null) {
+        delete existing.provider;
+      } else {
+        existing.provider = providerId;
+      }
+      writeJsonFile(filePath, existing);
+      log("writeProviderSetting: session scope provider=%s sid=%s", providerId, opts.sessionId);
+      break;
+    }
+    case "project": {
+      if (!opts.cwd) throw new Error("cwd required for project scope");
+      providerStore.setProjectSelection(opts.cwd, providerId);
+      log("writeProviderSetting: project scope provider=%s cwd=%s", providerId, opts.cwd);
+      break;
+    }
+    case "global": {
+      providerStore.setGlobalSelection(providerId);
+      log("writeProviderSetting: global scope provider=%s", providerId);
+      break;
+    }
+  }
+}
+
+/**
+ * Resolve model within a provider context.
+ * Priority: session model -> project model -> global model -> provider.modelMap.model
+ * Falls back to modelMap.model if resolved model is not in provider's catalog.
+ */
+export function readProviderModelSetting(
+  sessionId: string,
+  cwd: string,
+  provider: Provider,
+  providerStore: ProviderStore,
+): { model: string; scope: ModelScope } {
+  const fallback = provider.modelMap.model ?? Object.keys(provider.models)[0];
+
+  // 1. Session-scoped model
+  const sessionJson = readJsonFile(sessionConfigPath(sessionId));
+  if (typeof sessionJson?.model === "string" && sessionJson.model) {
+    const model = sessionJson.model in provider.models ? sessionJson.model : fallback;
+    return { model, scope: "session" };
+  }
+
+  // 2. Project-scoped model
+  const projectSel = providerStore.getProjectSelection(cwd);
+  if (projectSel.model) {
+    const model = projectSel.model in provider.models ? projectSel.model : fallback;
+    return { model, scope: "project" };
+  }
+
+  // 3. Global model
+  const globalSel = providerStore.getGlobalSelection();
+  if (globalSel.model) {
+    const model = globalSel.model in provider.models ? globalSel.model : fallback;
+    return { model, scope: "global" };
+  }
+
+  // 4. Provider default
+  return { model: fallback, scope: "global" };
 }

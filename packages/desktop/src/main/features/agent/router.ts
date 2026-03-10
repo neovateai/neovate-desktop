@@ -25,9 +25,14 @@ export const agentRouter = os.agent.router({
 
   claudeCode: os.agent.claudeCode.router({
     createSession: os.agent.claudeCode.createSession.handler(async ({ input, context }) => {
-      agentLog("claudeCode.createSession: cwd=%s model=%s", input.cwd, input.model);
+      agentLog(
+        "claudeCode.createSession: cwd=%s model=%s providerId=%s",
+        input.cwd,
+        input.model,
+        input.providerId,
+      );
       try {
-        return await context.sessionManager.createSession(input.cwd, input.model);
+        return await context.sessionManager.createSession(input.cwd, input.model, input.providerId);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to create session";
         throw new ORPCError("BAD_GATEWAY", { defined: true, message });
@@ -80,6 +85,12 @@ export const agentRouter = os.agent.router({
       cwd,
     );
     writeModelSetting(scope, model, { sessionId, cwd });
+    // setModelSetting is only called for SDK Default — clear any provider at this scope
+    if (scope === "project") {
+      context.providerStore.setProjectSelection(cwd, null, null);
+    } else if (scope === "global") {
+      context.providerStore.setGlobalSelection(null, null);
+    }
     const effective = readModelSetting(sessionId, cwd);
     return { currentModel: effective?.model, modelScope: effective?.scope };
   }),

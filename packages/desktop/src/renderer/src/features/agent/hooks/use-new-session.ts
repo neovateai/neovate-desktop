@@ -25,7 +25,7 @@ export function useNewSession() {
 
       const startActiveId = useAgentStore.getState().activeSessionId;
       newSessionLog("createNewSession: creating session cwd=%s", cwd);
-      const { sessionId, commands, models, currentModel, modelScope } =
+      const { sessionId, commands, models, currentModel, modelScope, providerId } =
         await claudeCodeChatManager.createSession(cwd);
       newSessionLog("createNewSession: created %s currentModel=%s", sessionId, currentModel);
 
@@ -43,7 +43,7 @@ export function useNewSession() {
       registerSessionInStore(
         sessionId,
         projectPath,
-        { commands, models, currentModel, modelScope },
+        { commands, models, currentModel, modelScope, providerId },
         true,
       );
 
@@ -64,14 +64,14 @@ export function useNewSession() {
     }
 
     newSessionLog("preWarmSession: creating background session cwd=%s", cwd);
-    const { sessionId, commands, models, currentModel, modelScope } =
+    const { sessionId, commands, models, currentModel, modelScope, providerId } =
       await claudeCodeChatManager.createSession(cwd);
     newSessionLog("preWarmSession: created %s currentModel=%s", sessionId, currentModel);
 
     registerSessionInStore(
       sessionId,
       projectPath,
-      { commands, models, currentModel, modelScope },
+      { commands, models, currentModel, modelScope, providerId },
       false,
     );
   }, []);

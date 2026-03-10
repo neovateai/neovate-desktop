@@ -13,6 +13,7 @@ export type SettingsMenuId =
   | "rules"
   | "skills"
   | "keybindings"
+  | "providers"
   | "about"
   | "mcp";
 

@@ -38,6 +38,7 @@ const plugin: RendererPlugin = {
         {
           id: "git",
           title: "Source Control",
+          deactivation: "offscreen",
           component: () => import("./git-view"),
         },
       ],
@@ -46,7 +47,7 @@ const plugin: RendererPlugin = {
           viewType: "git-diff",
           name: "Git Diff",
           singleton: true,
-          deactivation: "unmount",
+          deactivation: "offscreen",
           icon: GitIcon,
           component: () => import("./git-diff-view"),
         },

@@ -25,7 +25,7 @@ const plugin: RendererPlugin = {
           viewType: "editor",
           name: "Editor",
           singleton: true,
-          deactivation: "unmount",
+          deactivation: "offscreen",
           icon: EditorIcon,
           component: () => import("./editor-view"),
         },

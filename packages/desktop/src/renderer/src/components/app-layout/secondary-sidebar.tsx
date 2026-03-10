@@ -20,6 +20,44 @@ function useLazyComponents(views: SecondarySidebarView[]) {
   return cache.current;
 }
 
+function SecondarySidebarViewRenderer({
+  children,
+  isActive,
+  deactivation = "activity",
+}: {
+  children: React.ReactNode;
+  isActive: boolean;
+  deactivation?: SecondarySidebarView["deactivation"];
+}) {
+  if (deactivation === "unmount" && !isActive) return null;
+
+  if (deactivation === "offscreen") {
+    return (
+      <div className={cn("absolute top-0 h-full w-full", isActive ? "left-0" : "-left-[9999em]")}>
+        {children}
+      </div>
+    );
+  }
+
+  if (deactivation === "hidden") {
+    return (
+      <div
+        className={cn("absolute inset-0", !isActive && "hidden")}
+        aria-hidden={!isActive || undefined}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  // activity (default)
+  return (
+    <Activity mode={isActive ? "visible" : "hidden"}>
+      <div className="absolute inset-0">{children}</div>
+    </Activity>
+  );
+}
+
 export function AppLayoutSecondarySidebar() {
   const { collapsed, width, isResizing } = usePanelState("secondarySidebar");
   const activeView = useLayoutStore((s) => s.panels.secondarySidebar?.activeView);
@@ -39,15 +77,19 @@ export function AppLayoutSecondarySidebar() {
       animate={{ width: collapsed ? 0 : width }}
       transition={isResizing ? { duration: 0 } : SPRING}
     >
-      <div className="h-full pb-2" style={{ width }}>
+      <div className="relative h-full pb-2" style={{ width }}>
         {views.map((view) => {
           const LazyComponent = lazyComponents.get(view.id)!;
           return (
-            <Activity key={view.id} mode={activeView === view.id ? "visible" : "hidden"}>
+            <SecondarySidebarViewRenderer
+              key={view.id}
+              isActive={activeView === view.id}
+              deactivation={view.deactivation}
+            >
               <Suspense>
                 <LazyComponent />
               </Suspense>
-            </Activity>
+            </SecondarySidebarViewRenderer>
           );
         })}
       </div>
