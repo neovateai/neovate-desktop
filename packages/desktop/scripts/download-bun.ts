@@ -36,7 +36,8 @@ async function getBunVersion(): Promise<string> {
     packageManager?: string;
   };
   const version = packageManager?.match(/^bun@(.+)$/)?.[1];
-  if (!version) throw new Error("Cannot find bun version in root package.json packageManager field");
+  if (!version)
+    throw new Error("Cannot find bun version in root package.json packageManager field");
   return version;
 }
 
@@ -59,7 +60,8 @@ function verifyBun(binaryPath: string, expectedVersion?: string): string {
 
 async function main() {
   const { platform, arch } = parseArgs();
-  const target = platform === "darwin" ? BUN_TARGETS.darwin[arch as keyof typeof BUN_TARGETS.darwin] : undefined;
+  const target =
+    platform === "darwin" ? BUN_TARGETS.darwin[arch as keyof typeof BUN_TARGETS.darwin] : undefined;
   if (!target) throw new Error(`Unsupported platform/arch: ${platform}/${arch}`);
 
   const version = await getBunVersion();
@@ -111,7 +113,9 @@ async function main() {
   try {
     const proc = Bun.spawnSync(["unzip", "-o", "-j", tmpZip, `${target}/bun`, "-d", VENDOR_DIR]);
     if (proc.exitCode !== 0) {
-      throw new Error(`unzip failed: ${proc.stderr.toString().trim() || proc.stdout.toString().trim()}`);
+      throw new Error(
+        `unzip failed: ${proc.stderr.toString().trim() || proc.stdout.toString().trim()}`,
+      );
     }
   } finally {
     rmSync(tmpZip, { force: true });
