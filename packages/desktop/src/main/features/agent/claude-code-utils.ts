@@ -2,7 +2,10 @@ import type { SpawnedProcess, SpawnOptions } from "@anthropic-ai/claude-agent-sd
 
 import { is } from "@electron-toolkit/utils";
 import child_process from "node:child_process";
+import { createRequire } from "node:module";
 import path from "node:path";
+
+const require = createRequire(import.meta.url);
 
 /**
  * Resolve the real filesystem path to the SDK's cli.js.
