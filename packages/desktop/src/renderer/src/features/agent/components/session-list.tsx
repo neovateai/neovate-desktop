@@ -92,10 +92,6 @@ function SingleProjectSessionList() {
     }
   };
 
-  const handleAfterArchive = () => {
-    if (projectPath) createNewSession(projectPath);
-  };
-
   const { pinnedItems, regularItems, pinned } = useMemo(() => {
     if (!projectPath) return { pinnedItems: [], regularItems: [], pinned: new Set<string>() };
 
@@ -178,7 +174,6 @@ function SingleProjectSessionList() {
                   restoring={restoring}
                   onActivate={setActiveSession}
                   onLoad={handleLoad}
-                  onAfterArchive={handleAfterArchive}
                 />
               );
             })}
@@ -195,7 +190,6 @@ function SingleProjectSessionList() {
               restoring={restoring}
               onActivate={setActiveSession}
               onLoad={handleLoad}
-              onAfterArchive={handleAfterArchive}
             />
           );
         })}

@@ -4,6 +4,9 @@ import { immer } from "zustand/middleware/immer";
 import type { Project } from "../../../../shared/features/project/types";
 
 import { client } from "../../orpc";
+import { claudeCodeChatManager } from "../agent/chat-manager";
+import { findPreWarmedSession, registerSessionInStore } from "../agent/session-utils";
+import { useAgentStore } from "../agent/store";
 
 type ProjectState = {
   projects: Project[];
@@ -18,7 +21,7 @@ type ProjectState = {
   setActiveProject: (project: Project | null) => void;
   setLoading: (loading: boolean) => void;
   switchToProjectByPath: (projectPath: string) => void;
-  archiveSession: (projectPath: string, sessionId: string) => void;
+  archiveSession: (projectPath: string, sessionId: string, isActive?: boolean) => void;
   togglePinSession: (projectPath: string, sessionId: string) => void;
   loadSessionPreferences: (projectPath: string) => Promise<void>;
 };
@@ -43,7 +46,7 @@ export const useProjectStore = create<ProjectState>()(
         set({ activeProject: project });
       }
     },
-    archiveSession: (projectPath, sessionId) => {
+    archiveSession: (projectPath, sessionId, isActive) => {
       client.project.archiveSession({ projectPath, sessionId }).catch(() => {});
       set((state) => {
         const list = state.archivedSessions[projectPath] ?? [];
@@ -56,6 +59,30 @@ export const useProjectStore = create<ProjectState>()(
           state.pinnedSessions[projectPath] = pinned.filter((id) => id !== sessionId);
         }
       });
+
+      // Tear down SDK subprocess + renderer chat (no-op if not loaded)
+      claudeCodeChatManager.removeSession(sessionId).catch(() => {});
+      useAgentStore.getState().removeSession(sessionId);
+
+      // Replace the active session: reuse a pre-warmed one or create new
+      if (isActive) {
+        const preWarmed = findPreWarmedSession(projectPath);
+        if (preWarmed) {
+          useAgentStore.getState().setActiveSession(preWarmed);
+        } else {
+          claudeCodeChatManager
+            .createSession(projectPath)
+            .then(({ sessionId: newId, commands, models, currentModel, modelScope }) => {
+              registerSessionInStore(
+                newId,
+                projectPath,
+                { commands, models, currentModel, modelScope },
+                true,
+              );
+            })
+            .catch(() => {});
+        }
+      }
     },
     togglePinSession: (projectPath, sessionId) => {
       client.project.togglePinSession({ projectPath, sessionId }).catch(() => {});

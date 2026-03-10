@@ -1,6 +1,7 @@
 import { electronAPI } from "@electron-toolkit/preload";
 import debug from "debug";
 import { contextBridge, ipcRenderer } from "electron";
+import { homedir } from "node:os";
 
 const log = debug("neovate:orpc:preload");
 
@@ -14,6 +15,7 @@ window.addEventListener("message", (event) => {
 
 // API for renderer process (menu commands, etc.)
 const api = {
+  homedir: homedir(),
   onOpenSettings: (callback: () => void) => {
     ipcRenderer.on("menu:open-settings", callback);
     return () => ipcRenderer.removeListener("menu:open-settings", callback);

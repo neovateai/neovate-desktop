@@ -55,6 +55,7 @@ export class ClaudeCodeChatManager {
     await chat.stop();
     await chat.dispose();
     this.chats.delete(sessionId);
+    this.rpc.claudeCode.closeSession({ sessionId }).catch(() => {});
   }
 }
 

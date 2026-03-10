@@ -75,5 +75,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  void sessionManager.closeAll();
   void mainApp.stop();
 });

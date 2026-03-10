@@ -48,6 +48,11 @@ export const agentRouter = os.agent.router({
       }
     }),
 
+    closeSession: os.agent.claudeCode.closeSession.handler(async ({ input, context }) => {
+      agentLog("claudeCode.closeSession: sessionId=%s", input.sessionId);
+      await context.sessionManager.closeSession(input.sessionId);
+    }),
+
     dispatch: os.agent.claudeCode.dispatch.handler(({ input, context }) => {
       return context.sessionManager.handleDispatch(input.sessionId, input.dispatch);
     }),

@@ -42,6 +42,8 @@ export const agentContract = {
       .input(type<{ sessionId: string; dispatch: ClaudeCodeUIDispatch }>())
       .output(type<ClaudeCodeUIDispatchResult>()),
 
+    closeSession: oc.input(z.object({ sessionId: z.string() })).output(type<void>()),
+
     loadSession: oc.input(z.object({ sessionId: z.string(), cwd: z.string() })).output(
       type<{
         sessionId: string;

@@ -1,0 +1,42 @@
+import type {
+  SlashCommandInfo,
+  ModelInfo,
+  ModelScope,
+} from "../../../../shared/features/agent/types";
+
+import { useAgentStore } from "./store";
+
+/** Find any existing isNew session for the given project path. */
+export function findPreWarmedSession(projectPath: string): string | null {
+  const { sessions } = useAgentStore.getState();
+  for (const [id, session] of sessions) {
+    if (session.isNew && session.cwd?.startsWith(projectPath)) {
+      return id;
+    }
+  }
+  return null;
+}
+
+/** Register a newly-created SDK session in the agent store. */
+export function registerSessionInStore(
+  sessionId: string,
+  projectPath: string,
+  capabilities: {
+    commands?: SlashCommandInfo[];
+    models?: ModelInfo[];
+    currentModel?: string;
+    modelScope?: ModelScope;
+  },
+  activate: boolean,
+) {
+  const store = useAgentStore.getState();
+  if (activate) {
+    store.createSession(sessionId, { cwd: projectPath, isNew: true });
+  } else {
+    store.createBackgroundSession(sessionId, { cwd: projectPath, isNew: true });
+  }
+  if (capabilities.commands?.length) store.setAvailableCommands(sessionId, capabilities.commands);
+  if (capabilities.models?.length) store.setAvailableModels(sessionId, capabilities.models);
+  if (capabilities.currentModel) store.setCurrentModel(sessionId, capabilities.currentModel);
+  if (capabilities.modelScope) store.setModelScope(sessionId, capabilities.modelScope);
+}

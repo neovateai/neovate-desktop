@@ -1,4 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("@electron-toolkit/utils", () => ({
+  is: { dev: true },
+}));
 
 import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
 

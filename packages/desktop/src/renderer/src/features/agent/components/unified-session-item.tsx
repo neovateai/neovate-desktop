@@ -12,7 +12,6 @@ interface UnifiedSessionItemProps {
   restoring: string | null;
   onActivate: (sessionId: string) => void;
   onLoad: (sessionId: string) => void;
-  onAfterArchive?: () => void;
 }
 
 export const UnifiedSessionItem = memo(function UnifiedSessionItem({
@@ -22,7 +21,6 @@ export const UnifiedSessionItem = memo(function UnifiedSessionItem({
   restoring,
   onActivate,
   onLoad,
-  onAfterArchive,
 }: UnifiedSessionItemProps) {
   const sessionId = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
   const { isStreaming, hasPendingRequests } = useSessionChatStatus(sessionId);
@@ -40,7 +38,6 @@ export const UnifiedSessionItem = memo(function UnifiedSessionItem({
         isStreaming={isStreaming}
         hasPendingPermission={hasPendingRequests}
         onClick={() => onActivate(s.sessionId)}
-        onAfterArchive={onAfterArchive}
         projectPath={item.projectPath}
       />
     );
@@ -57,7 +54,6 @@ export const UnifiedSessionItem = memo(function UnifiedSessionItem({
       isStreaming={isStreaming}
       hasPendingPermission={hasPendingRequests}
       onClick={() => onLoad(info.sessionId)}
-      onAfterArchive={onAfterArchive}
       projectPath={item.projectPath}
     />
   );

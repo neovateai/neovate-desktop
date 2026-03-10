@@ -24,7 +24,6 @@ interface SessionActionsMenuProps {
   trigger?: ReactElement;
   children?: ReactNode;
   onRenameStart: () => void;
-  onAfterArchive?: () => void;
 }
 
 export function SessionActionsMenu({
@@ -34,7 +33,6 @@ export function SessionActionsMenu({
   trigger,
   children,
   onRenameStart,
-  onAfterArchive,
 }: SessionActionsMenuProps) {
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const archiveSession = useProjectStore((s) => s.archiveSession);
@@ -51,14 +49,21 @@ export function SessionActionsMenu({
     navigator.clipboard.writeText(sessionId);
   };
 
+  const handleCopyJsonlPath = () => {
+    const encoded = cwd.replaceAll("/", "-");
+    const jsonlPath = `${window.api.homedir}/.claude/projects/${encoded}/${sessionId}.jsonl`;
+    log("copyJsonlPath: %s", jsonlPath);
+    navigator.clipboard.writeText(jsonlPath);
+  };
+
   const handleCopyWorkingDirectory = () => {
     log("copyCwd: %s", cwd);
     navigator.clipboard.writeText(cwd);
   };
 
   const handleArchive = () => {
-    archiveSession(projectPath, sessionId);
-    onAfterArchive?.();
+    const isActive = useAgentStore.getState().activeSessionId === sessionId;
+    archiveSession(projectPath, sessionId, isActive);
   };
 
   if (variant === "context") {
@@ -83,6 +88,9 @@ export function SessionActionsMenu({
             Copy working directory
           </ContextMenuItem>
           <ContextMenuItem onClick={handleCopySessionId}>Copy session ID</ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
+            Copy session JSONL path
+          </ContextMenuItem>
         </ContextMenuPopup>
       </ContextMenu>
     );
@@ -112,6 +120,9 @@ export function SessionActionsMenu({
         <MenuSeparator />
         <MenuItem onClick={handleCopyWorkingDirectory}>Copy working directory</MenuItem>
         <MenuItem onClick={handleCopySessionId}>Copy session ID</MenuItem>
+        <MenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
+          Copy session JSONL path
+        </MenuItem>
       </MenuPopup>
     </Menu>
   );

@@ -32,7 +32,6 @@ interface SessionItemProps {
   isStreaming?: boolean;
   hasPendingPermission?: boolean;
   onClick: () => void;
-  onAfterArchive?: () => void;
   projectPath: string;
 }
 
@@ -46,7 +45,6 @@ export const SessionItem = memo(function SessionItem({
   isStreaming = false,
   hasPendingPermission = false,
   onClick,
-  onAfterArchive,
   projectPath,
 }: SessionItemProps) {
   const archiveSession = useProjectStore((s) => s.archiveSession);
@@ -69,9 +67,8 @@ export const SessionItem = memo(function SessionItem({
 
   const handleArchive = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    archiveSession(projectPath, sessionId);
+    archiveSession(projectPath, sessionId, isActive);
     setIsConfirming(false);
-    if (isActive) onAfterArchive?.();
   };
 
   const handleStartRename = () => {
@@ -111,9 +108,6 @@ export const SessionItem = memo(function SessionItem({
         sessionId={sessionId}
         projectPath={projectPath}
         onRenameStart={handleStartRename}
-        onAfterArchive={() => {
-          if (isActive) onAfterArchive?.();
-        }}
       >
         <div
           className={cn(
