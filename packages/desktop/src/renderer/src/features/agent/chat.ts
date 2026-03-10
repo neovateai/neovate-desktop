@@ -103,6 +103,8 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   interrupt = async () => {
     await this.dispatch({ kind: "interrupt" });
+    // Clear pending permission requests so dialogs don't stay stuck after interrupt
+    this.store.setState({ pendingRequests: [] });
     await this.stop();
   };
 
