@@ -118,12 +118,10 @@ export class SessionManager {
     sessionId,
     model,
     cwd,
-    hasProvider,
   }: {
     sessionId: string;
     model?: string;
     cwd: string;
-    hasProvider?: boolean;
   }): Options {
     const cliPath = resolveSDKCliPath();
     return {
@@ -132,7 +130,7 @@ export class SessionManager {
       cwd,
       pathToClaudeCodeExecutable: cliPath,
       executable: "bun",
-      settingSources: hasProvider ? ["project"] : ["local", "project", "user"],
+      settingSources: ["local", "project", "user"],
       permissionMode: "default",
       systemPrompt: {
         type: "preset",
@@ -363,17 +361,21 @@ export class SessionManager {
 
     const provider = opts?.provider;
 
-    // Inject provider credentials and model mapping into env
+    // Build settings.env for provider credentials (flag settings layer = highest priority)
+    let settingsEnv: Record<string, string> | undefined;
     if (provider) {
-      env.ANTHROPIC_AUTH_TOKEN = provider.apiKey;
-      env.ANTHROPIC_BASE_URL = provider.baseURL;
+      // Remove ANTHROPIC_API_KEY from process env to avoid conflicts
       delete env.ANTHROPIC_API_KEY;
 
       const fallback = provider.modelMap.model ?? Object.keys(provider.models)[0];
-      env.ANTHROPIC_MODEL = opts?.model ?? fallback;
-      env.ANTHROPIC_DEFAULT_HAIKU_MODEL = provider.modelMap.haiku ?? fallback;
-      env.ANTHROPIC_DEFAULT_OPUS_MODEL = provider.modelMap.opus ?? fallback;
-      env.ANTHROPIC_DEFAULT_SONNET_MODEL = provider.modelMap.sonnet ?? fallback;
+      settingsEnv = {
+        ANTHROPIC_AUTH_TOKEN: provider.apiKey,
+        ANTHROPIC_BASE_URL: provider.baseURL,
+        ANTHROPIC_MODEL: opts?.model ?? fallback,
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: provider.modelMap.haiku ?? fallback,
+        ANTHROPIC_DEFAULT_OPUS_MODEL: provider.modelMap.opus ?? fallback,
+        ANTHROPIC_DEFAULT_SONNET_MODEL: provider.modelMap.sonnet ?? fallback,
+      };
 
       const appliedOverrides: string[] = [];
       for (const [key, value] of Object.entries(provider.envOverrides)) {
@@ -385,7 +387,7 @@ export class SessionManager {
           delete env[key];
           appliedOverrides.push(`-${key}`);
         } else {
-          env[key] = value;
+          settingsEnv[key] = value;
           appliedOverrides.push(key);
         }
       }
@@ -394,27 +396,23 @@ export class SessionManager {
         "initSession: provider=%s baseURL=%s model=%s haiku=%s opus=%s sonnet=%s envOverrides=%o",
         provider.name,
         provider.baseURL,
-        env.ANTHROPIC_MODEL,
-        env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
-        env.ANTHROPIC_DEFAULT_OPUS_MODEL,
-        env.ANTHROPIC_DEFAULT_SONNET_MODEL,
+        settingsEnv.ANTHROPIC_MODEL,
+        settingsEnv.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+        settingsEnv.ANTHROPIC_DEFAULT_OPUS_MODEL,
+        settingsEnv.ANTHROPIC_DEFAULT_SONNET_MODEL,
         appliedOverrides,
       );
     }
-
-    const hasProvider = !!provider;
-    const settingSources = hasProvider ? ["project"] : ["local", "project", "user"];
-    log("initSession: settingSources=%o hasProvider=%s", settingSources, hasProvider);
 
     const queryOpts = this.queryOptions({
       sessionId,
       cwd,
       model: opts?.model,
-      hasProvider,
     });
     const options: Options = {
       ...queryOpts,
       env,
+      ...(settingsEnv ? { settings: { env: settingsEnv } } : {}),
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
     };
 
