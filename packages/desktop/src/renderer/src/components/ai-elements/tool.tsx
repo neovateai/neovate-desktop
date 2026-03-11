@@ -20,7 +20,7 @@ import {
   XCircleIcon,
   FileIcon,
 } from "lucide-react";
-import { isValidElement } from "react";
+import { isValidElement, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
@@ -88,7 +88,7 @@ function getFileName(filePath: string): string {
 // 3. "Glob for "p1" in /dir for "p2""
 function extractFilePath(text: string): { path: string; extra?: string } | null {
   // Find all absolute paths, take the last one (usually the target directory)
-  const pathMatches = text.matchAll(/([A-Za-z]:[/\\]|)\/[^"\s]+/g);
+  const pathMatches = text.matchAll(/(?:[A-Za-z]:[/\\])?\/[^"\s]+/g);
   const paths = Array.from(pathMatches, (m) => m[0]);
 
   if (paths.length === 0) return null;
@@ -108,7 +108,7 @@ function extractFilePath(text: string): { path: string; extra?: string } | null 
 function parseToolTitle(title?: string): {
   displayName: string;
   fullPath: string | null;
-  toolName?: string;
+  actionName?: string;
   extra?: string;
 } {
   if (!title) return { displayName: "", fullPath: null };
@@ -116,8 +116,8 @@ function parseToolTitle(title?: string): {
   const result = extractFilePath(title);
 
   if (result) {
-    // Extract tool name (e.g. "Read", "Glob") if title contains both name and path
-    const toolName =
+    // Extract action name (e.g. "Read", "Glob") if title contains both name and path
+    const actionName =
       title
         .replace(result.path, "")
         .replace(result.extra || "", "")
@@ -125,7 +125,7 @@ function parseToolTitle(title?: string): {
     return {
       displayName: getFileName(result.path),
       fullPath: result.path,
-      toolName,
+      actionName,
       extra: result.extra,
     };
   }
@@ -133,18 +133,11 @@ function parseToolTitle(title?: string): {
   return { displayName: title, fullPath: null };
 }
 
-// Get file icon component by extension
-function getFileIcon(filePath: string): React.FC<LucideProps> {
-  const ext = getFileExtension(filePath);
-  const fileType = fileExtensionMap[ext];
-  return fileType?.icon ?? FileIcon;
-}
+const defaultFileInfo = { icon: FileIcon, color: "text-muted-foreground" };
 
-// Get file icon color by extension
-function getFileIconColor(filePath: string): string {
+function getFileInfo(filePath: string): { icon: React.FC<LucideProps>; color: string } {
   const ext = getFileExtension(filePath);
-  const fileType = fileExtensionMap[ext];
-  return fileType?.color ?? "text-muted-foreground";
+  return fileExtensionMap[ext] ?? defaultFileInfo;
 }
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
@@ -203,49 +196,45 @@ export const ToolHeader = ({
   ...props
 }: ToolHeaderProps) => {
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
-  const {
-    displayName,
-    fullPath,
-    toolName: parsedToolName,
-    extra,
-  } = parseToolTitle(title ?? derivedName);
-  const isFile = fullPath !== null;
-  const FileIconComponent = isFile ? getFileIcon(fullPath) : WrenchIcon;
-  const iconColor = isFile ? getFileIconColor(fullPath) : "text-muted-foreground";
-  const displayToolName = parsedToolName || (isFile ? derivedName : undefined);
-
-  const TitleComponent = (
-    <TooltipProvider>
-      <div className="flex items-center gap-2">
-        <WrenchIcon className="size-4 text-pink-400" />
-        {displayToolName && <span className="font-normal text-sm">{displayToolName}</span>}
-        {extra && <span className="font-normal text-sm">{extra}</span>}
-        {isFile && (
-          <>
-            <FileIconComponent className={cn("size-4", iconColor)} />
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span className="font-normal text-sm text-muted-foreground cursor-default">
-                    {displayName}
-                  </span>
-                }
-              />
-              <TooltipContent side="top" align="start" className="max-w-md">
-                <p className="break-all">{fullPath}</p>
-              </TooltipContent>
-            </Tooltip>
-          </>
-        )}
-        {!isFile && <span className="font-medium text-sm">{displayName}</span>}
-        {getStatusBadge(state)}
-      </div>
-    </TooltipProvider>
+  const { displayName, fullPath, actionName, extra } = useMemo(
+    () => parseToolTitle(title ?? derivedName),
+    [title, derivedName],
   );
+  const isFile = fullPath !== null;
+  const { icon: FileIconComponent, color: iconColor } = useMemo(
+    () => (isFile ? getFileInfo(fullPath) : { icon: WrenchIcon, color: "text-muted-foreground" }),
+    [isFile, fullPath],
+  );
+  const displayActionName = actionName || (isFile ? derivedName : undefined);
 
   return (
     <CollapsibleTrigger className={cn("flex w-full items-center gap-4 py-2", className)} {...props}>
-      {TitleComponent}
+      <TooltipProvider>
+        <div className="flex items-center gap-2">
+          <WrenchIcon className="size-4 text-pink-400" />
+          {displayActionName && <span className="font-normal text-sm">{displayActionName}</span>}
+          {extra && <span className="font-normal text-sm">{extra}</span>}
+          {isFile && (
+            <>
+              <FileIconComponent className={cn("size-4", iconColor)} />
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span className="font-normal text-sm text-muted-foreground cursor-default">
+                      {displayName}
+                    </span>
+                  }
+                />
+                <TooltipContent side="top" align="start" className="max-w-md">
+                  <p className="break-all">{fullPath}</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
+          {!isFile && <span className="font-medium text-sm">{displayName}</span>}
+          {getStatusBadge(state)}
+        </div>
+      </TooltipProvider>
       <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
     </CollapsibleTrigger>
   );
