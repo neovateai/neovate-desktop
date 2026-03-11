@@ -9,6 +9,7 @@ import type { ImageAttachment, PermissionMode } from "../../../../../shared/feat
 
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
+import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
@@ -29,11 +30,19 @@ type Props = {
   streaming: boolean;
   disabled?: boolean;
   cwd: string;
+  dockAttached?: boolean;
 };
 
 const NEW_CHAT_EASTER_EGGS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
 
-export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Props) {
+export function MessageInput({
+  onSend,
+  onCancel,
+  streaming,
+  disabled,
+  cwd,
+  dockAttached = false,
+}: Props) {
   const cwdRef = useLatestRef(cwd);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createNewSession } = useNewSession();
@@ -228,7 +237,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   );
 
   return (
-    <div className="border-t border-border p-4">
+    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
       <input
         ref={fileInputRef}
         type="file"
@@ -237,11 +246,21 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
         className="hidden"
         onChange={handleFileSelect}
       />
-      <div className="rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
+      <div
+        className={cn(
+          "border border-input bg-background focus-within:ring-2 focus-within:ring-ring",
+          dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
+        )}
+      >
         {permissionMode === "plan" && (
-          <div className="flex items-center gap-1.5 px-3 py-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800/50 rounded-t-lg">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
+              dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+            )}
+          >
             <span className="font-medium">Plan mode</span>
-            <span className="text-blue-500/70 dark:text-blue-400/50">— Shift+Tab to exit</span>
+            <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
           </div>
         )}
         <EditorContent editor={editor} />

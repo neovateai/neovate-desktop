@@ -8,20 +8,22 @@ const QuestionSchema = z.object({
     z.object({
       label: z.string(),
       description: z.string(),
+      preview: z.string().optional(),
     }),
   ),
   multiSelect: z.boolean(),
 });
 
+export const AskUserQuestionInputSchema = z.object({
+  questions: z.array(QuestionSchema),
+  answers: z.record(z.string(), z.string()).optional(),
+});
+
+export const AskUserQuestionOutputSchema = z.string();
+
 export const AskUserQuestion = tool({
-  inputSchema: z.object({
-    questions: z.array(QuestionSchema),
-    answers: z.record(z.string(), z.string()).optional(),
-  }),
-  outputSchema: z.object({
-    questions: z.array(QuestionSchema),
-    answers: z.record(z.string(), z.string()),
-  }),
+  inputSchema: AskUserQuestionInputSchema,
+  outputSchema: AskUserQuestionOutputSchema,
 });
 
 /** Fully typed tool invocation for the AskUserQuestion tool. */

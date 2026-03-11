@@ -1,4 +1,3 @@
-import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type { FileUIPart } from "ai";
 
 import debug from "debug";
@@ -27,6 +26,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "../../../components/ai-elements/conversation";
+import { cn } from "../../../lib/utils";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
@@ -164,8 +164,9 @@ function AgentChatSession({
   cwd: string;
   tasks: Map<string, import("../store").TaskState>;
 }) {
-  const { messages, status, error, pendingRequests, sendMessage, respondToRequest, stop } =
+  const { messages, status, error, pendingRequests, sendMessage, stop } =
     useClaudeCodeChat(sessionId);
+  const hasPendingRequest = pendingRequests.length > 0;
 
   const handleSend = (text: string, attachments?: ImageAttachment[]) => {
     chatLog(
@@ -187,20 +188,6 @@ function AgentChatSession({
     stop();
   };
 
-  const handleResolve = (requestId: string, result: PermissionResult) => {
-    chatLog(
-      "handleResolvePermission: sessionId=%s requestId=%s behavior=%s",
-      sessionId.slice(0, 8),
-      requestId,
-      result.behavior,
-    );
-    respondToRequest(requestId, { type: "permission_request", result });
-  };
-
-  useEffect(() => {
-    chatLog("message content: %o", messages);
-  }, [messages]);
-
   return (
     <div className="flex h-full flex-col">
       <Conversation>
@@ -211,26 +198,34 @@ function AgentChatSession({
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
-      {pendingRequests.map((req) => (
-        <PermissionDialog
-          key={req.requestId}
-          requestId={req.requestId}
-          request={req.request}
-          onResolve={handleResolve}
-        />
-      ))}
-      <TaskProgress tasks={tasks} />
-      {error && (
-        <div className="mx-4 mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
-          {error.message}
+      <div className="shrink-0 w-full bg-background">
+        <TaskProgress tasks={tasks} />
+        {error && (
+          <div className="mx-4 mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
+            {error.message}
+          </div>
+        )}
+        <div className={cn("relative", hasPendingRequest && "grid")}>
+          <div className={cn(hasPendingRequest && "col-start-1 row-start-1 self-end z-10")}>
+            <PermissionDialog sessionId={sessionId} />
+          </div>
+          <div
+            className={cn(
+              "relative",
+              hasPendingRequest && "col-start-1 row-start-1 self-end pointer-events-none z-0",
+            )}
+          >
+            <MessageInput
+              onSend={handleSend}
+              onCancel={handleCancel}
+              streaming={status === "streaming"}
+              disabled={hasPendingRequest}
+              cwd={cwd}
+              dockAttached={hasPendingRequest}
+            />
+          </div>
         </div>
-      )}
-      <MessageInput
-        onSend={handleSend}
-        onCancel={handleCancel}
-        streaming={status === "streaming"}
-        cwd={cwd}
-      />
+      </div>
     </div>
   );
 }
