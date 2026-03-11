@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AskUserQuestion } from "../ask-user-question";
 
 describe("AskUserQuestion schema", () => {
-  it("accepts SDK-compatible preview and annotations fields", () => {
+  it("accepts preview fields on input and string output", () => {
     const input = {
       questions: [
         {
@@ -29,15 +29,7 @@ describe("AskUserQuestion schema", () => {
       },
     };
 
-    const output = {
-      ...input,
-      annotations: {
-        "Which UI should we use?": {
-          preview: "<div>Compact preview</div>",
-          notes: "Use this for the first pass.",
-        },
-      },
-    };
+    const output = "Which UI should we use?: Compact";
 
     const inputSchema = AskUserQuestion.inputSchema as z.ZodTypeAny;
     const outputSchema = AskUserQuestion.outputSchema as z.ZodTypeAny;
@@ -46,8 +38,6 @@ describe("AskUserQuestion schema", () => {
     const parsedOutput = outputSchema.parse(output) as typeof output;
 
     expect(parsedInput.questions[0]?.options[0]?.preview).toBe("<div>Compact preview</div>");
-    expect(parsedOutput.annotations?.["Which UI should we use?"]?.notes).toBe(
-      "Use this for the first pass.",
-    );
+    expect(parsedOutput).toBe("Which UI should we use?: Compact");
   });
 });
