@@ -131,18 +131,6 @@ function parseToolTitle(title?: string): {
     };
   }
 
-  // 没有文件路径时，提取第一个单词作为工具名称
-  const spaceIndex = title.indexOf(" ");
-  if (spaceIndex > 0) {
-    const firstWord = title.slice(0, spaceIndex);
-    const rest = title.slice(spaceIndex + 1);
-    return {
-      displayName: rest,
-      fullPath: null,
-      toolName: firstWord,
-    };
-  }
-
   return { displayName: title, fullPath: null };
 }
 
