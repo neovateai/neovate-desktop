@@ -35,7 +35,7 @@ const DEFAULT_CONFIG: AppConfig = {
   // Chat Settings
   sendMessageWith: "enter",
   agentLanguage: "English",
-  approvalMode: "default",
+  permissionMode: "default",
   notificationSound: "default",
 
   // Keybindings

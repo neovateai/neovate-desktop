@@ -131,7 +131,7 @@ export class SessionManager {
       pathToClaudeCodeExecutable: cliPath,
       executable: "bun",
       settingSources: ["local", "project", "user"],
-      permissionMode: "default",
+      permissionMode: this.configStore.get("permissionMode") ?? "default",
       systemPrompt: {
         type: "preset",
         preset: "claude_code",

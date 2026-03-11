@@ -5,10 +5,12 @@ import StarterKit from "@tiptap/starter-kit";
 import debug from "debug";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ImageAttachment } from "../../../../../shared/features/agent/types";
+import type { ImageAttachment, PermissionMode } from "../../../../../shared/features/agent/types";
 
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
+import { useConfigStore } from "../../config/store";
+import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
 import { extractText } from "../utils/extract-text";
@@ -37,6 +39,25 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   const { createNewSession } = useNewSession();
 
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const permissionMode = useAgentStore(
+    (s) =>
+      (activeSessionId ? s.sessions.get(activeSessionId)?.permissionMode : undefined) ?? "default",
+  );
+  const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
+
+  const togglePlanMode = useEventCallback(() => {
+    if (!activeSessionId) return;
+    const current =
+      useAgentStore.getState().sessions.get(activeSessionId)?.permissionMode ?? "default";
+    const configDefault = useConfigStore.getState().permissionMode as PermissionMode;
+    const next: PermissionMode = current === "plan" ? configDefault : "plan";
+    log("togglePlanMode: %s -> %s (configDefault=%s)", current, next, configDefault);
+    setPermissionMode(activeSessionId, next);
+    claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
+      kind: "configure",
+      configure: { type: "set_permission_mode", mode: next },
+    });
+  });
 
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const attachmentsRef = useLatestRef(attachments);
@@ -112,6 +133,11 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
                   }
                   if (event.key === "Enter" && event.altKey) {
                     editor.commands.setHardBreak();
+                    return true;
+                  }
+                  if (event.key === "Tab" && event.shiftKey) {
+                    event.preventDefault();
+                    togglePlanMode();
                     return true;
                   }
                   if (event.key === "Escape") {
@@ -212,6 +238,12 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
         onChange={handleFileSelect}
       />
       <div className="rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
+        {permissionMode === "plan" && (
+          <div className="flex items-center gap-1.5 px-3 py-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800/50 rounded-t-lg">
+            <span className="font-medium">Plan mode</span>
+            <span className="text-blue-500/70 dark:text-blue-400/50">— Shift+Tab to exit</span>
+          </div>
+        )}
         <EditorContent editor={editor} />
         <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
         <InputToolbar
