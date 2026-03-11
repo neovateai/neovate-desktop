@@ -13,6 +13,7 @@ import { useLoadSession } from "../hooks/use-load-session";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
 import { ChronologicalList } from "./chronological-list";
+import { EmptySessionState } from "./empty-session-state";
 import { PinnedSessionList } from "./pinned-session-list";
 import { ProjectAccordionList } from "./project-accordion-list";
 import { SidebarTitleBar } from "./sidebar-title-bar";
@@ -160,40 +161,44 @@ function SingleProjectSessionList() {
         <span>New Chat</span>
       </Button>
 
-      <ul className="flex flex-col">
-        {pinnedItems.length > 0 && (
-          <>
-            {pinnedItems.map((item) => {
-              const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-              return (
-                <UnifiedSessionItem
-                  key={id}
-                  item={item}
-                  activeSessionId={activeSessionId}
-                  isPinned={true}
-                  restoring={restoring}
-                  onActivate={setActiveSession}
-                  onLoad={handleLoad}
-                />
-              );
-            })}
-          </>
-        )}
-        {regularItems.map((item) => {
-          const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-          return (
-            <UnifiedSessionItem
-              key={id}
-              item={item}
-              activeSessionId={activeSessionId}
-              isPinned={pinned.has(id)}
-              restoring={restoring}
-              onActivate={setActiveSession}
-              onLoad={handleLoad}
-            />
-          );
-        })}
-      </ul>
+      {pinnedItems.length === 0 && regularItems.length === 0 ? (
+        <EmptySessionState />
+      ) : (
+        <ul className="flex flex-col">
+          {pinnedItems.length > 0 && (
+            <>
+              {pinnedItems.map((item) => {
+                const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+                return (
+                  <UnifiedSessionItem
+                    key={id}
+                    item={item}
+                    activeSessionId={activeSessionId}
+                    isPinned={true}
+                    restoring={restoring}
+                    onActivate={setActiveSession}
+                    onLoad={handleLoad}
+                  />
+                );
+              })}
+            </>
+          )}
+          {regularItems.map((item) => {
+            const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+            return (
+              <UnifiedSessionItem
+                key={id}
+                item={item}
+                activeSessionId={activeSessionId}
+                isPinned={pinned.has(id)}
+                restoring={restoring}
+                onActivate={setActiveSession}
+                onLoad={handleLoad}
+              />
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
