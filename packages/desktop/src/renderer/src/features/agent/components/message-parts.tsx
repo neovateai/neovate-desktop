@@ -3,6 +3,11 @@ import { isToolUIPart } from "ai";
 import type { ClaudeCodeUIMessage } from "../../../../../shared/claude-code/types";
 
 import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "../../../components/ai-elements/reasoning";
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
 export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
@@ -39,13 +44,14 @@ export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
             );
           case "reasoning":
             return (
-              <div
+              <Reasoning
                 key={`${message.id}-${index}`}
                 data-key={`${message.id}-${index}`}
-                className="border-b border-border pb-2 text-xs italic text-muted-foreground"
+                className="w-full mb-0"
               >
-                {part.text}
-              </div>
+                <ReasoningTrigger className="italic" />
+                <ReasoningContent className="pl-6">{part.text}</ReasoningContent>
+              </Reasoning>
             );
           case "file":
             if (part.mediaType.startsWith("image/")) {

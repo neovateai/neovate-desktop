@@ -197,6 +197,10 @@ function AgentChatSession({
     respondToRequest(requestId, { type: "permission_request", result });
   };
 
+  useEffect(() => {
+    chatLog("message content: %o", messages);
+  }, [messages]);
+
   return (
     <div className="flex h-full flex-col">
       <Conversation>

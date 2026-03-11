@@ -21,10 +21,7 @@ import { CodeBlock } from "./code-block";
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
-  <Collapsible
-    className={cn("group not-prose mb-4 w-full rounded-md border", className)}
-    {...props}
-  />
+  <Collapsible className={cn("group not-prose w-full", className)} {...props} />
 );
 
 export type ToolPart = ToolUIPart | DynamicToolUIPart;
@@ -79,10 +76,7 @@ export const ToolHeader = ({
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
 
   return (
-    <CollapsibleTrigger
-      className={cn("flex w-full items-center justify-between gap-4 p-3", className)}
-      {...props}
-    >
+    <CollapsibleTrigger className={cn("flex w-full items-center gap-4", className)} {...props}>
       <div className="flex items-center gap-2">
         <WrenchIcon className="size-4 text-muted-foreground" />
         <span className="font-medium text-sm">{title ?? derivedName}</span>
