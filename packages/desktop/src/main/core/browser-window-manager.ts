@@ -1,5 +1,5 @@
 import { is } from "@electron-toolkit/utils";
-import { app, shell, screen, BrowserWindow } from "electron";
+import { shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
@@ -23,17 +23,10 @@ function stripColors(msg: string): string {
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
-  #isQuitting = false;
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: path.join(os.homedir(), ".neovate-desktop"),
   });
-
-  constructor() {
-    app.on("before-quit", () => {
-      this.#isQuitting = true;
-    });
-  }
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
@@ -65,16 +58,10 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       return { action: "deny" };
     });
 
-    // Persist bounds before close/hide
-    win.on("close", (event) => {
+    win.on("close", () => {
       this.#store.set("bounds", win.getNormalBounds());
-      if (process.platform === "darwin" && !this.#isQuitting) {
-        event.preventDefault();
-        win.hide();
-      }
     });
 
-    // Only fires on non-macOS (macOS close is prevented above)
     win.on("closed", () => {
       this.#mainWindow = null;
     });

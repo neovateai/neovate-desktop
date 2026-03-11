@@ -16,8 +16,8 @@ import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
-import { updaterRouter } from "./features/updater/router";
 import { storageRouter } from "./features/storage/router";
+import { updaterRouter } from "./features/updater/router";
 import { utilsRouter } from "./features/utils/router";
 
 export type AppContext = {

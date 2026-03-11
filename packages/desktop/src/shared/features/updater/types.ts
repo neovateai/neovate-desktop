@@ -1,6 +1,7 @@
 export type UpdaterState =
   | { status: "idle" }
   | { status: "checking" }
+  | { status: "up-to-date" }
   | { status: "available"; version: string }
   | { status: "downloading"; version: string; percent: number }
   | { status: "ready"; version: string }

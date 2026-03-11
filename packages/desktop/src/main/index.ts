@@ -53,7 +53,7 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
 
   await mainApp.start();
-  updaterService.init();
+  void updaterService.init();
 
   // Setup application menu (for menu items, shortcuts handled in renderer)
   setupApplicationMenu(mainApp.windowManager.mainWindow);

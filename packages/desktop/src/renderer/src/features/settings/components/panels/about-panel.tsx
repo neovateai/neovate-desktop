@@ -4,33 +4,20 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "../../../../components/ui/button";
 import { Spinner } from "../../../../components/ui/spinner";
+import { client } from "../../../../orpc";
+import { useUpdaterState } from "../../../updater/hooks";
 import { SettingsRow } from "../settings-row";
-
-type UpdaterStatus =
-  | "idle"
-  | "checking"
-  | "up-to-date"
-  | "available"
-  | "downloading"
-  | "ready"
-  | "error";
-
-interface UpdaterState {
-  status: UpdaterStatus;
-  version?: string;
-  message?: string;
-}
 
 export const AboutPanel = () => {
   const { t } = useTranslation();
-  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
-  const [appVersion, setAppVersion] = useState<string>("");
-  const [updaterState, setUpdaterState] = useState<UpdaterState>({
-    status: "idle",
-  });
+  const state = useUpdaterState();
 
-  // Get update status description text
-  const getUpdateStatusText = (state: UpdaterState): string => {
+  const [appVersion, setAppVersion] = useState("");
+  useEffect(() => {
+    client.updater.getVersion().then(setAppVersion);
+  }, []);
+
+  const getUpdateStatusText = (): string => {
     switch (state.status) {
       case "checking":
         return t("settings.about.checking");
@@ -50,34 +37,14 @@ export const AboutPanel = () => {
     }
   };
 
-  useEffect(() => {
-    // TODO: Get initial version and update state via oRPC
-    // For now, set a placeholder
-    setAppVersion("1.0.0");
-    setUpdaterState({ status: "idle" });
-  }, []);
+  const isBusy = state.status === "checking" || state.status === "downloading";
 
-  const handleSendFeedback = () => {
-    // TODO: Open external URL via oRPC
-    window.open("https://github.com/neovateai/neovate-desktop/issues", "_blank");
+  const handleCheckForUpdates = () => {
+    client.updater.check();
   };
 
-  const handleCheckForUpdates = async () => {
-    if (isCheckingForUpdates) return;
-    setIsCheckingForUpdates(true);
-
-    try {
-      // TODO: Call oRPC updater.check() when available
-      setUpdaterState({ status: "checking" });
-      // Simulate checking
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setUpdaterState({ status: "up-to-date" });
-    } catch (error) {
-      console.error("Failed to check for updates:", error);
-      setUpdaterState({ status: "error", message: t("settings.about.unableToCheck") });
-    } finally {
-      setIsCheckingForUpdates(false);
-    }
+  const handleSendFeedback = () => {
+    window.open("https://github.com/neovateai/neovate-desktop/issues", "_blank");
   };
 
   return (
@@ -91,23 +58,25 @@ export const AboutPanel = () => {
         {/* Check for Updates */}
         <SettingsRow
           title={t("settings.about.checkForUpdates")}
-          description={t("settings.about.currentVersion", {
-            version: appVersion,
-            status: getUpdateStatusText(updaterState),
-          })}
+          description={
+            state.status === "error" ? (
+              <span className="text-destructive">{state.message ?? t("settings.about.error")}</span>
+            ) : (
+              t("settings.about.currentVersion", {
+                version: appVersion,
+                status: getUpdateStatusText(),
+              })
+            )
+          }
         >
           <Button
             variant="outline"
             size="sm"
             onClick={handleCheckForUpdates}
             className="gap-2"
-            disabled={isCheckingForUpdates}
+            disabled={isBusy}
           >
-            {isCheckingForUpdates ? (
-              <Spinner className="h-3.5 w-3.5" />
-            ) : (
-              <RefreshCw className="size-3.5" />
-            )}
+            {isBusy ? <Spinner className="h-3.5 w-3.5" /> : <RefreshCw className="size-3.5" />}
             {t("settings.about.checkForUpdates")}
           </Button>
         </SettingsRow>
