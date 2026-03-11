@@ -15,7 +15,7 @@ function projectNameFromCwd(cwd: string, projects: { name: string; path: string 
   return cwd.split("/").pop() || cwd;
 }
 
-function SessionRow({ session }: { session: ActiveSessionInfo }) {
+function SessionRow({ session, onClosed }: { session: ActiveSessionInfo; onClosed: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const projects = useProjectStore((s) => s.projects);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
@@ -30,6 +30,7 @@ function SessionRow({ session }: { session: ActiveSessionInfo }) {
   const handleClose = async (e: React.MouseEvent) => {
     e.stopPropagation();
     await client.agent.claudeCode.closeSession({ sessionId: session.sessionId });
+    onClosed();
   };
 
   const handleToggleExpand = (e: React.MouseEvent) => {
@@ -112,7 +113,9 @@ export default function DebugView() {
             No active sessions
           </div>
         ) : (
-          sessions.map((session) => <SessionRow key={session.sessionId} session={session} />)
+          sessions.map((session) => (
+            <SessionRow key={session.sessionId} session={session} onClosed={refresh} />
+          ))
         )}
       </div>
     </div>
