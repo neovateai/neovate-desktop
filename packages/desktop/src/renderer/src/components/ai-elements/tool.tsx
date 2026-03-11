@@ -11,7 +11,6 @@ import {
   Code2Icon,
   FileJsonIcon,
   FileTextIcon,
-  FolderIcon,
   HashIcon,
   ImageIcon,
   LucideProps,
@@ -29,9 +28,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/colla
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { CodeBlock } from "./code-block";
 
-// 文件扩展名到图标的映射
+// File extension to icon mapping
 const fileExtensionMap: Record<string, { icon: React.FC<LucideProps>; color: string }> = {
-  // 代码文件
+  // Code
   ts: { icon: Code2Icon, color: "text-blue-500" },
   tsx: { icon: Code2Icon, color: "text-blue-500" },
   js: { icon: Code2Icon, color: "text-yellow-500" },
@@ -42,7 +41,7 @@ const fileExtensionMap: Record<string, { icon: React.FC<LucideProps>; color: str
   java: { icon: Code2Icon, color: "text-red-500" },
   cpp: { icon: Code2Icon, color: "text-blue-600" },
   c: { icon: Code2Icon, color: "text-blue-600" },
-  // 配置文件
+  // Config
   json: { icon: FileJsonIcon, color: "text-yellow-500" },
   yaml: { icon: FileTextIcon, color: "text-pink-500" },
   yml: { icon: FileTextIcon, color: "text-pink-500" },
@@ -50,14 +49,14 @@ const fileExtensionMap: Record<string, { icon: React.FC<LucideProps>; color: str
   toml: { icon: FileTextIcon, color: "text-green-500" },
   ini: { icon: FileTextIcon, color: "text-gray-500" },
   env: { icon: FileTextIcon, color: "text-green-600" },
-  // 文档
+  // Docs
   md: { icon: FileTextIcon, color: "text-blue-400" },
   txt: { icon: FileTextIcon, color: "text-gray-400" },
-  // 数据
+  // Data
   csv: { icon: TableIcon, color: "text-green-500" },
   xlsx: { icon: TableIcon, color: "text-green-600" },
   xls: { icon: TableIcon, color: "text-green-600" },
-  // 媒体
+  // Media
   png: { icon: ImageIcon, color: "text-purple-500" },
   jpg: { icon: ImageIcon, color: "text-purple-500" },
   jpeg: { icon: ImageIcon, color: "text-purple-500" },
@@ -65,38 +64,38 @@ const fileExtensionMap: Record<string, { icon: React.FC<LucideProps>; color: str
   svg: { icon: ImageIcon, color: "text-orange-500" },
   mp3: { icon: MusicIcon, color: "text-pink-500" },
   wav: { icon: MusicIcon, color: "text-pink-500" },
-  // 其他
+  // Other
   lock: { icon: HashIcon, color: "text-gray-500" },
-  gitignore: { icon: FolderIcon, color: "text-gray-600" },
-  dockerfile: { icon: FolderIcon, color: "text-blue-500" },
+  gitignore: { icon: FileIcon, color: "text-gray-600" },
+  dockerfile: { icon: FileIcon, color: "text-blue-500" },
 };
 
-// 获取文件扩展名
+// Get file extension from path
 function getFileExtension(filePath: string): string {
   const match = filePath.match(/\.([^./\\]+)$/);
   return match ? match[1].toLowerCase() : "";
 }
 
-// 从文件路径获取文件名
+// Get filename from path
 function getFileName(filePath: string): string {
   const match = filePath.match(/[/\\]?([^/\\]+)$/);
   return match ? match[1] : filePath;
 }
 
-// 从文本中提取文件路径（支持多种格式）
+// Extract file path from text (supports multiple formats)
 // 1. "Read /path/to/file"
 // 2. "Glob for "pattern" in /path/to/dir"
 // 3. "Glob for "p1" in /dir for "p2""
 function extractFilePath(text: string): { path: string; extra?: string } | null {
-  // 找到所有绝对路径，取最后一个（通常是目标目录）
+  // Find all absolute paths, take the last one (usually the target directory)
   const pathMatches = text.matchAll(/([A-Za-z]:[/\\]|)\/[^"\s]+/g);
   const paths = Array.from(pathMatches, (m) => m[0]);
 
   if (paths.length === 0) return null;
 
-  const path = paths[paths.length - 1]; // 取最后一个路径
+  const path = paths[paths.length - 1];
 
-  // 提取所有的 for "pattern" 参数
+  // Extract all for "pattern" arguments
   const forMatches = text.matchAll(/for\s+"([^"]+)"/g);
   const patterns = Array.from(forMatches, (m) => m[1]);
 
@@ -105,7 +104,7 @@ function extractFilePath(text: string): { path: string; extra?: string } | null 
   return { path, extra: extras || undefined };
 }
 
-// 解析工具标题，返回文件名和完整路径
+// Parse tool title, return filename and full path
 function parseToolTitle(title?: string): {
   displayName: string;
   fullPath: string | null;
@@ -117,7 +116,7 @@ function parseToolTitle(title?: string): {
   const result = extractFilePath(title);
 
   if (result) {
-    // 提取工具名（如果 title 包含工具名和路径）
+    // Extract tool name (e.g. "Read", "Glob") if title contains both name and path
     const toolName =
       title
         .replace(result.path, "")
@@ -134,14 +133,14 @@ function parseToolTitle(title?: string): {
   return { displayName: title, fullPath: null };
 }
 
-// 获取文件图标
+// Get file icon component by extension
 function getFileIcon(filePath: string): React.FC<LucideProps> {
   const ext = getFileExtension(filePath);
   const fileType = fileExtensionMap[ext];
   return fileType?.icon ?? FileIcon;
 }
 
-// 获取文件图标颜色
+// Get file icon color by extension
 function getFileIconColor(filePath: string): string {
   const ext = getFileExtension(filePath);
   const fileType = fileExtensionMap[ext];
@@ -245,7 +244,7 @@ export const ToolHeader = ({
   );
 
   return (
-    <CollapsibleTrigger className={cn("flex w-full items-center gap-4", className)} {...props}>
+    <CollapsibleTrigger className={cn("flex w-full items-center gap-4 py-2", className)} {...props}>
       {TitleComponent}
       <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
     </CollapsibleTrigger>
