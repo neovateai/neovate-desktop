@@ -22,8 +22,7 @@
     "build:mac:dev": "bun run build && BUILD_ENV=dev electron-builder --mac --config configs/electron-builder.mjs",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:e2e": "bun run build && playwright test",
-    "test:e2e:no-build": "playwright test"
+    "test:e2e": "bun run build && playwright test"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.71",
