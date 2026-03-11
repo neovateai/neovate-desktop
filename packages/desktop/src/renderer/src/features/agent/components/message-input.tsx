@@ -9,6 +9,7 @@ import type { ImageAttachment } from "../../../../../shared/features/agent/types
 
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
+import { cn } from "../../../lib/utils";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
 import { extractText } from "../utils/extract-text";
@@ -27,11 +28,19 @@ type Props = {
   streaming: boolean;
   disabled?: boolean;
   cwd: string;
+  dockAttached?: boolean;
 };
 
 const NEW_CHAT_EASTER_EGGS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
 
-export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Props) {
+export function MessageInput({
+  onSend,
+  onCancel,
+  streaming,
+  disabled,
+  cwd,
+  dockAttached = false,
+}: Props) {
   const cwdRef = useLatestRef(cwd);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createNewSession } = useNewSession();
@@ -202,7 +211,7 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
   );
 
   return (
-    <div className="border-t border-border p-4">
+    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
       <input
         ref={fileInputRef}
         type="file"
@@ -211,7 +220,12 @@ export function MessageInput({ onSend, onCancel, streaming, disabled, cwd }: Pro
         className="hidden"
         onChange={handleFileSelect}
       />
-      <div className="rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
+      <div
+        className={cn(
+          "border border-input bg-background focus-within:ring-2 focus-within:ring-ring",
+          dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
+        )}
+      >
         <EditorContent editor={editor} />
         <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
         <InputToolbar

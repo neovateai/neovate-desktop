@@ -1,40 +1,51 @@
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 
-import type { ClaudeCodeUIEventRequest } from "../../../../../shared/claude-code/types";
+import debug from "debug";
 
-import { Button } from "../../../components/ui/button";
+import { AskUserQuestionInputSchema } from "../../../../../shared/claude-code/tools/ask-user-question";
+import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
+import { AskUserQuestionRequestDialog } from "./ask-user-question-request-dialog";
+import { PermissionRequestDialog } from "./permission-request-dialog";
+
+const chatLog = debug("neovate:agent-chat");
 
 type Props = {
-  requestId: string;
-  request: ClaudeCodeUIEventRequest;
-  onResolve: (requestId: string, result: PermissionResult) => void;
+  sessionId: string;
 };
 
-export function PermissionDialog({ requestId, request, onResolve }: Props) {
-  return (
-    <div className="mx-4 mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
-      <p className="mb-1 text-sm font-medium">Permission requested: {request.toolName}</p>
-      {request.input != null && (
-        <pre className="mb-2 max-h-24 overflow-auto rounded bg-muted/50 p-2 text-xs">
-          {JSON.stringify(request.input, null, 2)}
-        </pre>
-      )}
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="default"
-          onClick={() => onResolve(requestId, { behavior: "allow" })}
-        >
-          Allow
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onResolve(requestId, { behavior: "deny", message: "User denied" })}
-        >
-          Deny
-        </Button>
-      </div>
-    </div>
+export function PermissionDialog({ sessionId }: Props) {
+  const { pendingRequests, respondToRequest } = useClaudeCodeChat(sessionId);
+  const activeRequest = pendingRequests[0];
+  if (!activeRequest) return null;
+
+  const { requestId, request } = activeRequest;
+  const askUserQuestion =
+    request.toolName === "AskUserQuestion"
+      ? AskUserQuestionInputSchema.safeParse(request.input)
+      : null;
+  const handleResolve = (result: PermissionResult) => {
+    chatLog(
+      "handleResolvePermission: sessionId=%s requestId=%s behavior=%s",
+      sessionId.slice(0, 8),
+      requestId,
+      result.behavior,
+    );
+    void respondToRequest(requestId, { type: "permission_request", result });
+  };
+
+  let content = (
+    <PermissionRequestDialog key={requestId} request={request} onResolve={handleResolve} />
   );
+
+  if (askUserQuestion?.success) {
+    content = (
+      <AskUserQuestionRequestDialog
+        key={requestId}
+        input={askUserQuestion.data}
+        onResolve={handleResolve}
+      />
+    );
+  }
+
+  return <div className="relative z-10 mx-4">{content}</div>;
 }
