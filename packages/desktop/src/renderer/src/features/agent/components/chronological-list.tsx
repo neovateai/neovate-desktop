@@ -5,6 +5,7 @@ import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
 import { useFilteredSessions } from "../hooks/use-unified-sessions";
 import { useAgentStore } from "../store";
+import { EmptySessionState } from "./empty-session-state";
 import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:chronological-list");
@@ -47,6 +48,10 @@ export const ChronologicalList = memo(function ChronologicalList() {
     },
     [switchToProjectByPath, loadSession],
   );
+
+  if (items.length === 0) {
+    return <EmptySessionState />;
+  }
 
   return (
     <ul className="flex flex-col gap-0.5">

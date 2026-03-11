@@ -14,6 +14,7 @@ import { useLoadSession } from "../hooks/use-load-session";
 import { useNewSession } from "../hooks/use-new-session";
 import { useFilteredSessions } from "../hooks/use-unified-sessions";
 import { useAgentStore } from "../store";
+import { EmptySessionState } from "./empty-session-state";
 import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:project-accordion");
@@ -56,6 +57,10 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
     },
     [switchToProjectByPath, project.path, loadSession],
   );
+
+  if (items.length === 0) {
+    return <EmptySessionState variant="compact" />;
+  }
 
   return (
     <ul className="flex flex-col gap-0.5">
