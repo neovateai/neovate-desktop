@@ -2,8 +2,10 @@ import type {
   SlashCommandInfo,
   ModelInfo,
   ModelScope,
+  PermissionMode,
 } from "../../../../shared/features/agent/types";
 
+import { useConfigStore } from "../config/store";
 import { useAgentStore } from "./store";
 
 /** Find any existing isNew session for the given project path. */
@@ -27,6 +29,7 @@ export function registerSessionInStore(
     currentModel?: string;
     modelScope?: ModelScope;
     providerId?: string;
+    permissionMode?: PermissionMode;
   },
   activate: boolean,
 ) {
@@ -41,4 +44,6 @@ export function registerSessionInStore(
   if (capabilities.currentModel) store.setCurrentModel(sessionId, capabilities.currentModel);
   if (capabilities.modelScope) store.setModelScope(sessionId, capabilities.modelScope);
   if (capabilities.providerId) store.setProviderId(sessionId, capabilities.providerId);
+  const permissionMode = capabilities.permissionMode ?? useConfigStore.getState().permissionMode;
+  store.setPermissionMode(sessionId, permissionMode);
 }

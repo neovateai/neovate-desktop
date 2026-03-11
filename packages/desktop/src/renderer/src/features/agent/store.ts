@@ -8,6 +8,7 @@ import type {
   SlashCommandInfo,
   ModelInfo,
   ModelScope,
+  PermissionMode,
 } from "../../../../shared/features/agent/types";
 
 import { client } from "../../orpc";
@@ -61,6 +62,7 @@ export type ChatSession = {
   currentModel?: string;
   modelScope?: ModelScope;
   providerId?: string;
+  permissionMode?: PermissionMode;
   usage?: SessionUsage;
   tasks: Map<string, TaskState>;
 };
@@ -88,6 +90,7 @@ type AgentState = {
   setCurrentModel: (sessionId: string, model: string) => void;
   setModelScope: (sessionId: string, scope: ModelScope | undefined) => void;
   setProviderId: (sessionId: string, providerId: string | undefined) => void;
+  setPermissionMode: (sessionId: string, mode: PermissionMode) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
 };
 
@@ -231,6 +234,14 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.providerId = providerId;
+      });
+    },
+
+    setPermissionMode: (sessionId, mode) => {
+      storeLog("setPermissionMode: sid=%s mode=%s", sessionId, mode);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (session) session.permissionMode = mode;
       });
     },
 

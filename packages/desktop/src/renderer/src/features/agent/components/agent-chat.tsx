@@ -89,14 +89,9 @@ export function AgentChat() {
       });
   }, [activeProjectPath, multiProjectSupport, setActiveSession, setAgentSessions]);
 
-  // Auto-create a new session when project is active and no session exists.
+  // Auto-create a new session when project is active and no session exists
   useEffect(() => {
     if (!activeProjectPath) return;
-    if (multiProjectSupport) {
-      // Reset so switching back to single-project re-triggers creation.
-      initializedPathRef.current = null;
-      return;
-    }
     if (initializedPathRef.current === activeProjectPath) {
       chatLog("effect[auto-create]: skipping, already initialized for %s", activeProjectPath);
       return;
@@ -114,7 +109,7 @@ export function AgentChat() {
           error instanceof Error ? error.message : String(error),
         );
       });
-  }, [activeProjectPath, multiProjectSupport, createNewSession]);
+  }, [activeProjectPath, createNewSession]);
 
   const handleSend = (message: string, attachments?: ImageAttachment[]) => {
     chatLog(

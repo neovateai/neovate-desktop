@@ -2,7 +2,7 @@ import { MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type {
-  ApprovalMode,
+  ConfigPermissionMode,
   NotificationSound,
   AgentLanguage,
   SendMessageWith,
@@ -26,11 +26,11 @@ const agentLanguageKeys = {
   Chinese: "settings.chat.agentLanguage.chinese",
 } as const satisfies Record<AgentLanguage, string>;
 
-const approvalModeKeys = {
-  default: "settings.chat.approvalMode.default",
-  autoEdit: "settings.chat.approvalMode.autoEdit",
-  yolo: "settings.chat.approvalMode.yolo",
-} as const satisfies Record<ApprovalMode, string>;
+const permissionModeKeys = {
+  default: "settings.chat.permissionMode.default",
+  acceptEdits: "settings.chat.permissionMode.acceptEdits",
+  bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
+} as const satisfies Record<ConfigPermissionMode, string>;
 
 const notificationSoundKeys = {
   off: "settings.chat.notification.off",
@@ -112,22 +112,26 @@ export const ChatPanel = () => {
           </Select>
         </SettingsRow>
 
-        {/* Approval Mode */}
+        {/* Permission Mode */}
         <SettingsRow
-          title={t("settings.chat.approvalMode")}
-          description={t("settings.chat.approvalMode.description")}
+          title={t("settings.chat.permissionMode")}
+          description={t("settings.chat.permissionMode.description")}
         >
           <Select
-            value={config.approvalMode}
-            onValueChange={(val) => setConfig("approvalMode", val as ApprovalMode)}
+            value={config.permissionMode}
+            onValueChange={(val) => setConfig("permissionMode", val as ConfigPermissionMode)}
           >
             <SelectTrigger size="sm" className="w-36">
-              <SelectValue>{t(approvalModeKeys[config.approvalMode])}</SelectValue>
+              <SelectValue>{t(permissionModeKeys[config.permissionMode])}</SelectValue>
             </SelectTrigger>
             <SelectPopup>
-              <SelectItem value="default">{t("settings.chat.approvalMode.default")}</SelectItem>
-              <SelectItem value="autoEdit">{t("settings.chat.approvalMode.autoEdit")}</SelectItem>
-              <SelectItem value="yolo">{t("settings.chat.approvalMode.yolo")}</SelectItem>
+              <SelectItem value="default">{t("settings.chat.permissionMode.default")}</SelectItem>
+              <SelectItem value="acceptEdits">
+                {t("settings.chat.permissionMode.acceptEdits")}
+              </SelectItem>
+              <SelectItem value="bypassPermissions">
+                {t("settings.chat.permissionMode.bypassPermissions")}
+              </SelectItem>
             </SelectPopup>
           </Select>
         </SettingsRow>

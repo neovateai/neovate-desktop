@@ -8,12 +8,13 @@ import {
   Paperclip,
   SendHorizonal,
   Settings,
+  Shield,
   Square,
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { useStore } from "zustand";
 
-import type { ModelScope } from "../../../../../shared/features/agent/types";
+import type { ModelScope, PermissionMode } from "../../../../../shared/features/agent/types";
 import type { ClaudeCodeChatStoreState } from "../chat-state";
 
 import { Button } from "../../../components/ui/button";
@@ -70,6 +71,7 @@ export function InputToolbar({
         <Paperclip className="h-4 w-4" />
       </Button>
       <ModelSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
+      <PermissionModeSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
       <div className="flex-1" />
       {streaming ? (
         <Button
@@ -87,6 +89,73 @@ export function InputToolbar({
         </Button>
       )}
     </div>
+  );
+}
+
+const PERMISSION_MODE_LABELS: Record<PermissionMode, string> = {
+  default: "Default",
+  acceptEdits: "Auto Edit",
+  plan: "Plan",
+  bypassPermissions: "YOLO",
+  dontAsk: "Don't Ask",
+};
+
+function PermissionModeSelect({
+  activeSessionId,
+  disabled,
+}: {
+  activeSessionId: string | null;
+  disabled: boolean;
+}) {
+  if (!activeSessionId) return null;
+
+  return <ConnectedPermissionModeSelect activeSessionId={activeSessionId} disabled={disabled} />;
+}
+
+function ConnectedPermissionModeSelect({
+  activeSessionId,
+  disabled,
+}: {
+  activeSessionId: string;
+  disabled: boolean;
+}) {
+  const permissionMode = useAgentStore(
+    (s) => s.sessions.get(activeSessionId)?.permissionMode ?? "default",
+  );
+  const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
+
+  const handleSelect = useCallback(
+    (value: unknown) => {
+      const mode = value as PermissionMode;
+      log("handlePermissionModeSelect: mode=%s sessionId=%s", mode, activeSessionId);
+      setPermissionMode(activeSessionId, mode);
+      claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
+        kind: "configure",
+        configure: { type: "set_permission_mode", mode },
+      });
+    },
+    [activeSessionId, setPermissionMode],
+  );
+
+  return (
+    <Menu>
+      <MenuTrigger
+        disabled={disabled}
+        className="inline-flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+      >
+        <Shield className="h-3 w-3" />
+        <span>{PERMISSION_MODE_LABELS[permissionMode]}</span>
+        <ChevronDown className="h-3 w-3 opacity-50" />
+      </MenuTrigger>
+      <MenuPopup side="top" align="start">
+        <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
+          <MenuRadioItem value="default">Default</MenuRadioItem>
+          <MenuRadioItem value="acceptEdits">Auto Edit</MenuRadioItem>
+          <MenuRadioItem value="plan">Plan</MenuRadioItem>
+          <MenuRadioItem value="bypassPermissions">YOLO</MenuRadioItem>
+        </MenuRadioGroup>
+      </MenuPopup>
+    </Menu>
   );
 }
 

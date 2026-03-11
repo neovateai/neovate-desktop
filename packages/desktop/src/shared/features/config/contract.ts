@@ -11,7 +11,7 @@ const terminalFontValueSchema = z.string();
 const booleanValueSchema = z.boolean();
 const localeValueSchema = z.enum(["en-US", "zh-CN"]);
 const keybindingsValueSchema = z.record(z.string(), z.string());
-const approvalModeValueSchema = z.enum(["default", "autoEdit", "yolo"]);
+const permissionModeValueSchema = z.enum(["default", "acceptEdits", "bypassPermissions"]);
 const notificationSoundValueSchema = z.enum(["off", "default", "Glass", "Ping", "Pop", "Funk"]);
 const agentLanguageValueSchema = z.enum([
   "English",
@@ -39,7 +39,7 @@ export const configContract = {
         z.object({ key: z.literal("developerMode"), value: booleanValueSchema }),
         z.object({ key: z.literal("sendMessageWith"), value: sendMessageWithValueSchema }),
         z.object({ key: z.literal("agentLanguage"), value: agentLanguageValueSchema }),
-        z.object({ key: z.literal("approvalMode"), value: approvalModeValueSchema }),
+        z.object({ key: z.literal("permissionMode"), value: permissionModeValueSchema }),
         z.object({ key: z.literal("notificationSound"), value: notificationSoundValueSchema }),
         z.object({ key: z.literal("keybindings"), value: keybindingsValueSchema }),
         z.object({ key: z.literal("sidebarOrganize"), value: sidebarOrganizeValueSchema }),

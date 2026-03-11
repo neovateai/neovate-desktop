@@ -5,11 +5,13 @@ import StarterKit from "@tiptap/starter-kit";
 import debug from "debug";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ImageAttachment } from "../../../../../shared/features/agent/types";
+import type { ImageAttachment, PermissionMode } from "../../../../../shared/features/agent/types";
 
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
 import { cn } from "../../../lib/utils";
+import { useConfigStore } from "../../config/store";
+import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
 import { extractText } from "../utils/extract-text";
@@ -46,6 +48,25 @@ export function MessageInput({
   const { createNewSession } = useNewSession();
 
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const permissionMode = useAgentStore(
+    (s) =>
+      (activeSessionId ? s.sessions.get(activeSessionId)?.permissionMode : undefined) ?? "default",
+  );
+  const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
+
+  const togglePlanMode = useEventCallback(() => {
+    if (!activeSessionId) return;
+    const current =
+      useAgentStore.getState().sessions.get(activeSessionId)?.permissionMode ?? "default";
+    const configDefault = useConfigStore.getState().permissionMode as PermissionMode;
+    const next: PermissionMode = current === "plan" ? configDefault : "plan";
+    log("togglePlanMode: %s -> %s (configDefault=%s)", current, next, configDefault);
+    setPermissionMode(activeSessionId, next);
+    claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
+      kind: "configure",
+      configure: { type: "set_permission_mode", mode: next },
+    });
+  });
 
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const attachmentsRef = useLatestRef(attachments);
@@ -121,6 +142,11 @@ export function MessageInput({
                   }
                   if (event.key === "Enter" && event.altKey) {
                     editor.commands.setHardBreak();
+                    return true;
+                  }
+                  if (event.key === "Tab" && event.shiftKey) {
+                    event.preventDefault();
+                    togglePlanMode();
                     return true;
                   }
                   if (event.key === "Escape") {
@@ -226,6 +252,17 @@ export function MessageInput({
           dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
         )}
       >
+        {permissionMode === "plan" && (
+          <div
+            className={cn(
+              "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
+              dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+            )}
+          >
+            <span className="font-medium">Plan mode</span>
+            <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
+          </div>
+        )}
         <EditorContent editor={editor} />
         <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
         <InputToolbar

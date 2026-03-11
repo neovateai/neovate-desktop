@@ -1,7 +1,7 @@
 export type Theme = "system" | "light" | "dark";
 export type SendMessageWith = "enter" | "cmdEnter";
 export type Locales = "en-US" | "zh-CN";
-export type ApprovalMode = "default" | "autoEdit" | "yolo";
+export type ConfigPermissionMode = "default" | "acceptEdits" | "bypassPermissions";
 export type NotificationSound = "off" | "default" | "Glass" | "Ping" | "Pop" | "Funk";
 export type AgentLanguage = "English" | "Chinese";
 export type SidebarOrganize = "byProject" | "chronological";
@@ -24,7 +24,7 @@ export type AppConfig = {
   // Chat Settings
   sendMessageWith: SendMessageWith;
   agentLanguage: AgentLanguage;
-  approvalMode: ApprovalMode;
+  permissionMode: ConfigPermissionMode;
   notificationSound: NotificationSound;
 
   // Keybindings
