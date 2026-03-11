@@ -87,4 +87,12 @@ export const projectRouter = os.project.router({
   togglePinSession: os.project.togglePinSession.handler(({ input, context }) => {
     context.projectStore.togglePinSession(input.projectPath, input.sessionId);
   }),
+
+  getClosedAccordions: os.project.getClosedAccordions.handler(({ context }) => {
+    return context.projectStore.getClosedProjectAccordions();
+  }),
+
+  setClosedAccordions: os.project.setClosedAccordions.handler(({ input, context }) => {
+    context.projectStore.setClosedProjectAccordions(input.ids);
+  }),
 });

@@ -16,15 +16,15 @@ const os = implement({ provider: providerContract }).$context<AppContext>();
 
 export const providerRouter = os.provider.router({
   list: os.provider.list.handler(({ context }) => {
-    return context.providerStore.getProviders();
+    return context.configStore.getProviders();
   }),
 
   get: os.provider.get.handler(({ input, context }) => {
-    return context.providerStore.getProvider(input.id) ?? null;
+    return context.configStore.getProvider(input.id) ?? null;
   }),
 
   create: os.provider.create.handler(({ input, context }) => {
-    const existing = context.providerStore.getProviders();
+    const existing = context.configStore.getProviders();
 
     // Validate unique name
     if (existing.some((p) => p.name === input.name)) {
@@ -67,21 +67,21 @@ export const providerRouter = os.provider.router({
       envOverrides: input.envOverrides ?? {},
     };
 
-    context.providerStore.addProvider(provider);
+    context.configStore.addProvider(provider);
     log("create: name=%s id=%s", provider.name, provider.id);
     return provider;
   }),
 
   update: os.provider.update.handler(({ input, context }) => {
     const { id, ...updates } = input;
-    const current = context.providerStore.getProvider(id);
+    const current = context.configStore.getProvider(id);
     if (!current) {
       throw new ORPCError("NOT_FOUND", { defined: true, message: `Provider not found: ${id}` });
     }
 
     // Validate unique name
     if (updates.name && updates.name !== current.name) {
-      const existing = context.providerStore.getProviders();
+      const existing = context.configStore.getProviders();
       if (existing.some((p) => p.name === updates.name && p.id !== id)) {
         throw new ORPCError("BAD_REQUEST", {
           defined: true,
@@ -102,13 +102,13 @@ export const providerRouter = os.provider.router({
       }
     }
 
-    const updated = context.providerStore.updateProvider(id, updates);
+    const updated = context.configStore.updateProvider(id, updates);
     log("update: id=%s name=%s", id, updated.name);
     return updated;
   }),
 
   remove: os.provider.remove.handler(({ input, context }) => {
-    context.providerStore.removeProvider(input.id);
+    context.configStore.removeProvider(input.id);
     log("remove: id=%s", input.id);
   }),
 
@@ -124,19 +124,30 @@ export const providerRouter = os.provider.router({
     );
 
     // Write provider setting
-    writeProviderSetting(scope, providerId, { sessionId, cwd }, context.providerStore);
+    writeProviderSetting(
+      scope,
+      providerId,
+      { sessionId, cwd },
+      context.configStore,
+      context.projectStore,
+    );
 
-    // Write model to provider config files (not .claude/ — those are for SDK Default)
+    // Write model to provider config (not .claude/ — those are for SDK Default)
     if (model !== undefined && model !== null) {
       if (scope === "project") {
-        context.providerStore.setProjectSelection(cwd, undefined, model);
+        context.projectStore.setProjectSelection(cwd, undefined, model);
       } else if (scope === "global") {
-        context.providerStore.setGlobalSelection(undefined, model);
+        context.configStore.setGlobalSelection(undefined, model);
       }
     }
 
     // Re-read effective values
-    const effectiveProvider = readProviderSetting(sessionId, cwd, context.providerStore);
+    const effectiveProvider = readProviderSetting(
+      sessionId,
+      cwd,
+      context.configStore,
+      context.projectStore,
+    );
     let effectiveModel:
       | { model: string; scope: import("../../../shared/features/agent/types").ModelScope }
       | undefined;
@@ -146,7 +157,8 @@ export const providerRouter = os.provider.router({
         sessionId,
         cwd,
         effectiveProvider.provider,
-        context.providerStore,
+        context.configStore,
+        context.projectStore,
       );
       effectiveModel = pm;
     }

@@ -26,6 +26,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: path.join(os.homedir(), ".neovate-desktop"),
+    serialize: (value) => JSON.stringify(value, null, 2) + "\n",
   });
 
   get mainWindow(): BrowserWindow | null {

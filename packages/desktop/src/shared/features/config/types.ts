@@ -20,7 +20,6 @@ export type AppConfig = {
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: SidebarOrganize;
   sidebarSortBy: SidebarSortBy;
-  closedProjectAccordions: string[];
 
   // Chat Settings
   sendMessageWith: SendMessageWith;

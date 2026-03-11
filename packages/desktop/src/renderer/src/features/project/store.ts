@@ -16,6 +16,7 @@ type ProjectState = {
   archivedSessions: Record<string, string[]>;
   /** projectPath → pinned sessionIds */
   pinnedSessions: Record<string, string[]>;
+  closedProjectAccordions: string[];
 
   setProjects: (projects: Project[]) => void;
   setActiveProject: (project: Project | null) => void;
@@ -23,6 +24,7 @@ type ProjectState = {
   switchToProjectByPath: (projectPath: string) => void;
   archiveSession: (projectPath: string, sessionId: string, isActive?: boolean) => void;
   togglePinSession: (projectPath: string, sessionId: string) => void;
+  setClosedProjectAccordions: (ids: string[]) => void;
   loadSessionPreferences: (projectPath: string) => Promise<void>;
 };
 
@@ -33,6 +35,7 @@ export const useProjectStore = create<ProjectState>()(
     loading: false,
     archivedSessions: {},
     pinnedSessions: {},
+    closedProjectAccordions: [],
 
     setProjects: (projects) => set({ projects }),
     setActiveProject: (activeProject) => set({ activeProject }),
@@ -95,14 +98,20 @@ export const useProjectStore = create<ProjectState>()(
         }
       });
     },
+    setClosedProjectAccordions: (ids) => {
+      client.project.setClosedAccordions({ ids }).catch(() => {});
+      set({ closedProjectAccordions: ids });
+    },
     loadSessionPreferences: async (_projectPath) => {
-      const [archived, pinned] = await Promise.all([
+      const [archived, pinned, closedAccordions] = await Promise.all([
         client.project.getArchivedSessions(),
         client.project.getPinnedSessions(),
+        client.project.getClosedAccordions(),
       ]);
       set((state) => {
         state.archivedSessions = archived;
         state.pinnedSessions = pinned;
+        state.closedProjectAccordions = closedAccordions;
       });
     },
   })),

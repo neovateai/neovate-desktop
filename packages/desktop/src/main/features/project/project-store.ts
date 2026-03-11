@@ -6,6 +6,7 @@ import type {
   Project,
   ProjectStore as ProjectStoreSchema,
 } from "../../../shared/features/project/types";
+import type { ProjectProviderConfig } from "../../../shared/features/provider/types";
 
 export class ProjectStore {
   private store: Store<ProjectStoreSchema>;
@@ -19,7 +20,10 @@ export class ProjectStore {
         activeProjectId: null,
         archivedSessions: {},
         pinnedSessions: {},
+        closedProjectAccordions: [],
+        providerSelections: {},
       },
+      serialize: (value) => JSON.stringify(value, null, 2) + "\n",
     });
   }
 
@@ -102,5 +106,39 @@ export class ProjectStore {
       pinned[projectPath] = [...list, sessionId];
     }
     this.store.set("pinnedSessions", pinned);
+  }
+
+  getClosedProjectAccordions(): string[] {
+    return this.store.get("closedProjectAccordions") ?? [];
+  }
+
+  setClosedProjectAccordions(ids: string[]): void {
+    this.store.set("closedProjectAccordions", ids);
+  }
+
+  getProjectSelection(cwd: string): ProjectProviderConfig {
+    const selections = this.store.get("providerSelections") ?? {};
+    const sel = selections[cwd];
+    return {
+      provider: sel?.provider,
+      model: sel?.model,
+    };
+  }
+
+  setProjectSelection(cwd: string, provider?: string | null, model?: string | null): void {
+    const selections = this.store.get("providerSelections") ?? {};
+    const existing = selections[cwd] ?? {};
+    if (provider === null) {
+      delete existing.provider;
+    } else if (provider !== undefined) {
+      existing.provider = provider;
+    }
+    if (model === null) {
+      delete existing.model;
+    } else if (model !== undefined) {
+      existing.model = model;
+    }
+    selections[cwd] = existing;
+    this.store.set("providerSelections", selections);
   }
 }

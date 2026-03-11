@@ -34,7 +34,11 @@ export class StorageService implements IStorageService {
     const cacheKey = path.join(this.baseDir, namespace);
     let store = this.instances.get(cacheKey);
     if (!store) {
-      store = new Store({ name, cwd });
+      store = new Store({
+        name,
+        cwd,
+        serialize: (value) => JSON.stringify(value, null, 2) + "\n",
+      });
       this.instances.set(cacheKey, store);
     }
     return store;

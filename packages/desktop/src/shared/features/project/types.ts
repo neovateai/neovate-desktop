@@ -1,3 +1,5 @@
+import type { ProjectProviderConfig } from "../provider/types";
+
 export type Project = {
   id: string;
   name: string;
@@ -13,4 +15,7 @@ export type ProjectStore = {
   archivedSessions: Record<string, string[]>;
   /** projectPath → pinned sessionIds */
   pinnedSessions: Record<string, string[]>;
+  closedProjectAccordions: string[];
+  /** projectPath → provider/model selection */
+  providerSelections: Record<string, ProjectProviderConfig>;
 };

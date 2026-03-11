@@ -18,12 +18,6 @@ export type Provider = {
   envOverrides: Record<string, string>;
 };
 
-export type ProviderConfig = {
-  providers: Provider[];
-  provider?: string;
-  model?: string;
-};
-
 export type ProjectProviderConfig = {
   provider?: string;
   model?: string;
