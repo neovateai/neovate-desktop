@@ -5,7 +5,8 @@ import { join } from "node:path";
 
 import type { ModelScope } from "../../../shared/features/agent/types";
 import type { Provider } from "../../../shared/features/provider/types";
-import type { ProviderStore } from "../provider/provider-store";
+import type { ConfigStore } from "../config/config-store";
+import type { ProjectStore } from "../project/project-store";
 
 const log = debug("neovate:claude-settings");
 
@@ -127,12 +128,13 @@ export function writeModelSetting(
 export function readProviderSetting(
   sessionId: string,
   cwd: string,
-  providerStore: ProviderStore,
+  configStore: ConfigStore,
+  projectStore: ProjectStore,
 ): { provider: Provider; scope: ModelScope } | undefined {
   // 1. Session-scoped
   const sessionJson = readJsonFile(sessionConfigPath(sessionId));
   if (typeof sessionJson?.provider === "string" && sessionJson.provider) {
-    const p = providerStore.getProvider(sessionJson.provider);
+    const p = configStore.getProvider(sessionJson.provider);
     if (p?.enabled) {
       log("readProviderSetting: session scope provider=%s sid=%s", p.name, sessionId);
       return { provider: p, scope: "session" };
@@ -140,9 +142,9 @@ export function readProviderSetting(
   }
 
   // 2. Project-scoped
-  const projectSel = providerStore.getProjectSelection(cwd);
+  const projectSel = projectStore.getProjectSelection(cwd);
   if (projectSel.provider) {
-    const p = providerStore.getProvider(projectSel.provider);
+    const p = configStore.getProvider(projectSel.provider);
     if (p?.enabled) {
       log("readProviderSetting: project scope provider=%s cwd=%s", p.name, cwd);
       return { provider: p, scope: "project" };
@@ -150,9 +152,9 @@ export function readProviderSetting(
   }
 
   // 3. Global
-  const globalSel = providerStore.getGlobalSelection();
+  const globalSel = configStore.getGlobalSelection();
   if (globalSel.provider) {
-    const p = providerStore.getProvider(globalSel.provider);
+    const p = configStore.getProvider(globalSel.provider);
     if (p?.enabled) {
       log("readProviderSetting: global scope provider=%s", p.name);
       return { provider: p, scope: "global" };
@@ -169,7 +171,8 @@ export function writeProviderSetting(
   scope: ModelScope,
   providerId: string | null,
   opts: { sessionId?: string; cwd?: string },
-  providerStore: ProviderStore,
+  configStore: ConfigStore,
+  projectStore: ProjectStore,
 ): void {
   switch (scope) {
     case "session": {
@@ -187,12 +190,12 @@ export function writeProviderSetting(
     }
     case "project": {
       if (!opts.cwd) throw new Error("cwd required for project scope");
-      providerStore.setProjectSelection(opts.cwd, providerId);
+      projectStore.setProjectSelection(opts.cwd, providerId);
       log("writeProviderSetting: project scope provider=%s cwd=%s", providerId, opts.cwd);
       break;
     }
     case "global": {
-      providerStore.setGlobalSelection(providerId);
+      configStore.setGlobalSelection(providerId);
       log("writeProviderSetting: global scope provider=%s", providerId);
       break;
     }
@@ -208,7 +211,8 @@ export function readProviderModelSetting(
   sessionId: string,
   cwd: string,
   provider: Provider,
-  providerStore: ProviderStore,
+  configStore: ConfigStore,
+  projectStore: ProjectStore,
 ): { model: string; scope: ModelScope } {
   const fallback = provider.modelMap.model ?? Object.keys(provider.models)[0];
 
@@ -220,14 +224,14 @@ export function readProviderModelSetting(
   }
 
   // 2. Project-scoped model
-  const projectSel = providerStore.getProjectSelection(cwd);
+  const projectSel = projectStore.getProjectSelection(cwd);
   if (projectSel.model) {
     const model = projectSel.model in provider.models ? projectSel.model : fallback;
     return { model, scope: "project" };
   }
 
   // 3. Global model
-  const globalSel = providerStore.getGlobalSelection();
+  const globalSel = configStore.getGlobalSelection();
   if (globalSel.model) {
     const model = globalSel.model in provider.models ? globalSel.model : fallback;
     return { model, scope: "global" };

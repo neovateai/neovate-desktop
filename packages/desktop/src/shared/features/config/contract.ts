@@ -23,7 +23,6 @@ const agentLanguageValueSchema = z.enum([
 ]);
 const sidebarOrganizeValueSchema = z.enum(["byProject", "chronological"]);
 const sidebarSortByValueSchema = z.enum(["created", "updated"]);
-const closedProjectAccordionsValueSchema = z.array(z.string());
 
 export const configContract = {
   get: oc.output(type<AppConfig>()),
@@ -45,10 +44,6 @@ export const configContract = {
         z.object({ key: z.literal("keybindings"), value: keybindingsValueSchema }),
         z.object({ key: z.literal("sidebarOrganize"), value: sidebarOrganizeValueSchema }),
         z.object({ key: z.literal("sidebarSortBy"), value: sidebarSortByValueSchema }),
-        z.object({
-          key: z.literal("closedProjectAccordions"),
-          value: closedProjectAccordionsValueSchema,
-        }),
       ]),
     )
     .output(type<void>()),

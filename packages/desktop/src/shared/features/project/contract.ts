@@ -31,4 +31,8 @@ export const projectContract = {
   togglePinSession: oc
     .input(z.object({ projectPath: z.string(), sessionId: z.string() }))
     .output(type<void>()),
+
+  getClosedAccordions: oc.output(type<string[]>()),
+
+  setClosedAccordions: oc.input(z.object({ ids: z.array(z.string()) })).output(type<void>()),
 };

@@ -31,7 +31,6 @@ const DEFAULT_CONFIG: AppConfig = {
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: "byProject",
   sidebarSortBy: "created",
-  closedProjectAccordions: [],
 
   // Chat Settings
   sendMessageWith: "enter",

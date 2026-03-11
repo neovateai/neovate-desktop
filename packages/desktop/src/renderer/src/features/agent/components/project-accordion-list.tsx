@@ -8,7 +8,6 @@ import { memo, useCallback, useMemo, useState } from "react";
 import type { Project } from "../../../../../shared/features/project/types";
 
 import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
-import { useConfigStore } from "../../config/store";
 import { useProject } from "../../project/hooks/use-project";
 import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
@@ -90,8 +89,8 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
 
 export const ProjectAccordionList = memo(function ProjectAccordionList() {
   const projects = useProjectStore((s) => s.projects);
-  const closedProjectAccordions = useConfigStore((s) => s.closedProjectAccordions);
-  const setConfig = useConfigStore((s) => s.setConfig);
+  const closedProjectAccordions = useProjectStore((s) => s.closedProjectAccordions);
+  const setClosedProjectAccordions = useProjectStore((s) => s.setClosedProjectAccordions);
   const { removeProject, switchProject } = useProject();
   const { createNewSession } = useNewSession();
 
@@ -121,9 +120,9 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
       const openSet = new Set(openIds);
       const closed = projects.filter((p) => !openSet.has(p.id)).map((p) => p.id);
       log("accordionChange: closed=%o", closed);
-      setConfig("closedProjectAccordions", closed);
+      setClosedProjectAccordions(closed);
     },
-    [projects, setConfig],
+    [projects, setClosedProjectAccordions],
   );
 
   if (projects.length === 0) {

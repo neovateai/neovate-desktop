@@ -22,7 +22,8 @@ import type {
 } from "../../../shared/claude-code/types";
 import type { ModelScope, SessionInfo } from "../../../shared/features/agent/types";
 import type { Provider } from "../../../shared/features/provider/types";
-import type { ProviderStore } from "../provider/provider-store";
+import type { ConfigStore } from "../config/config-store";
+import type { ProjectStore } from "../project/project-store";
 
 import { resolveBunPath, resolveSDKCliPath } from "./claude-code-utils";
 import { readModelSetting, readProviderSetting, readProviderModelSetting } from "./claude-settings";
@@ -96,7 +97,10 @@ export class SessionManager {
     }
   >();
 
-  constructor(private providerStore: ProviderStore) {}
+  constructor(
+    private configStore: ConfigStore,
+    private projectStore: ProjectStore,
+  ) {}
 
   private queryOptions({
     sessionId,
@@ -195,7 +199,7 @@ export class SessionManager {
     if (explicitProviderId === null) {
       log("createSession: explicit null providerId — forcing SDK Default");
     } else if (explicitProviderId) {
-      const p = this.providerStore.getProvider(explicitProviderId);
+      const p = this.configStore.getProvider(explicitProviderId);
       if (p?.enabled) {
         provider = p;
         log("createSession: using explicit provider=%s", p.name);
@@ -207,7 +211,12 @@ export class SessionManager {
       }
     }
     if (explicitProviderId === undefined && !provider) {
-      const providerSetting = readProviderSetting(sessionId, cwd, this.providerStore);
+      const providerSetting = readProviderSetting(
+        sessionId,
+        cwd,
+        this.configStore,
+        this.projectStore,
+      );
       provider = providerSetting?.provider;
     }
 
@@ -224,7 +233,13 @@ export class SessionManager {
     } else if (explicitProviderId === null) {
       // Let SDK use its own defaults
     } else if (provider) {
-      modelSetting = readProviderModelSetting(sessionId, cwd, provider, this.providerStore);
+      modelSetting = readProviderModelSetting(
+        sessionId,
+        cwd,
+        provider,
+        this.configStore,
+        this.projectStore,
+      );
     } else {
       modelSetting = readModelSetting(sessionId, cwd);
     }
@@ -262,7 +277,12 @@ export class SessionManager {
     providerId?: string;
   }> {
     // Resolve provider
-    const providerSetting = readProviderSetting(sessionId, cwd, this.providerStore);
+    const providerSetting = readProviderSetting(
+      sessionId,
+      cwd,
+      this.configStore,
+      this.projectStore,
+    );
     const provider = providerSetting?.provider;
 
     if (provider) {
@@ -271,7 +291,7 @@ export class SessionManager {
 
     // Read persisted model setting before initializing SDK query
     const modelSetting = provider
-      ? readProviderModelSetting(sessionId, cwd, provider, this.providerStore)
+      ? readProviderModelSetting(sessionId, cwd, provider, this.configStore, this.projectStore)
       : readModelSetting(sessionId, cwd);
 
     const capabilities = await this.initSession(sessionId, cwd, {
@@ -590,7 +610,7 @@ export class SessionManager {
           let model = configure.model;
           // Validate model against provider catalog
           if (session.providerId) {
-            const provider = this.providerStore.getProvider(session.providerId);
+            const provider = this.configStore.getProvider(session.providerId);
             if (provider && !(model in provider.models)) {
               model = provider.modelMap.model ?? Object.keys(provider.models)[0];
               log("handleDispatch: set_model fallback model=%s (not in provider catalog)", model);
