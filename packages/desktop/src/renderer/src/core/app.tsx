@@ -18,6 +18,7 @@ import debugPlugin from "../plugins/debug";
 import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
+import reviewPlugin from "../plugins/review";
 import searchPlugin from "../plugins/search";
 import terminalPlugin from "../plugins/terminal";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
@@ -91,6 +92,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   terminalPlugin,
   searchPlugin,
   editorPlugin,
+  reviewPlugin,
   debugPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin

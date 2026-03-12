@@ -9,6 +9,7 @@ import { storageContract } from "./features/storage/contract";
 import { updaterContract } from "./features/updater/contract";
 import { utilsContract } from "./features/utils/contract";
 import { gitContract } from "./plugins/git/contract";
+import { reviewContract } from "./plugins/review/contract";
 
 export const contract = {
   ping: oc.output(type<"pong">()),
@@ -20,6 +21,7 @@ export const contract = {
   updater: updaterContract,
   utils: utilsContract,
   git: gitContract,
+  review: reviewContract,
   window: {
     ensureWidth: oc.input(z.object({ minWidth: z.number() })),
     open: oc.input(

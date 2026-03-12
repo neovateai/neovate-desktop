@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import git from "simple-git";
 
-import type { GitBranch } from "../../../shared/plugins/git/contract";
+import type { GitBranch, GitBranchFile } from "../../../shared/plugins/git/contract";
 import type { PluginContext } from "../../core/plugin/types";
 
 const GIT_TIMEOUT_MS = 10_000;
@@ -203,6 +203,30 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         };
       }
     }),
+    branchFiles: orpcServer.handler(async ({ input }) => {
+      const { cwd } = input as { cwd: string };
+      try {
+        const result = await withTimeout(getBranchFiles(cwd), GIT_TIMEOUT_MS);
+        return result;
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
+    branchFileDiff: orpcServer.handler(async ({ input }) => {
+      const { cwd, file } = input as { cwd: string; file: string };
+      try {
+        const result = await withTimeout(getBranchFileDiff(cwd, file), GIT_TIMEOUT_MS);
+        return result;
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
   });
 }
 
@@ -390,6 +414,112 @@ async function createBranch(cwd: string, name: string) {
   const gitClient = git(cwd);
   await gitClient.checkoutLocalBranch(name);
   return { success: true, data: { name } };
+}
+
+async function getBranchFiles(cwd: string) {
+  const gitClient = git(cwd);
+
+  // Check for detached HEAD
+  let local: string;
+  try {
+    local = (await gitClient.raw(["branch", "--show-current"])).trim();
+    if (!local) {
+      return { success: false, error: "detached_head" };
+    }
+  } catch {
+    return { success: false, error: "detached_head" };
+  }
+
+  // Get tracking branch
+  let tracking: string;
+  try {
+    tracking = (await gitClient.raw(["rev-parse", "--abbrev-ref", "@{u}"])).trim();
+  } catch {
+    return { success: false, error: "no_upstream" };
+  }
+
+  // Check tracking branch still exists
+  try {
+    await gitClient.raw(["rev-parse", "--verify", tracking]);
+  } catch {
+    return { success: false, error: "remote_gone" };
+  }
+
+  // Get ahead/behind
+  let ahead = 0;
+  let behind = 0;
+  try {
+    const revList = (
+      await gitClient.raw(["rev-list", "--left-right", "--count", `${tracking}...HEAD`])
+    ).trim();
+    const [b, a] = revList.split("\t").map(Number);
+    behind = b;
+    ahead = a;
+  } catch {
+    // ignore
+  }
+
+  // Get changed files
+  const files: GitBranchFile[] = [];
+  try {
+    const nameStatus = await gitClient.raw(["diff", "--name-status", `${tracking}...HEAD`]);
+    for (const line of nameStatus.trim().split("\n")) {
+      if (!line) continue;
+      const [statusChar, ...fileParts] = line.split("\t");
+      const filePath = fileParts.join("\t");
+      if (!filePath) continue;
+      let status: "added" | "modified" | "deleted" = "modified";
+      if (statusChar === "A") status = "added";
+      else if (statusChar === "D") status = "deleted";
+      files.push({
+        relPath: filePath,
+        fileName: path.basename(filePath),
+        extName: path.extname(filePath).replace(".", ""),
+        status,
+      });
+    }
+  } catch {
+    // no diff available
+  }
+
+  return { success: true, data: { local, tracking, ahead, behind, files } };
+}
+
+async function getBranchFileDiff(cwd: string, file: string) {
+  const gitClient = git(cwd);
+
+  let tracking: string;
+  try {
+    tracking = (await gitClient.raw(["rev-parse", "--abbrev-ref", "@{u}"])).trim();
+  } catch {
+    return { success: false, error: "no_upstream" };
+  }
+
+  let oldContent = "";
+  let newContent = "";
+
+  try {
+    oldContent = await gitClient.show([`${tracking}:${file}`]);
+  } catch {
+    // new file on branch
+    oldContent = "";
+  }
+
+  try {
+    newContent = await gitClient.show([`HEAD:${file}`]);
+  } catch {
+    // deleted file on branch
+    newContent = "";
+  }
+
+  return {
+    success: true,
+    data: {
+      oldContent,
+      newContent,
+      fileStatus: oldContent === "" ? "added" : newContent === "" ? "deleted" : "modified",
+    },
+  };
 }
 
 async function getStagedFiles(cwd: string) {

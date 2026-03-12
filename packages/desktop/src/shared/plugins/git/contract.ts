@@ -65,6 +65,25 @@ export interface GitCreateBranchResponse {
   error?: string;
 }
 
+export interface GitBranchFile {
+  relPath: string;
+  fileName: string;
+  extName: string;
+  status: "added" | "modified" | "deleted";
+}
+
+export interface GitBranchFilesResponse {
+  success: boolean;
+  data?: {
+    local: string;
+    tracking: string;
+    ahead: number;
+    behind: number;
+    files: GitBranchFile[];
+  };
+  error?: string;
+}
+
 export const gitContract = {
   files: oc.input(type<{ cwd: string }>()).output(type<GitFilesResponse>()),
   add: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
@@ -82,4 +101,6 @@ export const gitContract = {
   createBranch: oc
     .input(type<{ cwd: string; name: string }>())
     .output(type<GitCreateBranchResponse>()),
+  branchFiles: oc.input(type<{ cwd: string }>()).output(type<GitBranchFilesResponse>()),
+  branchFileDiff: oc.input(type<{ cwd: string; file: string }>()).output(type<GitDiffResponse>()),
 };

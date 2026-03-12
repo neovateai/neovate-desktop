@@ -8,11 +8,13 @@ import type {
 
 import { EventPublisher } from "@orpc/server";
 import debug from "debug";
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import type {
   ClaudeCodeUIEvent,
@@ -23,8 +25,11 @@ import type {
 import type {
   ActiveSessionInfo,
   ModelScope,
+  RewindFilesResult,
   SessionInfo,
 } from "../../../shared/features/agent/types";
+
+const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
 import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
@@ -91,6 +96,8 @@ export class SessionManager {
       query: Query;
       cwd: string;
       providerId?: string;
+      lastUserMessageId?: string;
+      preTurnRef?: string;
       pendingRequests: Map<
         string,
         {
@@ -131,6 +138,7 @@ export class SessionManager {
       pathToClaudeCodeExecutable: cliPath,
       executable: "bun",
       settingSources: ["local", "project", "user"],
+      enableFileCheckpointing: true,
       permissionMode: this.configStore.get("permissionMode") ?? "default",
       systemPrompt: {
         type: "preset",
@@ -508,6 +516,72 @@ export class SessionManager {
     log("closeAll: DONE");
   }
 
+  /** Get the list of files changed in the last agent turn. */
+  async lastTurnFiles(sessionId: string): Promise<RewindFilesResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    if (!session.lastUserMessageId) {
+      return { canRewind: false, error: "No turns completed yet" };
+    }
+    try {
+      return await session.query.rewindFiles(session.lastUserMessageId, { dryRun: true });
+    } catch (error) {
+      return {
+        canRewind: false,
+        error: error instanceof Error ? error.message : "Failed to get last turn files",
+      };
+    }
+  }
+
+  /** Get the diff for a single file changed in the last agent turn. */
+  async lastTurnDiff(
+    sessionId: string,
+    file: string,
+  ): Promise<{
+    success: boolean;
+    data?: { oldContent: string; newContent: string };
+    error?: string;
+  }> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+
+    const ref = session.preTurnRef;
+    if (!ref) {
+      return { success: false, error: "No pre-turn snapshot available" };
+    }
+
+    try {
+      // Old content: from the pre-turn snapshot
+      let oldContent = "";
+      try {
+        const { stdout } = await execFileAsync("git", ["show", `${ref}:${file}`], {
+          cwd: session.cwd,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        oldContent = stdout;
+      } catch {
+        // file didn't exist before this turn
+      }
+
+      // New content: current file on disk
+      let newContent = "";
+      try {
+        const fs = await import("node:fs/promises");
+        const filePath = path.resolve(session.cwd, file);
+        newContent = await fs.readFile(filePath, "utf8");
+      } catch {
+        // file was deleted during this turn
+      }
+
+      return { success: true, data: { oldContent, newContent } };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get diff",
+      };
+    }
+  }
+
   /**
    * Stream a user message as UIMessageChunks.
    * Events from the SDK are routed to the event publisher.
@@ -550,11 +624,34 @@ export class SessionManager {
         ? [...(text ? [{ type: "text" as const, text }] : []), ...imageBlocks]
         : text;
 
+    // Pre-turn snapshot: capture working tree state before Claude modifies files
+    let preTurnRef: string | undefined;
+    try {
+      const { stdout } = await execFileAsync("git", ["stash", "create"], { cwd: session.cwd });
+      preTurnRef = stdout.trim() || undefined;
+    } catch {
+      // not a git repo or git not available — skip
+    }
+    // Fall back to HEAD if working tree was clean (git stash create returns empty)
+    if (!preTurnRef) {
+      try {
+        const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: session.cwd });
+        preTurnRef = stdout.trim() || undefined;
+      } catch {
+        // ignore
+      }
+    }
+    session.preTurnRef = preTurnRef;
+
+    const userMessageId = randomUUID();
+    session.lastUserMessageId = userMessageId;
+
     session.input.push({
       type: "user",
       message: { role: "user", content },
       parent_tool_use_id: null,
       session_id: sessionId,
+      uuid: userMessageId,
     });
 
     while (true) {

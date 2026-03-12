@@ -16,6 +16,7 @@ import { UpdaterService } from "./features/updater/service";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
 import gitPlugin from "./plugins/git";
+import reviewPlugin from "./plugins/review";
 import terminalPlugin from "./plugins/terminal";
 
 const log = debug("neovate:orpc");
@@ -32,7 +33,7 @@ const projectStore = new ProjectStore();
 const sessionManager = new SessionManager(configStore, projectStore);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
-  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin],
+  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, reviewPlugin],
 });
 const updaterService = new UpdaterService();
 
