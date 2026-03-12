@@ -80,10 +80,10 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       const { cwd } = input as { cwd: string };
 
       const publisher = watchWorkspace(cwd, {
-        onFsChange: (subType) => {
+        onFsChange: (subType, file) => {
           publisher.publish("file-changed", {
             timestamp: Date.now(),
-            path: "",
+            path: file?.fullPath || "",
             type: subType,
           });
         },

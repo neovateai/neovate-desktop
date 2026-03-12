@@ -35,8 +35,11 @@ const cwdWatchers = new Map<string, FSWatcher>();
 export function watchWorkspace(
   dir: string,
   callbacks: {
-    // includes file system change, add, removed etc, not include file content change
-    onFsChange: (subType: "add" | "unlink" | "addDir" | "unlinkDir") => void;
+    // includes file system change, add, removed etc, and content change with type 'content'
+    onFsChange: (
+      subType: "add" | "unlink" | "addDir" | "unlinkDir" | "content",
+      file?: { fullPath: string },
+    ) => void;
   },
 ) {
   const { onFsChange } = callbacks;
@@ -73,22 +76,17 @@ export function watchWorkspace(
   cwdPublishers.set(dir, publisher);
   cwdWatchers.set(dir, watcher);
 
-  const debouncedOnFsChange = debounce(onFsChange, 300);
+  const _onFsChange = debounce(onFsChange, 300);
 
   watcher
     .on("add", (e) => {
       console.log("add", e);
-      debouncedOnFsChange("add");
+      _onFsChange("add");
     })
-    .on("unlink", () => {
-      debouncedOnFsChange("unlink");
-    })
-    .on("addDir", () => {
-      debouncedOnFsChange("addDir");
-    })
-    .on("unlinkDir", () => {
-      debouncedOnFsChange("unlinkDir");
-    })
+    .on("unlink", () => _onFsChange("unlink"))
+    .on("addDir", () => _onFsChange("addDir"))
+    .on("unlinkDir", () => _onFsChange("unlinkDir"))
+    .on("change", (fullPath) => _onFsChange("content", { fullPath }))
     .on("error", (e) => {
       console.log("watcher error", e);
       unwatchWorkspace(dir);
