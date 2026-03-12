@@ -139,6 +139,7 @@ export class SessionManager {
       executable: "bun",
       settingSources: ["local", "project", "user"],
       enableFileCheckpointing: true,
+      includePartialMessages: true,
       permissionMode: this.configStore.get("permissionMode") ?? "default",
       systemPrompt: {
         type: "preset",
