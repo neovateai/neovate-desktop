@@ -1,7 +1,6 @@
 {
   "git.title": "源代码管理",
   "git.notAGitRepository": "不是 Git 仓库",
-  "git.status": "状态",
   "git.noProject": "未选择项目",
   "git.loadingStatus": "正在加载 Git 状态...",
   "git.noChanges": "没有更改",
@@ -14,6 +13,8 @@
   "git.addAllToStage": "暂存所有更改",
   "git.removeAllFromStage": "取消所有暂存",
   "git.revertAllFiles": "还原所有更改",
+  "git.viewAllWorkingChanges": "查看工作区变更",
+  "git.viewAllStageChanges": "查看暂存区变更",
   "git.diff.selectFile": "请选择一个文件来查看差异",
   "git.diff.loading": "正在加载差异...",
   "git.diff.error": "加载差异失败",
