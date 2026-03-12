@@ -20,6 +20,7 @@
   "git.diff.loadFailed": "无法加载文件差异",
   "git.diff.noChanges": "文件无更改",
   "git.diff.fileAdded": "文件已添加",
+  "git.diff.fileUntracked": "新文件（未跟踪）",
   "git.diff.newFile": "此文件是新文件",
   "git.diff.fileDeleted": "文件已删除",
   "git.diff.deletedFile": "此文件已被删除",

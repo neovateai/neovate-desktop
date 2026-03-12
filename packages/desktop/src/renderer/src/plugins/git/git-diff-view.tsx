@@ -1,5 +1,5 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
-import { File, GitBranch } from "lucide-react";
+import { File, FilePlus, GitBranch, GitCommit } from "lucide-react";
 import { useTheme } from "next-themes";
 import { memo, useEffect, useState } from "react";
 
@@ -12,6 +12,7 @@ interface DiffData {
   oldContent: string;
   newContent: string;
   fileName: string;
+  fileStatus?: string;
 }
 
 export default memo(function GitDiffView() {
@@ -56,7 +57,7 @@ export default memo(function GitDiffView() {
     try {
       const res = await client.git.diff({ cwd, file, type });
       if (res.success && res.data) {
-        return res.data;
+        return res;
       } else {
         console.error(`Failed to get diff for file ${file}:`, res.error);
         return null;
@@ -75,13 +76,15 @@ export default memo(function GitDiffView() {
 
     try {
       const diff = await getFileDiff(relPath, type);
-      if (diff) {
+
+      if (diff && diff.data) {
         const fileName = relPath.split("/").pop() || relPath;
 
         setDiffData({
-          oldContent: diff.oldContent || "",
-          newContent: diff.newContent || "",
+          oldContent: diff.data.oldContent || "",
+          newContent: diff.data.newContent || "",
           fileName,
+          fileStatus: diff.data.fileStatus || "",
         });
       } else {
         setError(t("git.diff.loadFailed"));
@@ -133,21 +136,66 @@ export default memo(function GitDiffView() {
     );
   }
 
+  const hasOldContent = diffData.oldContent && diffData.oldContent.trim().length > 0;
+  const hasNewContent = diffData.newContent && diffData.newContent.trim().length > 0;
+  const isNewFile = !hasOldContent && hasNewContent;
+  const isDeletedFile = hasOldContent && !hasNewContent;
+
+  // 区分新文件的类型：未跟踪还是已暂存的
+  const isUntracked = diffData.fileStatus === "untracked";
+
   return (
     <div className="h-full flex flex-col bg-background">
+      {isNewFile ? (
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1.5 border-b ${
+            isUntracked
+              ? "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800"
+              : "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800"
+          }`}
+        >
+          {isUntracked ? (
+            <FilePlus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          ) : (
+            <GitCommit className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          )}
+          <span
+            className={`text-xs font-medium ${
+              isUntracked
+                ? "text-blue-700 dark:text-blue-300"
+                : "text-emerald-700 dark:text-emerald-300"
+            }`}
+          >
+            {isUntracked ? t("git.diff.fileUntracked") : t("git.diff.fileAdded")}
+          </span>
+        </div>
+      ) : isDeletedFile ? (
+        <div className="flex items-center gap-1.5 px-2 py-1.5 border-b bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-800">
+          <GitBranch className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+          <span className="text-xs text-rose-700 dark:text-rose-300 font-medium">
+            {t("git.diff.fileDeleted")}
+          </span>
+        </div>
+      ) : null}
       <div className="flex-1 overflow-auto">
-        {diffData.oldContent === "" && diffData.newContent === "" ? (
-          <div className="h-full flex flex-col items-center justify-center">
-            <GitBranch className="w-12 h-12 text-success mb-4" />
-            <p className="text-sm text-success font-medium">{t("git.diff.fileAdded")}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("git.diff.newFile")}</p>
-          </div>
-        ) : diffData.newContent === "" ? (
-          <div className="h-full flex flex-col items-center justify-center">
-            <GitBranch className="w-12 h-12 text-destructive mb-4" />
-            <p className="text-sm text-destructive font-medium">{t("git.diff.fileDeleted")}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("git.diff.deletedFile")}</p>
-          </div>
+        {isNewFile ? (
+          <MultiFileDiff
+            oldFile={{ name: "(empty)", contents: "" }}
+            newFile={newFile}
+            options={{
+              theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+              diffStyle: "split",
+            }}
+          />
+        ) : isDeletedFile ? (
+          <MultiFileDiff
+            oldFile={oldFile}
+            newFile={{ name: "(empty)", contents: "" }}
+            options={{
+              theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+              diffStyle: "split",
+            }}
+          />
         ) : (
           <MultiFileDiff
             oldFile={oldFile}

@@ -20,6 +20,7 @@
   "git.diff.loadFailed": "Unable to load file diff",
   "git.diff.noChanges": "File has no changes",
   "git.diff.fileAdded": "File added",
+  "git.diff.fileUntracked": "New file (untracked)",
   "git.diff.newFile": "This file is new",
   "git.diff.fileDeleted": "File deleted",
   "git.diff.deletedFile": "This file has been deleted",
