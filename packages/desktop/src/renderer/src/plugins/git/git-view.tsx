@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, RefreshCw, Undo2 } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw, Undo2, Plus, FileText, Minus } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
@@ -59,42 +59,29 @@ export default memo(function GitView() {
   const getFileIcon = (filePath: string) => {
     const filename = filePath.split("/").pop() || filePath;
     const suffix = filename.split(".").pop();
-    return (
-      <div
-        className="seti-icon flex-shrink-0"
-        data-lang={suffix}
-        style={{ fontSize: 12, width: 12, height: 12 }}
-      ></div>
-    );
+    return <div className="seti-icon flex-shrink-0 w-3.5 h-3.5" data-lang={suffix}></div>;
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
       case "modified":
-        return <span className="text-xs font-mono text-yellow-600 leading-none">M</span>;
+        return <span className="text-[10px] font-medium text-yellow-600 leading-none">M</span>;
       case "deleted":
-        return <span className="text-xs font-mono text-red-600 leading-none">D</span>;
+        return <span className="text-[10px] font-medium text-red-600 leading-none">D</span>;
       case "untracked":
-        return <span className="text-xs font-mono text-green-600 leading-none">U</span>;
+        return <span className="text-[10px] font-medium text-green-600 leading-none">U</span>;
       case "added":
-        return <span className="text-xs font-mono text-green-600 leading-none">A</span>;
+        return <span className="text-[10px] font-medium text-green-600 leading-none">A</span>;
       default:
         return null;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "modified":
-        return "text-yellow-600";
-      case "deleted":
-        return "text-red-600 line-through";
-      case "untracked":
-      case "added":
-        return "text-green-600";
-      default:
-        return "text-foreground";
-    }
+  const viewAll = (type: "staged" | "unstaged") => {
+    app.workbench.contentPanel.openView("review");
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("neovate:open-review", { detail: { category: type } }));
+    }, 100);
   };
 
   const renderFileList = (
@@ -109,56 +96,78 @@ export default memo(function GitView() {
     return (
       <>
         <div
-          className="px-2.5 py-1 flex items-center justify-between cursor-pointer hover:bg-accent/50 select-none group rounded-sm"
+          className="px-1 py-0.5 flex items-center justify-between cursor-pointer hover:bg-accent/50 select-none group rounded-sm"
           onClick={toggleCollapsed}
         >
-          <h3 className="text-xs font-medium text-muted-foreground">
+          <h3 className="text-[11px] font-medium text-muted-foreground">
             {title} ({files.length})
           </h3>
           <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
             {isStaged && files.length > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearStaged();
-                }}
-                className="p-0.5 hover:bg-accent rounded-sm"
-                title={t("git.removeAllFromStage")}
-                disabled={loading}
-              >
-                <ArrowDown className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-              </button>
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    viewAll("staged");
+                  }}
+                  className="p-px hover:bg-accent rounded-sm"
+                  title={t("git.viewAllStageChanges")}
+                >
+                  <FileText className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearStaged();
+                  }}
+                  className="p-px hover:bg-accent rounded-sm"
+                  title={t("git.removeAllFromStage")}
+                  disabled={loading}
+                >
+                  <Minus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                </button>
+              </>
             )}
             {!isStaged && files.length > 0 && (
               <>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    viewAll("unstaged");
+                  }}
+                  className="p-px hover:bg-accent rounded-sm"
+                  title={t("git.viewAllWorkingChanges")}
+                >
+                  <FileText className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     stageAll();
                   }}
-                  className="p-0.5 hover:bg-accent rounded-sm"
+                  className="p-px hover:bg-accent rounded-sm"
                   title={t("git.addAllToStage")}
                   disabled={loading}
                 >
-                  <ArrowUp className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  <Plus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     revertAll();
                   }}
-                  className="p-0.5 hover:bg-accent rounded-sm"
+                  className="p-px hover:bg-accent rounded-sm"
                   title={t("git.revertAllFiles")}
                   disabled={loading}
                 >
-                  <Undo2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  <Undo2 className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
                 </button>
               </>
             )}
             {collapsed ? (
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+              <ChevronRight className="w-3 h-3 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
             )}
           </div>
         </div>
@@ -168,22 +177,20 @@ export default memo(function GitView() {
             {files.map((file) => (
               <div
                 key={file.fullPath}
-                className="flex items-center gap-2 px-2 py-1 hover:bg-accent/50 cursor-pointer transition-colors group rounded-sm"
+                className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-accent/50 cursor-pointer transition-colors group rounded-sm"
                 onClick={() => showDiff(file, isStaged)}
               >
-                <div className="flex items-center justify-center h-4 w-4">
-                  {getFileIcon(file.relPath)}
-                </div>
+                {getFileIcon(file.relPath)}
 
                 <div
-                  className={`text-xs truncate mr-auto ${getStatusColor(file.status)}`}
+                  className="text-[11px] leading-none truncate mr-auto text-foreground"
                   title={file.relPath}
                 >
                   {file.fileName}
                 </div>
 
                 <div className="flex-shrink-0 flex items-center gap-0.5">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     {isStaged ? (
                       <>
                         <button
@@ -191,20 +198,20 @@ export default memo(function GitView() {
                             e.stopPropagation();
                             removeFromStage(file);
                           }}
-                          className="p-0.5 hover:bg-accent rounded-sm"
+                          className="p-px hover:bg-accent rounded-sm"
                           title={t("git.removeFromStage")}
                         >
-                          <ArrowDown className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          <Minus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             revert(file);
                           }}
-                          className="p-0.5 hover:bg-accent rounded-sm"
+                          className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
                         >
-                          <Undo2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          <Undo2 className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
                         </button>
                       </>
                     ) : (
@@ -214,26 +221,26 @@ export default memo(function GitView() {
                             e.stopPropagation();
                             add2stage(file);
                           }}
-                          className="p-0.5 hover:bg-accent rounded-sm"
+                          className="p-px hover:bg-accent rounded-sm"
                           title={t("git.addToStage")}
                         >
-                          <ArrowUp className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          <Plus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             revert(file);
                           }}
-                          className="p-0.5 hover:bg-accent rounded-sm"
+                          className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
                         >
-                          <Undo2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          <Undo2 className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
                         </button>
                       </>
                     )}
                   </div>
 
-                  <div className="ml-1.5">{getStatusText(file.status)}</div>
+                  <div className="ml-1">{getStatusText(file.status)}</div>
                 </div>
               </div>
             ))}
@@ -277,22 +284,20 @@ export default memo(function GitView() {
 
   return (
     <div className="flex h-full flex-col p-2 gap-1">
-      <h2 className="text-xs font-semibold text-muted-foreground px-1">{t("git.title")}</h2>
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
+        <button
+          onClick={() => cwd && refreshGitStatus(cwd)}
+          className="p-0.5 hover:bg-accent/50 rounded-sm"
+          title={t("git.refreshStatus")}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={`w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground ${loading ? "animate-spin" : ""}`}
+          />
+        </button>
+      </div>
       <div className="flex flex-col h-full overflow-hidden">
-        <div className="px-3 py-1.5 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground/70">{t("git.status")}</span>
-          <button
-            onClick={() => cwd && refreshGitStatus(cwd)}
-            className="p-0.5 hover:bg-accent/50 rounded-sm"
-            title={t("git.refreshStatus")}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground ${loading ? "animate-spin" : ""}`}
-            />
-          </button>
-        </div>
-
         {renderFileList(
           stagedFiles,
           stagedCollapsed,
