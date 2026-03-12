@@ -18,6 +18,8 @@ import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
 export interface ClaudeCodeChatInit extends Omit<ChatInit<ClaudeCodeUIMessage>, "transport"> {
   id: string;
   transport: ClaudeCodeChatTransport;
+  onTurnComplete?: (sessionId: string, result: "success" | "error") => void;
+  onTurnStart?: (sessionId: string) => void;
 }
 
 export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
@@ -26,7 +28,16 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   #unsubscribe?: () => Promise<void>;
 
-  constructor({ id, messages, transport, ...init }: ClaudeCodeChatInit) {
+  #unsubscribeStore?: () => void;
+
+  constructor({
+    id,
+    messages,
+    transport,
+    onTurnComplete,
+    onTurnStart,
+    ...init
+  }: ClaudeCodeChatInit) {
     const state = new ClaudeCodeChatState(messages);
     super({
       id,
@@ -43,6 +54,25 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
         this.store.setState({ eventError: error });
       },
     });
+
+    if (onTurnComplete || onTurnStart) {
+      let prev = this.store.getState().status;
+      this.#unsubscribeStore = this.store.subscribe((cur) => {
+        const status = cur.status;
+        if (status === prev) return;
+
+        if (status === "submitted" || status === "streaming") {
+          onTurnStart?.(id);
+        } else if (
+          (prev === "streaming" && (status === "ready" || status === "error")) ||
+          (prev === "submitted" && status === "error")
+        ) {
+          onTurnComplete?.(id, status === "ready" ? "success" : "error");
+        }
+
+        prev = status;
+      });
+    }
   }
 
   #handleMessage(message: ClaudeCodeUIEvent) {
@@ -109,6 +139,7 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   };
 
   dispose = async () => {
+    this.#unsubscribeStore?.();
     await this.#unsubscribe?.();
   };
 }

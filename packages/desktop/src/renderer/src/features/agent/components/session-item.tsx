@@ -1,8 +1,10 @@
 import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { formatDistanceToNowStrict } from "date-fns";
-import { Archive, Pin, PinOff } from "lucide-react";
+import { Archive, Circle, Pin, PinOff } from "lucide-react";
 import { memo, useState } from "react";
+
+import type { TurnResult } from "../store";
 
 import { Spinner } from "../../../components/ui/spinner";
 import { cn } from "../../../lib/utils";
@@ -31,6 +33,7 @@ interface SessionItemProps {
   isRestoring: boolean;
   isStreaming?: boolean;
   hasPendingPermission?: boolean;
+  turnResult?: TurnResult;
   onClick: () => void;
   projectPath: string;
 }
@@ -44,6 +47,7 @@ export const SessionItem = memo(function SessionItem({
   isRestoring,
   isStreaming = false,
   hasPendingPermission = false,
+  turnResult,
   onClick,
   projectPath,
 }: SessionItemProps) {
@@ -136,6 +140,13 @@ export const SessionItem = memo(function SessionItem({
               />
             ) : isProcessing ? (
               <Spinner className="size-3.5" />
+            ) : turnResult ? (
+              <Circle
+                size={8}
+                strokeWidth={0}
+                fill="currentColor"
+                className={turnResult === "success" ? "text-green-500" : "text-destructive"}
+              />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
             ) : (

@@ -67,14 +67,19 @@ export type ChatSession = {
   tasks: Map<string, TaskState>;
 };
 
+export type TurnResult = "success" | "error";
+
 type AgentState = {
   sessions: Map<string, ChatSession>;
   activeSessionId: string | null;
   agentSessions: SessionInfo[];
+  unseenTurnResults: Map<string, TurnResult>;
   _nextMessageId: number;
 
   setActiveSession: (sessionId: string | null) => void;
   setAgentSessions: (sessions: SessionInfo[]) => void;
+  markTurnCompleted: (sessionId: string, result: TurnResult) => void;
+  clearTurnResult: (sessionId: string) => void;
   createSession: (
     sessionId: string,
     meta?: { title?: string; createdAt?: string; cwd?: string; isNew?: boolean },
@@ -99,11 +104,29 @@ export const useAgentStore = create<AgentState>()(
     sessions: new Map(),
     activeSessionId: null,
     agentSessions: [],
+    unseenTurnResults: new Map(),
     _nextMessageId: 0,
 
     setActiveSession: (sessionId) => {
       storeLog("setActiveSession: %s", sessionId);
-      set({ activeSessionId: sessionId });
+      set((state) => {
+        state.activeSessionId = sessionId;
+        if (sessionId) state.unseenTurnResults.delete(sessionId);
+      });
+    },
+
+    markTurnCompleted: (sessionId, result) => {
+      storeLog("markTurnCompleted: sid=%s result=%s", sessionId, result);
+      set((state) => {
+        state.unseenTurnResults.set(sessionId, result);
+      });
+    },
+
+    clearTurnResult: (sessionId) => {
+      storeLog("clearTurnResult: sid=%s", sessionId);
+      set((state) => {
+        state.unseenTurnResults.delete(sessionId);
+      });
     },
 
     setAgentSessions: (agentSessions) => {
@@ -152,6 +175,7 @@ export const useAgentStore = create<AgentState>()(
       storeLog("removeSession: sid=%s", sessionId);
       set((state) => {
         state.sessions.delete(sessionId);
+        state.unseenTurnResults.delete(sessionId);
         if (state.activeSessionId === sessionId) {
           state.activeSessionId = null;
         }

@@ -4,6 +4,7 @@ import { agentContract } from "../../../../shared/features/agent/contract";
 import { client } from "../../orpc";
 import { ClaudeCodeChat } from "./chat";
 import { ClaudeCodeChatTransport } from "./chat-transport";
+import { useAgentStore } from "./store";
 
 type AgentRpc = ContractRouterClient<{ agent: typeof agentContract }>["agent"];
 
@@ -15,12 +16,23 @@ export class ClaudeCodeChatManager {
     this.transport = new ClaudeCodeChatTransport(rpc);
   }
 
+  #turnCallbacks = {
+    onTurnComplete: (id: string, result: "success" | "error") => {
+      const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
+      if (activeSessionId !== id) markTurnCompleted(id, result);
+    },
+    onTurnStart: (id: string) => {
+      useAgentStore.getState().clearTurnResult(id);
+    },
+  };
+
   async createSession(cwd: string, opts?: { providerId?: string | null }) {
     const { sessionId, currentModel, modelScope, providerId, ...capabilities } =
       await this.rpc.claudeCode.createSession({ cwd, providerId: opts?.providerId });
     const chat = new ClaudeCodeChat({
       id: sessionId,
       transport: this.transport,
+      ...this.#turnCallbacks,
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);
@@ -38,6 +50,7 @@ export class ClaudeCodeChatManager {
       id: sessionId,
       transport: this.transport,
       messages,
+      ...this.#turnCallbacks,
     });
     chat.store.setState({ capabilities });
     this.chats.set(sessionId, chat);
