@@ -1,4 +1,3 @@
-import type { Editor, Range } from "@tiptap/core";
 import type { SuggestionProps } from "@tiptap/suggestion";
 
 import Mention from "@tiptap/extension-mention";
@@ -56,16 +55,8 @@ export function createMentionExtension(getCwd: () => string) {
           return [];
         }
       },
-      command: ({
-        editor,
-        range,
-        props,
-      }: {
-        editor: Editor;
-        range: Range;
-        props: SuggestionItem;
-      }) => {
-        if (props.isDirectory) {
+      command: ({ editor, range, props }: any) => {
+        if ((props as SuggestionItem).isDirectory) {
           // Drill-down: atomically replace @query with @dir/ to re-trigger suggestion
           editor.chain().focus().insertContentAt(range, `@${props.label}`).run();
           return;
