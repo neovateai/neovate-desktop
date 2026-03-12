@@ -152,9 +152,9 @@ function SingleProjectSessionList() {
   return (
     <div className="flex flex-1 flex-col gap-1">
       <Button
-        variant="outline"
+        variant="ghost"
         size="sm"
-        className="mb-2 w-full bg-secondary text-secondary-foreground"
+        className="mb-2 w-full bg-secondary text-secondary-foreground btn-custom-hover"
         onClick={() => createNewSession(projectPath)}
       >
         <Plus size={14} />

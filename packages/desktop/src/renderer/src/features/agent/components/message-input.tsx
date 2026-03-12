@@ -164,7 +164,8 @@ export function MessageInput({
     ],
     editorProps: {
       attributes: {
-        class: "tiptap min-h-[36px] max-h-[200px] overflow-y-auto px-3 py-2 text-sm outline-none",
+        class:
+          "tiptap min-h-[76px] max-h-[240px] overflow-y-auto px-3 py-2 text-sm outline-none bg-background-secondary",
       },
     },
     editable: !disabled && !streaming,
@@ -237,7 +238,7 @@ export function MessageInput({
   );
 
   return (
-    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
+    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "")}>
       <input
         ref={fileInputRef}
         type="file"
@@ -246,10 +247,10 @@ export function MessageInput({
         className="hidden"
         onChange={handleFileSelect}
       />
-      <div className="bg-border-secondary">
+      <div className="bg-border-secondary shadow-[0_4px_4px_rgba(0,0,0,0.02)]">
         <div
           className={cn(
-            "border border-input focus-within:border-primary bg-border-primary",
+            "border border-input focus-within:border-primary bg-border-primary overflow-hidden",
             dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
           )}
         >

@@ -3,7 +3,7 @@ import {
   FolderIcon,
   PanelLeftIcon,
   PanelRightIcon,
-  Settings01Icon,
+  Settings03Icon,
   ViewSidebarLeftIcon,
   ViewSidebarRightIcon,
 } from "@hugeicons/core-free-icons";
@@ -77,7 +77,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   return (
     <div
       data-slot="chat-panel"
-      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-background-secondary"
+      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-background-secondary chat-panel-bg shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
       style={{ gridArea: APP_LAYOUT_GRID_AREA.chatPanel }}
     >
       {children}
@@ -196,7 +196,7 @@ export function AppLayoutSecondaryTitleBar() {
           title="Settings"
           onClick={() => setShowSettings(true)}
         >
-          <HugeiconsIcon icon={Settings01Icon} size={16} strokeWidth={1.5} />
+          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.5} />
         </Button>
         <Button
           variant="ghost"

@@ -16,7 +16,7 @@ export function AppLayoutContentPanel({ children }: { children?: ReactNode }) {
       data-slot="content-panel"
       style={{ gridArea: APP_LAYOUT_GRID_AREA.contentPanel }}
       className={cn(
-        "h-full shrink-0 overflow-hidden rounded-lg bg-card",
+        "h-full shrink-0 overflow-hidden rounded-lg bg-card shadow-[-2px_0_8px_rgba(0,0,0,0.05)]",
         collapsed && "pointer-events-none",
       )}
       initial={false}
