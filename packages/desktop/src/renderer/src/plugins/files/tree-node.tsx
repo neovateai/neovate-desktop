@@ -30,7 +30,7 @@ interface TreeNodeProps {
 }
 
 function FileLangIcon(props: { path: string; size?: number }) {
-  const { path = "", size = 16 } = props;
+  const { path = "", size = 18 } = props;
   const filename = path.split("/").pop() || path;
   const suffix = filename.split(".").pop();
 
@@ -38,7 +38,7 @@ function FileLangIcon(props: { path: string; size?: number }) {
     <div
       className="seti-icon"
       data-lang={suffix}
-      style={{ fontSize: size, width: size, height: size, lineHeight: 1 }}
+      style={{ fontSize: size, width: 12, height: 12, lineHeight: `12px` }}
     ></div>
   );
 }
@@ -96,24 +96,24 @@ export function TreeNode({
   const menuItems = [
     {
       label: t("contextMenu.newFile"),
-      icon: <FilePlus size={14} />,
+      icon: <FilePlus size={16} />,
       action: () => handleCreateFile(),
     },
     {
       label: t("contextMenu.newFolder"),
-      icon: <FolderPlus size={14} />,
+      icon: <FolderPlus size={16} />,
       action: () => handleCreateFolder(),
     },
     ...(item.relPath !== ""
       ? [
           {
             label: t("contextMenu.rename"),
-            icon: <Edit size={14} />,
+            icon: <Edit size={16} />,
             action: () => handleStartRename(),
           },
           {
             label: t("contextMenu.delete"),
-            icon: <Trash2 size={14} />,
+            icon: <Trash2 size={16} />,
             action: () => handleDelete(),
             variant: "destructive" as const,
           },
@@ -177,7 +177,7 @@ export function TreeNode({
     setCreatingName("");
   };
 
-  const paddingLeft = level * 12 + 8;
+  const paddingLeft = level * 16 + 12;
 
   return (
     <>
@@ -193,24 +193,16 @@ export function TreeNode({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            <div className="w-4 h-4 flex items-center justify-center">
-              {item.isFolder &&
-                (isExpanded ? (
+            {item.isFolder ? (
+              <div className="w-3 h-5 flex items-center justify-center">
+                {isExpanded ? (
                   <ChevronDown size={14} strokeWidth={1.5} />
                 ) : (
                   <ChevronRight size={14} strokeWidth={1.5} />
-                ))}
-            </div>
-
-            {item.isFolder ? (
-              <HugeiconsIcon
-                icon={Folder02Icon}
-                size={16}
-                strokeWidth={1.5}
-                className="text-yellow-500 dark:text-yellow-400"
-              />
+                )}
+              </div>
             ) : (
-              <FileLangIcon path={item.relPath}></FileLangIcon>
+              <FileLangIcon path={item.relPath} size={18}></FileLangIcon>
             )}
 
             {isEditing ? (
@@ -223,12 +215,12 @@ export function TreeNode({
                   if (e.key === "Enter") handleFinishRename();
                   if (e.key === "Escape") handleCancelRename();
                 }}
-                className="flex-1 text-xs bg-background border border-border rounded px-1 py-0.5 ml-1"
+                className="flex-1 text-sm bg-background border border-border rounded px-2 py-1 ml-2"
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="flex-1 text-xs ml-1 cursor-pointer truncate" title={item.fullPath}>
+              <span className="flex-1 text-sm ml-1 cursor-pointer truncate" title={item.fullPath}>
                 {fileName}
               </span>
             )}
@@ -240,7 +232,7 @@ export function TreeNode({
                 style={{ opacity: isHovered ? 1 : 0 }}
                 title={t("contextMenu.newFile")}
               >
-                <Plus size={12} strokeWidth={1.5} />
+                <Plus size={14} strokeWidth={1.5} />
               </button>
             )}
           </div>
@@ -263,11 +255,11 @@ export function TreeNode({
           <div className="w-4 h-4 flex items-center justify-center">
             <HugeiconsIcon
               icon={creatingType === "folder" ? Folder02Icon : File02Icon}
-              size={14}
+              size={18}
               strokeWidth={1.5}
             />
           </div>
-          <span className="flex-1 text-xs ml-1 cursor-pointer">
+          <span className="flex-1 text-sm ml-2 cursor-pointer">
             <input
               type="text"
               placeholder={
@@ -280,7 +272,7 @@ export function TreeNode({
                 if (e.key === "Enter") handleFinishCreate();
                 if (e.key === "Escape") handleCancelCreate();
               }}
-              className="w-full bg-background border border-border rounded px-1 py-0.5"
+              className="w-full bg-background border border-border rounded px-2 py-1"
               autoFocus
             />
           </span>

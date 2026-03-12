@@ -46,7 +46,10 @@ function FilesViewComponent({ project }: FilesViewProps) {
     // 而取消监听有异步现象，会导致后面的一次监听后才执行前一次的取消监听，导致监听器不生效
     // 本地调试时需要关闭严格模式 StrictMode。生产环境无此问题。
     const cancel = consumeEventIterator(client.files.watch({ cwd }), {
-      onEvent: () => refresh(),
+      onEvent: () => {
+        refresh();
+        window.dispatchEvent(new CustomEvent("neovate:fs-change", {}));
+      },
     });
 
     return () => {

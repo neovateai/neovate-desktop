@@ -6,7 +6,9 @@
 .seti-icon {
   font-family: "seti";
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
 }
 .seti-icon::before {
   display: flex;
