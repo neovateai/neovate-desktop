@@ -9,13 +9,6 @@ export interface GitFile {
   staged?: boolean;
 }
 
-export interface GitStatus {
-  branch: string | null;
-  ahead: number;
-  behind: number;
-  changed: number;
-}
-
 export interface GitFilesResponse {
   success: boolean;
   data?: {
@@ -36,12 +29,12 @@ export interface GitDiffResponse {
   data?: {
     oldContent: string;
     newContent: string;
+    fileStatus: string;
   };
   error?: string;
 }
 
 export const gitContract = {
-  status: oc.output(type<GitStatus>()),
   files: oc.input(type<{ cwd: string }>()).output(type<GitFilesResponse>()),
   add: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
   reset: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),

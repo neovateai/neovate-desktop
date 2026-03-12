@@ -82,8 +82,23 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
 
         let oldContent = "";
         let newContent = "";
+        let fileStatus = "";
 
         try {
+          // 获取文件状态信息
+          const status = await gitClient.status();
+
+          // 确定文件状态
+          if (status.not_added.includes(file)) {
+            fileStatus = "untracked";
+          } else if (status.created.includes(file)) {
+            fileStatus = "added";
+          } else if (status.modified.includes(file)) {
+            fileStatus = "modified";
+          } else if (status.deleted.includes(file)) {
+            fileStatus = "deleted";
+          }
+
           if (diffType === "staged") {
             try {
               // 获取暂存区内容
@@ -114,7 +129,6 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
 
             // 获取对比基准：如果有暂存就用暂存区，否则用 HEAD
             try {
-              const status = await gitClient.status();
               const isStaged = status.staged.includes(file);
 
               if (isStaged) {
@@ -135,6 +149,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
           data: {
             oldContent: oldContent || "",
             newContent: newContent || "",
+            fileStatus,
           },
         };
       } catch (error) {
