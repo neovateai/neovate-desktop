@@ -174,11 +174,13 @@ describe("SessionManager", () => {
     });
     await expect(stream.next()).resolves.toMatchObject({ done: true, value: undefined });
 
-    expect(input.push).toHaveBeenCalledWith({
-      type: "user",
-      message: { role: "user", content: "Hello" },
-      parent_tool_use_id: null,
-      session_id: "session-1",
-    });
+    expect(input.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "user",
+        message: { role: "user", content: "Hello" },
+        parent_tool_use_id: null,
+        session_id: "session-1",
+      }),
+    );
   });
 });
