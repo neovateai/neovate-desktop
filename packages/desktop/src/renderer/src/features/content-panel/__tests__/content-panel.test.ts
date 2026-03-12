@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import type { ContentPanelView } from "../../../core/plugin/contributions";
+import type { IWorkbenchLayoutService } from "../../../core/workbench/layout";
 import type { ContentPanelOptions } from "../content-panel";
 
 import { ContentPanel } from "../content-panel";
@@ -26,6 +27,10 @@ function makeOptions(overrides?: Partial<ContentPanelOptions>): ContentPanelOpti
     views: VIEWS,
     load: vi.fn(() => Promise.resolve({})),
     save: vi.fn(() => Promise.resolve()),
+    layout: {
+      expandPart: vi.fn(),
+      togglePart: vi.fn(),
+    } satisfies IWorkbenchLayoutService,
     ...overrides,
   };
 }
@@ -48,6 +53,11 @@ describe("openView", () => {
     expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(1);
   });
 
+  it("expands contentPanel before opening a view", () => {
+    panel.openView("terminal");
+    expect(options.layout.expandPart).toHaveBeenCalledWith("contentPanel");
+  });
+
   it("uses view name as default tab name", () => {
     panel.openView("terminal");
     expect(panel.store.getState().getProjectState(PROJECT).tabs[0].name).toBe("Terminal");
@@ -64,6 +74,15 @@ describe("openView", () => {
     const id2 = panel.openView("editor");
     expect(id1).toBe(id2);
     expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(1);
+  });
+
+  it("expands contentPanel when reusing an existing singleton tab", () => {
+    panel.openView("editor");
+    vi.mocked(options.layout.expandPart).mockClear();
+
+    panel.openView("editor");
+
+    expect(options.layout.expandPart).toHaveBeenCalledWith("contentPanel");
   });
 
   it("allows multiple instances for non-singleton views", () => {

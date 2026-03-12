@@ -1,14 +1,17 @@
 import type { StoreApi } from "zustand/vanilla";
 
 import type { ContentPanelView } from "../../core/plugin/contributions";
+import type { IWorkbenchLayoutService } from "../../core/workbench/layout";
 import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
 
+import { COLLAPSIBLE_WORKBENCH_PART } from "../../core/workbench/layout";
 import { createContentPanelStore } from "./store";
 
 export interface ContentPanelOptions {
   views: ContentPanelView[];
   load: () => Promise<Record<string, ProjectTabState>>;
   save: (data: Record<string, ProjectTabState>) => Promise<void> | void;
+  layout: IWorkbenchLayoutService;
 }
 
 const DEBOUNCE_MS = 100;
@@ -75,6 +78,8 @@ export class ContentPanel {
   openView(viewType: string, options?: { name?: string; activate?: boolean }): string {
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) throw new Error(`Unknown view: ${viewType}`);
+
+    void this.options.layout.expandPart(COLLAPSIBLE_WORKBENCH_PART.contentPanel);
 
     const store = this.store.getState();
     const activate = options?.activate !== false;

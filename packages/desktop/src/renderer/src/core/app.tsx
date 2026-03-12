@@ -7,6 +7,7 @@ import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+import { layoutStore } from "../components/app-layout/store";
 import { ToastProvider } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
@@ -19,11 +20,12 @@ import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import searchPlugin from "../plugins/search";
 import terminalPlugin from "../plugins/terminal";
-// import contentPanelDemoPlugin from "../plugins/content-panel-demo";
-// import demoWindowPlugin from "../plugins/demo-window";
 import { DisposableStore } from "./disposable";
 import { I18nManager } from "./i18n";
 import { PluginManager } from "./plugin";
+// import contentPanelDemoPlugin from "../plugins/content-panel-demo";
+// import demoWindowPlugin from "../plugins/demo-window";
+import { WorkbenchLayoutService } from "./workbench/layout";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
 const RendererAppContext: React.Context<RendererApp | null> =
@@ -166,9 +168,18 @@ export class RendererApp implements IRendererApp {
 
   initWorkbench(): void {
     const views = this.pluginManager.contributions.contentPanelViews;
+    // TODO: Move app-layout UI to consume app.workbench.layout directly, then
+    // transfer store ownership from components/app-layout/store into
+    // WorkbenchLayoutService.
+    const layout = new WorkbenchLayoutService({
+      isExpanded: (part) => !layoutStore.getState().panels[part].collapsed,
+      togglePart: (part) => layoutStore.getState().togglePanel(part),
+    });
     this.workbench = {
+      layout,
       contentPanel: new ContentPanel({
         views,
+        layout,
         load: async () => {
           const data = await client.storage.get({ namespace: "contentPanel", key: "projects" });
           return (data as Record<string, ProjectTabState>) ?? {};

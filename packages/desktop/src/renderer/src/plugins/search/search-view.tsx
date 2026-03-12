@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from "react";
 import type { Project } from "../../../../shared/features/project/types";
 
 import { utilsContract } from "../../../../shared/features/utils/contract";
-import { layoutStore } from "../../components/app-layout/store";
 import { Input } from "../../components/ui/input";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
@@ -159,11 +158,6 @@ function SearchViewComponent({ project }: SearchViewProps) {
   };
 
   const handleMatchClick = (result: SearchResult, line: number) => {
-    const { panels } = layoutStore.getState();
-    const contentPanelState = panels.contentPanel;
-    if (contentPanelState?.collapsed === true) {
-      layoutStore.getState().togglePanel("contentPanel");
-    }
     app.workbench.contentPanel.openView("editor");
     window.dispatchEvent(
       new CustomEvent("neovate:open-editor", {

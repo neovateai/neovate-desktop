@@ -4,6 +4,7 @@ import { type ReactNode } from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import type { ContentPanelView } from "../../../core/plugin/contributions";
+import type { IWorkbenchLayoutService } from "../../../core/workbench/layout";
 
 import {
   ContentPanelViewContextProvider,
@@ -16,7 +17,7 @@ let panel: ContentPanel;
 
 vi.mock("../../../core", () => ({
   useRendererApp: () => ({
-    workbench: { contentPanel: panel },
+    workbench: { layout: { expandPart: vi.fn(), togglePart: vi.fn() }, contentPanel: panel },
   }),
 }));
 
@@ -33,6 +34,10 @@ const VIEWS: ContentPanelView[] = [
 beforeEach(() => {
   panel = new ContentPanel({
     views: VIEWS,
+    layout: {
+      expandPart: vi.fn(),
+      togglePart: vi.fn(),
+    } satisfies IWorkbenchLayoutService,
     load: async () => ({}),
     save: async () => {},
   });

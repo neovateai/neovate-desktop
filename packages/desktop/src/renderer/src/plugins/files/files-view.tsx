@@ -8,7 +8,6 @@ import type { Project } from "../../../../shared/features/project/types";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
-import { layoutStore } from "../../components/app-layout/store";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useFilesTranslation } from "./i18n";
@@ -86,11 +85,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
     if (!item.isFolder && project) {
       log("open file path=%s", item.relPath);
-      const { panels } = layoutStore.getState();
-      const contentPanelState = panels.contentPanel;
-      if (contentPanelState?.collapsed === true) {
-        layoutStore.getState().togglePanel("contentPanel");
-      }
       app.workbench.contentPanel.openView("editor");
       window.dispatchEvent(
         new CustomEvent("neovate:open-editor", {

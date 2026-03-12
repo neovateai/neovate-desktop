@@ -18,11 +18,13 @@ describe("RendererApp", () => {
     expect(typeof app.subscriptions.dispose).toBe("function");
   });
 
-  it("exposes workbench.contentPanel after initWorkbench", async () => {
+  it("exposes workbench layout and contentPanel after initWorkbench", async () => {
     const app = new RendererApp({ plugins: [] });
     await app.pluginManager.configContributions();
     app.initWorkbench();
     expect(app.workbench).toBeDefined();
+    expect(app.workbench.layout).toBeDefined();
+    expect(typeof app.workbench.layout.expandPart).toBe("function");
     expect(app.workbench.contentPanel).toBeDefined();
     expect(typeof app.workbench.contentPanel.openView).toBe("function");
   });

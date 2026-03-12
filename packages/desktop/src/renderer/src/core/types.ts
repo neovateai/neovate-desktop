@@ -4,6 +4,7 @@ import type { ContentPanel } from "../features/content-panel/content-panel";
 import type { SettingsStore } from "../features/settings/store";
 import type { Disposable, Unsubscribe } from "./disposable";
 import type { I18nManager } from "./i18n";
+import type { IWorkbenchLayoutService } from "./workbench/layout";
 
 export interface IScopedSettings<T extends Record<string, unknown> = Record<string, unknown>> {
   get<K extends string & keyof T>(key: K): T[K] | undefined;
@@ -24,6 +25,7 @@ export interface IProjectService {
 }
 
 export interface IWorkbench {
+  readonly layout: IWorkbenchLayoutService;
   readonly contentPanel: ContentPanel;
 }
 
