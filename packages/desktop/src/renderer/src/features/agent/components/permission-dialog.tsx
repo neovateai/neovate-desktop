@@ -7,6 +7,7 @@ import type { PlanApprovalChoice } from "./exit-plan-mode-request-dialog";
 import { AskUserQuestionInputSchema } from "../../../../../shared/claude-code/tools/ask-user-question";
 import { ExitPlanModeInputSchema } from "../../../../../shared/claude-code/tools/exit-plan-mode";
 import { client } from "../../../orpc";
+import { useConfigStore } from "../../config/store";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useAgentStore } from "../store";
@@ -22,6 +23,9 @@ type Props = {
 
 export function PermissionDialog({ sessionId }: Props) {
   const { pendingRequests, respondToRequest } = useClaudeCodeChat(sessionId);
+  const sessionPermissionMode = useAgentStore((s) => s.sessions.get(sessionId)?.permissionMode);
+  const globalPermissionMode = useConfigStore((s) => s.permissionMode);
+
   const activeRequest = pendingRequests[0];
   if (!activeRequest) return null;
 
@@ -55,6 +59,19 @@ export function PermissionDialog({ sessionId }: Props) {
       result.behavior,
     );
     void respondToRequest(requestId, { type: "permission_request", result });
+
+    // Sync setMode permission updates to agent store so the toolbar reflects the change
+    if (result.behavior === "allow" && result.updatedPermissions) {
+      const setModeUpdate = result.updatedPermissions.find((u) => u.type === "setMode");
+      if (setModeUpdate) {
+        chatLog(
+          "handleResolvePermission: syncing setMode=%s sessionId=%s",
+          setModeUpdate.mode,
+          sessionId.slice(0, 8),
+        );
+        useAgentStore.getState().setPermissionMode(sessionId, setModeUpdate.mode);
+      }
+    }
   };
 
   const handleExitPlanModeChoice = async (choice: PlanApprovalChoice) => {
@@ -119,8 +136,19 @@ export function PermissionDialog({ sessionId }: Props) {
   };
 
   // --- Render ---
+  const pendingCount = pendingRequests.length;
+  const pendingIndex = pendingRequests.findIndex((r) => r.requestId === requestId);
+  const permissionMode = sessionPermissionMode ?? globalPermissionMode ?? "default";
+
   let content = (
-    <PermissionRequestDialog key={requestId} request={request} onResolve={handleResolve} />
+    <PermissionRequestDialog
+      key={requestId}
+      request={request}
+      pendingCount={pendingCount}
+      pendingIndex={pendingIndex >= 0 ? pendingIndex : 0}
+      permissionMode={permissionMode}
+      onResolve={handleResolve}
+    />
   );
 
   if (askUserQuestion?.success) {
