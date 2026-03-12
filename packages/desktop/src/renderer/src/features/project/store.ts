@@ -25,6 +25,7 @@ type ProjectState = {
   archiveSession: (projectPath: string, sessionId: string, isActive?: boolean) => void;
   togglePinSession: (projectPath: string, sessionId: string) => void;
   setClosedProjectAccordions: (ids: string[]) => void;
+  reorderProjects: (projectIds: string[]) => void;
   loadSessionPreferences: (projectPath: string) => Promise<void>;
 };
 
@@ -101,6 +102,16 @@ export const useProjectStore = create<ProjectState>()(
     setClosedProjectAccordions: (ids) => {
       client.project.setClosedAccordions({ ids }).catch(() => {});
       set({ closedProjectAccordions: ids });
+    },
+    reorderProjects: (projectIds) => {
+      const { projects } = useProjectStore.getState();
+      const map = new Map(projects.map((p) => [p.id, p]));
+      const reordered = projectIds.flatMap((id) => {
+        const p = map.get(id);
+        return p ? [p] : [];
+      });
+      set({ projects: reordered });
+      client.project.reorderProjects({ projectIds }).catch(() => {});
     },
     loadSessionPreferences: async (_projectPath) => {
       const [archived, pinned, closedAccordions] = await Promise.all([

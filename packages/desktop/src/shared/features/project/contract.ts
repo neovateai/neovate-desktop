@@ -35,4 +35,6 @@ export const projectContract = {
   getClosedAccordions: oc.output(type<string[]>()),
 
   setClosedAccordions: oc.input(z.object({ ids: z.array(z.string()) })).output(type<void>()),
+
+  reorderProjects: oc.input(z.object({ projectIds: z.array(z.string()) })).output(type<void>()),
 };

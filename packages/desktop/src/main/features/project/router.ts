@@ -95,4 +95,8 @@ export const projectRouter = os.project.router({
   setClosedAccordions: os.project.setClosedAccordions.handler(({ input, context }) => {
     context.projectStore.setClosedProjectAccordions(input.ids);
   }),
+
+  reorderProjects: os.project.reorderProjects.handler(({ input, context }) => {
+    context.projectStore.reorder(input.projectIds);
+  }),
 });

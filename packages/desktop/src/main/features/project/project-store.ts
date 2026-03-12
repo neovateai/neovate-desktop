@@ -125,6 +125,16 @@ export class ProjectStore {
     };
   }
 
+  reorder(projectIds: string[]): void {
+    const projects = this.getAll();
+    const map = new Map(projects.map((p) => [p.id, p]));
+    const reordered = projectIds.flatMap((id) => {
+      const p = map.get(id);
+      return p ? [p] : [];
+    });
+    this.store.set("projects", reordered);
+  }
+
   setProjectSelection(cwd: string, provider?: string | null, model?: string | null): void {
     const selections = this.store.get("providerSelections") ?? {};
     const existing = selections[cwd] ?? {};
