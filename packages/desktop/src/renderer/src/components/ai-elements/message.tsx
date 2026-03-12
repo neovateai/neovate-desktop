@@ -23,8 +23,8 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 export const Message = ({ className, from, ...props }: MessageProps) => (
   <div
     className={cn(
-      "group flex w-full max-w-[95%] flex-col gap-2",
-      from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
+      "group flex w-full flex-col",
+      from === "user" ? "is-user ml-auto justify-end max-w-[80%]" : "is-assistant max-w-full",
       className,
     )}
     {...props}
@@ -36,9 +36,11 @@ export type MessageContentProps = HTMLAttributes<HTMLDivElement>;
 export const MessageContent = ({ children, className, ...props }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
+      "flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
+      // User message: bubble style with rounded corners
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:bg-muted/80 group-[.is-user]:px-4 group-[.is-user]:py-2.5 group-[.is-user]:text-foreground",
+      // Assistant message: full width, no bubble
+      "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground",
       className,
     )}
     {...props}
@@ -50,7 +52,13 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
 export type MessageActionsProps = ComponentProps<"div">;
 
 export const MessageActions = ({ className, children, ...props }: MessageActionsProps) => (
-  <div className={cn("flex items-center gap-1", className)} {...props}>
+  <div
+    className={cn(
+      "flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+      className
+    )}
+    {...props}
+  >
     {children}
   </div>
 );
@@ -290,7 +298,7 @@ MessageResponse.displayName = "MessageResponse";
 export type MessageToolbarProps = ComponentProps<"div">;
 
 export const MessageToolbar = ({ className, children, ...props }: MessageToolbarProps) => (
-  <div className={cn("mt-4 flex w-full items-center justify-between gap-4", className)} {...props}>
+  <div className={cn("mt-3 flex w-full items-center justify-between gap-4", className)} {...props}>
     {children}
   </div>
 );

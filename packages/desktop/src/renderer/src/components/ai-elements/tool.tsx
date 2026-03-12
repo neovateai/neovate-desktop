@@ -1,79 +1,100 @@
 "use client";
 
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
+import type { LucideProps } from "lucide-react";
 
 import {
-  CheckCircleIcon,
-  ChevronDownIcon,
-  CircleIcon,
-  ClockIcon,
-  Code2Icon,
-  FileJsonIcon,
-  FileTextIcon,
-  HashIcon,
-  ImageIcon,
-  LucideProps,
-  MusicIcon,
-  TableIcon,
-  WrenchIcon,
-  XCircleIcon,
+  BookOpen,
+  Bot,
+  CheckSquare,
+  ChevronRight,
+  ClipboardList,
+  Download,
+  FileEdit,
+  FilePlus,
+  FileText,
+  Files,
+  GitBranch,
+  Globe,
+  HelpCircle,
+  ListTodo,
+  LogOut,
+  Map,
+  Regex,
+  Search,
+  Square,
+  Terminal,
+  Wand2,
   FileIcon,
 } from "lucide-react";
 import { isValidElement, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
-import { Badge } from "../ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { CodeBlock } from "./code-block";
 
-// File extension to icon mapping
-const fileExtensionMap: Record<string, { icon: React.FC<LucideProps>; color: string }> = {
-  // Code
-  ts: { icon: Code2Icon, color: "text-blue-500" },
-  tsx: { icon: Code2Icon, color: "text-blue-500" },
-  js: { icon: Code2Icon, color: "text-yellow-500" },
-  jsx: { icon: Code2Icon, color: "text-yellow-500" },
-  py: { icon: Code2Icon, color: "text-green-500" },
-  go: { icon: Code2Icon, color: "text-cyan-500" },
-  rs: { icon: Code2Icon, color: "text-orange-500" },
-  java: { icon: Code2Icon, color: "text-red-500" },
-  cpp: { icon: Code2Icon, color: "text-blue-600" },
-  c: { icon: Code2Icon, color: "text-blue-600" },
-  // Config
-  json: { icon: FileJsonIcon, color: "text-yellow-500" },
-  yaml: { icon: FileTextIcon, color: "text-pink-500" },
-  yml: { icon: FileTextIcon, color: "text-pink-500" },
-  xml: { icon: Code2Icon, color: "text-orange-500" },
-  toml: { icon: FileTextIcon, color: "text-green-500" },
-  ini: { icon: FileTextIcon, color: "text-gray-500" },
-  env: { icon: FileTextIcon, color: "text-green-600" },
-  // Docs
-  md: { icon: FileTextIcon, color: "text-blue-400" },
-  txt: { icon: FileTextIcon, color: "text-gray-400" },
-  // Data
-  csv: { icon: TableIcon, color: "text-green-500" },
-  xlsx: { icon: TableIcon, color: "text-green-600" },
-  xls: { icon: TableIcon, color: "text-green-600" },
-  // Media
-  png: { icon: ImageIcon, color: "text-purple-500" },
-  jpg: { icon: ImageIcon, color: "text-purple-500" },
-  jpeg: { icon: ImageIcon, color: "text-purple-500" },
-  gif: { icon: ImageIcon, color: "text-purple-500" },
-  svg: { icon: ImageIcon, color: "text-orange-500" },
-  mp3: { icon: MusicIcon, color: "text-pink-500" },
-  wav: { icon: MusicIcon, color: "text-pink-500" },
-  // Other
-  lock: { icon: HashIcon, color: "text-gray-500" },
-  gitignore: { icon: FileIcon, color: "text-gray-600" },
-  dockerfile: { icon: FileIcon, color: "text-blue-500" },
+// Tool type to icon and color mapping (following design spec)
+const toolIconMap: Record<string, { icon: React.FC<LucideProps>; color: string }> = {
+  // File operations
+  Read: { icon: FileText, color: "text-blue-500" },
+  Write: { icon: FilePlus, color: "text-green-500" },
+  Edit: { icon: FileEdit, color: "text-amber-500" },
+  MultiEdit: { icon: Files, color: "text-orange-500" },
+
+  // Notebook & Code
+  NotebookEdit: { icon: BookOpen, color: "text-purple-500" },
+
+  // System & Shell
+  Bash: { icon: Terminal, color: "text-slate-500" },
+
+  // Search
+  Glob: { icon: Search, color: "text-cyan-500" },
+  Grep: { icon: Regex, color: "text-indigo-500" },
+
+  // Web
+  WebSearch: { icon: Globe, color: "text-sky-500" },
+  WebFetch: { icon: Download, color: "text-teal-500" },
+
+  // User interaction
+  AskUserQuestion: { icon: HelpCircle, color: "text-violet-500" },
+
+  // Task management
+  TodoWrite: { icon: CheckSquare, color: "text-emerald-500" },
+  Task: { icon: ListTodo, color: "text-pink-500" },
+  TaskOutput: { icon: ClipboardList, color: "text-rose-500" },
+  TaskStop: { icon: Square, color: "text-red-500" },
+
+  // Agent & Skills
+  Agent: { icon: Bot, color: "text-primary" },
+  Skill: { icon: Wand2, color: "text-fuchsia-500" },
+
+  // Plan mode
+  EnterPlanMode: { icon: Map, color: "text-blue-400" },
+  ExitPlanMode: { icon: LogOut, color: "text-gray-400" },
+
+  // Worktree
+  EnterWorktree: { icon: GitBranch, color: "text-orange-400" },
 };
 
-// Get file extension from path
-function getFileExtension(filePath: string): string {
-  const match = filePath.match(/\.([^./\\]+)$/);
-  return match ? match[1].toLowerCase() : "";
+// Get tool icon info by name
+function getToolIconInfo(toolName: string): { icon: React.FC<LucideProps>; color: string } {
+  // Try exact match first
+  if (toolIconMap[toolName]) {
+    return toolIconMap[toolName];
+  }
+
+  // Try case-insensitive match
+  const lowerToolName = toolName.toLowerCase();
+  for (const [key, value] of Object.entries(toolIconMap)) {
+    if (key.toLowerCase() === lowerToolName) {
+      return value;
+    }
+  }
+
+  // Default fallback
+  return { icon: FileIcon, color: "text-muted-foreground" };
 }
 
 // Get filename from path
@@ -82,12 +103,8 @@ function getFileName(filePath: string): string {
   return match ? match[1] : filePath;
 }
 
-// Extract file path from text (supports multiple formats)
-// 1. "Read /path/to/file"
-// 2. "Glob for "pattern" in /path/to/dir"
-// 3. "Glob for "p1" in /dir for "p2""
+// Extract file path from text
 function extractFilePath(text: string): { path: string; extra?: string } | null {
-  // Find all absolute paths, take the last one (usually the target directory)
   const pathMatches = text.matchAll(/(?:[A-Za-z]:[/\\])?\/[^"\s]+/g);
   const paths = Array.from(pathMatches, (m) => m[0]);
 
@@ -95,7 +112,6 @@ function extractFilePath(text: string): { path: string; extra?: string } | null 
 
   const path = paths[paths.length - 1];
 
-  // Extract all for "pattern" arguments
   const forMatches = text.matchAll(/for\s+"([^"]+)"/g);
   const patterns = Array.from(forMatches, (m) => m[1]);
 
@@ -104,7 +120,7 @@ function extractFilePath(text: string): { path: string; extra?: string } | null 
   return { path, extra: extras || undefined };
 }
 
-// Parse tool title, return filename and full path
+// Parse tool title
 function parseToolTitle(title?: string): {
   displayName: string;
   fullPath: string | null;
@@ -116,7 +132,6 @@ function parseToolTitle(title?: string): {
   const result = extractFilePath(title);
 
   if (result) {
-    // Extract action name (e.g. "Read", "Glob") if title contains both name and path
     const actionName =
       title
         .replace(result.path, "")
@@ -133,17 +148,13 @@ function parseToolTitle(title?: string): {
   return { displayName: title, fullPath: null };
 }
 
-const defaultFileInfo = { icon: FileIcon, color: "text-muted-foreground" };
-
-function getFileInfo(filePath: string): { icon: React.FC<LucideProps>; color: string } {
-  const ext = getFileExtension(filePath);
-  return fileExtensionMap[ext] ?? defaultFileInfo;
-}
-
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
-  <Collapsible className={cn("group not-prose w-full", className)} {...props} />
+  <Collapsible
+    className={cn("group/tool not-prose w-full overflow-hidden rounded-md border border-border/50", className)}
+    {...props}
+  />
 );
 
 export type ToolPart = ToolUIPart | DynamicToolUIPart;
@@ -160,32 +171,27 @@ export type ToolHeaderProps = {
     }
 );
 
-const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "Awaiting Approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
-};
+// Status dot component
+const StatusDot = ({ state }: { state: ToolPart["state"] }) => {
+  const statusStyles = {
+    "approval-requested": "bg-yellow-500",
+    "approval-responded": "bg-blue-500",
+    "input-available": "animate-ping bg-primary",
+    "input-streaming": "animate-pulse bg-primary",
+    "output-available": "bg-green-500",
+    "output-denied": "bg-orange-500",
+    "output-error": "bg-red-500",
+  };
 
-const statusIcons: Record<ToolPart["state"], ReactNode> = {
-  "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
-  "approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
-  "input-available": <ClockIcon className="size-4 animate-pulse" />,
-  "input-streaming": <CircleIcon className="size-4" />,
-  "output-available": <CheckCircleIcon className="size-4 text-green-600" />,
-  "output-denied": <XCircleIcon className="size-4 text-orange-600" />,
-  "output-error": <XCircleIcon className="size-4 text-red-600" />,
+  return (
+    <span
+      className={cn(
+        "size-2 rounded-full shrink-0",
+        statusStyles[state] || "bg-muted-foreground"
+      )}
+    />
+  );
 };
-
-export const getStatusBadge = (status: ToolPart["state"]) => (
-  <Badge className="gap-1.5 rounded-full text-xs border-0 bg-transparent text-muted-foreground">
-    {statusIcons[status]}
-    {statusLabels[status]}
-  </Badge>
-);
 
 export const ToolHeader = ({
   className,
@@ -198,44 +204,53 @@ export const ToolHeader = ({
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
   const { displayName, fullPath, actionName, extra } = useMemo(
     () => parseToolTitle(title ?? derivedName),
-    [title, derivedName],
+    [title, derivedName]
   );
-  const isFile = fullPath !== null;
-  const { icon: FileIconComponent, color: iconColor } = useMemo(
-    () => (isFile ? getFileInfo(fullPath) : { icon: WrenchIcon, color: "text-muted-foreground" }),
-    [isFile, fullPath],
-  );
-  const displayActionName = actionName || (isFile ? derivedName : undefined);
+  // Get tool icon based on derived name (e.g., "Read", "Write")
+  const { icon: ToolIcon, color: iconColor } = useMemo(() => {
+    const toolInfo = getToolIconInfo(derivedName);
+    return toolInfo;
+  }, [derivedName]);
+
+  const displayActionName = actionName || derivedName;
 
   return (
-    <CollapsibleTrigger className={cn("flex w-full items-center gap-4 py-2", className)} {...props}>
+    <CollapsibleTrigger
+      className={cn(
+        "flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50",
+        "transition-colors cursor-pointer group w-full",
+        className
+      )}
+      {...props}
+    >
       <TooltipProvider>
-        <div className="flex items-center gap-2">
-          <WrenchIcon className="size-4 text-pink-400" />
-          {displayActionName && <span className="font-normal text-sm">{displayActionName}</span>}
-          {extra && <span className="font-normal text-sm">{extra}</span>}
-          {isFile && (
-            <>
-              <FileIconComponent className={cn("size-4", iconColor)} />
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <span className="font-normal text-sm text-muted-foreground cursor-default">
-                      {displayName}
-                    </span>
-                  }
-                />
+        <ToolIcon className={cn("size-4 shrink-0", iconColor)} />
+        <span className="text-sm text-foreground truncate">
+          {displayActionName}
+          {extra && <span className="text-muted-foreground"> {extra}</span>}
+          {displayName && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-default">
+                  {extra ? "" : " "}
+                  <span className="text-muted-foreground">
+                    {displayName}
+                  </span>
+                </span>
+              </TooltipTrigger>
+              {fullPath && (
                 <TooltipContent side="top" align="start" className="max-w-md">
                   <p className="break-all">{fullPath}</p>
                 </TooltipContent>
-              </Tooltip>
-            </>
+              )}
+            </Tooltip>
           )}
-          {!isFile && <span className="font-medium text-sm">{displayName}</span>}
-          {getStatusBadge(state)}
-        </div>
+        </span>
+        <StatusDot state={state} />
+        <ChevronRight
+          className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 group-data-[state=open]:rotate-90"
+        />
       </TooltipProvider>
-      <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
     </CollapsibleTrigger>
   );
 };
@@ -245,8 +260,9 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className,
+      "border-t border-border/50",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-3 p-3 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      className
     )}
     {...props}
   />
@@ -257,11 +273,9 @@ export type ToolInputProps = ComponentProps<"div"> & {
 };
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
-    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-      Parameters
-    </h4>
-    <div className="rounded-md bg-muted/50">
+  <div className={cn("space-y-1.5", className)} {...props}>
+    <span className="text-xs font-medium text-muted-foreground">Input</span>
+    <div className="rounded-md border border-border/50 bg-muted/30 overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -277,7 +291,7 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
     return null;
   }
 
-  let Output = <div>{output as ReactNode}</div>;
+  let Output = <div>{output as React.ReactNode}</div>;
 
   if (typeof output === "object" && !isValidElement(output)) {
     Output = <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />;
@@ -286,17 +300,19 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   }
 
   return (
-    <div className={cn("space-y-2", className)} {...props}>
-      <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        {errorText ? "Error" : "Result"}
-      </h4>
+    <div className={cn("space-y-1.5", className)} {...props}>
+      <span className="text-xs font-medium text-muted-foreground">
+        {errorText ? "Error" : "Output"}
+      </span>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/50 text-foreground",
+          "rounded-md border border-border/50 overflow-hidden",
+          errorText ? "bg-destructive/10 text-destructive" : "bg-background"
         )}
       >
-        {errorText && <div>{errorText}</div>}
+        {errorText && (
+          <div className="p-3 text-sm">{errorText}</div>
+        )}
         {Output}
       </div>
     </div>
