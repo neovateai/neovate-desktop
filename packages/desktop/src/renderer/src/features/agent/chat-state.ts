@@ -7,8 +7,15 @@ import type {
   ClaudeCodeUIEventRequest,
   ClaudeCodeUIMessage,
 } from "../../../../shared/claude-code/types";
+import type { PermissionMode } from "../../../../shared/features/agent/types";
 
 export type ClaudeCodeChatCapabilities = Awaited<ReturnType<Query["initializationResult"]>>;
+
+export interface PendingContextClear {
+  plan: string;
+  mode: PermissionMode;
+  cwd?: string;
+}
 
 export interface ClaudeCodeChatStoreState {
   messages: ClaudeCodeUIMessage[];
@@ -20,6 +27,7 @@ export interface ClaudeCodeChatStoreState {
     request: ClaudeCodeUIEventRequest;
   }>;
   capabilities: ClaudeCodeChatCapabilities | null;
+  pendingContextClear?: PendingContextClear;
 }
 
 export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {

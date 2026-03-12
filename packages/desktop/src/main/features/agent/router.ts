@@ -1,5 +1,8 @@
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
+import { mkdir, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import path from "node:path";
 
 import type { AppContext } from "../../router";
 
@@ -76,6 +79,22 @@ export const agentRouter = os.agent.router({
         throw new ORPCError("BAD_GATEWAY", { defined: true, message });
       }
     }),
+  }),
+
+  savePlan: os.agent.savePlan.handler(async ({ input }) => {
+    const slug = input.title
+      ? input.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 50)
+      : input.sessionId.slice(0, 8);
+    const filename = `${new Date().toISOString().slice(0, 10)}-${slug}.md`;
+    const dir = path.join(homedir(), ".neovate-desktop", "plans");
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, filename);
+    await writeFile(filePath, input.plan, "utf8");
+    agentLog("savePlan: saved to %s", filePath);
+    return { path: filePath };
   }),
 
   setModelSetting: os.agent.setModelSetting.handler(({ input, context }) => {

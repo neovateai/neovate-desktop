@@ -67,6 +67,16 @@ export const agentContract = {
     ),
   },
 
+  savePlan: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        plan: z.string(),
+        title: z.string().optional(),
+      }),
+    )
+    .output(type<{ path: string }>()),
+
   setModelSetting: oc
     .input(
       z.object({

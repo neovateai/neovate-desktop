@@ -1,10 +1,15 @@
 import type { ContractRouterClient } from "@orpc/contract";
 
+import debug from "debug";
+
 import { agentContract } from "../../../../shared/features/agent/contract";
 import { client } from "../../orpc";
 import { ClaudeCodeChat } from "./chat";
 import { ClaudeCodeChatTransport } from "./chat-transport";
+import { registerSessionInStore } from "./session-utils";
 import { useAgentStore } from "./store";
+
+const log = debug("neovate:chat-manager");
 
 type AgentRpc = ContractRouterClient<{ agent: typeof agentContract }>["agent"];
 
@@ -18,6 +23,15 @@ export class ClaudeCodeChatManager {
 
   #turnCallbacks = {
     onTurnComplete: (id: string, result: "success" | "error") => {
+      const chat = this.chats.get(id);
+      const pending = chat?.store.getState().pendingContextClear;
+
+      if (pending) {
+        chat!.store.setState({ pendingContextClear: undefined });
+        log("onTurnComplete: pendingContextClear detected for session=%s", id.slice(0, 8));
+        void this.#handleContextClear(id, pending);
+      }
+
       const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
       if (activeSessionId !== id) markTurnCompleted(id, result);
     },
@@ -65,10 +79,68 @@ export class ClaudeCodeChatManager {
     const chat = this.chats.get(sessionId);
     if (!chat) return;
 
+    // Clear any pending context clear flag to prevent orphaned actions
+    chat.store.setState({ pendingContextClear: undefined });
     await chat.stop();
     await chat.dispose();
     this.chats.delete(sessionId);
     this.rpc.claudeCode.closeSession({ sessionId }).catch(() => {});
+  }
+
+  async #handleContextClear(
+    oldSessionId: string,
+    pending: import("./chat-state").PendingContextClear,
+  ): Promise<void> {
+    const cwd = pending.cwd;
+    if (!cwd) {
+      log("handleContextClear: no cwd, skipping");
+      return;
+    }
+
+    try {
+      // 1. Close old session
+      log("handleContextClear: closing old session=%s", oldSessionId.slice(0, 8));
+      await this.removeSession(oldSessionId);
+      useAgentStore.getState().removeSession(oldSessionId);
+
+      // 2. Create new session
+      log("handleContextClear: creating new session cwd=%s", cwd);
+      const { sessionId, commands, models, currentModel, modelScope, providerId } =
+        await this.createSession(cwd);
+
+      // 3. Register in store and set permission mode
+      registerSessionInStore(
+        sessionId,
+        cwd,
+        { commands, models, currentModel, modelScope, providerId },
+        true,
+      );
+      useAgentStore.getState().setPermissionMode(sessionId, pending.mode);
+      this.getChat(sessionId)?.dispatch({
+        kind: "configure",
+        configure: { type: "set_permission_mode", mode: pending.mode },
+      });
+
+      // 4. Auto-send the plan as first message
+      log("handleContextClear: sending plan to new session=%s", sessionId.slice(0, 8));
+      useAgentStore.getState().addUserMessage(sessionId, pending.plan);
+      this.getChat(sessionId)?.sendMessage({
+        text: `Implement the following plan:\n\n${pending.plan}`,
+        metadata: { sessionId, parentToolUseId: null },
+      });
+    } catch (error) {
+      log(
+        "handleContextClear: FAILED error=%s",
+        error instanceof Error ? error.message : String(error),
+      );
+      // Fallback: create a session without injecting the plan
+      try {
+        const { sessionId } = await this.createSession(cwd);
+        registerSessionInStore(sessionId, cwd, {}, true);
+      } catch {
+        // give up
+      }
+    }
   }
 }
 
