@@ -21,8 +21,10 @@ export function useGit(cwd: string) {
   const [stagedFiles, setStagedFiles] = useState<GitFile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refreshGitStatus = async (workingDir: string) => {
-    setLoading(true);
+  const refreshGitStatus = async (workingDir: string, withLoading = true) => {
+    if (withLoading) {
+      setLoading(true); // withLoading=false, 静默刷新
+    }
     try {
       const res = await client.git.files({ cwd: workingDir });
       if (res.success && res.data) {
