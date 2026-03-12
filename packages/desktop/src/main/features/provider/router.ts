@@ -1,6 +1,8 @@
+import { Anthropic } from "@anthropic-ai/sdk";
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
 
+import type { BenchmarkResult, Provider } from "../../../shared/features/provider/types";
 import type { AppContext } from "../../router";
 
 import { providerContract } from "../../../shared/features/provider/contract";
@@ -11,6 +13,117 @@ import {
 } from "../agent/claude-settings";
 
 const log = debug("neovate:provider-router");
+
+const BENCHMARK_PROMPT = "Say 'Hello, benchmark test!' in exactly those words.";
+const BENCHMARK_TIMEOUT_MS = 30000; // 30 second timeout
+
+/**
+ * Calculate average TTFT from values array
+ * Filter out zero values (from vector(0) fallback)
+ * @param values - Array of TTFT/TPOT values
+ * @return Average value or null if no valid data
+ */
+function calculateAvg(values: number[]): number | null {
+  if (!values || values.length === 0) {
+    return null;
+  }
+
+  // Filter out zero values (from vector(0) fallback)
+  const nonZeroValues = values.filter((v) => v > 0);
+
+  if (nonZeroValues.length === 0) {
+    return null;
+  }
+
+  const sum = nonZeroValues.reduce((acc, val) => acc + val, 0);
+  return sum / nonZeroValues.length;
+}
+
+async function runBenchmark(provider: Provider, modelId: string): Promise<BenchmarkResult> {
+  const startTime = performance.now();
+  let firstTokenTime: number | null = null;
+  // Store TPOT values (Time Per Output Token in ms)
+  const tpotValues: number[] = [];
+  let lastTokenTime: number | null = null;
+  let tokenCount = 0;
+
+  try {
+    const client = new Anthropic({
+      apiKey: provider.apiKey,
+      baseURL: provider.baseURL,
+    });
+
+    const stream = client.messages.stream({
+      model: modelId,
+      max_tokens: 100,
+      messages: [{ role: "user", content: BENCHMARK_PROMPT }],
+    });
+
+    // Set up timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Benchmark timeout after ${BENCHMARK_TIMEOUT_MS}ms`));
+      }, BENCHMARK_TIMEOUT_MS);
+    });
+
+    // Race between stream completion and timeout
+    const streamPromise = (async () => {
+      for await (const event of stream) {
+        if (event.type === "content_block_delta") {
+          const now = performance.now();
+
+          // Record first token time for TTFT
+          if (firstTokenTime === null) {
+            firstTokenTime = now;
+          }
+
+          // Calculate TPOT (Time Per Output Token) for each subsequent token
+          if (lastTokenTime !== null) {
+            const timeSinceLastToken = now - lastTokenTime;
+            tpotValues.push(timeSinceLastToken);
+          }
+          lastTokenTime = now;
+
+          if (event.delta.type === "text_delta") {
+            tokenCount++;
+          }
+        }
+      }
+    })();
+
+    await Promise.race([streamPromise, timeoutPromise]);
+
+    const endTime = performance.now();
+    const ttftMs = firstTokenTime ? firstTokenTime - startTime : 0;
+    const totalTimeMs = endTime - startTime;
+
+    // Calculate TPOT and TPS according to ModelService logic
+    // TPOT = avg time per output token (ms/token)
+    // TPS = 1000 / tpot (tokens/s)
+    const tpot = calculateAvg(tpotValues) ?? 0;
+    const tps = tpot > 0 ? 1000 / tpot : 0;
+
+    return {
+      ttftMs: Math.round(ttftMs),
+      tpot: Math.round(tpot * 100) / 100,
+      tps: Math.round(tps * 100) / 100,
+      totalTimeMs: Math.round(totalTimeMs),
+      tokensGenerated: tokenCount,
+      success: true,
+    };
+  } catch (err) {
+    log("benchmark failed: provider=%s model=%s error=%s", provider.id, modelId, err);
+    return {
+      ttftMs: 0,
+      tpot: 0,
+      tps: 0,
+      totalTimeMs: 0,
+      tokensGenerated: 0,
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
 
 const os = implement({ provider: providerContract }).$context<AppContext>();
 
@@ -110,6 +223,35 @@ export const providerRouter = os.provider.router({
   remove: os.provider.remove.handler(({ input, context }) => {
     context.configStore.removeProvider(input.id);
     log("remove: id=%s", input.id);
+  }),
+
+  benchmarkModel: os.provider.benchmarkModel.handler(async ({ input, context }) => {
+    const { providerId, modelId } = input;
+
+    const provider = context.configStore.getProvider(providerId);
+    if (!provider) {
+      throw new ORPCError("NOT_FOUND", {
+        defined: true,
+        message: `Provider not found: ${providerId}`,
+      });
+    }
+
+    if (!provider.enabled) {
+      throw new ORPCError("BAD_REQUEST", {
+        defined: true,
+        message: `Provider ${provider.name} is disabled`,
+      });
+    }
+
+    if (!provider.models[modelId]) {
+      throw new ORPCError("BAD_REQUEST", {
+        defined: true,
+        message: `Model ${modelId} not found in provider ${provider.name}`,
+      });
+    }
+
+    log("benchmarkModel: provider=%s model=%s", providerId, modelId);
+    return runBenchmark(provider, modelId);
   }),
 
   setSelection: os.provider.setSelection.handler(({ input, context }) => {

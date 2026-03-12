@@ -22,3 +22,13 @@ export type ProjectProviderConfig = {
   provider?: string;
   model?: string;
 };
+
+export type BenchmarkResult = {
+  ttftMs: number; // Time To First Token in milliseconds
+  tpot: number; // Time Per Output Token in milliseconds
+  tps: number; // Tokens Per Second (1000 / tpot)
+  totalTimeMs: number; // Total response time in milliseconds
+  tokensGenerated: number;
+  success: boolean;
+  error?: string;
+};
