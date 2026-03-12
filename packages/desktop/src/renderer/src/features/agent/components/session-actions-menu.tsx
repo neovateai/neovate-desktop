@@ -50,7 +50,7 @@ export function SessionActionsMenu({
   };
 
   const handleCopyJsonlPath = () => {
-    const encoded = cwd.replaceAll("/", "-");
+    const encoded = cwd.replaceAll(/[\/.]/g, "-");
     const jsonlPath = `${window.api.homedir}/.claude/projects/${encoded}/${sessionId}.jsonl`;
     log("copyJsonlPath: %s", jsonlPath);
     navigator.clipboard.writeText(jsonlPath);
