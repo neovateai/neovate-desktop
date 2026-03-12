@@ -30,6 +30,7 @@ import { cn } from "../../../lib/utils";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
+import { BranchSwitcher } from "./branch-switcher";
 import { MessageInput } from "./message-input";
 import { MessageParts } from "./message-parts";
 import { PermissionDialog } from "./permission-dialog";
@@ -140,6 +141,11 @@ export function AgentChat() {
           disabled={!activeProjectPath}
           cwd={cwd}
         />
+        {cwd && (
+          <div className="px-4 pb-2">
+            <BranchSwitcher cwd={cwd} />
+          </div>
+        )}
       </div>
     );
   }
@@ -225,6 +231,11 @@ function AgentChatSession({
             />
           </div>
         </div>
+        {cwd && (
+          <div className="px-4 pb-2">
+            <BranchSwitcher cwd={cwd} disabled={status === "streaming"} />
+          </div>
+        )}
       </div>
     </div>
   );

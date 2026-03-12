@@ -40,6 +40,37 @@ export interface GitDiffResponse {
   error?: string;
 }
 
+export interface GitBranch {
+  name: string;
+  current: boolean;
+  tracking?: string;
+  ahead?: number;
+  behind?: number;
+  lastCommitTimestamp?: number;
+}
+
+export interface GitBranchesResponse {
+  success: boolean;
+  data?: {
+    current: string | null;
+    detachedHead?: string;
+    branches: GitBranch[];
+  };
+  error?: string;
+}
+
+export interface GitCheckoutBranchResponse {
+  success: boolean;
+  data?: { stashed: boolean; stashPopFailed?: boolean };
+  error?: string;
+}
+
+export interface GitCreateBranchResponse {
+  success: boolean;
+  data?: { name: string };
+  error?: string;
+}
+
 export const gitContract = {
   status: oc.output(type<GitStatus>()),
   files: oc.input(type<{ cwd: string }>()).output(type<GitFilesResponse>()),
@@ -49,4 +80,13 @@ export const gitContract = {
   diff: oc
     .input(type<{ cwd: string; file: string; type: "working" | "staged" }>())
     .output(type<GitDiffResponse>()),
+  branches: oc
+    .input(type<{ cwd: string; search?: string; limit?: number }>())
+    .output(type<GitBranchesResponse>()),
+  checkoutBranch: oc
+    .input(type<{ cwd: string; branch: string }>())
+    .output(type<GitCheckoutBranchResponse>()),
+  createBranch: oc
+    .input(type<{ cwd: string; name: string }>())
+    .output(type<GitCreateBranchResponse>()),
 };
