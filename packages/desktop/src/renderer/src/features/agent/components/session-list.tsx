@@ -154,7 +154,7 @@ function SingleProjectSessionList() {
       <Button
         variant="outline"
         size="sm"
-        className="mb-2 w-full"
+        className="mb-2 w-full bg-secondary text-secondary-foreground"
         onClick={() => createNewSession(projectPath)}
       >
         <Plus size={14} />

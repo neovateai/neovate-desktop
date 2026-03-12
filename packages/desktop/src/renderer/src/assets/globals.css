@@ -47,7 +47,8 @@
   --radius: 0.625rem;
   --accent: --alpha(var(--color-black) / 4%);
   --accent-foreground: var(--color-neutral-800);
-  --background: var(--color-white);
+  --background: #f5f7fa;
+  --background-secondary: var(--color-white);
   --border: --alpha(var(--color-black) / 8%);
   --card: var(--color-white);
   --card-foreground: var(--color-neutral-800);
@@ -64,8 +65,8 @@
   --primary: #fa216e;
   --primary-foreground: var(--color-white);
   --ring: var(--color-neutral-400);
-  --secondary: --alpha(var(--color-black) / 4%);
-  --secondary-foreground: var(--color-neutral-800);
+  --secondary: #000000;
+  --secondary-foreground: #ffffff;
   --sidebar: var(--color-neutral-50);
   --sidebar-foreground: color-mix(in srgb, var(--color-neutral-800) 64%, var(--sidebar));
   --sidebar-primary: var(--color-neutral-800);
@@ -185,5 +186,23 @@
 
   .attachment-thumb img {
     border: 1px solid var(--border);
+  }
+}
+
+@layer common {
+  .bg-background-secondary {
+    background-color: var(--background-secondary);
+  }
+  .bg-border-primary {
+    background:
+      linear-gradient(white, white) padding-box,
+      linear-gradient(0deg, var(--primary) 0, transparent, transparent) border-box;
+  }
+  .bg-border-secondary {
+    border: 4px solid transparent;
+    border-radius: 12px;
+    background:
+      linear-gradient(white, white) padding-box,
+      linear-gradient(180deg, var(--color-background) 0%, transparent 100%) border-box;
   }
 }

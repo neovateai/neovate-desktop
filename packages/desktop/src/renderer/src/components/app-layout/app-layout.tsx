@@ -48,7 +48,7 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
     <div
       data-slot="app-layout-root"
       data-testid="app-root"
-      className="relative grid h-screen w-screen overflow-hidden pb-2"
+      className="relative grid h-screen w-screen overflow-hidden pb-2 bg-background"
       style={APP_LAYOUT_GRID}
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
@@ -77,7 +77,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   return (
     <div
       data-slot="chat-panel"
-      className="min-w-0 overflow-hidden rounded-lg bg-card pb-2"
+      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-background-secondary"
       style={{ gridArea: APP_LAYOUT_GRID_AREA.chatPanel }}
     >
       {children}

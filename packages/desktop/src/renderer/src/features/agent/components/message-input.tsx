@@ -246,33 +246,35 @@ export function MessageInput({
         className="hidden"
         onChange={handleFileSelect}
       />
-      <div
-        className={cn(
-          "border border-input bg-background focus-within:ring-2 focus-within:ring-ring",
-          dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
-        )}
-      >
-        {permissionMode === "plan" && (
-          <div
-            className={cn(
-              "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
-              dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
-            )}
-          >
-            <span className="font-medium">Plan mode</span>
-            <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
-          </div>
-        )}
-        <EditorContent editor={editor} />
-        <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
-        <InputToolbar
-          streaming={streaming}
-          disabled={disabled}
-          onSend={send}
-          onCancel={onCancel}
-          onAttach={() => fileInputRef.current?.click()}
-          activeSessionId={activeSessionId}
-        />
+      <div className="bg-border-secondary">
+        <div
+          className={cn(
+            "border border-input focus-within:border-primary bg-border-primary",
+            dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
+          )}
+        >
+          {permissionMode === "plan" && (
+            <div
+              className={cn(
+                "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
+                dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+              )}
+            >
+              <span className="font-medium">Plan mode</span>
+              <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
+            </div>
+          )}
+          <EditorContent editor={editor} />
+          <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
+          <InputToolbar
+            streaming={streaming}
+            disabled={disabled}
+            onSend={send}
+            onCancel={onCancel}
+            onAttach={() => fileInputRef.current?.click()}
+            activeSessionId={activeSessionId}
+          />
+        </div>
       </div>
     </div>
   );
