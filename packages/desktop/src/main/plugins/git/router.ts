@@ -2,7 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import git from "simple-git";
 
+import type { GitBranch } from "../../../shared/plugins/git/contract";
 import type { PluginContext } from "../../core/plugin/types";
+
+const GIT_TIMEOUT_MS = 10_000;
 
 function str2file(cwd: string, file: string) {
   return {
@@ -145,6 +148,46 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         };
       }
     }),
+    branches: orpcServer.handler(async ({ input }) => {
+      const { cwd, search, limit } = input as {
+        cwd: string;
+        search?: string;
+        limit?: number;
+      };
+      try {
+        const result = await withTimeout(getBranches(cwd, search, limit), GIT_TIMEOUT_MS);
+        return result;
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
+    checkoutBranch: orpcServer.handler(async ({ input }) => {
+      const { cwd, branch } = input as { cwd: string; branch: string };
+      try {
+        const result = await withTimeout(checkoutBranch(cwd, branch), GIT_TIMEOUT_MS);
+        return result;
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
+    createBranch: orpcServer.handler(async ({ input }) => {
+      const { cwd, name } = input as { cwd: string; name: string };
+      try {
+        const result = await withTimeout(createBranch(cwd, name), GIT_TIMEOUT_MS);
+        return result;
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
   });
 }
 
@@ -178,6 +221,160 @@ async function getWorkingFiles(cwd: string) {
 
   const allFiles = [...modifiedFiles, ...deletedFiles, ...untrackedFiles];
   return allFiles;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Git operation timed out")), ms);
+    promise
+      .then((v) => {
+        clearTimeout(timer);
+        resolve(v);
+      })
+      .catch((e) => {
+        clearTimeout(timer);
+        reject(e);
+      });
+  });
+}
+
+async function getRecentBranches(cwd: string, max: number): Promise<string[]> {
+  const gitClient = git(cwd);
+  try {
+    const reflog = await gitClient.raw([
+      "reflog",
+      "show",
+      "--format=%gs",
+      "--no-abbrev",
+      `-n`,
+      "200",
+    ]);
+    const seen = new Set<string>();
+    const recent: string[] = [];
+    for (const line of reflog.split("\n")) {
+      // reflog entries like "checkout: moving from X to Y"
+      const match = line.match(/checkout: moving from .+ to (.+)/);
+      if (!match) continue;
+      const branch = match[1];
+      if (seen.has(branch)) continue;
+      seen.add(branch);
+      recent.push(branch);
+      if (recent.length >= max) break;
+    }
+    return recent;
+  } catch {
+    return [];
+  }
+}
+
+async function getBranches(cwd: string, search?: string, limit?: number) {
+  const gitClient = git(cwd);
+  const branchSummary = await gitClient.branchLocal();
+  const recentNames = await getRecentBranches(cwd, 5);
+
+  let branches: GitBranch[] = Object.values(branchSummary.branches).map((b) => ({
+    name: b.name,
+    current: b.current,
+    tracking: b.label?.match(/\[(.+?)[\]:]/)?.[1],
+  }));
+
+  // Populate ahead/behind via status for current branch
+  try {
+    const status = await gitClient.status();
+    const currentBranch = branches.find((b) => b.current);
+    if (currentBranch) {
+      currentBranch.ahead = status.ahead;
+      currentBranch.behind = status.behind;
+    }
+  } catch {
+    // ignore
+  }
+
+  // Tag recent branches with timestamp-like ordering (index-based)
+  for (const b of branches) {
+    const idx = recentNames.indexOf(b.name);
+    if (idx !== -1) {
+      b.lastCommitTimestamp = -idx; // negative so most recent = highest value
+    }
+  }
+
+  // Filter by search
+  if (search) {
+    const lower = search.toLowerCase();
+    branches = branches.filter((b) => b.name.toLowerCase().includes(lower));
+  }
+
+  // Apply limit
+  if (limit && limit > 0) {
+    // Sort by recency first, then alphabetical
+    branches.sort((a, b) => {
+      const aRecent = a.lastCommitTimestamp != null ? 1 : 0;
+      const bRecent = b.lastCommitTimestamp != null ? 1 : 0;
+      if (aRecent !== bRecent) return bRecent - aRecent;
+      if (aRecent && bRecent) return (b.lastCommitTimestamp ?? 0) - (a.lastCommitTimestamp ?? 0);
+      return a.name.localeCompare(b.name);
+    });
+    branches = branches.slice(0, limit);
+  }
+
+  // Detect detached HEAD
+  let current: string | null = branchSummary.current;
+  let detachedHead: string | undefined;
+  if (!current || current === "" || branchSummary.detached) {
+    current = null;
+    try {
+      const rev = await gitClient.revparse(["--short", "HEAD"]);
+      detachedHead = rev.trim();
+    } catch {
+      detachedHead = "unknown";
+    }
+  }
+
+  return {
+    success: true,
+    data: { current, detachedHead, branches },
+  };
+}
+
+async function checkoutBranch(cwd: string, branch: string) {
+  const gitClient = git(cwd);
+  const status = await gitClient.status();
+  const isDirty =
+    status.modified.length > 0 ||
+    status.deleted.length > 0 ||
+    status.created.length > 0 ||
+    status.not_added.length > 0 ||
+    status.staged.length > 0;
+
+  let stashed = false;
+  if (isDirty) {
+    await gitClient.stash([
+      "push",
+      "-m",
+      `neovate-auto-stash: switching to ${branch}`,
+      "--include-untracked",
+    ]);
+    stashed = true;
+  }
+
+  await gitClient.checkout(branch);
+
+  let stashPopFailed = false;
+  if (stashed) {
+    try {
+      await gitClient.stash(["pop"]);
+    } catch {
+      stashPopFailed = true;
+    }
+  }
+
+  return { success: true, data: { stashed, stashPopFailed } };
+}
+
+async function createBranch(cwd: string, name: string) {
+  const gitClient = git(cwd);
+  await gitClient.checkoutLocalBranch(name);
+  return { success: true, data: { name } };
 }
 
 async function getStagedFiles(cwd: string) {
