@@ -53,7 +53,7 @@ export function watchWorkspace(
       "**/dist/**",
       "**/build/**",
       "**/out/**",
-      "**/.git/**",
+      /(^|[/\\])\.git([/\\]|$)/,
       "**/.DS_Store",
       "**/.cache/**",
       "**/coverage/**",
