@@ -212,7 +212,7 @@ export const ToolHeader = ({
     return toolInfo;
   }, [derivedName]);
 
-  const displayActionName = actionName || derivedName;
+  const displayActionName = actionName || derivedName || "Tool";
 
   return (
     <CollapsibleTrigger
@@ -228,7 +228,7 @@ export const ToolHeader = ({
         <span className="text-sm text-foreground truncate">
           {displayActionName}
           {extra && <span className="text-muted-foreground"> {extra}</span>}
-          {displayName && (
+          {displayName && fullPath && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="cursor-default">
@@ -238,12 +238,15 @@ export const ToolHeader = ({
                   </span>
                 </span>
               </TooltipTrigger>
-              {fullPath && (
-                <TooltipContent side="top" align="start" className="max-w-md">
-                  <p className="break-all">{fullPath}</p>
-                </TooltipContent>
-              )}
+              <TooltipContent side="top" align="start" className="max-w-md">
+                <p className="break-all">{fullPath}</p>
+              </TooltipContent>
             </Tooltip>
+          )}
+          {displayName && !fullPath && (
+            <span className="text-muted-foreground">
+              {extra ? "" : " "}{displayName}
+            </span>
           )}
         </span>
         <StatusDot state={state} />
