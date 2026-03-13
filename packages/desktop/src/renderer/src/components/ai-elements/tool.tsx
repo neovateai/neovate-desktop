@@ -176,19 +176,29 @@ export type ToolHeaderProps = {
 
 // Status dot component
 const StatusDot = ({ state }: { state: ToolPart["state"] }) => {
+  const isRunning = state === "input-available" || state === "input-streaming";
   const statusStyles = {
     "approval-requested": "bg-yellow-500",
     "approval-responded": "bg-blue-500",
-    "input-available": "animate-ping bg-primary",
-    "input-streaming": "animate-pulse bg-primary",
+    "input-available": "bg-primary",
+    "input-streaming": "bg-primary",
     "output-available": "bg-green-500",
     "output-denied": "bg-orange-500",
     "output-error": "bg-red-500",
   };
 
+  if (isRunning) {
+    return (
+      <span className="relative flex size-1.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+        <span className="relative inline-flex rounded-full size-1.5 bg-primary" />
+      </span>
+    );
+  }
+
   return (
     <span
-      className={cn("size-2 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
+      className={cn("size-1.5 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
     />
   );
 };
