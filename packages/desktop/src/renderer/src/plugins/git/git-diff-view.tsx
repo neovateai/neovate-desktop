@@ -29,7 +29,7 @@ export default memo(function GitDiffView() {
   const [diffData, setDiffData] = useState<DiffData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [diffStyle, setDiffStyle] = useState<DiffStyle>("split");
+  const [diffStyle, setDiffStyle] = useState<DiffStyle>("unified");
 
   const oldFile = {
     name: diffData?.fileName || "",

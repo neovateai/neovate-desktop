@@ -21,7 +21,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
       {variant === "select" ? (
         <MenuTrigger
           render={
-            <button className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent/50">
+            <button className="inline-flex items-center gap-2 rounded-full border border-input bg-[var(--background-secondary)] px-4 py-2 text-sm hover:bg-accent/50">
               <span className={activeProject ? "text-foreground" : "text-muted-foreground"}>
                 {activeProject?.name ?? "Select a project..."}
               </span>

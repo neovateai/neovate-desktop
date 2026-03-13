@@ -86,7 +86,7 @@ export type TerminalHeaderProps = HTMLAttributes<HTMLDivElement>;
 export const TerminalHeader = ({ className, children, ...props }: TerminalHeaderProps) => (
   <div
     className={cn(
-      "flex items-center justify-between border-zinc-800 border-b px-4 py-2",
+      "flex items-center justify-between border-zinc-800 border-b px-3 py-1.5",
       className,
     )}
     {...props}
@@ -98,8 +98,8 @@ export const TerminalHeader = ({ className, children, ...props }: TerminalHeader
 export type TerminalTitleProps = HTMLAttributes<HTMLDivElement>;
 
 export const TerminalTitle = ({ className, children, ...props }: TerminalTitleProps) => (
-  <div className={cn("flex items-center gap-2 text-sm text-zinc-400", className)} {...props}>
-    <TerminalIcon className="size-4" />
+  <div className={cn("flex items-center gap-2 text-xs text-zinc-400", className)} {...props}>
+    <TerminalIcon className="size-3.5" />
     {children ?? "Terminal"}
   </div>
 );
@@ -231,7 +231,7 @@ export const TerminalContent = ({ className, children, ...props }: TerminalConte
 
   return (
     <div
-      className={cn("max-h-96 overflow-auto p-4 font-mono text-sm leading-relaxed", className)}
+      className={cn("max-h-96 overflow-auto p-3 font-mono text-xs leading-relaxed", className)}
       ref={containerRef}
       {...props}
     >

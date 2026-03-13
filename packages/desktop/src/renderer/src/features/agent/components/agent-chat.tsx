@@ -204,7 +204,7 @@ function AgentChatSession({
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
-      <div className="shrink-0 w-full bg-background">
+      <div className="shrink-0 w-full">
         <TaskProgress tasks={tasks} />
         {error && (
           <div className="mx-4 mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">

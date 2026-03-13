@@ -16,7 +16,7 @@ export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
       data-slot="primary-sidebar"
       style={{ gridArea: APP_LAYOUT_GRID_AREA.primarySidebar }}
       className={cn(
-        "box-border mt-2 ml-2 shrink-0 overflow-hidden rounded-l-[14px] rounded-r-[10px] bg-card pt-2 shadow-[0_0_6px_rgba(0,0,0,0.06)]",
+        "box-border mt-2 ml-2 shrink-0 overflow-hidden rounded-l-[14px] rounded-r-[10px] pt-2",
         collapsed && "pointer-events-none",
       )}
       initial={false}

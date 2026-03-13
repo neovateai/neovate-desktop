@@ -213,7 +213,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
 
   if (!project) {
     return (
-      <div className="flex h-full flex-col p-3">
+      <div className="flex h-full flex-col p-2">
         <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center">
           <p className="text-xs text-muted-foreground">{t("noProject")}</p>
@@ -224,7 +224,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="p-3 border-b border-border">
+      <div className="p-2">
         <h2 className="text-xs font-semibold text-muted-foreground mb-2">{t("title")}</h2>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -324,7 +324,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
                 {result.matches &&
                   result.matches.length > 0 &&
                   expandedResults.has(result.fullPath) && (
-                    <div className="pb-2 pl-8 pr-2 space-y-1">
+                    <div className="pb-1 pl-1 pr-1 space-y-1">
                       {result.matches.map((match, idx) => (
                         <div
                           key={`${result.fullPath}-${match.line}-${match.column}-${idx}`}

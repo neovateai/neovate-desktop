@@ -33,6 +33,7 @@ import {
   MenuRadioItem,
 } from "../../../components/ui/menu";
 import { client } from "../../../orpc";
+import { useConfigStore } from "../../config/store";
 import { useProviderStore } from "../../provider/store";
 import { useSettingsStore } from "../../settings/store";
 import { claudeCodeChatManager } from "../chat-manager";
@@ -58,8 +59,10 @@ export function InputToolbar({
   onAttach,
   activeSessionId,
 }: Props) {
+  const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
+
   return (
-    <div className="flex items-center gap-1 border-t border-border/50 px-2 py-1">
+    <div className="flex items-center gap-1 border-border/50 px-2 py-1 bg-background-secondary">
       <Button
         type="button"
         variant="ghost"
@@ -84,7 +87,14 @@ export function InputToolbar({
           <Square className="h-3.5 w-3.5" />
         </Button>
       ) : (
-        <Button type="button" size="icon" className="h-7 w-7" disabled={disabled} onClick={onSend}>
+        <Button
+          type="button"
+          size="icon"
+          className="h-7 w-7"
+          disabled={disabled}
+          onClick={onSend}
+          title={sendMessageWith === "cmdEnter" ? "Send (⌘+Enter)" : "Send (Enter)"}
+        >
           <SendHorizonal className="h-4 w-4" />
         </Button>
       )}
@@ -141,7 +151,7 @@ function ConnectedPermissionModeSelect({
     <Menu>
       <MenuTrigger
         disabled={disabled}
-        className="inline-flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+        className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50"
       >
         <Shield className="h-3 w-3" />
         <span>{PERMISSION_MODE_LABELS[permissionMode]}</span>
@@ -348,7 +358,7 @@ function ConnectedModelSelect({
         <Menu>
           <MenuTrigger
             disabled={disabled}
-            className="inline-flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50"
           >
             <ScopeBadge scope={modelScope} />
             <span className="max-w-[200px] truncate">{buttonLabel}</span>

@@ -5,7 +5,7 @@ import {
   Keyboard,
   MessageSquare,
   Server,
-  Settings,
+  Bolt,
   Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,11 +17,11 @@ import { useSettingsStore } from "../store";
 
 interface MenuItem {
   id: SettingsMenuId;
-  icon: typeof Settings;
+  icon: typeof Bolt;
 }
 
 const menuItems: MenuItem[] = [
-  { id: "general", icon: Settings },
+  { id: "general", icon: Bolt },
   { id: "chat", icon: MessageSquare },
   { id: "providers", icon: Server },
   { id: "rules", icon: BookOpen },
@@ -53,7 +53,7 @@ export const SettingsMenu = ({
 
   return (
     <div
-      className="w-56 h-full flex flex-col pt-8 bg-muted border-r border-border"
+      className="w-56 h-full flex flex-col pt-8 border-r border-border bg-background"
       style={{
         // @ts-expect-error - Electron specific CSS property
         WebkitAppRegion: "drag",
@@ -82,9 +82,9 @@ export const SettingsMenu = ({
             <button
               key={item.id}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer rounded-[6px] mx-2 border-l-2 border-t border-b",
+                "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer rounded-[6px] mx-2 ",
                 isActive
-                  ? "bg-background text-foreground border-border"
+                  ? "bg-accent text-accent-foreground border-border"
                   : "text-muted-foreground hover:text-foreground border-transparent",
               )}
               style={{

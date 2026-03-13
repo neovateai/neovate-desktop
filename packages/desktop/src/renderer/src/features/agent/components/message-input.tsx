@@ -11,6 +11,7 @@ import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
+import { useSettingsStore } from "../../settings";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
@@ -20,6 +21,7 @@ import { AttachmentPreview } from "./attachment-preview";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
 import { createMentionExtension } from "./mention-extension";
+import { QueryStatus } from "./query-status";
 import { createSlashCommandsExtension } from "./slash-commands-extension";
 
 const log = debug("neovate:message-input");
@@ -88,6 +90,9 @@ export function MessageInput({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
+  const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
+  const sendMessageWithRef = useLatestRef(sendMessageWith);
+
   const mentionExtension = useMemo(() => createMentionExtension(() => cwdRef.current), []);
 
   const slashCommandsExtension = useMemo(
@@ -128,8 +133,22 @@ export function MessageInput({
               key: new PluginKey("chatKeymap"),
               props: {
                 handleKeyDown(_view, event) {
-                  if (event.key === "Enter" && !event.shiftKey && !event.altKey) {
+                  const mode = sendMessageWithRef.current;
+
+                  // Bare Enter (no modifier)
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.altKey &&
+                    !event.metaKey &&
+                    !event.ctrlKey
+                  ) {
                     if (document.querySelector("[data-suggestion-popup]")) return false;
+
+                    if (mode === "cmdEnter") {
+                      return false;
+                    }
+
                     event.preventDefault();
                     const text = extractText(editor.getJSON()).trim();
                     if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
@@ -138,6 +157,25 @@ export function MessageInput({
                       return true;
                     }
                     send();
+                    return true;
+                  }
+                  // Cmd/Ctrl+Enter
+                  if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                    if (document.querySelector("[data-suggestion-popup]")) return false;
+
+                    if (mode === "cmdEnter") {
+                      event.preventDefault();
+                      const text = extractText(editor.getJSON()).trim();
+                      if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
+                        editor.commands.clearContent();
+                        createNewSession(cwdRef.current);
+                        return true;
+                      }
+                      send();
+                      return true;
+                    }
+
+                    editor.commands.setHardBreak();
                     return true;
                   }
                   if (event.key === "Enter" && event.altKey) {
@@ -164,7 +202,8 @@ export function MessageInput({
     ],
     editorProps: {
       attributes: {
-        class: "tiptap min-h-[36px] max-h-[200px] overflow-y-auto px-3 py-2 text-sm outline-none",
+        class:
+          "tiptap min-h-[76px] max-h-[240px] overflow-y-auto px-3 py-2 text-sm outline-none bg-background-secondary",
       },
     },
     editable: !disabled && !streaming,
@@ -203,6 +242,14 @@ export function MessageInput({
     editor?.setEditable(!disabled && !streaming);
   }, [editor, disabled, streaming]);
 
+  // Close suggestion popups when settings opens
+  const showSettings = useSettingsStore((s) => s.showSettings);
+  useEffect(() => {
+    if (showSettings) {
+      document.querySelectorAll("[data-suggestion-popup]").forEach((el) => el.remove());
+    }
+  }, [showSettings]);
+
   // Listen for insert-mention events from file tree
   useEffect(() => {
     if (!editor) return;
@@ -238,6 +285,7 @@ export function MessageInput({
 
   return (
     <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
+      {activeSessionId && <QueryStatus sessionId={activeSessionId} />}
       <input
         ref={fileInputRef}
         type="file"
@@ -247,32 +295,48 @@ export function MessageInput({
         onChange={handleFileSelect}
       />
       <div
-        className={cn(
-          "border border-input bg-background focus-within:ring-2 focus-within:ring-ring",
-          dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
-        )}
+        className="rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+        style={{
+          border: "3px solid transparent",
+          background:
+            "linear-gradient(white, white) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
+        }}
       >
-        {permissionMode === "plan" && (
-          <div
-            className={cn(
-              "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
-              dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
-            )}
-          >
-            <span className="font-medium">Plan mode</span>
-            <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
-          </div>
-        )}
-        <EditorContent editor={editor} />
-        <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
-        <InputToolbar
-          streaming={streaming}
-          disabled={disabled}
-          onSend={send}
-          onCancel={onCancel}
-          onAttach={() => fileInputRef.current?.click()}
-          activeSessionId={activeSessionId}
-        />
+        <div
+          className={cn(
+            "border border-input focus-within:border-primary overflow-hidden",
+            dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
+          )}
+          style={{
+            border: "2px solid transparent",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
+            background:
+              "linear-gradient(white, white) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
+          }}
+        >
+          {permissionMode === "plan" && (
+            <div
+              className={cn(
+                "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
+                dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+              )}
+            >
+              <span className="font-medium">Plan mode</span>
+              <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
+            </div>
+          )}
+          <EditorContent editor={editor} />
+          <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
+          <InputToolbar
+            streaming={streaming}
+            disabled={disabled}
+            onSend={send}
+            onCancel={onCancel}
+            onAttach={() => fileInputRef.current?.click()}
+            activeSessionId={activeSessionId}
+          />
+        </div>
       </div>
     </div>
   );

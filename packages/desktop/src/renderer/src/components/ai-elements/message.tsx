@@ -35,10 +35,11 @@ export type MessageContentProps = HTMLAttributes<HTMLDivElement>;
 
 export const MessageContent = ({ children, className, ...props }: MessageContentProps) => (
   <div
+    style={{ backgroundColor: "var(--color-chat)", color: "var(--color-chat-foreground)" }}
     className={cn(
       "flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm leading-relaxed",
       // User message: bubble style with rounded corners
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:bg-muted/80 group-[.is-user]:px-4 group-[.is-user]:py-2.5 group-[.is-user]:text-foreground",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:bg-muted/80 group-[.is-user]:px-3.5 group-[.is-user]:py-2 group-[.is-user]:text-foreground",
       // Assistant message: full width, no bubble
       "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground",
       // Markdown paragraph spacing
@@ -74,7 +75,7 @@ export const MessageActions = ({ className, children, ...props }: MessageActions
   <div
     className={cn(
       "flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
-      className
+      className,
     )}
     {...props}
   >
@@ -326,7 +327,7 @@ export const MessageResponse: FC<MessageResponseProps> = memo<MessageResponsePro
         "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
         "[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-muted-foreground",
         "[&_td]:border-b [&_td]:border-border/50 [&_td]:px-3 [&_td]:py-2",
-        className
+        className,
       )}
       plugins={streamdownPlugins}
       {...props}

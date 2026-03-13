@@ -4,6 +4,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -30,10 +31,15 @@ export type SuggestionListHandle = {
 export const SuggestionList = forwardRef<SuggestionListHandle, Props>(
   ({ items, command, header, icon }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const selectedRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
       setSelectedIndex(0);
     }, [items]);
+
+    useEffect(() => {
+      selectedRef.current?.scrollIntoView({ block: "nearest" });
+    }, [selectedIndex]);
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }) => {
@@ -67,6 +73,7 @@ export const SuggestionList = forwardRef<SuggestionListHandle, Props>(
           {items.map((item, index) => (
             <button
               key={item.id ?? item.label}
+              ref={index === selectedIndex ? selectedRef : undefined}
               className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${
                 index === selectedIndex ? "bg-accent" : ""
               }`}
