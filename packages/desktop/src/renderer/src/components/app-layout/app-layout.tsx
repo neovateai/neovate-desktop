@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
+import { useTheme } from "next-themes";
 import { type ReactNode, Suspense, lazy, useRef } from "react";
 
 import type { TitlebarItem } from "../../core/plugin/contributions";
@@ -74,11 +75,18 @@ export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
+  const { resolvedTheme } = useTheme();
   return (
     <div
       data-slot="chat-panel"
-      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-background-secondary chat-panel-bg shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
-      style={{ gridArea: APP_LAYOUT_GRID_AREA.chatPanel }}
+      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-[var(--background-secondary)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
+      style={{
+        gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
+        backgroundImage: `url("/src/assets/images/chat-panel-bg-${resolvedTheme === "dark" ? "dark" : "light"}.png")`,
+        backgroundSize: "cover",
+        backgroundPosition: "0 0",
+        backgroundRepeat: "no-repeat",
+      }}
     >
       {children}
     </div>

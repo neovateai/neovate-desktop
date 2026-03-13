@@ -247,12 +247,26 @@ export function MessageInput({
         className="hidden"
         onChange={handleFileSelect}
       />
-      <div className="bg-border-secondary shadow-[0_4px_4px_rgba(0,0,0,0.02)]">
+      <div
+        className="rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+        style={{
+          border: "3px solid transparent",
+          background:
+            "linear-gradient(white, white) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
+        }}
+      >
         <div
           className={cn(
-            "border border-input focus-within:border-primary bg-border-primary overflow-hidden",
+            "border border-input focus-within:border-primary overflow-hidden",
             dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
           )}
+          style={{
+            border: "2px solid transparent",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
+            background:
+              "linear-gradient(white, white) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
+          }}
         >
           {permissionMode === "plan" && (
             <div

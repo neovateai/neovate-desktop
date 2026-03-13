@@ -1,5 +1,5 @@
 import debug from "debug";
-import { Plus } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
@@ -154,10 +154,10 @@ function SingleProjectSessionList() {
       <Button
         variant="ghost"
         size="sm"
-        className="mb-2 w-full bg-secondary text-secondary-foreground btn-custom-hover"
+        className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
         onClick={() => createNewSession(projectPath)}
       >
-        <Plus size={14} />
+        <SquarePen size={14} />
         <span>New Chat</span>
       </Button>
 

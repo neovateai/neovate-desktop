@@ -189,7 +189,14 @@ function FilesViewComponent({ project }: FilesViewProps) {
     return (
       <div className="flex h-full flex-col p-3">
         <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-1 items-center justify-center flex-col gap-2 ">
+          <img
+            src="/src/assets/images/empty2.png"
+            alt="Empty"
+            className="shrink-0"
+            style={{ width: 67 + "px", marginLeft: "10px" }}
+            aria-hidden
+          />
           <p className="text-xs text-muted-foreground">{t("noProject")}</p>
         </div>
       </div>
