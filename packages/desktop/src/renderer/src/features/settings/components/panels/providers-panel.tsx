@@ -102,7 +102,7 @@ export const ProvidersPanel = () => {
   const benchmarkResults = useProviderStore((s) => s.benchmarkResults);
   const benchmarkingModels = useProviderStore((s) => s.benchmarkingModels);
   const cancelBenchmarks = useProviderStore((s) => s.cancelBenchmarks);
-  const clearProviderBenchmarkResults = useProviderStore((s) => s.clearProviderBenchmarkResults);
+  const clearBenchmarkResults = useProviderStore((s) => s.clearBenchmarkResults);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -140,9 +140,14 @@ export const ProvidersPanel = () => {
     [providers],
   );
 
-  const testableModelIds = useMemo(() => {
-    return editingId ? Object.keys(form.models) : [];
-  }, [editingId, form.models]);
+  const canCheck = useMemo(() => {
+    try {
+      new URL(form.baseURL);
+      return form.apiKey.trim() !== "" && Object.keys(form.models).length > 0;
+    } catch {
+      return false;
+    }
+  }, [form.baseURL, form.apiKey, form.models]);
 
   const startCreate = useCallback(() => {
     setEditingId(null);
@@ -171,14 +176,14 @@ export const ProvidersPanel = () => {
 
   const startEdit = useCallback(
     (p: Provider) => {
-      clearProviderBenchmarkResults(p.id);
+      clearBenchmarkResults(p.baseURL);
       setEditingId(p.id);
       setIsCreating(false);
       setShowApiKey(false);
       setForm(providerToForm(p));
       setError(null);
     },
-    [clearProviderBenchmarkResults],
+    [clearBenchmarkResults],
   );
 
   const cancel = useCallback(() => {
@@ -576,28 +581,21 @@ export const ProvidersPanel = () => {
           <div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">{t("settings.providers.models")}</label>
-              {editingId && form.enabled && (
+              {canCheck && (
                 <BenchmarkButton
-                  providerId={editingId}
-                  modelIds={testableModelIds}
+                  baseURL={form.baseURL}
+                  apiKey={form.apiKey}
+                  models={form.models}
                   size="xs"
                   variant="outline"
-                  onBeforeBenchmark={async () => {
-                    if (editingId) {
-                      await updateProvider(editingId, {
-                        models: form.models,
-                        modelMap: form.modelMap,
-                      });
-                    }
-                  }}
                 />
               )}
             </div>
             <div className="mt-1 space-y-1">
               {Object.entries(form.models).map(([key, entry]) => {
-                const benchKey = editingId ? `${editingId}:${key}` : "";
-                const result = benchKey ? benchmarkResults[benchKey] : undefined;
-                const isRunning = benchKey ? benchmarkingModels[benchKey] : false;
+                const benchKey = `${form.baseURL}:${key}`;
+                const result = benchmarkResults[benchKey];
+                const isRunning = benchmarkingModels[benchKey] ?? false;
 
                 return (
                   <div key={key} className="flex items-center gap-2 text-sm">

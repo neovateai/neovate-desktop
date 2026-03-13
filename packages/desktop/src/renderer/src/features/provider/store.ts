@@ -26,14 +26,9 @@ type ProviderState = {
   }) => Promise<Provider>;
   updateProvider: (id: string, updates: Partial<Omit<Provider, "id">>) => Promise<Provider>;
   removeProvider: (id: string) => Promise<void>;
-  benchmarkModel: (
-    providerId: string,
-    modelId: string,
-    signal?: AbortSignal,
-  ) => Promise<BenchmarkResult | undefined>;
-  benchmarkAll: (providerId: string, modelIds: string[]) => Promise<void>;
+  checkAll: (baseURL: string, apiKey: string, modelIds: string[]) => Promise<void>;
   cancelBenchmarks: () => void;
-  clearProviderBenchmarkResults: (providerId: string) => void;
+  clearBenchmarkResults: (baseURL: string) => void;
 };
 
 export const useProviderStore = create<ProviderState>()(
@@ -75,30 +70,7 @@ export const useProviderStore = create<ProviderState>()(
       });
     },
 
-    benchmarkModel: async (providerId, modelId, signal) => {
-      const key = `${providerId}:${modelId}`;
-      if (get().benchmarkingModels[key]) return get().benchmarkResults[key];
-
-      set((state) => {
-        state.benchmarkingModels[key] = true;
-      });
-      try {
-        const result = await client.provider.benchmarkModel(
-          { providerId, modelId },
-          ...(signal ? [{ signal }] : []),
-        );
-        set((state) => {
-          state.benchmarkResults[key] = result;
-        });
-        return result;
-      } finally {
-        set((state) => {
-          delete state.benchmarkingModels[key];
-        });
-      }
-    },
-
-    benchmarkAll: async (providerId, modelIds) => {
+    checkAll: async (baseURL, apiKey, modelIds) => {
       benchmarkController?.abort();
 
       const controller = new AbortController();
@@ -107,7 +79,26 @@ export const useProviderStore = create<ProviderState>()(
       try {
         for (const modelId of modelIds) {
           if (controller.signal.aborted) break;
-          await get().benchmarkModel(providerId, modelId, controller.signal);
+          const key = `${baseURL}:${modelId}`;
+          if (get().benchmarkingModels[key]) continue;
+
+          set((state) => {
+            delete state.benchmarkResults[key];
+            state.benchmarkingModels[key] = true;
+          });
+          try {
+            const result = await client.provider.checkModel(
+              { baseURL, apiKey, modelId },
+              { signal: controller.signal },
+            );
+            set((state) => {
+              state.benchmarkResults[key] = result;
+            });
+          } finally {
+            set((state) => {
+              delete state.benchmarkingModels[key];
+            });
+          }
         }
       } finally {
         if (benchmarkController === controller) {
@@ -126,10 +117,10 @@ export const useProviderStore = create<ProviderState>()(
       }
     },
 
-    clearProviderBenchmarkResults: (providerId) => {
+    clearBenchmarkResults: (baseURL) => {
       set((state) => {
         for (const key of Object.keys(state.benchmarkResults)) {
-          if (key.startsWith(`${providerId}:`)) {
+          if (key.startsWith(`${baseURL}:`)) {
             delete state.benchmarkResults[key];
           }
         }
