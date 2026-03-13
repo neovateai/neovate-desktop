@@ -5,9 +5,9 @@ import { MessageParts } from "../message-parts";
 import { ClaudeCodeToolUIPart } from "../tool-parts";
 
 describe("MessageParts", () => {
-  it("renders nested UIMessage output directly from the parent Agent tool", () => {
+  it("renders agent UIMessage output directly from the parent Agent tool", () => {
     const agentMessage = {
-      id: "nested-call-agent",
+      id: "agent:call-agent",
       role: "assistant",
       metadata: { sessionId: "sess-1", parentToolUseId: null },
       parts: [
@@ -17,7 +17,7 @@ describe("MessageParts", () => {
           toolCallId: "call-read",
           state: "output-available",
           input: { file_path: "/tmp/subagent-example.ts", limit: 50 },
-          output: "export const nested = true;",
+          output: "export const subagentResult = true;",
           providerExecuted: true,
         },
         { type: "text", text: "Inspection complete", state: "done" },

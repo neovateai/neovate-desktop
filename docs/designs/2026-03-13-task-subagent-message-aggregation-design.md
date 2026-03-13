@@ -33,7 +33,7 @@ Claude Agent SDK message
 1. 保持 `SDKMessageTransformer` 仍然是核心集成点
 2. 当父工具是 `Task` / `Agent` 时，记录它的 `toolCallId`
 3. 将 `parent_tool_use_id === toolCallId` 的 child Claude SDK messages 缓存在该父工具下
-4. 每次 child message 到来时，复用现有 `UIMessageChunk -> UIMessage` 路径，把当前 child transcript replay 成最新的 nested `UIMessage`
+4. 每次 child message 到来时，复用现有 `UIMessageChunk -> UIMessage` 路径，把当前 child transcript replay 成最新的 agent `UIMessage`
 5. 用同一个 `toolCallId` 持续发新的 `tool-output-available`
 6. 前端优先渲染 `part.output.message`，旧的 sibling regroup 仅作为 fallback
 
@@ -45,7 +45,7 @@ MVP 推荐的输出形态是：
   toolCallId,
   output: {
     kind: "ui-message",
-    message: nestedMessage,
+    message: agentMessage,
     status: "streaming",
   },
   providerExecuted: true,
@@ -61,7 +61,7 @@ MVP 推荐的输出形态是：
   toolCallId,
   output: {
     kind: "ui-message",
-    message: nestedMessage,
+    message: agentMessage,
     summary,
     status: "done",
   },
@@ -83,7 +83,7 @@ MVP 里明确**不先做**这些事：
 1. 把已经存在的两段能力正式抽象出来
    - `SDKMessage -> UIMessageChunk`
    - `UIMessageChunk -> UIMessage`
-2. 让 history replay、nested replay、将来可能的增量优化共用同一条稳定语义链路
+2. 让 history replay、agent replay、将来可能的增量优化共用同一条稳定语义链路
 
 完整版的方向仍然是：
 
@@ -102,7 +102,7 @@ MVP 里明确**不先做**这些事：
 4. **Task/SubAgent 聚合层**
    - 识别 Claude Agent SDK 消息中的 `parent_tool_use_id`
    - 对属于某个 `Task` / `Agent` 的子消息做局部 replay
-   - 将 replay 出来的 nested `UIMessage` 放进父工具的 `tool-output-available` chunk
+   - 将 replay 出来的 agent `UIMessage` 放进父工具的 `tool-output-available` chunk
 
 ### 1.3 最终建议
 
@@ -149,7 +149,7 @@ Claude Agent SDK query()
 
 这个方案的问题很明确：
 
-1. 只能自然归组 nested tool parts，不能自然归组 nested text / reasoning
+1. 只能自然归组 child tool parts，不能自然归组 child text / reasoning
 2. 父子结构存在于 provider metadata，不存在于 tool output 本身
 3. live stream 与 history replay 的结构语义并不完全一致
 4. 越往深层嵌套，React 侧 regroup 越脆弱
@@ -216,7 +216,7 @@ child SDKMessage
   -> child transformer
   -> child chunks
   -> 自己写的 accumulator
-  -> nested UIMessage snapshot
+  -> agent UIMessage snapshot
 ```
 
 优点：
@@ -280,14 +280,14 @@ child SDKMessages[]
 
 1. `Task` / `Agent` 父工具出现时记录 `toolCallId`
 2. child message 按 `parent_tool_use_id` 缓存在父工具下
-3. 每次 child message 到来时，把当前 child transcript replay 成 nested `UIMessage`
+3. 每次 child message 到来时，把当前 child transcript replay 成 agent `UIMessage`
 4. 用同一个 `toolCallId` 持续发 `tool-output-available`
 5. 前端优先渲染 `part.output.message`
 
 MVP 的核心判断标准不是“抽象是否优雅”，而是：
 
 - 同一个 Task/Agent 卡片能持续更新
-- nested text / reasoning / tools 都能跟着更新
+- child text / reasoning / tools 都能跟着更新
 - live stream 和历史回放不会再依赖 React 侧 sibling regroup 作为唯一主路径
 
 ### 7.2 完整版保留为演进目标
@@ -404,7 +404,7 @@ return last;
 这一层的价值很大：
 
 - history replay 可以直接复用
-- nested Task transcript 的 replay 也可以直接复用
+- child Task transcript 的 replay 也可以直接复用
 - 测试可以直接断言最终 `UIMessage`
 
 ### 8.4 Layer 4: `TaskSubagentAggregator`
@@ -474,7 +474,7 @@ msg.parent_tool_use_id === aggregation.toolCallId;
 
 ```ts
 aggregation.latestMessage = await sdkMessagesToUIMessage(aggregation.childMessages, {
-  transformer: new SDKMessageTransformer(/* nested context */),
+  transformer: new SDKMessageTransformer(/* agent context */),
 });
 ```
 
@@ -498,7 +498,7 @@ yield {
 这一步非常重要：
 
 - **transform 最终发出去的仍然是 `UIMessageChunk`**
-- 只是这个 chunk 的 `output` 字段里包了一个已经物化好的 nested `UIMessage`
+- 只是这个 chunk 的 `output` 字段里包了一个已经物化好的 agent `UIMessage`
 
 ### 9.4 父工具结束
 
@@ -522,10 +522,10 @@ yield {
 
 如果直接把 child messages 原样 replay，存在一个上下文问题：
 
-- 对 child replay 来说，`parent_tool_use_id === <root task toolCallId>` 表示“这是这个 nested transcript 的根”
+- 对 child replay 来说，`parent_tool_use_id === <root task toolCallId>` 表示“这是这个 agent transcript 的根”
 - 但对顶层 replay 来说，这个字段表示“它挂在某个父工具下”
 
-因此 materializer 需要支持一个轻量 nested context：
+因此 materializer 需要支持一个轻量 agent context：
 
 ```ts
 type SDKMessageTransformContext = {
@@ -535,11 +535,11 @@ type SDKMessageTransformContext = {
 
 语义：
 
-- 当 replay nested transcript 时
+- 当 replay agent transcript 时
 - 若 `msg.parent_tool_use_id === rootParentToolUseId`
-- 则将其视为当前 nested replay 的根层消息
+- 则将其视为当前 agent replay 的根层消息
 
-这样做的目的不是修改原始数据，而是避免 direct child transcript 在 nested replay 中再次被当成“外部挂载消息”。
+这样做的目的不是修改原始数据，而是避免 direct child transcript 在 agent replay 中再次被当成“外部挂载消息”。
 
 这个 context 只影响 replay/materialize 视角，不影响原始 Claude SDK message。
 
@@ -660,7 +660,7 @@ Claude query.next()
 child Claude messages[]
   -> sdkMessagesToUIMessageStream(...)
   -> readUIMessageStream(...)
-  -> latest nested UIMessage
+  -> latest agent UIMessage
   -> parent tool-output-available chunk
 ```
 
@@ -675,7 +675,7 @@ session messages[]
 
 重要的是：
 
-**history replay 和 nested replay 现在走的是同一条语义链路。**
+**history replay 和 agent replay 现在走的是同一条语义链路。**
 
 ## 15. 迁移计划
 
@@ -683,7 +683,7 @@ session messages[]
 
 1. 在 `SDKMessageTransformer` 或其最小配套 helper 中识别 `Task` / `Agent` 父工具
 2. 按 `toolCallId` 缓存 child Claude SDK messages
-3. 每次 child message 到来时，复用现有 replay 链路得到最新 nested `UIMessage`
+3. 每次 child message 到来时，复用现有 replay 链路得到最新 agent `UIMessage`
 4. 用同一个 `toolCallId` 持续发 `tool-output-available`
 5. 父工具 `tool_result` 到来时，发最终一次 `tool-output-available`
 
@@ -734,9 +734,9 @@ session messages[]
 
 这是选定方案的主要代价，但它是可测量且可替换的。
 
-### 17.2 nested context 处理不清
+### 17.2 agent context 处理不清
 
-如果 `rootParentToolUseId` 语义处理不稳，nested replay 可能出现错误归组。  
+如果 `rootParentToolUseId` 语义处理不稳，agent replay 可能出现错误归组。  
 因此这部分必须先用 fixture 测试固定下来。
 
 ### 17.3 public API 过早固化
@@ -749,7 +749,7 @@ session messages[]
 
 1. **先实现 MVP**
 2. **MVP 目标是让同一个 `Task` / `Agent` 的 `tool-output-available` 持续更新**
-3. **MVP 复用现有 replay 路径产出 nested `UIMessage`，不先手写 accumulator**
+3. **MVP 复用现有 replay 路径产出 agent `UIMessage`，不先手写 accumulator**
 4. **前端优先读取 `part.output.message`，旧 sibling regroup 仅作为 fallback**
 5. **完整版抽象保留在本文中，作为下一阶段的正式演进方向**
 6. **若后续性能证明 replay 成本过高，再在物化层内部替换为 accumulator**

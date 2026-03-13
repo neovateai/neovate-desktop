@@ -45,7 +45,7 @@ export function AgentTool({
         {agentMessage != null ? (
           <MessagePartRenderer
             message={agentMessage}
-            renderToolPart={(nestedPartMessage, part) => renderToolPart?.(nestedPartMessage, part)}
+            renderToolPart={(agentPartMessage, part) => renderToolPart?.(agentPartMessage, part)}
           />
         ) : null}
         {agentMessage == null && Array.isArray(output)

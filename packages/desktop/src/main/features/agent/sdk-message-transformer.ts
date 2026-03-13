@@ -180,7 +180,7 @@ export class SDKMessageTransformer {
             providerExecuted: true,
           };
         } else {
-          state.latestMessage = this.finalizeNestedMessage({
+          state.latestMessage = this.finalizeAgentMessage({
             toolCallId: chunk.toolCallId,
             sessionId: msg.session_id,
             baseMessage: state.latestMessage,
@@ -629,7 +629,7 @@ export class SDKMessageTransformer {
 
   // Claude Code emits both:
   // 1. the Agent tool input.prompt
-  // 2. a nested user text message with the same content
+  // 2. a subagent user text message with the same content
   //
   // Keep the fix narrow: cache only Agent prompts by toolCallId, then do a
   // single exact-string lookup when a child user message already points to that
@@ -668,7 +668,7 @@ export class SDKMessageTransformer {
     return parentToolUseId == null || parentToolUseId === this.rootParentToolUseId;
   }
 
-  private finalizeNestedMessage({
+  private finalizeAgentMessage({
     toolCallId,
     sessionId,
     baseMessage,
@@ -687,7 +687,7 @@ export class SDKMessageTransformer {
     ];
 
     return {
-      id: baseMessage?.id ?? `nested:${toolCallId}`,
+      id: `agent:${toolCallId}`,
       role: "assistant",
       metadata: {
         sessionId,

@@ -55,7 +55,7 @@ async function replayToLastMessage(messages: any[]) {
 }
 
 describe("Task/SubAgent aggregation", () => {
-  it("emits nested UIMessage as the parent Agent tool output", async () => {
+  it("emits an agent UIMessage as the parent Agent tool output", async () => {
     const message = await replayToLastMessage([
       makeAssistantMsg("msg-parent", [
         {
@@ -87,7 +87,7 @@ describe("Task/SubAgent aggregation", () => {
           {
             type: "tool_result",
             tool_use_id: "call-read",
-            content: "export const nested = true;",
+            content: "export const subagentResult = true;",
             is_error: false,
           },
         ],
@@ -109,13 +109,21 @@ describe("Task/SubAgent aggregation", () => {
     const parentAgentPart = message?.parts.find((part: any) => part.type === "tool-Agent") as any;
 
     expect(parentAgentPart?.toolCallId).toBe("call-agent");
-    expect(parentAgentPart?.output).toMatchObject({
-      id: expect.any(String),
-      role: expect.any(String),
-      parts: expect.any(Array),
-    });
-    expect(JSON.stringify(parentAgentPart?.output)).toContain("subagent-example.ts");
-    expect(JSON.stringify(parentAgentPart?.output)).toContain("Inspection complete");
+    expect(parentAgentPart?.output?.id).toBe("agent:call-agent");
+    expect(parentAgentPart?.output?.role).toBe("assistant");
+    expect(Array.isArray(parentAgentPart?.output?.parts)).toBe(true);
+    expect(parentAgentPart?.output.parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "tool-Read",
+          input: expect.objectContaining({ file_path: "/tmp/subagent-example.ts" }),
+        }),
+        expect.objectContaining({
+          type: "text",
+          text: "Inspection complete",
+        }),
+      ]),
+    );
   });
 
   it("preserves output-error when the parent Agent tool result fails", async () => {
@@ -150,7 +158,7 @@ describe("Task/SubAgent aggregation", () => {
           {
             type: "tool_result",
             tool_use_id: "call-read",
-            content: "export const nested = true;",
+            content: "export const subagentResult = true;",
             is_error: false,
           },
         ],

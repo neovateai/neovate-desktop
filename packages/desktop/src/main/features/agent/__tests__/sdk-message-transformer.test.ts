@@ -225,7 +225,7 @@ describe("SDKMessageTransformer", () => {
     ]);
   });
 
-  it("nested assistant messages do not emit global step boundaries", () => {
+  it("subagent assistant messages do not emit global step boundaries", () => {
     collect(t.transform(makeAssistantMsg("msg-A", [{ type: "text", text: "A" }]) as any));
 
     const chunks = collect(
@@ -712,7 +712,7 @@ describe("SDKMessageTransformer", () => {
     expect(uiMessages.at(-1)?.parts.map((part: any) => part.type)).toContain("tool-Read");
   });
 
-  it("drops nested kickoff prompt text when it duplicates an Agent prompt", () => {
+  it("drops subagent kickoff prompt text when it duplicates an Agent prompt", () => {
     collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
     collect(
       t.transform(
@@ -730,7 +730,7 @@ describe("SDKMessageTransformer", () => {
     const chunks = collect(
       t.transform(
         makeUserMsg([{ type: "text", text: "Explore the repository" }], {
-          uuid: "user-nested",
+          uuid: "user-agent",
           parentToolUseId: "call-agent",
         }) as any,
       ),
@@ -739,7 +739,7 @@ describe("SDKMessageTransformer", () => {
     expect(chunks).toEqual([]);
   });
 
-  it("keeps nested user text when it does not duplicate an Agent prompt", () => {
+  it("keeps subagent user text when it does not duplicate an Agent prompt", () => {
     collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
     collect(
       t.transform(
@@ -757,16 +757,16 @@ describe("SDKMessageTransformer", () => {
     const chunks = collect(
       t.transform(
         makeUserMsg([{ type: "text", text: "I will start with a glob search." }], {
-          uuid: "user-nested",
+          uuid: "user-agent",
           parentToolUseId: "call-agent",
         }) as any,
       ),
     );
 
     expect(chunks).toEqual([
-      { type: "text-start", id: "user-nested" },
-      { type: "text-delta", id: "user-nested", delta: "I will start with a glob search." },
-      { type: "text-end", id: "user-nested" },
+      { type: "text-start", id: "user-agent" },
+      { type: "text-delta", id: "user-agent", delta: "I will start with a glob search." },
+      { type: "text-end", id: "user-agent" },
     ]);
   });
 
