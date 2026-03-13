@@ -97,6 +97,7 @@ function EditorViewCore(props: { cwd: string }) {
       if (!url) {
         throw new Error("Url is empty");
       }
+      // TODO: refactor with 统一的埋点体系, replace raw CustomEvent dispatching
       window.dispatchEvent(
         new CustomEvent("neovate:log-event", { detail: { key: "EDITOR_STARTED" } }),
       );
