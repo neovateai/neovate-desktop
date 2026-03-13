@@ -1,3 +1,4 @@
+import { useTheme } from "next-themes";
 import { Activity, lazy, Suspense, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
@@ -94,7 +95,7 @@ export function ContentPanelRenderer() {
 
   const activeProject = useProjectStore((s) => s.activeProject);
   const projectPath = activeProject?.path ?? "";
-
+  const { resolvedTheme } = useTheme();
   useEffect(() => {
     contentPanel.setProjectPath(projectPath);
   }, [contentPanel, projectPath]);
@@ -151,7 +152,10 @@ export function ContentPanelRenderer() {
           })}
 
         {tabs.length === 0 && (
-          <EmptyState message="No tabs open" imgSrc="/src/assets/images/empty1.png" />
+          <EmptyState
+            message="No tabs open"
+            imgSrc={`/src/assets/images/empty1${resolvedTheme === "dark" ? "-dark" : ""}.png`}
+          />
         )}
       </div>
     </div>

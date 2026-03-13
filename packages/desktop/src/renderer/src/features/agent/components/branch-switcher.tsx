@@ -184,7 +184,7 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           disabled={disabled || checkingOut}
-          className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none hover:text-foreground disabled:opacity-50"
+          className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none cursor-pointer hover:text-foreground disabled:opacity-50 hover:!bg-background/80"
         >
           {checkingOut ? <Spinner className="h-3 w-3" /> : <GitBranch className="h-3 w-3" />}
           <span className="max-w-[200px] truncate">{displayName}</span>

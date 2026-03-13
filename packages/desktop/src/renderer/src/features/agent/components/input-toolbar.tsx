@@ -141,7 +141,7 @@ function ConnectedPermissionModeSelect({
     <Menu>
       <MenuTrigger
         disabled={disabled}
-        className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50"
+        className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none transition-colors hover:!bg-background/80 cursor-pointer"
       >
         <Shield className="h-3 w-3" />
         <span>{PERMISSION_MODE_LABELS[permissionMode]}</span>
@@ -348,7 +348,7 @@ function ConnectedModelSelect({
         <Menu>
           <MenuTrigger
             disabled={disabled}
-            className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50"
+            className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
           >
             <ScopeBadge scope={modelScope} />
             <span className="max-w-[200px] truncate">{buttonLabel}</span>

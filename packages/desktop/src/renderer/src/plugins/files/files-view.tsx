@@ -2,6 +2,7 @@ import type { ContractRouterClient } from "@orpc/contract";
 
 import { consumeEventIterator } from "@orpc/client";
 import debug from "debug";
+import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 import type { Project } from "../../../../shared/features/project/types";
@@ -30,7 +31,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const { resolvedTheme } = useTheme();
   const cwd = project?.path || "";
 
   useEffect(() => {
@@ -191,7 +192,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
         <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center flex-col gap-2 ">
           <img
-            src="/src/assets/images/empty2.png"
+            src={`/src/assets/images/empty2${resolvedTheme === "dark" ? "-dark" : ""}.png`}
             alt="Empty"
             className="shrink-0"
             style={{ width: 67 + "px", marginLeft: "10px" }}
@@ -222,7 +223,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
         <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto -mr-2.5">
         {treeData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
             <p className="text-xs text-muted-foreground">{t("emptyDirectory")}</p>
