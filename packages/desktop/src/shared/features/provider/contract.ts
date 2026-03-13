@@ -29,6 +29,7 @@ export const providerContract = {
           .refine((m) => Object.keys(m).length > 0, "At least one model required"),
         modelMap: providerModelMapSchema,
         envOverrides: z.record(z.string(), z.string()).optional(),
+        builtInId: z.string().optional(),
       }),
     )
     .output(type<Provider>()),
@@ -52,6 +53,26 @@ export const providerContract = {
     .output(type<Provider>()),
 
   remove: oc.input(z.object({ id: z.string() })).output(type<void>()),
+
+  checkModel: oc
+    .input(
+      z.object({
+        baseURL: z.string().url(),
+        apiKey: z.string().min(1),
+        modelId: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        ttftMs: z.number(),
+        tpot: z.number(),
+        tps: z.number(),
+        totalTimeMs: z.number(),
+        tokensGenerated: z.number(),
+        success: z.boolean(),
+        error: z.string().optional(),
+      }),
+    ),
 
   setSelection: oc
     .input(

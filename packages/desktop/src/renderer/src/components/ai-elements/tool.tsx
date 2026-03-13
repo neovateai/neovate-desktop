@@ -1,8 +1,8 @@
 "use client";
 
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import type { ComponentProps } from "react";
 import type { LucideProps } from "lucide-react";
+import type { ComponentProps } from "react";
 
 import {
   BookOpen,
@@ -152,7 +152,10 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
   <Collapsible
-    className={cn("group/tool not-prose w-full overflow-hidden rounded-md border border-border/50", className)}
+    className={cn(
+      "group/tool not-prose w-full overflow-hidden rounded-md border border-border/50",
+      className,
+    )}
     {...props}
   />
 );
@@ -185,10 +188,7 @@ const StatusDot = ({ state }: { state: ToolPart["state"] }) => {
 
   return (
     <span
-      className={cn(
-        "size-2 rounded-full shrink-0",
-        statusStyles[state] || "bg-muted-foreground"
-      )}
+      className={cn("size-2 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
     />
   );
 };
@@ -204,7 +204,7 @@ export const ToolHeader = ({
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
   const { displayName, fullPath, actionName, extra } = useMemo(
     () => parseToolTitle(title ?? derivedName),
-    [title, derivedName]
+    [title, derivedName],
   );
   // Get tool icon based on derived name (e.g., "Read", "Write")
   const { icon: ToolIcon, color: iconColor } = useMemo(() => {
@@ -218,15 +218,15 @@ export const ToolHeader = ({
   // - Otherwise use displayName or derivedName as fallback
   const hasFilePath = fullPath !== null;
   const mainLabel = hasFilePath
-    ? (actionName || derivedName)
-    : (actionName || displayName || derivedName);
+    ? actionName || derivedName
+    : actionName || displayName || derivedName;
 
   return (
     <CollapsibleTrigger
       className={cn(
         "flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50",
         "transition-colors cursor-pointer group w-full",
-        className
+        className,
       )}
       {...props}
     >
@@ -238,12 +238,10 @@ export const ToolHeader = ({
           {/* Only show displayName separately when it's a file path */}
           {hasFilePath && displayName && (
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <span className="cursor-default">
                   {extra ? "" : " "}
-                  <span className="text-muted-foreground">
-                    {displayName}
-                  </span>
+                  <span className="text-muted-foreground">{displayName}</span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" align="start" className="max-w-md">
@@ -253,9 +251,7 @@ export const ToolHeader = ({
           )}
         </span>
         <StatusDot state={state} />
-        <ChevronRight
-          className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 group-data-[state=open]:rotate-90"
-        />
+        <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 group-data-[state=open]:rotate-90" />
       </TooltipProvider>
     </CollapsibleTrigger>
   );
@@ -268,7 +264,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
     className={cn(
       "border-t border-border/50",
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-3 p-3 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className
+      className,
     )}
     {...props}
   />
@@ -313,15 +309,12 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
       <div
         className={cn(
           "rounded-md border border-border/50 overflow-hidden",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-background"
+          errorText ? "bg-destructive/10 text-destructive" : "bg-background",
         )}
       >
-        {errorText && (
-          <div className="p-3 text-sm">{errorText}</div>
-        )}
+        {errorText && <div className="p-3 text-sm">{errorText}</div>}
         {Output}
       </div>
     </div>
   );
 };
-

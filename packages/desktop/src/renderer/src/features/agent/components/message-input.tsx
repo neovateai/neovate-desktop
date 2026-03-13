@@ -11,6 +11,7 @@ import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
+import { useSettingsStore } from "../../settings";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
@@ -20,6 +21,7 @@ import { AttachmentPreview } from "./attachment-preview";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
 import { createMentionExtension } from "./mention-extension";
+import { QueryStatus } from "./query-status";
 import { createSlashCommandsExtension } from "./slash-commands-extension";
 
 const log = debug("neovate:message-input");
@@ -204,6 +206,14 @@ export function MessageInput({
     editor?.setEditable(!disabled && !streaming);
   }, [editor, disabled, streaming]);
 
+  // Close suggestion popups when settings opens
+  const showSettings = useSettingsStore((s) => s.showSettings);
+  useEffect(() => {
+    if (showSettings) {
+      document.querySelectorAll("[data-suggestion-popup]").forEach((el) => el.remove());
+    }
+  }, [showSettings]);
+
   // Listen for insert-mention events from file tree
   useEffect(() => {
     if (!editor) return;
@@ -238,7 +248,8 @@ export function MessageInput({
   );
 
   return (
-    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "")}>
+    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
+      {activeSessionId && <QueryStatus sessionId={activeSessionId} />}
       <input
         ref={fileInputRef}
         type="file"
