@@ -176,10 +176,6 @@ export type ToolHeaderProps = {
 );
 
 // Status dot component
-<<<<<<< HEAD
-const StatusDot = ({ state }: { state: ToolPart["state"] }) => {
-  const isRunning = state === "input-available" || state === "input-streaming";
-=======
 const StatusDot = ({
   state,
   preliminary = false,
@@ -187,11 +183,11 @@ const StatusDot = ({
   state: ToolPart["state"];
   preliminary?: boolean;
 }) => {
-  if (preliminary && state === "output-available") {
-    return <span className="size-2 rounded-full shrink-0 animate-pulse bg-primary" />;
-  }
+  const isRunning =
+    state === "input-available" ||
+    state === "input-streaming" ||
+    (preliminary && state === "output-available");
 
->>>>>>> 01ef2bd (Aggregate task and subagent UI messages)
   const statusStyles = {
     "approval-requested": "bg-yellow-500",
     "approval-responded": "bg-blue-500",
