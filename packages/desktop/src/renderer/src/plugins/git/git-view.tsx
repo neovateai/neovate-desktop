@@ -282,7 +282,7 @@ export default memo(function GitView() {
   }
 
   return (
-    <div className="flex h-full flex-col p-2 gap-1">
+    <div className="flex h-full mb-2 flex-col p-2 gap-1">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
         <button
