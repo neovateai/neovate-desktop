@@ -1,4 +1,5 @@
 import type React from "react";
+import { useTranslation } from "react-i18next";
 
 import { X, TriangleAlert } from "lucide-react";
 
@@ -66,6 +67,8 @@ export function TabItem({
   isActive: boolean;
   isOrphan: boolean;
 }) {
+  const { t } = useTranslation();
+
   if (isOrphan) {
     return (
       <Tooltip>
@@ -74,7 +77,7 @@ export function TabItem({
           render={(props) => <TabButton {...props} tab={tab} isActive={isActive} isOrphan />}
         />
         <TooltipPopup side="bottom">
-          &quot;{tab.name}&quot; is unavailable. You can close this tab.
+          {t("contentPanel.orphanTabTooltip", { name: tab.name })}
         </TooltipPopup>
       </Tooltip>
     );

@@ -1,4 +1,5 @@
 import type React from "react";
+import { useTranslation } from "react-i18next";
 
 import { Delete02Icon, FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -13,6 +14,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorProps) {
+  const { t } = useTranslation();
   const { projects, activeProject, loading, openProject, switchProject, removeProject } =
     useProject();
 
@@ -23,7 +25,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
           render={
             <button className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent/50">
               <span className={activeProject ? "text-foreground" : "text-muted-foreground"}>
-                {activeProject?.name ?? "Select a project..."}
+                {activeProject?.name ?? t("project.selectPlaceholder")}
               </span>
               <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
             </button>

@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import { toastManager } from "../../components/ui/toast";
 import { client } from "../../orpc";
 import { useUpdaterState } from "./hooks";
 
 export function UpdaterToast() {
+  const { t } = useTranslation();
   const state = useUpdaterState();
   const toastIdRef = useRef<string | null>(null);
 
@@ -29,7 +31,7 @@ export function UpdaterToast() {
       close();
       toastIdRef.current = toastManager.add({
         type: "success",
-        title: "You're up to date",
+        title: t("updater.upToDate"),
         timeout: 10000,
         onClose,
       });
@@ -40,7 +42,7 @@ export function UpdaterToast() {
       close();
       toastIdRef.current = toastManager.add({
         type: "error",
-        title: state.message ?? "Update failed",
+        title: state.message ?? t("updater.failed"),
         timeout: 5000,
         onClose,
       });
@@ -51,7 +53,7 @@ export function UpdaterToast() {
       if (toastIdRef.current) return;
       toastIdRef.current = toastManager.add({
         type: "loading",
-        title: `Downloading update ${state.version}…`,
+        title: t("updater.downloading", { version: state.version }),
         timeout: 0,
         onClose,
       });
@@ -61,10 +63,10 @@ export function UpdaterToast() {
     if (state.status === "ready") {
       const readyToast = {
         type: "success",
-        title: `Update ${state.version} ready to install`,
-        description: "Neovate will quit and reopen to finish updating.",
+        title: t("updater.readyToInstall", { version: state.version }),
+        description: t("updater.restartMessage"),
         actionProps: {
-          children: "Restart",
+          children: t("updater.restart"),
           onClick: () => client.updater.install(),
         },
         timeout: 0,

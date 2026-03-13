@@ -154,5 +154,18 @@
 
   "common.cancel": "取消",
   "common.delete": "删除",
-  "common.loading": "加载中..."
+  "common.loading": "加载中...",
+
+  "contentPanel.orphanTabTooltip": "\"{{name}}\" 不可用。您可以关闭此标签页。",
+  "contentPanel.noProjectSelected": "未选择项目",
+  "contentPanel.noTabsOpen": "没有打开的标签页",
+
+  "project.selectPlaceholder": "选择项目...",
+
+  "updater.upToDate": "已是最新版本",
+  "updater.failed": "更新失败",
+  "updater.downloading": "正在下载更新 {{version}}...",
+  "updater.readyToInstall": "更新 {{version}} 准备安装",
+  "updater.restartMessage": "Neovate 将退出并重新打开以完成更新。",
+  "updater.restart": "重启"
 }

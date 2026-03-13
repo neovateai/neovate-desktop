@@ -141,8 +141,6 @@
   "settings.skills.loadFailed": "Failed to load skills",
   "settings.skills.fetchFailed": "Failed to fetch skills",
   "settings.skills.installFailed": "Failed to install skills",
-
-  "common.loading": "Loading...",
   "settings.skills.retry": "Retry",
   "settings.skills.removeSkill": "Remove skill",
 
@@ -155,5 +153,19 @@
   "permission.savesTo": "Saves to {{path}}",
 
   "common.cancel": "Cancel",
-  "common.delete": "Delete"
+  "common.delete": "Delete",
+  "common.loading": "Loading...",
+
+  "contentPanel.orphanTabTooltip": "\"{{name}}\" is unavailable. You can close this tab.",
+  "contentPanel.noProjectSelected": "No project selected",
+  "contentPanel.noTabsOpen": "No tabs open",
+
+  "project.selectPlaceholder": "Select a project...",
+
+  "updater.upToDate": "You're up to date",
+  "updater.failed": "Update failed",
+  "updater.downloading": "Downloading update {{version}}...",
+  "updater.readyToInstall": "Update {{version}} ready to install",
+  "updater.restartMessage": "Neovate will quit and reopen to finish updating.",
+  "updater.restart": "Restart"
 }
