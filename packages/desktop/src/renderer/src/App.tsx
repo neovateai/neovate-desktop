@@ -28,6 +28,11 @@ export default function App() {
   const showSettings = useSettingsStore((state) => state.showSettings);
   const developerMode = useConfigStore((s) => s.developerMode);
 
+  // TODO: refactor with 统一的埋点体系, replace raw CustomEvent dispatching
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("neovate:log-event", { detail: { key: "APP_READY" } }));
+  }, []);
+
   useEffect(() => {
     if (import.meta.env.DEV && developerMode) {
       void import("react-grab");

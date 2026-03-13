@@ -1,5 +1,7 @@
 import type React from "react";
 
+import type { ProviderTemplate } from "../../../../shared/features/provider/built-in";
+
 // ─── Contribution Types ─────────────────────────────────────────────
 
 export interface PluginContributions {
@@ -8,6 +10,7 @@ export interface PluginContributions {
   contentPanelViews?: ContentPanelView[];
   primaryTitlebarItems?: TitlebarItem[];
   secondaryTitlebarItems?: TitlebarItem[];
+  providerTemplates?: ProviderTemplate[];
 }
 export interface ActivityBarItem {
   id: string;
@@ -48,6 +51,19 @@ export interface WindowContribution {
 
 // ─── Merge ──────────────────────────────────────────────────────────
 
+/** Deduplicate provider templates by id (first-wins) */
+function deduplicateTemplates(templates: ProviderTemplate[]): ProviderTemplate[] {
+  const seen = new Set<string>();
+  return templates.filter((t) => {
+    if (seen.has(t.id)) {
+      console.debug("[plugin] duplicate providerTemplate id=%s, skipping", t.id);
+      return false;
+    }
+    seen.add(t.id);
+    return true;
+  });
+}
+
 /** Merge partial contributions from multiple plugins into a complete set */
 export function buildContributions(
   items: (PluginContributions | null | undefined)[],
@@ -63,5 +79,6 @@ export function buildContributions(
     contentPanelViews: valid.flatMap((r) => r.contentPanelViews ?? []),
     primaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.primaryTitlebarItems ?? [])),
     secondaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.secondaryTitlebarItems ?? [])),
+    providerTemplates: deduplicateTemplates(valid.flatMap((r) => r.providerTemplates ?? [])),
   };
 }

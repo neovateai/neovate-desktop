@@ -35,6 +35,7 @@ export type MessageContentProps = HTMLAttributes<HTMLDivElement>;
 
 export const MessageContent = ({ children, className, ...props }: MessageContentProps) => (
   <div
+    style={{ backgroundColor: "var(--color-chat)", color: "var(--color-chat-foreground)" }}
     className={cn(
       "flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
       // User message: bubble style with rounded corners
