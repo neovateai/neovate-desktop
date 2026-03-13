@@ -95,6 +95,13 @@
   "settings.providers.create": "创建",
   "settings.providers.save": "保存",
   "settings.providers.cancel": "取消",
+  "settings.providers.chooseTemplate": "选择服务商模板或配置自定义端点。",
+  "settings.providers.custom": "自定义",
+  "settings.providers.customDescription": "配置自定义 API 端点",
+  "settings.providers.getApiKey": "获取 API 密钥",
+  "settings.providers.resetDefaults": "重置为默认",
+  "settings.providers.resetConfirm": "将 API 地址、模型、模型映射和环境变量覆盖重置为模板默认值？您的 API 密钥和名称将保留。",
+  "providers.openrouter.name": "OpenRouter",
 
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",

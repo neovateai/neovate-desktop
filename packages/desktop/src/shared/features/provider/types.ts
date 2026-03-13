@@ -16,6 +16,7 @@ export type Provider = {
   models: Record<string, ProviderModelEntry>;
   modelMap: ProviderModelMap;
   envOverrides: Record<string, string>;
+  builtInId?: string;
 };
 
 export type ProjectProviderConfig = {

@@ -29,6 +29,7 @@ export const providerContract = {
           .refine((m) => Object.keys(m).length > 0, "At least one model required"),
         modelMap: providerModelMapSchema,
         envOverrides: z.record(z.string(), z.string()).optional(),
+        builtInId: z.string().optional(),
       }),
     )
     .output(type<Provider>()),
