@@ -11,6 +11,7 @@ import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
+import { useSettingsStore } from "../../settings";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
@@ -202,6 +203,14 @@ export function MessageInput({
   useEffect(() => {
     editor?.setEditable(!disabled && !streaming);
   }, [editor, disabled, streaming]);
+
+  // Close suggestion popups when settings opens
+  const showSettings = useSettingsStore((s) => s.showSettings);
+  useEffect(() => {
+    if (showSettings) {
+      document.querySelectorAll("[data-suggestion-popup]").forEach((el) => el.remove());
+    }
+  }, [showSettings]);
 
   // Listen for insert-mention events from file tree
   useEffect(() => {
