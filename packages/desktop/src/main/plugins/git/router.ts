@@ -459,10 +459,18 @@ async function getBranchFiles(cwd: string) {
     // ignore
   }
 
-  // Get changed files
+  // Get merge-base so we diff "since fork point" including uncommitted changes
+  let mergeBase: string;
+  try {
+    mergeBase = (await gitClient.raw(["merge-base", tracking, "HEAD"])).trim();
+  } catch {
+    mergeBase = tracking;
+  }
+
+  // Get changed files (merge-base vs working tree)
   const files: GitBranchFile[] = [];
   try {
-    const nameStatus = await gitClient.raw(["diff", "--name-status", `${tracking}...HEAD`]);
+    const nameStatus = await gitClient.raw(["diff", "--name-status", mergeBase]);
     for (const line of nameStatus.trim().split("\n")) {
       if (!line) continue;
       const [statusChar, ...fileParts] = line.split("\t");
@@ -495,18 +503,27 @@ async function getBranchFileDiff(cwd: string, file: string) {
     return { success: false, error: "no_upstream" };
   }
 
+  // Use merge-base for oldContent so we compare from the fork point
+  let mergeBase: string;
+  try {
+    mergeBase = (await gitClient.raw(["merge-base", tracking, "HEAD"])).trim();
+  } catch {
+    mergeBase = tracking;
+  }
+
   let oldContent = "";
   let newContent = "";
 
   try {
-    oldContent = await gitClient.show([`${tracking}:${file}`]);
+    oldContent = await gitClient.show([`${mergeBase}:${file}`]);
   } catch {
     // new file on branch
     oldContent = "";
   }
 
+  // Read from working tree to include uncommitted changes
   try {
-    newContent = await gitClient.show([`HEAD:${file}`]);
+    newContent = fs.readFileSync(path.resolve(cwd, file), "utf8");
   } catch {
     // deleted file on branch
     newContent = "";

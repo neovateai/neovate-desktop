@@ -90,6 +90,9 @@ export function MessageInput({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
+  const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
+  const sendMessageWithRef = useLatestRef(sendMessageWith);
+
   const mentionExtension = useMemo(() => createMentionExtension(() => cwdRef.current), []);
 
   const slashCommandsExtension = useMemo(
@@ -130,8 +133,22 @@ export function MessageInput({
               key: new PluginKey("chatKeymap"),
               props: {
                 handleKeyDown(_view, event) {
-                  if (event.key === "Enter" && !event.shiftKey && !event.altKey) {
+                  const mode = sendMessageWithRef.current;
+
+                  // Bare Enter (no modifier)
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.altKey &&
+                    !event.metaKey &&
+                    !event.ctrlKey
+                  ) {
                     if (document.querySelector("[data-suggestion-popup]")) return false;
+
+                    if (mode === "cmdEnter") {
+                      return false;
+                    }
+
                     event.preventDefault();
                     const text = extractText(editor.getJSON()).trim();
                     if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
@@ -140,6 +157,25 @@ export function MessageInput({
                       return true;
                     }
                     send();
+                    return true;
+                  }
+                  // Cmd/Ctrl+Enter
+                  if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                    if (document.querySelector("[data-suggestion-popup]")) return false;
+
+                    if (mode === "cmdEnter") {
+                      event.preventDefault();
+                      const text = extractText(editor.getJSON()).trim();
+                      if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
+                        editor.commands.clearContent();
+                        createNewSession(cwdRef.current);
+                        return true;
+                      }
+                      send();
+                      return true;
+                    }
+
+                    editor.commands.setHardBreak();
                     return true;
                   }
                   if (event.key === "Enter" && event.altKey) {

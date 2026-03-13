@@ -197,6 +197,7 @@ async function listDirectory(
   const target = dirPrefix ? join(cwd, dirPrefix) : cwd;
   const entries = await readdir(target, { withFileTypes: true });
   const paths = entries
+    .filter((e) => e.name !== ".git")
     .map((e) => {
       const name = e.isDirectory() ? e.name + sep : e.name;
       return dirPrefix ? dirPrefix + name : name;
@@ -226,9 +227,12 @@ export async function searchPaths(
 ): Promise<{ paths: string[]; truncated: boolean }> {
   const q = normalizeQuery(query);
 
+  // Directory listings get a higher limit than fuzzy search results
+  const dirMaxResults = Math.max(maxResults, 50);
+
   // Empty or "." → show top-level directory listing
   if (q === "") {
-    return listDirectory(cwd, "", maxResults);
+    return listDirectory(cwd, "", dirMaxResults);
   }
 
   // Trailing "/" → scoped directory listing (e.g. @src/ → contents of src/)
@@ -237,7 +241,7 @@ export async function searchPaths(
   // Wrapped in try/catch: readdir throws if dir was deleted or is unreadable.
   if (q.endsWith(sep)) {
     try {
-      return await listDirectory(cwd, q, maxResults);
+      return await listDirectory(cwd, q, dirMaxResults);
     } catch {
       return { paths: [], truncated: false };
     }
@@ -489,6 +493,8 @@ and the real results for the latest query.
 | Dirs not visually distinct           | Folder icon + `ChevronRight` hint for drill-down                |
 | Dir titles render empty              | `fileName`/`dirName` strip trailing `/` before parsing          |
 | `listDirectory` can throw            | try/catch around scoped readdir, returns `[]` on error          |
+| `.git` shown in directory listing    | Filter `.git` from `readdir` results in `listDirectory`         |
+| Dir listing truncates useful entries | `dirMaxResults = max(maxResults, 50)` for directory listings    |
 
 ## What This Does NOT Change
 

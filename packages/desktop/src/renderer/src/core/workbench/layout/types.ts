@@ -16,7 +16,10 @@ export const COLLAPSIBLE_WORKBENCH_PART = {
 export type CollapsibleWorkbenchPartId =
   (typeof COLLAPSIBLE_WORKBENCH_PART)[keyof typeof COLLAPSIBLE_WORKBENCH_PART];
 
+export type MaximizableWorkbenchPartId = "contentPanel";
+
 export interface IWorkbenchLayoutService {
   expandPart(part: CollapsibleWorkbenchPartId): void | Promise<void>;
   togglePart(part: CollapsibleWorkbenchPartId): void | Promise<void>;
+  maximizePart(part: MaximizableWorkbenchPartId): void | Promise<void>;
 }

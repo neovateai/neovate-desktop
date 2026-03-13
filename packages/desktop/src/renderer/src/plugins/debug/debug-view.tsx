@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ActiveSessionInfo } from "../../../../shared/features/agent/types";
 
 import { Button } from "../../components/ui/button";
+import { useRendererApp } from "../../core/app";
 import { useAgentStore } from "../../features/agent/store";
 import { useProjectStore } from "../../features/project/store";
 import { client } from "../../orpc";
@@ -75,6 +76,7 @@ function SessionRow({ session, onClosed }: { session: ActiveSessionInfo; onClose
 }
 
 export default function DebugView() {
+  const app = useRendererApp();
   const [sessions, setSessions] = useState<ActiveSessionInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -92,20 +94,34 @@ export default function DebugView() {
     refresh();
   }, [refresh]);
 
+  const handleTestMaximize = () => {
+    void app.workbench.layout.maximizePart("contentPanel");
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <span className="text-xs font-medium uppercase text-muted-foreground">Active Sessions</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={refresh}
-          disabled={loading}
-          title="Refresh"
-          className="size-5"
-        >
-          <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={handleTestMaximize}
+            title="No-op if the content panel is collapsed"
+          >
+            Test maximize content panel
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={refresh}
+            disabled={loading}
+            title="Refresh"
+            className="size-5"
+          >
+            <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto">
         {sessions.length === 0 ? (

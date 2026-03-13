@@ -1,6 +1,7 @@
 import debug from "debug";
 import { Check, ChevronDown, GitBranch, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { GitBranch as GitBranchType } from "../../../../../shared/plugins/git/contract";
 
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function BranchSwitcher({ cwd, disabled }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [branches, setBranches] = useState<GitBranchType[]>([]);
@@ -50,11 +52,11 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
           setIsGitRepo(true);
         } else {
           setIsGitRepo(false);
-          setError(result.error ?? "Failed to load branches");
+          setError(result.error ?? t("branch.loadFailed"));
         }
       } catch (err) {
         setIsGitRepo(false);
-        setError(err instanceof Error ? err.message : "Failed to load branches");
+        setError(err instanceof Error ? err.message : t("branch.loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -121,15 +123,13 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
           setOpen(false);
           window.dispatchEvent(new CustomEvent("neovate:branch-changed"));
           if (result.data?.stashPopFailed) {
-            setError(
-              "Stash pop failed due to conflicts. Your changes are saved in `git stash`. Run `git stash pop` to recover.",
-            );
+            setError(t("branch.stashPopFailed"));
           }
         } else {
-          setError(result.error ?? "Failed to switch branch");
+          setError(result.error ?? t("branch.switchFailed"));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to switch branch");
+        setError(err instanceof Error ? err.message : t("branch.switchFailed"));
       } finally {
         setCheckingOut(false);
       }
@@ -197,7 +197,7 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
                 ref={searchInputRef}
                 type="text"
                 className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs outline-none placeholder:text-muted-foreground/70 focus:ring-2 focus:ring-ring"
-                placeholder="Search branches..."
+                placeholder={t("branch.searchPlaceholder")}
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 autoFocus
@@ -215,18 +215,18 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
                   className="mt-1 text-xs text-primary hover:underline"
                   onClick={() => fetchBranches(search || undefined)}
                 >
-                  Retry
+                  {t("branch.retry")}
                 </button>
               </div>
             ) : flatList.length === 0 ? (
               <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                No branches found
+                {t("branch.noBranches")}
               </div>
             ) : (
               <div ref={listRef} className="max-h-60 overflow-y-auto">
                 {recentBranches.length > 0 && !search && (
                   <div className="px-2 pb-1 pt-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                    Recent
+                    {t("branch.recent")}
                   </div>
                 )}
                 {recentBranches.map((branch, i) => (
@@ -243,7 +243,7 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
                   <>
                     <div className="my-1 h-px bg-border" />
                     <div className="px-2 pb-1 pt-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                      All branches
+                      {t("branch.allBranches")}
                     </div>
                   </>
                 )}
@@ -269,7 +269,7 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
                 }}
               >
                 <Plus className="h-3 w-3" />
-                Create new branch...
+                {t("branch.createNew")}
               </button>
             </div>
           </div>

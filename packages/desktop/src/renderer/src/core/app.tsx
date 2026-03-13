@@ -2,23 +2,23 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
 
-import type { SettingsSchema } from "../../../shared/features/settings/schema";
 import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
 import { layoutStore } from "../components/app-layout/store";
 import { ToastProvider } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
-import { SettingsService } from "../features/settings/service";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
 import debugPlugin from "../plugins/debug";
 import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
+import { providersPlugin } from "../plugins/providers";
 import reviewPlugin from "../plugins/review";
 import searchPlugin from "../plugins/search";
 import terminalPlugin from "../plugins/terminal";
@@ -96,6 +96,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   editorPlugin,
   reviewPlugin,
   debugPlugin,
+  providersPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
   // demoWindowPlugin,
@@ -137,15 +138,6 @@ export class RendererApp implements IRendererApp {
       return activeProject;
     },
   };
-  readonly settings = new SettingsService({
-    load: async () => {
-      const all = await client.storage.getAll({ namespace: "config" });
-      return ((all as Record<string, unknown>).settings as Partial<SettingsSchema>) ?? {};
-    },
-    save: (data) => {
-      return client.storage.set({ namespace: "config", key: "settings", value: data });
-    },
-  });
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
@@ -178,6 +170,17 @@ export class RendererApp implements IRendererApp {
     const layout = new WorkbenchLayoutService({
       isExpanded: (part) => !layoutStore.getState().panels[part].collapsed,
       togglePart: (part) => layoutStore.getState().togglePanel(part),
+      maximizeContentPanel: () => {
+        const { panels } = layoutStore.getState();
+        if (panels.contentPanel.collapsed) return;
+
+        // TODO: This produces a feasible fitted layout, but not the true maximize width.
+        // Replace it with target-aware maximize math before plugin consumers depend on it.
+        const proposed = setPanelWidth(panels, "contentPanel", window.innerWidth);
+        const resolved = shrinkPanelsToFit(proposed, window.innerWidth);
+
+        layoutStore.setState({ panels: resolved });
+      },
     });
     this.workbench = {
       layout,
@@ -202,7 +205,6 @@ export class RendererApp implements IRendererApp {
     await this.i18nManager.init({ store: useConfigStore as any });
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
-    await this.hydrate();
     await this.project.refresh();
 
     // Collect window contributions — all windows (needed for lookup)
@@ -224,13 +226,7 @@ export class RendererApp implements IRendererApp {
     if (this.#windowType === "main") {
       this.workbench.contentPanel.dispose();
     }
-    this.settings.dispose();
     this.subscriptions.dispose();
-  }
-
-  /** Hydrate all stores from persistent storage */
-  private async hydrate(): Promise<void> {
-    await this.settings.hydrate();
   }
 
   private render(ctx: PluginContext): void {

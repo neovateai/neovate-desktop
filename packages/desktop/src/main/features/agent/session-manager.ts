@@ -413,6 +413,8 @@ export class SessionManager {
       );
     }
 
+    const agentLanguage = this.configStore.get("agentLanguage");
+
     const queryOpts = this.queryOptions({
       sessionId,
       cwd,
@@ -421,7 +423,10 @@ export class SessionManager {
     const options: Options = {
       ...queryOpts,
       env,
-      ...(settingsEnv ? { settings: { env: settingsEnv } } : {}),
+      settings: {
+        ...(settingsEnv ? { env: settingsEnv } : {}),
+        ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
+      },
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
     };
 

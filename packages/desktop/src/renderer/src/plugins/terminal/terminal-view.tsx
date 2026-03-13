@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import "@xterm/xterm/css/xterm.css";
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 import { usePluginContext } from "../../core/app";
+import { useConfigStore } from "../../features/config/store";
 import { useProjectStore } from "../../features/project/store";
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
@@ -61,6 +62,7 @@ const lightTheme = {
   brightWhite: "#ffffff",
 };
 
+const DEFAULT_FONT_FAMILY = 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace';
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 export default function TerminalView() {
@@ -69,10 +71,24 @@ export default function TerminalView() {
   const { resolvedTheme } = useTheme();
 
   const xtermRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+
+  const terminalFont = useConfigStore((s) => s.terminalFont);
+  const terminalFontSize = useConfigStore((s) => s.terminalFontSize);
+
   useEffect(() => {
     if (!xtermRef.current) return;
     xtermRef.current.options.theme = resolvedTheme === "dark" ? darkTheme : lightTheme;
   }, [resolvedTheme]);
+
+  useEffect(() => {
+    if (!xtermRef.current || !fitAddonRef.current) return;
+    xtermRef.current.options.fontSize = terminalFontSize;
+    xtermRef.current.options.fontFamily = terminalFont
+      ? `${terminalFont}, ${DEFAULT_FONT_FAMILY}`
+      : DEFAULT_FONT_FAMILY;
+    fitAddonRef.current.fit();
+  }, [terminalFont, terminalFontSize]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -81,19 +97,22 @@ export default function TerminalView() {
     const client = orpcClient as TerminalClient;
     const isDark = resolvedTheme === "dark";
 
+    const { terminalFont: initFont, terminalFontSize: initFontSize } = useConfigStore.getState();
+
     const xterm = new Terminal({
       cursorBlink: true,
       cursorStyle: "bar",
       lineHeight: 1.2,
       scrollback: 1000,
-      fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
-      fontSize: 12,
+      fontFamily: initFont ? `${initFont}, ${DEFAULT_FONT_FAMILY}` : DEFAULT_FONT_FAMILY,
+      fontSize: initFontSize,
       disableStdin: true,
       theme: isDark ? darkTheme : lightTheme,
     });
     xtermRef.current = xterm;
 
     const fitAddon = new FitAddon();
+    fitAddonRef.current = fitAddon;
     xterm.loadAddon(fitAddon);
     xterm.loadAddon(new WebLinksAddon());
     xterm.open(container);
@@ -182,6 +201,7 @@ export default function TerminalView() {
     return () => {
       mounted = false;
       xtermRef.current = null;
+      fitAddonRef.current = null;
       abortController.abort();
       clearTimeout(resizeTimer);
       observer.disconnect();

@@ -315,7 +315,20 @@ export default memo(function ReviewView() {
           onValueChange={(val) => handleCategoryChange(val as ReviewCategory)}
         >
           <SelectTrigger size="sm" className="min-w-32 max-w-48 h-7">
-            <SelectValue />
+            <SelectValue>
+              {(value: string | null) => {
+                if (!value) return null;
+                if (value === "branch") {
+                  return selectBranchLabel || t("review.category.branchNoUpstream");
+                }
+                const keyMap: Record<string, string> = {
+                  unstaged: "review.category.unstaged",
+                  staged: "review.category.staged",
+                  "last-turn": "review.category.lastTurn",
+                };
+                return keyMap[value] ? t(keyMap[value]) : value;
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectPopup>
             <SelectItem value="unstaged">{t("review.category.unstaged")}</SelectItem>
@@ -419,7 +432,10 @@ export default memo(function ReviewView() {
               </p>
               <p className="text-xs text-muted-foreground/70">
                 {category === "branch" && branchInfo
-                  ? t("review.branchUpToDate", { tracking: branchInfo.tracking })
+                  ? t("review.branchUpToDate", {
+                      tracking: branchInfo.tracking,
+                      interpolation: { escapeValue: false },
+                    })
                   : t(`review.empty.${category}.description`)}
               </p>
             </div>

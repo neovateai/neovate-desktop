@@ -30,6 +30,7 @@ function makeOptions(overrides?: Partial<ContentPanelOptions>): ContentPanelOpti
     layout: {
       expandPart: vi.fn(),
       togglePart: vi.fn(),
+      maximizePart: vi.fn(),
     } satisfies IWorkbenchLayoutService,
     ...overrides,
   };

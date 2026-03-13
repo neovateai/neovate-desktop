@@ -44,12 +44,10 @@ const plugin: RendererPlugin = {
 
   activate(ctx) {
     const handler = () => {
-      // Ensure content panel is visible
       const { panels } = layoutStore.getState();
       if (panels.contentPanel?.collapsed) {
         layoutStore.getState().togglePanel("contentPanel");
       }
-      // Open the review tab
       ctx.app.workbench.contentPanel.openView("review");
     };
     window.addEventListener("neovate:open-review", handler);

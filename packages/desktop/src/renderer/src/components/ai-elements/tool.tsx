@@ -8,7 +8,7 @@ import {
   BookOpen,
   Bot,
   CheckSquare,
-  ChevronRight,
+  ChevronDown,
   ClipboardList,
   Download,
   FileEdit,
@@ -176,19 +176,29 @@ export type ToolHeaderProps = {
 
 // Status dot component
 const StatusDot = ({ state }: { state: ToolPart["state"] }) => {
+  const isRunning = state === "input-available" || state === "input-streaming";
   const statusStyles = {
     "approval-requested": "bg-yellow-500",
     "approval-responded": "bg-blue-500",
-    "input-available": "animate-ping bg-primary",
-    "input-streaming": "animate-pulse bg-primary",
+    "input-available": "bg-primary",
+    "input-streaming": "bg-primary",
     "output-available": "bg-green-500",
     "output-denied": "bg-orange-500",
     "output-error": "bg-red-500",
   };
 
+  if (isRunning) {
+    return (
+      <span className="relative flex size-1.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+        <span className="relative inline-flex rounded-full size-1.5 bg-primary" />
+      </span>
+    );
+  }
+
   return (
     <span
-      className={cn("size-2 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
+      className={cn("size-1.5 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
     />
   );
 };
@@ -224,14 +234,17 @@ export const ToolHeader = ({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50",
+        "flex items-center gap-2 py-1.5 px-2 rounded-md",
         "transition-colors cursor-pointer group w-full",
         className,
       )}
       {...props}
     >
       <TooltipProvider>
-        <ToolIcon className={cn("size-4 shrink-0", iconColor)} />
+        {/* Icon with hover background */}
+        <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0 transition-colors group-hover:bg-muted">
+          <ToolIcon className={cn("size-4", iconColor)} />
+        </div>
         <span className="text-sm text-foreground truncate">
           {mainLabel}
           {extra && <span className="text-muted-foreground"> {extra}</span>}
@@ -251,7 +264,10 @@ export const ToolHeader = ({
           )}
         </span>
         <StatusDot state={state} />
-        <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 group-data-[state=open]:rotate-90" />
+        {/* Micro chevron - shows on hover, rotates 180° when open */}
+        <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ChevronDown className="size-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+        </div>
       </TooltipProvider>
     </CollapsibleTrigger>
   );
