@@ -8,6 +8,7 @@ import {
   ViewSidebarRightIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { type ReactNode, Suspense, lazy, useRef } from "react";
@@ -17,6 +18,7 @@ import type { SeparatorId } from "./types";
 
 import { useRendererApp } from "../../core/app";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
+import { useNewSession } from "../../features/agent/hooks/use-new-session";
 import { useConfigStore } from "../../features/config/store";
 import { OpenAppButton } from "../../features/open-in";
 import { ProjectSelector } from "../../features/project/components/project-selector";
@@ -96,6 +98,8 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
 export function AppLayoutTrafficLights() {
   const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const { createNewSession } = useNewSession();
   const isOpen = !collapsed;
   const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
 
@@ -129,6 +133,23 @@ export function AppLayoutTrafficLights() {
           <HugeiconsIcon icon={PanelLeftIcon} size={18} strokeWidth={1.5} />
         </motion.span>
       </Button>
+      <motion.div
+        initial={false}
+        animate={{ opacity: collapsed ? 1 : 0, width: collapsed ? "auto" : 0 }}
+        transition={springTransition}
+        className="overflow-hidden"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="!size-6"
+          onClick={() => activeProject && createNewSession(activeProject.path)}
+          disabled={!activeProject}
+          title="New chat"
+        >
+          <Plus size={16} strokeWidth={1.5} />
+        </Button>
+      </motion.div>
     </div>
   );
 }
