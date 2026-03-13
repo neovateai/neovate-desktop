@@ -21,6 +21,7 @@ import { AttachmentPreview } from "./attachment-preview";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
 import { createMentionExtension } from "./mention-extension";
+import { QueryStatus } from "./query-status";
 import { createSlashCommandsExtension } from "./slash-commands-extension";
 
 const log = debug("neovate:message-input");
@@ -247,6 +248,7 @@ export function MessageInput({
 
   return (
     <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
+      {activeSessionId && <QueryStatus sessionId={activeSessionId} />}
       <input
         ref={fileInputRef}
         type="file"

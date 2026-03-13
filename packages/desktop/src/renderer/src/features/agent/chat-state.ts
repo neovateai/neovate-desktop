@@ -28,6 +28,12 @@ export interface ClaudeCodeChatStoreState {
   }>;
   capabilities: ClaudeCodeChatCapabilities | null;
   pendingContextClear?: PendingContextClear;
+
+  // Query status timing
+  turnStartedAt: number | null;
+  thinkingStartedAt: number | null;
+  thinkingDuration: number | null;
+  lastChunkAt: number | null;
 }
 
 export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
@@ -41,6 +47,10 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
       eventError: undefined,
       pendingRequests: [],
       capabilities: null,
+      turnStartedAt: null,
+      thinkingStartedAt: null,
+      thinkingDuration: null,
+      lastChunkAt: null,
     }));
   }
 
@@ -57,7 +67,18 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
   }
 
   set status(status: ChatStatus) {
-    this.store.setState({ status });
+    const prev = this.store.getState().status;
+    if ((status === "submitted" || status === "streaming") && prev === "ready") {
+      this.store.setState({
+        status,
+        turnStartedAt: Date.now(),
+        thinkingStartedAt: null,
+        thinkingDuration: null,
+        lastChunkAt: Date.now(),
+      });
+    } else {
+      this.store.setState({ status });
+    }
   }
 
   get error() {
@@ -69,7 +90,21 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
   }
 
   pushMessage = (message: ClaudeCodeUIMessage) => {
-    this.store.setState((state) => ({ messages: state.messages.concat(this.snapshot(message)) }));
+    const now = Date.now();
+    const state = this.store.getState();
+    const timingUpdate: Partial<ClaudeCodeChatStoreState> = { lastChunkAt: now };
+
+    // If thinking was active when a new message starts, accumulate duration
+    if (state.thinkingStartedAt) {
+      timingUpdate.thinkingDuration =
+        (state.thinkingDuration ?? 0) + (now - state.thinkingStartedAt);
+      timingUpdate.thinkingStartedAt = null;
+    }
+
+    this.store.setState((s) => ({
+      ...timingUpdate,
+      messages: s.messages.concat(this.snapshot(message)),
+    }));
   };
 
   popMessage = () => {
@@ -77,11 +112,31 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
   };
 
   replaceMessage = (index: number, message: ClaudeCodeUIMessage) => {
-    this.store.setState((state) => ({
+    const now = Date.now();
+    const state = this.store.getState();
+    const lastPart = message.parts[message.parts.length - 1];
+    const isReasoning = lastPart?.type === "reasoning";
+
+    const timingUpdate: Partial<ClaudeCodeChatStoreState> = {};
+
+    if (isReasoning && !state.thinkingStartedAt) {
+      timingUpdate.thinkingStartedAt = now;
+    } else if (!isReasoning && state.thinkingStartedAt) {
+      timingUpdate.thinkingDuration =
+        (state.thinkingDuration ?? 0) + (now - state.thinkingStartedAt);
+      timingUpdate.thinkingStartedAt = null;
+    }
+
+    if (!isReasoning) {
+      timingUpdate.lastChunkAt = now;
+    }
+
+    this.store.setState((s) => ({
+      ...timingUpdate,
       messages: [
-        ...state.messages.slice(0, index),
+        ...s.messages.slice(0, index),
         this.snapshot(message),
-        ...state.messages.slice(index + 1),
+        ...s.messages.slice(index + 1),
       ],
     }));
   };
