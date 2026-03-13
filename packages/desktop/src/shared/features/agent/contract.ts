@@ -10,7 +10,7 @@ import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../claude-code/types";
-import type { ActiveSessionInfo, ModelScope, SessionInfo } from "./types";
+import type { ActiveSessionInfo, ModelScope, RewindFilesResult, SessionInfo } from "./types";
 
 export const agentContract = {
   activeSessions: oc.input(z.object({})).output(type<ActiveSessionInfo[]>()),
@@ -76,6 +76,14 @@ export const agentContract = {
       }),
     )
     .output(type<{ path: string }>()),
+
+  rewindFilesDryRun: oc
+    .input(z.object({ sessionId: z.string(), messageId: z.string() }))
+    .output(type<RewindFilesResult>()),
+
+  rewindFiles: oc
+    .input(z.object({ sessionId: z.string(), messageId: z.string() }))
+    .output(type<RewindFilesResult>()),
 
   setModelSetting: oc
     .input(

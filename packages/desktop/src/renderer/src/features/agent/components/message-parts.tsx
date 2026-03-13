@@ -8,9 +8,18 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "../../../components/ai-elements/reasoning";
+import { MessageRewindButton } from "./message-rewind-button";
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 
-export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
+export function MessageParts({
+  message,
+  sessionId,
+  streaming,
+}: {
+  message: ClaudeCodeUIMessage;
+  sessionId?: string;
+  streaming?: boolean;
+}) {
   return (
     <>
       {message.parts.map((part, index) => {
@@ -40,6 +49,15 @@ export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
                     <p>{part.text}</p>
                   )}
                 </MessageContent>
+                {message.role === "user" && sessionId && (
+                  <div className="mt-1 flex justify-end">
+                    <MessageRewindButton
+                      sessionId={sessionId}
+                      messageId={message.id}
+                      disabled={streaming}
+                    />
+                  </div>
+                )}
               </Message>
             );
           case "reasoning":

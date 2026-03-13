@@ -69,11 +69,17 @@ export type ChatSession = {
 
 export type TurnResult = "success" | "error";
 
+export type RewindUndoBuffer = {
+  sessionId: string;
+  messages: ChatMessage[];
+};
+
 type AgentState = {
   sessions: Map<string, ChatSession>;
   activeSessionId: string | null;
   agentSessions: SessionInfo[];
   unseenTurnResults: Map<string, TurnResult>;
+  rewindUndoBuffer: RewindUndoBuffer | null;
   _nextMessageId: number;
 
   setActiveSession: (sessionId: string | null) => void;
@@ -90,6 +96,9 @@ type AgentState = {
   ) => void;
   removeSession: (sessionId: string) => void;
   addUserMessage: (sessionId: string, content: string) => void;
+  rewindToMessage: (sessionId: string, messageId: string) => string | undefined;
+  undoRewind: () => void;
+  clearRewindBuffer: () => void;
   setAvailableCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
   setAvailableModels: (sessionId: string, models: ModelInfo[]) => void;
   setCurrentModel: (sessionId: string, model: string) => void;
@@ -105,6 +114,7 @@ export const useAgentStore = create<AgentState>()(
     activeSessionId: null,
     agentSessions: [],
     unseenTurnResults: new Map(),
+    rewindUndoBuffer: null,
     _nextMessageId: 0,
 
     setActiveSession: (sessionId) => {
@@ -112,6 +122,7 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         state.activeSessionId = sessionId;
         if (sessionId) state.unseenTurnResults.delete(sessionId);
+        state.rewindUndoBuffer = null;
       });
     },
 
@@ -210,6 +221,46 @@ export const useAgentStore = create<AgentState>()(
           session.messages.length,
           state._nextMessageId,
         );
+      });
+    },
+
+    rewindToMessage: (sessionId, messageId) => {
+      storeLog("rewindToMessage: sid=%s msgId=%s", sessionId, messageId);
+      let rewoundContent: string | undefined;
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) return;
+        const index = session.messages.findIndex((m) => m.id === messageId);
+        if (index === -1) return;
+        const removed = session.messages.slice(index);
+        rewoundContent = removed[0]?.content;
+        state.rewindUndoBuffer = { sessionId, messages: removed as ChatMessage[] };
+        session.messages = session.messages.slice(0, index);
+        storeLog(
+          "rewindToMessage: removed=%d remaining=%d",
+          removed.length,
+          session.messages.length,
+        );
+      });
+      return rewoundContent;
+    },
+
+    undoRewind: () => {
+      storeLog("undoRewind");
+      set((state) => {
+        const buf = state.rewindUndoBuffer;
+        if (!buf) return;
+        const session = state.sessions.get(buf.sessionId);
+        if (!session) return;
+        session.messages.push(...buf.messages);
+        state.rewindUndoBuffer = null;
+        storeLog("undoRewind: restored=%d total=%d", buf.messages.length, session.messages.length);
+      });
+    },
+
+    clearRewindBuffer: () => {
+      set((state) => {
+        state.rewindUndoBuffer = null;
       });
     },
 

@@ -534,6 +534,34 @@ export class SessionManager {
     }
   }
 
+  /** Dry-run rewind: preview file changes for a given user message. */
+  async rewindFilesDryRun(sessionId: string, messageId: string): Promise<RewindFilesResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    try {
+      return await session.query.rewindFiles(messageId, { dryRun: true });
+    } catch (error) {
+      return {
+        canRewind: false,
+        error: error instanceof Error ? error.message : "Failed to preview rewind",
+      };
+    }
+  }
+
+  /** Rewind files to the state before a given user message. */
+  async rewindFiles(sessionId: string, messageId: string): Promise<RewindFilesResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    try {
+      return await session.query.rewindFiles(messageId, { dryRun: false });
+    } catch (error) {
+      return {
+        canRewind: false,
+        error: error instanceof Error ? error.message : "Failed to rewind files",
+      };
+    }
+  }
+
   /** Get the diff for a single file changed in the last agent turn. */
   async lastTurnDiff(
     sessionId: string,

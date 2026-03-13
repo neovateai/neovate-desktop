@@ -97,6 +97,16 @@ export const agentRouter = os.agent.router({
     return { path: filePath };
   }),
 
+  rewindFilesDryRun: os.agent.rewindFilesDryRun.handler(async ({ input, context }) => {
+    agentLog("rewindFilesDryRun: sessionId=%s messageId=%s", input.sessionId, input.messageId);
+    return context.sessionManager.rewindFilesDryRun(input.sessionId, input.messageId);
+  }),
+
+  rewindFiles: os.agent.rewindFiles.handler(async ({ input, context }) => {
+    agentLog("rewindFiles: sessionId=%s messageId=%s", input.sessionId, input.messageId);
+    return context.sessionManager.rewindFiles(input.sessionId, input.messageId);
+  }),
+
   setModelSetting: os.agent.setModelSetting.handler(({ input, context }) => {
     const { sessionId, model, scope } = input;
     const cwd = context.sessionManager.getSessionCwd(sessionId);

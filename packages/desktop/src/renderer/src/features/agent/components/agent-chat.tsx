@@ -181,6 +181,7 @@ function AgentChatSession({
       text.length,
       attachments?.length ?? 0,
     );
+    useAgentStore.getState().clearRewindBuffer();
     const files = attachmentsToFileParts(attachments);
     sendMessage({
       text,
@@ -199,7 +200,12 @@ function AgentChatSession({
       <Conversation>
         <ConversationContent>
           {messages.map((message) => (
-            <MessageParts key={message.id} message={message} />
+            <MessageParts
+              key={message.id}
+              message={message}
+              sessionId={sessionId}
+              streaming={status === "streaming"}
+            />
           ))}
         </ConversationContent>
         <ConversationScrollButton />
