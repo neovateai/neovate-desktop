@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 
 import type {
   ConfigPermissionMode,
-  NotificationSound,
   AgentLanguage,
   SendMessageWith,
 } from "../../../../../../shared/features/config/types";
@@ -31,15 +30,6 @@ const permissionModeKeys = {
   acceptEdits: "settings.chat.permissionMode.acceptEdits",
   bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
 } as const satisfies Record<ConfigPermissionMode, string>;
-
-const notificationSoundKeys = {
-  off: "settings.chat.notification.off",
-  default: "settings.chat.notification.default",
-  Glass: "settings.chat.notification.glass",
-  Ping: "settings.chat.notification.ping",
-  Pop: "settings.chat.notification.pop",
-  Funk: "settings.chat.notification.funk",
-} as const satisfies Record<NotificationSound, string>;
 
 export const ChatPanel = () => {
   const { t } = useTranslation();
@@ -69,19 +59,6 @@ export const ChatPanel = () => {
         <SettingsRow
           title={t("settings.chat.model")}
           description={t("settings.chat.model.description")}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{t("settings.chat.comingSoon")}</span>
-            <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-              {t("settings.chat.requiresBackend")}
-            </span>
-          </div>
-        </SettingsRow>
-
-        {/* Small Model - Coming Soon */}
-        <SettingsRow
-          title={t("settings.chat.smallModel")}
-          description={t("settings.chat.smallModel.description")}
         >
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">{t("settings.chat.comingSoon")}</span>
@@ -132,29 +109,6 @@ export const ChatPanel = () => {
               <SelectItem value="bypassPermissions">
                 {t("settings.chat.permissionMode.bypassPermissions")}
               </SelectItem>
-            </SelectPopup>
-          </Select>
-        </SettingsRow>
-
-        {/* Notification */}
-        <SettingsRow
-          title={t("settings.chat.notification")}
-          description={t("settings.chat.notification.description")}
-        >
-          <Select
-            value={config.notificationSound}
-            onValueChange={(val) => setConfig("notificationSound", val as NotificationSound)}
-          >
-            <SelectTrigger size="sm" className="w-36">
-              <SelectValue>{t(notificationSoundKeys[config.notificationSound])}</SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              <SelectItem value="off">{t("settings.chat.notification.off")}</SelectItem>
-              <SelectItem value="default">{t("settings.chat.notification.default")}</SelectItem>
-              <SelectItem value="Glass">{t("settings.chat.notification.glass")}</SelectItem>
-              <SelectItem value="Ping">{t("settings.chat.notification.ping")}</SelectItem>
-              <SelectItem value="Pop">{t("settings.chat.notification.pop")}</SelectItem>
-              <SelectItem value="Funk">{t("settings.chat.notification.funk")}</SelectItem>
             </SelectPopup>
           </Select>
         </SettingsRow>

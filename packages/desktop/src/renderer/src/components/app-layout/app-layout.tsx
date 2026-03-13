@@ -3,12 +3,14 @@ import {
   FolderIcon,
   PanelLeftIcon,
   PanelRightIcon,
-  Settings01Icon,
+  Settings03Icon,
   ViewSidebarLeftIcon,
   ViewSidebarRightIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Plus } from "lucide-react";
 import { motion } from "motion/react";
+import { useTheme } from "next-themes";
 import { type ReactNode, Suspense, lazy, useRef } from "react";
 
 import type { TitlebarItem } from "../../core/plugin/contributions";
@@ -16,6 +18,7 @@ import type { SeparatorId } from "./types";
 
 import { useRendererApp } from "../../core/app";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
+import { useNewSession } from "../../features/agent/hooks/use-new-session";
 import { useConfigStore } from "../../features/config/store";
 import { OpenAppButton } from "../../features/open-in";
 import { ProjectSelector } from "../../features/project/components/project-selector";
@@ -48,7 +51,7 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
     <div
       data-slot="app-layout-root"
       data-testid="app-root"
-      className="relative grid h-screen w-screen overflow-hidden pb-2"
+      className="relative grid h-screen w-screen overflow-hidden pb-2 bg-background"
       style={APP_LAYOUT_GRID}
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
@@ -74,11 +77,18 @@ export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
+  const { resolvedTheme } = useTheme();
   return (
     <div
       data-slot="chat-panel"
-      className="min-w-0 overflow-hidden rounded-lg bg-card pb-2"
-      style={{ gridArea: APP_LAYOUT_GRID_AREA.chatPanel }}
+      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-[var(--background-secondary)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
+      style={{
+        gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
+        backgroundImage: `url("/src/assets/images/chat-panel-bg-${resolvedTheme === "dark" ? "dark" : "light"}.png")`,
+        backgroundSize: "cover",
+        backgroundPosition: "0 0",
+        backgroundRepeat: "no-repeat",
+      }}
     >
       {children}
     </div>
@@ -88,6 +98,8 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
 export function AppLayoutTrafficLights() {
   const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const { createNewSession } = useNewSession();
   const isOpen = !collapsed;
   const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
 
@@ -121,6 +133,23 @@ export function AppLayoutTrafficLights() {
           <HugeiconsIcon icon={PanelLeftIcon} size={18} strokeWidth={1.5} />
         </motion.span>
       </Button>
+      <motion.div
+        initial={false}
+        animate={{ opacity: collapsed ? 1 : 0, width: collapsed ? "auto" : 0 }}
+        transition={springTransition}
+        className="overflow-hidden"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="!size-6"
+          onClick={() => activeProject && createNewSession(activeProject.path)}
+          disabled={!activeProject}
+          title="New chat"
+        >
+          <Plus size={16} strokeWidth={1.5} />
+        </Button>
+      </motion.div>
     </div>
   );
 }
@@ -196,7 +225,7 @@ export function AppLayoutSecondaryTitleBar() {
           title="Settings"
           onClick={() => setShowSettings(true)}
         >
-          <HugeiconsIcon icon={Settings01Icon} size={16} strokeWidth={1.5} />
+          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.5} />
         </Button>
         <Button
           variant="ghost"

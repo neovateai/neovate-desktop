@@ -16,6 +16,17 @@ export type Provider = {
   models: Record<string, ProviderModelEntry>;
   modelMap: ProviderModelMap;
   envOverrides: Record<string, string>;
+  builtInId?: string;
+};
+
+export type BenchmarkResult = {
+  ttftMs: number;
+  tpot: number;
+  tps: number;
+  totalTimeMs: number;
+  tokensGenerated: number;
+  success: boolean;
+  error?: string;
 };
 
 export type ProjectProviderConfig = {

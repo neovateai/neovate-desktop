@@ -1,4 +1,6 @@
-import { Menu, BrowserWindow, MenuItemConstructorOptions } from "electron";
+import { Menu, BrowserWindow, MenuItemConstructorOptions, app } from "electron";
+
+const isDev = !app.isPackaged;
 
 export function setupApplicationMenu(mainWindow: BrowserWindow | null): void {
   const isMac = process.platform === "darwin";
@@ -53,9 +55,13 @@ export function setupApplicationMenu(mainWindow: BrowserWindow | null): void {
     {
       label: "View",
       submenu: [
-        { role: "reload" },
-        { role: "forceReload" },
-        { type: "separator" },
+        ...(isDev
+          ? [
+              { role: "reload" as const },
+              { role: "forceReload" as const },
+              { type: "separator" as const },
+            ]
+          : []),
         { role: "resetZoom" },
         { role: "zoomIn" },
         { role: "zoomOut" },

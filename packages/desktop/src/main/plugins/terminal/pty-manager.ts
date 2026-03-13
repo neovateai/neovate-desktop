@@ -3,6 +3,8 @@ import type { IPty } from "node-pty";
 import { EventPublisher } from "@orpc/server";
 import * as pty from "node-pty";
 
+import { ShellEnvService } from "./shell-env-service";
+
 export interface PtySession {
   pty: IPty;
   publisher: EventPublisher<{ data: string }>;
@@ -12,12 +14,20 @@ export interface PtySession {
 
 export class PtyManager {
   readonly #sessions = new Map<string, PtySession>();
+  readonly #shellEnvService: ShellEnvService;
+
+  constructor(shellEnvService: ShellEnvService) {
+    this.#shellEnvService = shellEnvService;
+  }
 
   spawn(opts: { cwd?: string; cols: number; rows: number }): string {
     const cols = Math.max(1, opts.cols);
     const rows = Math.max(1, opts.rows);
-    const shell =
-      process.platform === "win32" ? "powershell.exe" : (process.env.SHELL ?? "/bin/sh");
+    const shell = this.#shellEnvService.getShell();
+
+    // Get cached shell environment, fallback to process.env if not yet cached
+    const shellEnv =
+      this.#shellEnvService.getEnvironmentSync() ?? (process.env as Record<string, string>);
 
     const publisher = new EventPublisher<{ data: string }>();
     const exitController = new AbortController();
@@ -27,7 +37,7 @@ export class PtyManager {
       cols,
       rows,
       cwd: opts.cwd ?? process.env.HOME,
-      env: process.env as Record<string, string>,
+      env: shellEnv,
     });
 
     term.onData((chunk) => publisher.publish("data", chunk));

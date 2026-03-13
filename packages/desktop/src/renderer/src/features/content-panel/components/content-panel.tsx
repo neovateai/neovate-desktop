@@ -61,9 +61,26 @@ function TabViewWithActivity({
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({
+  message,
+  imgSrc = "/src/assets/images/empty1.png",
+  imgWidth = 67,
+}: {
+  message: string;
+  imgSrc?: string;
+  imgWidth?: number;
+}) {
   return (
-    <div className="flex h-full items-center justify-center">
+    <div className="flex h-full flex-col items-center justify-center gap-2">
+      {imgSrc && (
+        <img
+          src={imgSrc}
+          alt="Empty"
+          className="shrink-0"
+          style={{ width: imgWidth + "px" }}
+          aria-hidden
+        />
+      )}
       <p className="text-xs text-muted-foreground">{message}</p>
     </div>
   );
@@ -97,7 +114,7 @@ export function ContentPanelRenderer() {
   const { tabs, activeTabId } = projectState;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col px-1.5">
       <TabBar
         tabs={tabs}
         activeTabId={activeTabId}
@@ -133,7 +150,9 @@ export function ContentPanelRenderer() {
             );
           })}
 
-        {tabs.length === 0 && <EmptyState message="No tabs open" />}
+        {tabs.length === 0 && (
+          <EmptyState message="No tabs open" imgSrc="/src/assets/images/empty1.png" />
+        )}
       </div>
     </div>
   );
