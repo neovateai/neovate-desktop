@@ -7,6 +7,8 @@ import {
   computeMaxAvailableWidth,
   shrinkPanelsToFit,
   computeMinWindowWidth,
+  computeTotalWidth,
+  setPanelWidth,
   applyDelta,
   isSeparatorVisible,
 } from "../layout-coordinator";
@@ -249,5 +251,24 @@ describe("computeMinWindowWidth with non-adjacent panels", () => {
     // fixed(48) + primary(250) + chat(320) + secondary(240) + 2 handles(10) = 868
     const minWidth = computeMinWindowWidth(panels);
     expect(minWidth).toBe(868);
+  });
+});
+
+describe("maximize convergence", () => {
+  it("converges when contentPanel is proposed at extreme width", () => {
+    const panels = makePanels({
+      contentPanel: { width: 300, collapsed: false },
+      secondarySidebar: { width: 240, collapsed: false },
+    });
+
+    const proposed = setPanelWidth(panels, "contentPanel", Number.MAX_SAFE_INTEGER);
+    const resolved = shrinkPanelsToFit(proposed, 1200);
+
+    expect(Number.isFinite(resolved.contentPanel.width)).toBe(true);
+    expect(computeTotalWidth(resolved)).toBeLessThanOrEqual(1200);
+    expect(resolved.primarySidebar.width).toBeGreaterThanOrEqual(250);
+    expect(resolved.chatPanel.width).toBeGreaterThanOrEqual(320);
+    expect(resolved.contentPanel.width).toBeGreaterThanOrEqual(300);
+    expect(resolved.secondarySidebar.width).toBeGreaterThanOrEqual(240);
   });
 });

@@ -11,7 +11,10 @@ function createMockApp(): IRendererApp {
     subscriptions: { push: vi.fn() },
     i18nManager: {} as IRendererApp["i18nManager"],
     settings: {} as IRendererApp["settings"],
-    workbench: { layout: { expandPart: vi.fn(), togglePart: vi.fn() }, contentPanel: {} as any },
+    workbench: {
+      layout: { expandPart: vi.fn(), togglePart: vi.fn(), maximizePart: vi.fn() },
+      contentPanel: {} as any,
+    },
     project: {} as any,
   };
 }

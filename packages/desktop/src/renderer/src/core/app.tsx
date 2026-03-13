@@ -7,6 +7,7 @@ import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
 import { layoutStore } from "../components/app-layout/store";
 import { ToastProvider } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
@@ -178,6 +179,17 @@ export class RendererApp implements IRendererApp {
     const layout = new WorkbenchLayoutService({
       isExpanded: (part) => !layoutStore.getState().panels[part].collapsed,
       togglePart: (part) => layoutStore.getState().togglePanel(part),
+      maximizeContentPanel: () => {
+        const { panels } = layoutStore.getState();
+        if (panels.contentPanel.collapsed) return;
+
+        // TODO: This produces a feasible fitted layout, but not the true maximize width.
+        // Replace it with target-aware maximize math before plugin consumers depend on it.
+        const proposed = setPanelWidth(panels, "contentPanel", window.innerWidth);
+        const resolved = shrinkPanelsToFit(proposed, window.innerWidth);
+
+        layoutStore.setState({ panels: resolved });
+      },
     });
     this.workbench = {
       layout,

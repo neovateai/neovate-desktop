@@ -1,8 +1,13 @@
-import type { CollapsibleWorkbenchPartId, IWorkbenchLayoutService } from "./types";
+import type {
+  CollapsibleWorkbenchPartId,
+  IWorkbenchLayoutService,
+  MaximizableWorkbenchPartId,
+} from "./types";
 
 interface LayoutAdapter {
   isExpanded(part: CollapsibleWorkbenchPartId): boolean;
   togglePart(part: CollapsibleWorkbenchPartId): void | Promise<void>;
+  maximizeContentPanel(): void | Promise<void>;
 }
 
 export class WorkbenchLayoutService implements IWorkbenchLayoutService {
@@ -18,5 +23,11 @@ export class WorkbenchLayoutService implements IWorkbenchLayoutService {
 
   togglePart(part: CollapsibleWorkbenchPartId): void | Promise<void> {
     return this.adapter.togglePart(part);
+  }
+
+  maximizePart(part: MaximizableWorkbenchPartId): void | Promise<void> {
+    if (part !== "contentPanel") return;
+    if (!this.adapter.isExpanded("contentPanel")) return;
+    return this.adapter.maximizeContentPanel();
   }
 }
