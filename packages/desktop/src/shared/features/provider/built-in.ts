@@ -13,6 +13,7 @@ export type BuiltInProvider = {
   models: Record<string, { displayName?: string }>;
   modelMap: ProviderModelMap;
   envOverrides: Record<string, string>;
+  apiFormat?: "anthropic";
 };
 
 export function resolveL10n(value: string | L10nText, lang: string, localized?: L10nText): string {

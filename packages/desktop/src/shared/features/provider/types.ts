@@ -19,6 +19,16 @@ export type Provider = {
   builtInId?: string;
 };
 
+export type BenchmarkResult = {
+  ttftMs: number;
+  tpot: number;
+  tps: number;
+  totalTimeMs: number;
+  tokensGenerated: number;
+  success: boolean;
+  error?: string;
+};
+
 export type ProjectProviderConfig = {
   provider?: string;
   model?: string;

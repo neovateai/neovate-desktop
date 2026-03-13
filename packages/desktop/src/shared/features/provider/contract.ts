@@ -54,6 +54,25 @@ export const providerContract = {
 
   remove: oc.input(z.object({ id: z.string() })).output(type<void>()),
 
+  benchmarkModel: oc
+    .input(
+      z.object({
+        providerId: z.string(),
+        modelId: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        ttftMs: z.number(),
+        tpot: z.number(),
+        tps: z.number(),
+        totalTimeMs: z.number(),
+        tokensGenerated: z.number(),
+        success: z.boolean(),
+        error: z.string().optional(),
+      }),
+    ),
+
   setSelection: oc
     .input(
       z.object({

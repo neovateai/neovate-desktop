@@ -1,10 +1,12 @@
 import {
+  AlertCircle,
   Check,
   Copy,
   Edit2,
   ExternalLink,
   Eye,
   EyeOff,
+  Loader2,
   Plus,
   RotateCcw,
   Server,
@@ -22,9 +24,23 @@ import {
   resolveL10n,
   type BuiltInProvider,
 } from "../../../../../../shared/features/provider/built-in";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "../../../../components/ui/alert-dialog";
+import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Switch } from "../../../../components/ui/switch";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../../../../components/ui/tooltip";
+import { BenchmarkButton } from "../../../provider/benchmark-button";
+import { BenchmarkMetrics } from "../../../provider/benchmark-metrics";
+import { BenchmarkTooltipContent } from "../../../provider/benchmark-tooltip";
 import { useProviderStore } from "../../../provider/store";
 import { SettingsRow } from "../settings-row";
 
@@ -83,6 +99,10 @@ export const ProvidersPanel = () => {
   const addProvider = useProviderStore((s) => s.addProvider);
   const updateProvider = useProviderStore((s) => s.updateProvider);
   const removeProvider = useProviderStore((s) => s.removeProvider);
+  const benchmarkResults = useProviderStore((s) => s.benchmarkResults);
+  const benchmarkingModels = useProviderStore((s) => s.benchmarkingModels);
+  const cancelBenchmarks = useProviderStore((s) => s.cancelBenchmarks);
+  const clearProviderBenchmarkResults = useProviderStore((s) => s.clearProviderBenchmarkResults);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -102,14 +122,27 @@ export const ProvidersPanel = () => {
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
 
+  // Delete confirmation state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     if (!loaded) load();
   }, [loaded, load]);
+
+  // Cancel in-flight benchmarks when leaving the providers panel
+  useEffect(() => {
+    return () => cancelBenchmarks();
+  }, [cancelBenchmarks]);
 
   const usedBuiltInIds = useMemo(
     () => new Set(providers.map((p) => p.builtInId).filter(Boolean)),
     [providers],
   );
+
+  const testableModelIds = useMemo(() => {
+    return editingId ? Object.keys(form.models) : [];
+  }, [editingId, form.models]);
 
   const startCreate = useCallback(() => {
     setEditingId(null);
@@ -117,6 +150,9 @@ export const ProvidersPanel = () => {
     setShowApiKey(false);
     setShowTemplatePicker(true);
     setIsCreating(false);
+    useProviderStore.setState((state) => {
+      state.benchmarkResults = {};
+    });
   }, []);
 
   const selectTemplate = useCallback((template: BuiltInProvider) => {
@@ -133,13 +169,17 @@ export const ProvidersPanel = () => {
     setForm(emptyForm);
   }, []);
 
-  const startEdit = useCallback((p: Provider) => {
-    setEditingId(p.id);
-    setIsCreating(false);
-    setShowApiKey(false);
-    setForm(providerToForm(p));
-    setError(null);
-  }, []);
+  const startEdit = useCallback(
+    (p: Provider) => {
+      clearProviderBenchmarkResults(p.id);
+      setEditingId(p.id);
+      setIsCreating(false);
+      setShowApiKey(false);
+      setForm(providerToForm(p));
+      setError(null);
+    },
+    [clearProviderBenchmarkResults],
+  );
 
   const cancel = useCallback(() => {
     setEditingId(null);
@@ -212,17 +252,22 @@ export const ProvidersPanel = () => {
     }
   }, [form, isCreating, editingId, addProvider, updateProvider, cancel]);
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      try {
-        await removeProvider(id);
-        if (editingId === id) cancel();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to delete");
-      }
-    },
-    [editingId, removeProvider, cancel],
-  );
+  const handleDeleteClick = useCallback((id: string) => {
+    setProviderToDelete(id);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!providerToDelete) return;
+    try {
+      await removeProvider(providerToDelete);
+      if (editingId === providerToDelete) cancel();
+      setDeleteConfirmOpen(false);
+      setProviderToDelete(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete");
+    }
+  }, [editingId, providerToDelete, removeProvider, cancel]);
 
   const handleToggle = useCallback(
     async (p: Provider) => {
@@ -369,7 +414,7 @@ export const ProvidersPanel = () => {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-destructive"
-                  onClick={() => handleDelete(p.id)}
+                  onClick={() => handleDeleteClick(p.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -387,6 +432,25 @@ export const ProvidersPanel = () => {
           </div>
         </div>
       )}
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("settings.providers.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("settings.providers.deleteDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              {t("settings.providers.cancel")}
+            </AlertDialogClose>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              {t("common.delete")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
 
       {isEditing && (
         <div className="space-y-4">
@@ -510,22 +574,78 @@ export const ProvidersPanel = () => {
 
           {/* Models */}
           <div>
-            <label className="text-sm font-medium">{t("settings.providers.models")}</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">{t("settings.providers.models")}</label>
+              {editingId && form.enabled && (
+                <BenchmarkButton
+                  providerId={editingId}
+                  modelIds={testableModelIds}
+                  size="xs"
+                  variant="outline"
+                  onBeforeBenchmark={async () => {
+                    if (editingId) {
+                      await updateProvider(editingId, {
+                        models: form.models,
+                        modelMap: form.modelMap,
+                      });
+                    }
+                  }}
+                />
+              )}
+            </div>
             <div className="mt-1 space-y-1">
-              {Object.entries(form.models).map(([key, entry]) => (
-                <div key={key} className="flex items-center gap-2 text-sm">
-                  <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{key}</code>
-                  {entry.displayName && (
-                    <span className="text-muted-foreground">{entry.displayName}</span>
-                  )}
-                  <button
-                    className="ml-auto text-muted-foreground hover:text-destructive"
-                    onClick={() => removeModel(key)}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+              {Object.entries(form.models).map(([key, entry]) => {
+                const benchKey = editingId ? `${editingId}:${key}` : "";
+                const result = benchKey ? benchmarkResults[benchKey] : undefined;
+                const isRunning = benchKey ? benchmarkingModels[benchKey] : false;
+
+                return (
+                  <div key={key} className="flex items-center gap-2 text-sm">
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{key}</code>
+                    {entry.displayName && (
+                      <span className="text-muted-foreground">{entry.displayName}</span>
+                    )}
+                    <div className="ml-auto flex items-center gap-1.5">
+                      {isRunning && (
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      )}
+                      {result && !isRunning && result.success && (
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-default">
+                            <BenchmarkMetrics
+                              ttftMs={result.ttftMs}
+                              tpot={result.tpot}
+                              tps={result.tps}
+                            />
+                          </TooltipTrigger>
+                          <TooltipPopup>
+                            <BenchmarkTooltipContent result={result} />
+                          </TooltipPopup>
+                        </Tooltip>
+                      )}
+                      {result && !isRunning && !result.success && (
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-default">
+                            <Badge variant="error" size="sm">
+                              <AlertCircle className="h-3 w-3" />
+                              {t("settings.providers.benchmark.failed")}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipPopup>
+                            <BenchmarkTooltipContent result={result} />
+                          </TooltipPopup>
+                        </Tooltip>
+                      )}
+                      <button
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => removeModel(key)}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
               <div className="flex items-center gap-2 pt-1">
                 <Input
                   value={newModelKey}
