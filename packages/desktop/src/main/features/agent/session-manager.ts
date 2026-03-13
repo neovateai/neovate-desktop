@@ -671,7 +671,7 @@ export class SessionManager {
       }
 
       // Route to message stream (result → finish-step + finish, error → error chunk)
-      for (const chunk of transformer.transform(value)) {
+      for await (const chunk of transformer.transformWithAggregation(value)) {
         yield chunk;
       }
 

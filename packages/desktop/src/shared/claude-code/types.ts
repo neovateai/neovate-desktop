@@ -43,6 +43,17 @@ export type ClaudeCodeUIMessagePart = ClaudeCodeUIMessage["parts"][number];
 
 export type ClaudeCodeUIMessageChunk = InferUIMessageChunk<ClaudeCodeUIMessage>;
 
+export function isClaudeCodeUIMessage(value: unknown): value is ClaudeCodeUIMessage {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    "id" in value &&
+    "role" in value &&
+    "parts" in value &&
+    Array.isArray(value.parts)
+  );
+}
+
 // ─── Subscribe (event) ───────────────────────────────────────────────────────
 
 export type ClaudeCodeUIEventPart =

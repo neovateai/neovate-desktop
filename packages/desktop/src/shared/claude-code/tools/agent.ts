@@ -1,5 +1,15 @@
-import { tool, type UIToolInvocation } from "ai";
+import { tool, type UIMessage, type UIToolInvocation } from "ai";
 import { z } from "zod";
+
+const agentOutputSchema = z.custom<UIMessage>(
+  (value) =>
+    value != null &&
+    typeof value === "object" &&
+    "id" in value &&
+    "role" in value &&
+    "parts" in value,
+  "Expected a UIMessage-like object",
+);
 
 export const Agent = tool({
   inputSchema: z.object({
@@ -7,17 +17,7 @@ export const Agent = tool({
     description: z.string(),
     prompt: z.string(),
   }),
-  outputSchema: z.object({
-    result: z.string(),
-    agentId: z.string().optional(),
-    usage: z
-      .object({
-        total_tokens: z.number(),
-        tool_uses: z.number(),
-        duration_ms: z.number(),
-      })
-      .optional(),
-  }),
+  outputSchema: agentOutputSchema,
 });
 
 /** Fully typed tool invocation for the Agent tool. */
