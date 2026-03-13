@@ -94,6 +94,12 @@ function EditorViewCore(props: { cwd: string }) {
     try {
       console.log("[EditorPane] Starting code-server...");
       const { url } = await client.editor.start();
+      if (!url) {
+        throw new Error("Url is empty");
+      }
+      window.dispatchEvent(
+        new CustomEvent("neovate:log-event", { detail: { key: "EDITOR_STARTED" } }),
+      );
       // Construct URL with folder query param
       const editorUrl = `${url}/?folder=${encodeURIComponent(cwd)}`;
       console.log("[EditorPane] Server ready at:", editorUrl);

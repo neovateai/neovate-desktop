@@ -29,6 +29,10 @@ export default function App() {
   const developerMode = useConfigStore((s) => s.developerMode);
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("neovate:log-event", { detail: { key: "APP_READY" } }));
+  }, []);
+
+  useEffect(() => {
     if (import.meta.env.DEV && developerMode) {
       void import("react-grab");
     }
