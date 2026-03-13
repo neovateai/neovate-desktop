@@ -54,10 +54,11 @@ export const providerContract = {
 
   remove: oc.input(z.object({ id: z.string() })).output(type<void>()),
 
-  benchmarkModel: oc
+  checkModel: oc
     .input(
       z.object({
-        providerId: z.string(),
+        baseURL: z.string().url(),
+        apiKey: z.string().min(1),
         modelId: z.string(),
       }),
     )

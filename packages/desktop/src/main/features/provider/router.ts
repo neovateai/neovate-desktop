@@ -207,33 +207,10 @@ export const providerRouter = os.provider.router({
     log("remove: id=%s", input.id);
   }),
 
-  benchmarkModel: os.provider.benchmarkModel.handler(async ({ input, context, signal }) => {
-    const { providerId, modelId } = input;
-
-    const provider = context.configStore.getProvider(providerId);
-    if (!provider) {
-      throw new ORPCError("NOT_FOUND", {
-        defined: true,
-        message: `Provider not found: ${providerId}`,
-      });
-    }
-
-    if (!provider.enabled) {
-      throw new ORPCError("BAD_REQUEST", {
-        defined: true,
-        message: `Provider ${provider.name} is disabled`,
-      });
-    }
-
-    if (!provider.models[modelId]) {
-      throw new ORPCError("BAD_REQUEST", {
-        defined: true,
-        message: `Model ${modelId} not found in provider ${provider.name}`,
-      });
-    }
-
-    log("benchmarkModel: provider=%s model=%s", providerId, modelId);
-    return runBenchmark(provider, modelId, signal);
+  checkModel: os.provider.checkModel.handler(async ({ input, signal }) => {
+    const { baseURL, apiKey, modelId } = input;
+    log("checkModel: baseURL=%s model=%s", baseURL, modelId);
+    return runBenchmark({ id: "_check", baseURL, apiKey } as Provider, modelId, signal);
   }),
 
   setSelection: os.provider.setSelection.handler(({ input, context }) => {
