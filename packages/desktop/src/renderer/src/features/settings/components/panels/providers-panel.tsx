@@ -111,24 +111,13 @@ export const ProvidersPanel = () => {
     [providers],
   );
 
-  const availableTemplates = useMemo(
-    () => BUILT_IN_PROVIDERS.filter((t) => !usedBuiltInIds.has(t.id)),
-    [usedBuiltInIds],
-  );
-
   const startCreate = useCallback(() => {
     setEditingId(null);
     setError(null);
     setShowApiKey(false);
-    if (availableTemplates.length > 0) {
-      setShowTemplatePicker(true);
-      setIsCreating(false);
-    } else {
-      setShowTemplatePicker(false);
-      setIsCreating(true);
-      setForm(emptyForm);
-    }
-  }, [availableTemplates.length]);
+    setShowTemplatePicker(true);
+    setIsCreating(false);
+  }, []);
 
   const selectTemplate = useCallback((template: BuiltInProvider) => {
     setShowTemplatePicker(false);
@@ -326,13 +315,15 @@ export const ProvidersPanel = () => {
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("settings.providers.chooseTemplate")}</p>
           <div className="grid grid-cols-3 gap-3">
-            {availableTemplates.map((template) => {
+            {BUILT_IN_PROVIDERS.map((template) => {
               const hostname = new URL(template.baseURL).hostname;
+              const isUsed = usedBuiltInIds.has(template.id);
               return (
                 <button
                   key={template.id}
-                  className="flex flex-col items-start gap-1 rounded-lg border border-input p-3 text-left hover:border-primary hover:bg-accent transition-colors"
-                  onClick={() => selectTemplate(template)}
+                  disabled={isUsed}
+                  className={`flex flex-col items-start gap-1 rounded-lg border border-input p-3 text-left transition-colors ${isUsed ? "opacity-40 cursor-not-allowed" : "hover:border-primary hover:bg-accent"}`}
+                  onClick={() => !isUsed && selectTemplate(template)}
                 >
                   <span className="text-sm font-medium">
                     {resolveL10n(template.name, i18n.language, template.nameLocalized)}
