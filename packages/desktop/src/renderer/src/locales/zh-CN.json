@@ -101,7 +101,7 @@
   "settings.providers.getApiKey": "获取 API 密钥",
   "settings.providers.resetDefaults": "重置为默认",
   "settings.providers.resetConfirm": "将 API 地址、模型、模型映射和环境变量覆盖重置为模板默认值？您的 API 密钥和名称将保留。",
-  "providers.openrouter.name": "OpenRouter",
+  "settings.providers.viewDocs": "查看文档",
 
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",

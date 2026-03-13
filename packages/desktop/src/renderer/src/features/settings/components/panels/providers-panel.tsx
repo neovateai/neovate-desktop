@@ -7,6 +7,7 @@ import type { Provider, ProviderModelMap } from "../../../../../../shared/featur
 import {
   BUILT_IN_PROVIDERS,
   getBuiltInProvider,
+  resolveL10n,
   type BuiltInProvider,
 } from "../../../../../../shared/features/provider/built-in";
 import { Button } from "../../../../components/ui/button";
@@ -49,9 +50,9 @@ function providerToForm(p: Provider): ProviderFormData {
   };
 }
 
-function builtInToForm(t: BuiltInProvider): ProviderFormData {
+function builtInToForm(t: BuiltInProvider, lang: string): ProviderFormData {
   return {
-    name: t.name,
+    name: resolveL10n(t.name, lang, t.nameLocalized),
     baseURL: t.baseURL,
     apiKey: "",
     models: { ...t.models },
@@ -63,7 +64,7 @@ function builtInToForm(t: BuiltInProvider): ProviderFormData {
 }
 
 export const ProvidersPanel = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const providers = useProviderStore((s) => s.providers);
   const loaded = useProviderStore((s) => s.loaded);
   const load = useProviderStore((s) => s.load);
@@ -115,7 +116,7 @@ export const ProvidersPanel = () => {
   const selectTemplate = useCallback((template: BuiltInProvider) => {
     setShowTemplatePicker(false);
     setIsCreating(true);
-    setForm(builtInToForm(template));
+    setForm(builtInToForm(template, i18n.language));
   }, []);
 
   const selectCustom = useCallback(() => {
@@ -271,12 +272,13 @@ export const ProvidersPanel = () => {
     }));
   }, [form.builtInId, t]);
 
-  const activeApiKeyURL = useMemo(() => {
-    if (form.builtInId) {
-      return getBuiltInProvider(form.builtInId)?.apiKeyURL;
-    }
-    return undefined;
-  }, [form.builtInId]);
+  const activeBuiltIn = useMemo(
+    () => (form.builtInId ? getBuiltInProvider(form.builtInId) : undefined),
+    [form.builtInId],
+  );
+
+  const activeApiKeyURL = activeBuiltIn?.apiKeyURL;
+  const activeDocURL = activeBuiltIn?.docURL;
 
   const isEditing = isCreating || editingId !== null;
   const modelKeys = Object.keys(form.models);
@@ -291,21 +293,27 @@ export const ProvidersPanel = () => {
       {showTemplatePicker && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("settings.providers.chooseTemplate")}</p>
-          <div className="grid grid-cols-2 gap-3">
-            {availableTemplates.map((template) => (
-              <button
-                key={template.id}
-                className="flex flex-col items-start gap-1 rounded-lg border border-input p-4 text-left hover:border-primary hover:bg-accent transition-colors"
-                onClick={() => selectTemplate(template)}
-              >
-                <span className="text-sm font-medium">
-                  {t(template.nameKey, { defaultValue: template.name })}
-                </span>
-                <span className="text-xs text-muted-foreground">{template.baseURL}</span>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-3">
+            {availableTemplates.map((template) => {
+              const hostname = new URL(template.baseURL).hostname;
+              return (
+                <button
+                  key={template.id}
+                  className="flex flex-col items-start gap-1 rounded-lg border border-input p-3 text-left hover:border-primary hover:bg-accent transition-colors"
+                  onClick={() => selectTemplate(template)}
+                >
+                  <span className="text-sm font-medium">
+                    {resolveL10n(template.name, i18n.language, template.nameLocalized)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {resolveL10n(template.description, i18n.language)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/60">{hostname}</span>
+                </button>
+              );
+            })}
             <button
-              className="flex flex-col items-start gap-1 rounded-lg border border-dashed border-input p-4 text-left hover:border-primary hover:bg-accent transition-colors"
+              className="flex flex-col items-start gap-1 rounded-lg border border-dashed border-input p-3 text-left hover:border-primary hover:bg-accent transition-colors"
               onClick={selectCustom}
             >
               <span className="text-sm font-medium">{t("settings.providers.custom")}</span>
@@ -405,16 +413,31 @@ export const ProvidersPanel = () => {
               placeholder="sk-..."
               className="mt-1"
             />
-            {activeApiKeyURL && (
-              <a
-                href={activeApiKeyURL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("settings.providers.getApiKey")}
-                <ExternalLink className="h-3 w-3" />
-              </a>
+            {(activeApiKeyURL || activeDocURL) && (
+              <div className="flex items-center gap-3 mt-1.5">
+                {activeApiKeyURL && (
+                  <a
+                    href={activeApiKeyURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t("settings.providers.getApiKey")}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {activeDocURL && (
+                  <a
+                    href={activeDocURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t("settings.providers.viewDocs")}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
             )}
           </div>
 
