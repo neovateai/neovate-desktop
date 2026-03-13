@@ -12,6 +12,7 @@ import {
   Square,
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import type { ModelScope, PermissionMode } from "../../../../../shared/features/agent/types";
@@ -102,13 +103,13 @@ export function InputToolbar({
   );
 }
 
-const PERMISSION_MODE_LABELS: Record<PermissionMode, string> = {
-  default: "Default",
-  acceptEdits: "Auto Edit",
-  plan: "Plan",
-  bypassPermissions: "YOLO",
-  dontAsk: "Don't Ask",
-};
+const PERMISSION_MODE_I18N_KEYS = {
+  default: "settings.chat.permissionMode.default",
+  acceptEdits: "settings.chat.permissionMode.acceptEdits",
+  plan: "settings.chat.permissionMode.plan",
+  bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
+  dontAsk: "settings.chat.permissionMode.dontAsk",
+} as const satisfies Record<PermissionMode, string>;
 
 function PermissionModeSelect({
   activeSessionId,
@@ -129,6 +130,7 @@ function ConnectedPermissionModeSelect({
   activeSessionId: string;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   const permissionMode = useAgentStore(
     (s) => s.sessions.get(activeSessionId)?.permissionMode ?? "default",
   );
@@ -154,15 +156,19 @@ function ConnectedPermissionModeSelect({
         className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50"
       >
         <Shield className="h-3 w-3" />
-        <span>{PERMISSION_MODE_LABELS[permissionMode]}</span>
+        <span>{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
       </MenuTrigger>
       <MenuPopup side="top" align="start">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
-          <MenuRadioItem value="default">Default</MenuRadioItem>
-          <MenuRadioItem value="acceptEdits">Auto Edit</MenuRadioItem>
-          <MenuRadioItem value="plan">Plan</MenuRadioItem>
-          <MenuRadioItem value="bypassPermissions">YOLO</MenuRadioItem>
+          <MenuRadioItem value="default">{t("settings.chat.permissionMode.default")}</MenuRadioItem>
+          <MenuRadioItem value="acceptEdits">
+            {t("settings.chat.permissionMode.acceptEdits")}
+          </MenuRadioItem>
+          <MenuRadioItem value="plan">{t("settings.chat.permissionMode.plan")}</MenuRadioItem>
+          <MenuRadioItem value="bypassPermissions">
+            {t("settings.chat.permissionMode.bypassPermissions")}
+          </MenuRadioItem>
         </MenuRadioGroup>
       </MenuPopup>
     </Menu>
