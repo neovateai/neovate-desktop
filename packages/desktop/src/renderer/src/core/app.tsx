@@ -2,7 +2,6 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
 import ReactDOM from "react-dom/client";
 
-import type { SettingsSchema } from "../../../shared/features/settings/schema";
 import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
@@ -12,7 +11,6 @@ import { ToastProvider } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
-import { SettingsService } from "../features/settings/service";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
 import debugPlugin from "../plugins/debug";
@@ -139,15 +137,6 @@ export class RendererApp implements IRendererApp {
       return activeProject;
     },
   };
-  readonly settings = new SettingsService({
-    load: async () => {
-      const all = await client.storage.getAll({ namespace: "config" });
-      return ((all as Record<string, unknown>).settings as Partial<SettingsSchema>) ?? {};
-    },
-    save: (data) => {
-      return client.storage.set({ namespace: "config", key: "settings", value: data });
-    },
-  });
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
@@ -204,7 +193,6 @@ export class RendererApp implements IRendererApp {
     await this.i18nManager.init({ store: useConfigStore as any });
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
-    await this.hydrate();
     await this.project.refresh();
 
     // Collect window contributions — all windows (needed for lookup)
@@ -226,13 +214,7 @@ export class RendererApp implements IRendererApp {
     if (this.#windowType === "main") {
       this.workbench.contentPanel.dispose();
     }
-    this.settings.dispose();
     this.subscriptions.dispose();
-  }
-
-  /** Hydrate all stores from persistent storage */
-  private async hydrate(): Promise<void> {
-    await this.settings.hydrate();
   }
 
   private render(ctx: PluginContext): void {
