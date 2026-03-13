@@ -7,6 +7,8 @@ import { useProjectStore } from "../../features/project/store";
 import { useGit } from "./hooks/useGit";
 import { useGitTranslation } from "./i18n";
 
+const DISPATCH_DELAY = 400;
+
 export default memo(function GitView() {
   const { t } = useGitTranslation();
   const { app } = usePluginContext();
@@ -38,7 +40,7 @@ export default memo(function GitView() {
           detail: { relPath: file.relPath, isStaged },
         }),
       );
-    }, 100);
+    }, DISPATCH_DELAY);
   };
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export default memo(function GitView() {
     app.workbench.contentPanel.openView("review");
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("neovate:open-review", { detail: { category: type } }));
-    }, 100);
+    }, DISPATCH_DELAY);
   };
 
   const renderFileList = (
