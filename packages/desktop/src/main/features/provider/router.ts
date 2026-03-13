@@ -178,6 +178,7 @@ export const providerRouter = os.provider.router({
       models: input.models,
       modelMap: input.modelMap,
       envOverrides: input.envOverrides ?? {},
+      ...(input.builtInId ? { builtInId: input.builtInId } : {}),
     };
 
     context.configStore.addProvider(provider);

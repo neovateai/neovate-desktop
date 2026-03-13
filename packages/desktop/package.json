@@ -57,6 +57,7 @@
     "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",
     "embla-carousel-react": "^8.6.0",
+    "fuse.js": "^7.1.0",
     "i18next": "^25.8.13",
     "i18next-browser-languagedetector": "^8.2.1",
     "immer": "^11.1.4",

@@ -28,6 +28,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../../../../components/ui/alert-dialog";
+import { Edit2, ExternalLink, Plus, RotateCcw, Server, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import type { Provider, ProviderModelMap } from "../../../../../../shared/features/provider/types";
+
+import {
+  BUILT_IN_PROVIDERS,
+  getBuiltInProvider,
+  resolveL10n,
+  type BuiltInProvider,
+} from "../../../../../../shared/features/provider/built-in";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Switch } from "../../../../components/ui/switch";
@@ -50,6 +62,7 @@ type ProviderFormData = {
   modelMap: ProviderModelMap;
   envOverrides: Record<string, string>;
   enabled: boolean;
+  builtInId?: string;
 };
 
 const emptyForm: ProviderFormData = {
@@ -71,11 +84,25 @@ function providerToForm(p: Provider): ProviderFormData {
     modelMap: { ...p.modelMap },
     envOverrides: { ...p.envOverrides },
     enabled: p.enabled,
+    builtInId: p.builtInId,
+  };
+}
+
+function builtInToForm(t: BuiltInProvider, lang: string): ProviderFormData {
+  return {
+    name: resolveL10n(t.name, lang, t.nameLocalized),
+    baseURL: t.baseURL,
+    apiKey: "",
+    models: { ...t.models },
+    modelMap: { ...t.modelMap },
+    envOverrides: { ...t.envOverrides },
+    enabled: true,
+    builtInId: t.id,
   };
 }
 
 export const ProvidersPanel = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const providers = useProviderStore((s) => s.providers);
   const loaded = useProviderStore((s) => s.loaded);
   const load = useProviderStore((s) => s.load);
@@ -89,6 +116,7 @@ export const ProvidersPanel = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [form, setForm] = useState<ProviderFormData>(emptyForm);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,8 +142,37 @@ export const ProvidersPanel = () => {
     if (!loaded) load();
   }, [loaded, load]);
 
+  const usedBuiltInIds = useMemo(
+    () => new Set(providers.map((p) => p.builtInId).filter(Boolean)),
+    [providers],
+  );
+
+  const availableTemplates = useMemo(
+    () => BUILT_IN_PROVIDERS.filter((t) => !usedBuiltInIds.has(t.id)),
+    [usedBuiltInIds],
+  );
+
   const startCreate = useCallback(() => {
     setEditingId(null);
+    setError(null);
+    if (availableTemplates.length > 0) {
+      setShowTemplatePicker(true);
+      setIsCreating(false);
+    } else {
+      setShowTemplatePicker(false);
+      setIsCreating(true);
+      setForm(emptyForm);
+    }
+  }, [availableTemplates.length]);
+
+  const selectTemplate = useCallback((template: BuiltInProvider) => {
+    setShowTemplatePicker(false);
+    setIsCreating(true);
+    setForm(builtInToForm(template, i18n.language));
+  }, []);
+
+  const selectCustom = useCallback(() => {
+    setShowTemplatePicker(false);
     setIsCreating(true);
     setForm(emptyForm);
     setError(null);
@@ -142,6 +199,7 @@ export const ProvidersPanel = () => {
   const cancel = useCallback(() => {
     setEditingId(null);
     setIsCreating(false);
+    setShowTemplatePicker(false);
     setError(null);
   }, []);
 
@@ -178,6 +236,7 @@ export const ProvidersPanel = () => {
           models: form.models,
           modelMap: form.modelMap,
           envOverrides: Object.keys(form.envOverrides).length > 0 ? form.envOverrides : undefined,
+          builtInId: form.builtInId,
         });
       } else if (editingId) {
         await updateProvider(editingId, {
@@ -293,6 +352,28 @@ export const ProvidersPanel = () => {
     [handleBenchmark],
   );
 
+  const handleResetDefaults = useCallback(() => {
+    if (!form.builtInId) return;
+    const template = getBuiltInProvider(form.builtInId);
+    if (!template) return;
+    if (!window.confirm(t("settings.providers.resetConfirm"))) return;
+    setForm((f) => ({
+      ...f,
+      baseURL: template.baseURL,
+      models: { ...template.models },
+      modelMap: { ...template.modelMap },
+      envOverrides: { ...template.envOverrides },
+    }));
+  }, [form.builtInId, t]);
+
+  const activeBuiltIn = useMemo(
+    () => (form.builtInId ? getBuiltInProvider(form.builtInId) : undefined),
+    [form.builtInId],
+  );
+
+  const activeApiKeyURL = activeBuiltIn?.apiKeyURL;
+  const activeDocURL = activeBuiltIn?.docURL;
+
   const isEditing = isCreating || editingId !== null;
   const modelKeys = Object.keys(form.models);
 
@@ -305,6 +386,46 @@ export const ProvidersPanel = () => {
 
       {!isEditing && (
         <div className="space-y-4">
+      {showTemplatePicker && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t("settings.providers.chooseTemplate")}</p>
+          <div className="grid grid-cols-3 gap-3">
+            {availableTemplates.map((template) => {
+              const hostname = new URL(template.baseURL).hostname;
+              return (
+                <button
+                  key={template.id}
+                  className="flex flex-col items-start gap-1 rounded-lg border border-input p-3 text-left hover:border-primary hover:bg-accent transition-colors"
+                  onClick={() => selectTemplate(template)}
+                >
+                  <span className="text-sm font-medium">
+                    {resolveL10n(template.name, i18n.language, template.nameLocalized)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {resolveL10n(template.description, i18n.language)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/60">{hostname}</span>
+                </button>
+              );
+            })}
+            <button
+              className="flex flex-col items-start gap-1 rounded-lg border border-dashed border-input p-3 text-left hover:border-primary hover:bg-accent transition-colors"
+              onClick={selectCustom}
+            >
+              <span className="text-sm font-medium">{t("settings.providers.custom")}</span>
+              <span className="text-xs text-muted-foreground">
+                {t("settings.providers.customDescription")}
+              </span>
+            </button>
+          </div>
+          <Button variant="outline" size="sm" onClick={cancel}>
+            {t("settings.providers.cancel")}
+          </Button>
+        </div>
+      )}
+
+      {!isEditing && !showTemplatePicker && (
+        <div className="space-y-0">
           {providers.map((p) => (
             <div key={p.id} className="border rounded-lg p-4 space-y-3">
               {/* Provider Header */}
@@ -498,6 +619,32 @@ export const ProvidersPanel = () => {
               placeholder="sk-..."
               className="mt-1"
             />
+            {(activeApiKeyURL || activeDocURL) && (
+              <div className="flex items-center gap-3 mt-1.5">
+                {activeApiKeyURL && (
+                  <a
+                    href={activeApiKeyURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t("settings.providers.getApiKey")}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {activeDocURL && (
+                  <a
+                    href={activeDocURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t("settings.providers.viewDocs")}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Enabled */}
@@ -764,6 +911,12 @@ export const ProvidersPanel = () => {
             <Button variant="outline" size="sm" onClick={cancel}>
               {t("settings.providers.cancel")}
             </Button>
+            {editingId && form.builtInId && (
+              <Button variant="ghost" size="sm" onClick={handleResetDefaults} className="ml-auto">
+                <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                {t("settings.providers.resetDefaults")}
+              </Button>
+            )}
           </div>
         </div>
       )}

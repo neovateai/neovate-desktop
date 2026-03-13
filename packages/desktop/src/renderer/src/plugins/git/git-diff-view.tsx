@@ -1,5 +1,5 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
-import { File, FilePlus, GitBranch, GitCommit } from "lucide-react";
+import { Columns2, AlignJustify, File, FilePlus, GitBranch, GitCommit } from "lucide-react";
 import { useTheme } from "next-themes";
 import { memo, useEffect, useState } from "react";
 
@@ -15,6 +15,8 @@ interface DiffData {
   fileStatus?: string;
 }
 
+type DiffStyle = "unified" | "split";
+
 export default memo(function GitDiffView() {
   const { t } = useGitTranslation();
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -27,6 +29,7 @@ export default memo(function GitDiffView() {
   const [diffData, setDiffData] = useState<DiffData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [diffStyle, setDiffStyle] = useState<DiffStyle>("split");
 
   const oldFile = {
     name: diffData?.fileName || "",
@@ -97,6 +100,10 @@ export default memo(function GitDiffView() {
     }
   };
 
+  const toggleDiffStyle = () => {
+    setDiffStyle((prev) => (prev === "split" ? "unified" : "split"));
+  };
+
   if (!currentFilePath) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-background">
@@ -146,6 +153,24 @@ export default memo(function GitDiffView() {
 
   return (
     <div className="h-full flex flex-col bg-background">
+      {/* Header bar */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0">
+        <div className="flex-1" />
+
+        {/* Diff style toggle */}
+        <button
+          onClick={toggleDiffStyle}
+          className="p-1 hover:bg-accent rounded"
+          title={diffStyle === "split" ? "Unified view" : "Split view"}
+        >
+          {diffStyle === "split" ? (
+            <AlignJustify className="w-3.5 h-3.5 text-muted-foreground" />
+          ) : (
+            <Columns2 className="w-3.5 h-3.5 text-muted-foreground" />
+          )}
+        </button>
+      </div>
+
       {isNewFile ? (
         <div
           className={`flex items-center gap-1.5 px-2 py-1.5 border-b ${
@@ -184,7 +209,7 @@ export default memo(function GitDiffView() {
             newFile={newFile}
             options={{
               theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-              diffStyle: "split",
+              diffStyle,
             }}
           />
         ) : isDeletedFile ? (
@@ -193,7 +218,7 @@ export default memo(function GitDiffView() {
             newFile={{ name: "(empty)", contents: "" }}
             options={{
               theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-              diffStyle: "split",
+              diffStyle,
             }}
           />
         ) : (
@@ -202,7 +227,7 @@ export default memo(function GitDiffView() {
             newFile={newFile}
             options={{
               theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-              diffStyle: "split",
+              diffStyle,
             }}
           />
         )}
