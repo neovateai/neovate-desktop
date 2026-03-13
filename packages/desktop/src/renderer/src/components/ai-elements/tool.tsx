@@ -8,7 +8,7 @@ import {
   BookOpen,
   Bot,
   CheckSquare,
-  ChevronRight,
+  ChevronDown,
   ClipboardList,
   Download,
   FileEdit,
@@ -224,14 +224,17 @@ export const ToolHeader = ({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50",
+        "flex items-center gap-2 py-1.5 px-2 rounded-md",
         "transition-colors cursor-pointer group w-full",
         className,
       )}
       {...props}
     >
       <TooltipProvider>
-        <ToolIcon className={cn("size-4 shrink-0", iconColor)} />
+        {/* Icon with hover background */}
+        <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0 transition-colors group-hover:bg-muted">
+          <ToolIcon className={cn("size-4", iconColor)} />
+        </div>
         <span className="text-sm text-foreground truncate">
           {mainLabel}
           {extra && <span className="text-muted-foreground"> {extra}</span>}
@@ -251,7 +254,10 @@ export const ToolHeader = ({
           )}
         </span>
         <StatusDot state={state} />
-        <ChevronRight className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 group-data-[state=open]:rotate-90" />
+        {/* Micro chevron - shows on hover, rotates 180° when open */}
+        <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ChevronDown className="size-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+        </div>
       </TooltipProvider>
     </CollapsibleTrigger>
   );

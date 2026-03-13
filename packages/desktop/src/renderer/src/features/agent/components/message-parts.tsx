@@ -12,7 +12,7 @@ import { ClaudeCodeToolUIPart } from "./tool-parts";
 
 export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
   return (
-    <>
+    <div className="flex flex-col gap-2 w-full">
       {message.parts.map((part, index) => {
         if (isToolUIPart(part)) {
           if (part.type === "dynamic-tool") {
@@ -69,6 +69,6 @@ export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
             return null;
         }
       })}
-    </>
+    </div>
   );
 }
