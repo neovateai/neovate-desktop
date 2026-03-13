@@ -65,13 +65,13 @@ export default memo(function GitView() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "modified":
-        return <span className="text-[10px] font-medium text-yellow-600 leading-none">M</span>;
+        return <span className="text-xs font-medium text-yellow-600 leading-none">M</span>;
       case "deleted":
-        return <span className="text-[10px] font-medium text-red-600 leading-none">D</span>;
+        return <span className="text-xs font-medium text-red-600 leading-none">D</span>;
       case "untracked":
-        return <span className="text-[10px] font-medium text-green-600 leading-none">U</span>;
+        return <span className="text-xs font-medium text-green-600 leading-none">U</span>;
       case "added":
-        return <span className="text-[10px] font-medium text-green-600 leading-none">A</span>;
+        return <span className="text-xs font-medium text-green-600 leading-none">A</span>;
       default:
         return null;
     }
@@ -96,10 +96,10 @@ export default memo(function GitView() {
     return (
       <>
         <div
-          className="px-1 py-0.5 flex items-center justify-between cursor-pointer hover:bg-accent/50 select-none group rounded-sm"
+          className="px-2 py-2 flex items-center justify-between cursor-pointer hover:bg-accent/50 select-none group rounded-sm"
           onClick={toggleCollapsed}
         >
-          <h3 className="text-[11px] font-medium text-muted-foreground">
+          <h3 className="text-xs font-medium text-muted-foreground">
             {title} ({files.length})
           </h3>
           <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
@@ -113,7 +113,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm"
                   title={t("git.viewAllStageChanges")}
                 >
-                  <FileText className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                  <FileText className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                   onClick={(e) => {
@@ -124,7 +124,7 @@ export default memo(function GitView() {
                   title={t("git.removeAllFromStage")}
                   disabled={loading}
                 >
-                  <Minus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                  <Minus className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                 </button>
               </>
             )}
@@ -138,7 +138,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm"
                   title={t("git.viewAllWorkingChanges")}
                 >
-                  <FileText className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                  <FileText className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                   onClick={(e) => {
@@ -149,7 +149,7 @@ export default memo(function GitView() {
                   title={t("git.addAllToStage")}
                   disabled={loading}
                 >
-                  <Plus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                  <Plus className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                   onClick={(e) => {
@@ -160,7 +160,7 @@ export default memo(function GitView() {
                   title={t("git.revertAllFiles")}
                   disabled={loading}
                 >
-                  <Undo2 className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                  <Undo2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                 </button>
               </>
             )}
@@ -177,15 +177,12 @@ export default memo(function GitView() {
             {files.map((file) => (
               <div
                 key={file.fullPath}
-                className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-accent/50 cursor-pointer transition-colors group rounded-sm"
+                className="flex items-center gap-1.5 px-4 py-0.5 hover:bg-accent/50 cursor-pointer transition-colors group rounded-sm"
                 onClick={() => showDiff(file, isStaged)}
               >
                 {getFileIcon(file.relPath)}
 
-                <div
-                  className="text-[11px] leading-none truncate mr-auto text-foreground"
-                  title={file.relPath}
-                >
+                <div className="text-sm truncate mr-auto text-foreground" title={file.relPath}>
                   {file.fileName}
                 </div>
 
@@ -201,7 +198,7 @@ export default memo(function GitView() {
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.removeFromStage")}
                         >
-                          <Minus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                          <Minus className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                         </button>
                         <button
                           onClick={(e) => {
@@ -211,7 +208,7 @@ export default memo(function GitView() {
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
                         >
-                          <Undo2 className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                          <Undo2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                         </button>
                       </>
                     ) : (
@@ -224,7 +221,7 @@ export default memo(function GitView() {
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.addToStage")}
                         >
-                          <Plus className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                          <Plus className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                         </button>
                         <button
                           onClick={(e) => {
@@ -234,7 +231,7 @@ export default memo(function GitView() {
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
                         >
-                          <Undo2 className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                          <Undo2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                         </button>
                       </>
                     )}
