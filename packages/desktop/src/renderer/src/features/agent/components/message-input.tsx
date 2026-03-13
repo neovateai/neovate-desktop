@@ -233,6 +233,19 @@ export function MessageInput({
     return () => window.removeEventListener("neovate:insert-mention", handler);
   }, [editor]);
 
+  // Listen for rewind pre-fill events
+  useEffect(() => {
+    if (!editor) return;
+    const handler = (e: Event) => {
+      const { text } = (e as CustomEvent<{ text: string }>).detail;
+      log("rewind-prefill received len=%d", text.length);
+      editor.commands.clearContent();
+      editor.chain().focus().insertContent(text).run();
+    };
+    window.addEventListener("neovate:rewind-prefill", handler);
+    return () => window.removeEventListener("neovate:rewind-prefill", handler);
+  }, [editor]);
+
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
