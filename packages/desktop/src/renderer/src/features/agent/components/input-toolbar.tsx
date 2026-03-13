@@ -33,6 +33,7 @@ import {
   MenuRadioItem,
 } from "../../../components/ui/menu";
 import { client } from "../../../orpc";
+import { useConfigStore } from "../../config/store";
 import { useProviderStore } from "../../provider/store";
 import { useSettingsStore } from "../../settings/store";
 import { claudeCodeChatManager } from "../chat-manager";
@@ -58,6 +59,8 @@ export function InputToolbar({
   onAttach,
   activeSessionId,
 }: Props) {
+  const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
+
   return (
     <div className="flex items-center gap-1 border-border/50 px-2 py-1 bg-background-secondary">
       <Button
@@ -84,7 +87,14 @@ export function InputToolbar({
           <Square className="h-3.5 w-3.5" />
         </Button>
       ) : (
-        <Button type="button" size="icon" className="h-7 w-7" disabled={disabled} onClick={onSend}>
+        <Button
+          type="button"
+          size="icon"
+          className="h-7 w-7"
+          disabled={disabled}
+          onClick={onSend}
+          title={sendMessageWith === "cmdEnter" ? "Send (⌘+Enter)" : "Send (Enter)"}
+        >
           <SendHorizonal className="h-4 w-4" />
         </Button>
       )}
