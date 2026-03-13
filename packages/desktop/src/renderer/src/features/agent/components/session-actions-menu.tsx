@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from "react";
 import debug from "debug";
 import { MoreHorizontal } from "lucide-react";
 
+import { encodeProjectPath } from "../../../../../shared/claude-code/paths";
 import { Button } from "../../../components/ui/button";
 import {
   ContextMenu,
@@ -50,7 +51,7 @@ export function SessionActionsMenu({
   };
 
   const handleCopyJsonlPath = () => {
-    const encoded = cwd.replaceAll(/[\/.]/g, "-");
+    const encoded = encodeProjectPath(cwd);
     const jsonlPath = `${window.api.homedir}/.claude/projects/${encoded}/${sessionId}.jsonl`;
     log("copyJsonlPath: %s", jsonlPath);
     navigator.clipboard.writeText(jsonlPath);

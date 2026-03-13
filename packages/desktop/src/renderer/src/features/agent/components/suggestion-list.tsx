@@ -1,10 +1,19 @@
-import { forwardRef, useEffect, useImperativeHandle, useState, type ReactNode } from "react";
+import { ChevronRight, Folder } from "lucide-react";
+import {
+  createElement,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type SuggestionItem = {
   id?: string;
   label: string;
   title?: string;
   description?: string;
+  isDirectory?: boolean;
 };
 
 type Props = {
@@ -65,12 +74,24 @@ export const SuggestionList = forwardRef<SuggestionListHandle, Props>(
               onMouseEnter={() => setSelectedIndex(index)}
               type="button"
             >
-              {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
+              {(icon || item.isDirectory) && (
+                <span className="shrink-0 text-muted-foreground">
+                  {item.isDirectory ? createElement(Folder, { className: "h-4 w-4" }) : icon}
+                </span>
+              )}
               <span className="shrink-0">{item.title ?? item.label}</span>
               {item.description && (
                 <span className="min-w-0 truncate text-muted-foreground text-xs">
                   {item.description}
                 </span>
+              )}
+              {item.isDirectory && (
+                <>
+                  <span className="flex-1" />
+                  {createElement(ChevronRight, {
+                    className: "h-3.5 w-3.5 shrink-0 text-muted-foreground",
+                  })}
+                </>
               )}
             </button>
           ))}

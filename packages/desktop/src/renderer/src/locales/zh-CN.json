@@ -123,6 +123,14 @@
   "settings.skills.retry": "重试",
   "settings.skills.removeSkill": "移除技能",
 
+  "permission.allow": "允许",
+  "permission.allowOnce": "允许一次",
+  "permission.deny": "拒绝",
+  "permission.denyFeedback": "拒绝并反馈...",
+  "permission.feedbackPlaceholder": "告诉 Claude 应该怎么做...",
+  "permission.pendingCount": "第 {{current}} 个，共 {{total}} 个",
+  "permission.savesTo": "保存到 {{path}}",
+
   "common.cancel": "取消",
   "common.delete": "删除",
   "common.loading": "加载中..."

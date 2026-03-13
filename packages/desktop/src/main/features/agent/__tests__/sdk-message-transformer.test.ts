@@ -1,3 +1,5 @@
+import { createUIMessageStream, readUIMessageStream } from "ai";
+import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach } from "vitest";
 
 import { SDKMessageTransformer, toUIEvent } from "../sdk-message-transformer";
@@ -6,6 +8,10 @@ function collect(gen: Generator<any>): any[] {
   const out: any[] = [];
   for (const item of gen) out.push(item);
   return out;
+}
+
+function loadFixture(name: string) {
+  return JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8")) as any[];
 }
 
 const makeAssistantMsg = (id: string, content: any[]) => ({
@@ -24,6 +30,93 @@ const makeAssistantMsg = (id: string, content: any[]) => ({
     type: "message" as const,
     usage: { input_tokens: 10, output_tokens: 5 },
   },
+});
+
+const makeStreamEventMsg = (
+  event: any,
+  options?: { sessionId?: string; uuid?: string; parentToolUseId?: string | null },
+) => ({
+  type: "stream_event" as const,
+  event,
+  uuid: options?.uuid ?? "stream-uuid",
+  session_id: options?.sessionId ?? "sess-1",
+  parent_tool_use_id: options?.parentToolUseId ?? null,
+});
+
+const makeMessageStartEvent = (id: string) => ({
+  type: "message_start" as const,
+  message: {
+    id,
+    role: "assistant" as const,
+    content: [],
+    model: "claude-3",
+    stop_reason: null,
+    stop_sequence: null,
+    type: "message" as const,
+    usage: { input_tokens: 10, output_tokens: 0 },
+  },
+});
+
+const makeTextBlockStartEvent = (index: number, text = "") => ({
+  type: "content_block_start" as const,
+  index,
+  content_block: { type: "text" as const, text, citations: null },
+});
+
+const makeThinkingBlockStartEvent = (index: number, thinking = "", signature = "") => ({
+  type: "content_block_start" as const,
+  index,
+  content_block: { type: "thinking" as const, thinking, signature },
+});
+
+const makeRedactedThinkingBlockStartEvent = (index: number, data: string) => ({
+  type: "content_block_start" as const,
+  index,
+  content_block: { type: "redacted_thinking" as const, data },
+});
+
+const makeToolUseBlockStartEvent = (
+  index: number,
+  toolCallId: string,
+  toolName: string,
+  input: unknown = {},
+) => ({
+  type: "content_block_start" as const,
+  index,
+  content_block: { type: "tool_use" as const, id: toolCallId, name: toolName, input },
+});
+
+const makeTextDeltaEvent = (index: number, text: string) => ({
+  type: "content_block_delta" as const,
+  index,
+  delta: { type: "text_delta" as const, text },
+});
+
+const makeThinkingDeltaEvent = (index: number, thinking: string) => ({
+  type: "content_block_delta" as const,
+  index,
+  delta: { type: "thinking_delta" as const, thinking },
+});
+
+const makeSignatureDeltaEvent = (index: number, signature: string) => ({
+  type: "content_block_delta" as const,
+  index,
+  delta: { type: "signature_delta" as const, signature },
+});
+
+const makeInputJsonDeltaEvent = (index: number, partialJson: string) => ({
+  type: "content_block_delta" as const,
+  index,
+  delta: { type: "input_json_delta" as const, partial_json: partialJson },
+});
+
+const makeBlockStopEvent = (index: number) => ({
+  type: "content_block_stop" as const,
+  index,
+});
+
+const makeMessageStopEvent = () => ({
+  type: "message_stop" as const,
 });
 
 describe("SDKMessageTransformer", () => {
@@ -317,6 +410,310 @@ describe("SDKMessageTransformer", () => {
     );
     const tool = chunks.find((c: any) => c.type === "tool-input-available");
     expect(tool.providerMetadata).toBeUndefined();
+  });
+
+  it("assistant thinking includes anthropic signature metadata", () => {
+    const chunks = collect(
+      t.transform(
+        makeAssistantMsg("msg-A", [
+          { type: "thinking", thinking: "hmm", signature: "sig-1" },
+        ]) as any,
+      ),
+    );
+
+    expect(chunks).toEqual([
+      { type: "start", messageId: "msg-A" },
+      { type: "start-step" },
+      {
+        type: "reasoning-start",
+        id: "msg-A",
+        providerMetadata: { anthropic: { signature: "sig-1" } },
+      },
+      { type: "reasoning-delta", id: "msg-A", delta: "hmm" },
+      { type: "reasoning-end", id: "msg-A" },
+    ]);
+  });
+
+  it("assistant redacted_thinking emits an empty reasoning part with metadata", () => {
+    const chunks = collect(
+      t.transform(
+        makeAssistantMsg("msg-A", [{ type: "redacted_thinking", data: "redacted-1" }]) as any,
+      ),
+    );
+
+    expect(chunks).toEqual([
+      { type: "start", messageId: "msg-A" },
+      { type: "start-step" },
+      {
+        type: "reasoning-start",
+        id: "msg-A",
+        providerMetadata: { anthropic: { redactedData: "redacted-1" } },
+      },
+      { type: "reasoning-end", id: "msg-A" },
+    ]);
+  });
+
+  it("stream_event text happy path emits legal text chunks before result finish", () => {
+    const streamedChunks = [
+      ...collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeTextBlockStartEvent(0)) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeTextDeltaEvent(0, "Hel")) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeTextDeltaEvent(0, "lo")) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any)),
+    ];
+
+    expect(streamedChunks).toEqual([
+      {
+        type: "start",
+        messageId: "msg-stream",
+        messageMetadata: { sessionId: "sess-1", parentToolUseId: null },
+      },
+      { type: "start-step" },
+      { type: "text-start", id: "text:msg-stream:0" },
+      { type: "text-delta", id: "text:msg-stream:0", delta: "Hel" },
+      { type: "text-delta", id: "text:msg-stream:0", delta: "lo" },
+      { type: "text-end", id: "text:msg-stream:0" },
+    ]);
+
+    const resultChunks = collect(
+      t.transform({
+        type: "result" as const,
+        subtype: "success" as const,
+        uuid: "r",
+        session_id: "s",
+        is_error: false,
+        num_turns: 1,
+        duration_ms: 100,
+        total_cost_usd: 0.001,
+        usage: { input_tokens: 10, output_tokens: 5 },
+        stop_reason: "end_turn",
+        errors: [],
+      } as any),
+    );
+
+    expect(resultChunks.map((chunk: any) => chunk.type)).toEqual(["finish-step", "finish"]);
+  });
+
+  it("stream_event empty text delta emits nothing", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+    collect(t.transform(makeStreamEventMsg(makeTextBlockStartEvent(0)) as any));
+
+    const chunks = collect(t.transform(makeStreamEventMsg(makeTextDeltaEvent(0, "")) as any));
+
+    expect(chunks).toEqual([]);
+  });
+
+  it("stream_event text delta before text start is ignored", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+
+    const chunks = collect(t.transform(makeStreamEventMsg(makeTextDeltaEvent(0, "Hello")) as any));
+
+    expect(chunks).toEqual([]);
+  });
+
+  it("stream_event thinking emits reasoning chunks", () => {
+    const chunks = [
+      ...collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeThinkingBlockStartEvent(0)) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeThinkingDeltaEvent(0, "hmm")) as any)),
+      ...collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any)),
+    ];
+
+    expect(chunks).toEqual([
+      {
+        type: "start",
+        messageId: "msg-stream",
+        messageMetadata: { sessionId: "sess-1", parentToolUseId: null },
+      },
+      { type: "start-step" },
+      { type: "reasoning-start", id: "reasoning:msg-stream:0" },
+      { type: "reasoning-delta", id: "reasoning:msg-stream:0", delta: "hmm" },
+      { type: "reasoning-end", id: "reasoning:msg-stream:0" },
+    ]);
+  });
+
+  it("stream_event signature_delta matches anthropic provider behavior", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+    collect(t.transform(makeStreamEventMsg(makeThinkingBlockStartEvent(0)) as any));
+
+    const chunks = collect(
+      t.transform(makeStreamEventMsg(makeSignatureDeltaEvent(0, "sig-1")) as any),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: "reasoning-delta",
+        id: "reasoning:msg-stream:0",
+        delta: "",
+        providerMetadata: { anthropic: { signature: "sig-1" } },
+      },
+    ]);
+  });
+
+  it("stream_event redacted_thinking emits reasoning-start with anthropic metadata", () => {
+    const chunks = [
+      ...collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any)),
+      ...collect(
+        t.transform(
+          makeStreamEventMsg(makeRedactedThinkingBlockStartEvent(0, "redacted-1")) as any,
+        ),
+      ),
+      ...collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any)),
+    ];
+
+    expect(chunks).toEqual([
+      {
+        type: "start",
+        messageId: "msg-stream",
+        messageMetadata: { sessionId: "sess-1", parentToolUseId: null },
+      },
+      { type: "start-step" },
+      {
+        type: "reasoning-start",
+        id: "reasoning:msg-stream:0",
+        providerMetadata: { anthropic: { redactedData: "redacted-1" } },
+      },
+      { type: "reasoning-end", id: "reasoning:msg-stream:0" },
+    ]);
+  });
+
+  it("stream_event signature_delta is ignored for non-thinking blocks", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+    collect(t.transform(makeStreamEventMsg(makeTextBlockStartEvent(0)) as any));
+
+    const chunks = collect(
+      t.transform(makeStreamEventMsg(makeSignatureDeltaEvent(0, "sig-1")) as any),
+    );
+
+    expect(chunks).toEqual([]);
+  });
+
+  it("stream_event tool_use emits tool input chunks matching the anthropic provider flow", () => {
+    const chunks = [
+      ...collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any)),
+      ...collect(
+        t.transform(makeStreamEventMsg(makeToolUseBlockStartEvent(0, "call-1", "Read", {})) as any),
+      ),
+      ...collect(
+        t.transform(
+          makeStreamEventMsg(makeInputJsonDeltaEvent(0, '{"file_path":"/tmp/file.ts"}')) as any,
+        ),
+      ),
+      ...collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any)),
+    ];
+
+    expect(chunks).toEqual([
+      {
+        type: "start",
+        messageId: "msg-stream",
+        messageMetadata: { sessionId: "sess-1", parentToolUseId: null },
+      },
+      { type: "start-step" },
+      { type: "tool-input-start", toolCallId: "call-1", toolName: "Read", providerExecuted: true },
+      {
+        type: "tool-input-delta",
+        toolCallId: "call-1",
+        inputTextDelta: '{"file_path":"/tmp/file.ts"}',
+      },
+      {
+        type: "tool-input-available",
+        toolCallId: "call-1",
+        toolName: "Read",
+        input: { file_path: "/tmp/file.ts" },
+        providerExecuted: true,
+      },
+    ]);
+  });
+
+  it("stream_event tool_use registers a tool invocation before tool_result reaches AI SDK", async () => {
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        const messages = [
+          makeStreamEventMsg(makeMessageStartEvent("msg-stream")),
+          makeStreamEventMsg(makeToolUseBlockStartEvent(0, "call-1", "Read", {})),
+          makeStreamEventMsg(makeInputJsonDeltaEvent(0, '{"file_path":"/tmp/file.ts"}')),
+          makeStreamEventMsg(makeBlockStopEvent(0)),
+          {
+            type: "user" as const,
+            uuid: "user-tool-result",
+            session_id: "sess-1",
+            parent_tool_use_id: "call-1",
+            message: {
+              role: "user" as const,
+              content: [
+                {
+                  type: "tool_result" as const,
+                  tool_use_id: "call-1",
+                  content: "ok",
+                  is_error: false,
+                },
+              ],
+            },
+          },
+        ];
+
+        for (const message of messages) {
+          for (const chunk of t.transform(message as any)) {
+            writer.write(chunk);
+          }
+        }
+      },
+    });
+
+    const uiMessages: any[] = [];
+    for await (const message of readUIMessageStream({ stream })) {
+      uiMessages.push(message);
+    }
+
+    expect(uiMessages.length).toBeGreaterThan(0);
+    expect(uiMessages.at(-1)?.parts.map((part: any) => part.type)).toContain("tool-Read");
+  });
+
+  it("real streamed tool_use sequence ignores the interleaved assistant snapshot", () => {
+    const messages = loadFixture("real-tool-use-stream-sequence.json");
+    const chunks = messages.flatMap((message) => collect(t.transform(message)));
+
+    expect(
+      chunks.filter(
+        (chunk) =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolCallId === "call_5e671a3f95a748c0957ed2bd",
+      ),
+    ).toEqual([
+      {
+        type: "tool-input-available",
+        toolCallId: "call_5e671a3f95a748c0957ed2bd",
+        toolName: "Agent",
+        input: {
+          description: "Ultra-deep repo architecture analysis",
+          prompt: "Perform an ultra-deep analysis of this repository's architecture.",
+          subagent_type: "Explore",
+        },
+        providerExecuted: true,
+      },
+    ]);
+  });
+
+  it("stream_event message_stop does not emit finish", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+
+    const chunks = collect(t.transform(makeStreamEventMsg(makeMessageStopEvent()) as any));
+
+    expect(chunks).toEqual([]);
+  });
+
+  it("assistant message is skipped when the same message id already streamed via stream_event", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+    collect(t.transform(makeStreamEventMsg(makeTextBlockStartEvent(0)) as any));
+    collect(t.transform(makeStreamEventMsg(makeTextDeltaEvent(0, "Hello")) as any));
+    collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any));
+    collect(t.transform(makeStreamEventMsg(makeMessageStopEvent()) as any));
+
+    const chunks = collect(
+      t.transform(makeAssistantMsg("msg-stream", [{ type: "text", text: "Hello" }]) as any),
+    );
+
+    expect(chunks).toEqual([]);
   });
 });
 

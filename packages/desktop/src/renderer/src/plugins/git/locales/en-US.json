@@ -1,7 +1,6 @@
 {
   "git.title": "Source Control",
   "git.notAGitRepository": "Not a git repository",
-  "git.status": "Status",
   "git.noProject": "No project selected",
   "git.loadingStatus": "Loading Git status...",
   "git.noChanges": "No changes",
@@ -14,6 +13,8 @@
   "git.addAllToStage": "Stage All Changes",
   "git.removeAllFromStage": "Unstage All",
   "git.revertAllFiles": "Revert All Changes",
+  "git.viewAllWorkingChanges": "View Working Changes",
+  "git.viewAllStageChanges": "View Staged Changes",
   "git.diff.selectFile": "Select a file to view diff",
   "git.diff.loading": "Loading diff...",
   "git.diff.error": "Failed to load diff",

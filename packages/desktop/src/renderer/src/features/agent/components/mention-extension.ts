@@ -10,14 +10,18 @@ import { SuggestionList, type SuggestionItem, type SuggestionListHandle } from "
 import { positionAboveInput } from "./suggestion-position";
 
 function fileName(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? p : p.slice(i + 1);
+  const clean = p.endsWith("/") ? p.slice(0, -1) : p;
+  const i = clean.lastIndexOf("/");
+  return i === -1 ? clean : clean.slice(i + 1);
 }
 
 function dirName(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i <= 0 ? "" : p.slice(0, i);
+  const clean = p.endsWith("/") ? p.slice(0, -1) : p;
+  const i = clean.lastIndexOf("/");
+  return i <= 0 ? "" : clean.slice(0, i);
 }
+
+let searchVersion = 0;
 
 export function createMentionExtension(getCwd: () => string) {
   return Mention.configure({
@@ -25,26 +29,48 @@ export function createMentionExtension(getCwd: () => string) {
     suggestion: {
       items: async ({ query }: { query: string }): Promise<SuggestionItem[]> => {
         const cwd = getCwd();
-        console.debug("[mention] items called, cwd=%s query=%s", cwd, query);
         if (!cwd) return [];
+
+        const version = ++searchVersion;
+
+        // Debounce: wait 100ms for typing to settle
+        await new Promise((r) => setTimeout(r, 100));
+        if (version !== searchVersion) return [];
 
         try {
           const { paths } = await client.utils.searchPaths({
             cwd,
             query,
-            maxResults: 20,
+            maxResults: 15,
           });
-          console.debug("[mention] searchPaths returned %d results", paths.length);
+          if (version !== searchVersion) return [];
           return paths.map((p) => ({
             id: p,
             label: p,
             title: fileName(p),
             description: dirName(p),
+            isDirectory: p.endsWith("/"),
           }));
-        } catch (err) {
-          console.debug("[mention] searchPaths error", err);
+        } catch {
           return [];
         }
+      },
+      command: ({ editor, range, props }: any) => {
+        if ((props as SuggestionItem).isDirectory) {
+          // Drill-down: atomically replace @query with @dir/ to re-trigger suggestion
+          editor.chain().focus().insertContentAt(range, `@${props.label}`).run();
+          return;
+        }
+
+        // Normal file: insert as mention node
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(range, [
+            { type: "mention", attrs: { id: props.id, label: props.label } },
+            { type: "text", text: " " },
+          ])
+          .run();
       },
       render: () => {
         let root: ReturnType<typeof createRoot> | null = null;

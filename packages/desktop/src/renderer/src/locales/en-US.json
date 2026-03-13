@@ -125,6 +125,14 @@
   "settings.skills.retry": "Retry",
   "settings.skills.removeSkill": "Remove skill",
 
+  "permission.allow": "Allow",
+  "permission.allowOnce": "Allow once",
+  "permission.deny": "Deny",
+  "permission.denyFeedback": "Deny, with feedback...",
+  "permission.feedbackPlaceholder": "Tell Claude what to do differently...",
+  "permission.pendingCount": "{{current}} of {{total}}",
+  "permission.savesTo": "Saves to {{path}}",
+
   "common.cancel": "Cancel",
   "common.delete": "Delete"
 }

@@ -1,34 +1,276 @@
-import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
+import type { PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { ClaudeCodeUIEventRequest } from "../../../../../shared/claude-code/types";
+import type { PermissionMode } from "../../../../../shared/features/agent/types";
 
-import { Button } from "../../../components/ui/button";
+import { CodeBlock } from "../../../components/ai-elements/code-block";
+import { Kbd } from "../../../components/ui/kbd";
+import { cn } from "../../../lib/utils";
+import {
+  formatSuggestionLabel,
+  formatToolPreview,
+  getSuggestionPersistencePath,
+  inferDecisionReason,
+} from "./permission-utils";
 
 type Props = {
   request: ClaudeCodeUIEventRequest;
+  pendingCount: number;
+  pendingIndex: number;
+  permissionMode: PermissionMode;
   onResolve: (result: PermissionResult) => void;
 };
 
-export function PermissionRequestDialog({ request, onResolve }: Props) {
+type OptionValue = "yes" | "yes-always" | "no" | "no-feedback";
+
+export function PermissionRequestDialog({
+  request,
+  pendingCount,
+  pendingIndex,
+  permissionMode,
+  onResolve,
+}: Props) {
+  const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const feedbackRef = useRef<HTMLInputElement>(null);
+  const [feedbackExpanded, setFeedbackExpanded] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const suggestions = request.options.suggestions;
+  const hasSuggestions = suggestions && suggestions.length > 0;
+
+  // ─── Tool preview ──────────────────────────────────────────────────────
+  const preview = formatToolPreview(request.toolName, request.input as Record<string, unknown>);
+
+  // ─── Decision reason ───────────────────────────────────────────────────
+  const reason = inferDecisionReason(permissionMode, request.options);
+
+  // ─── Suggestion label & persistence ────────────────────────────────────
+  const suggestionLabel = hasSuggestions ? formatSuggestionLabel(suggestions) : null;
+  const persistencePath = hasSuggestions ? getSuggestionPersistencePath(suggestions) : null;
+
+  // ─── Actions ───────────────────────────────────────────────────────────
+  const handleAllow = useCallback(() => {
+    onResolve({ behavior: "allow" });
+  }, [onResolve]);
+
+  const handleAlwaysAllow = useCallback(() => {
+    if (!suggestions) return;
+    onResolve({
+      behavior: "allow",
+      updatedPermissions: suggestions as PermissionUpdate[],
+    });
+  }, [onResolve, suggestions]);
+
+  const handleDeny = useCallback(
+    (message?: string) => {
+      onResolve({
+        behavior: "deny",
+        message: message || "User denied",
+      });
+    },
+    [onResolve],
+  );
+
+  const handleOptionClick = useCallback(
+    (value: OptionValue) => {
+      switch (value) {
+        case "yes":
+          handleAllow();
+          break;
+        case "yes-always":
+          handleAlwaysAllow();
+          break;
+        case "no":
+          handleDeny();
+          break;
+        case "no-feedback":
+          setFeedbackExpanded(true);
+          break;
+      }
+    },
+    [handleAllow, handleAlwaysAllow, handleDeny],
+  );
+
+  const handleFeedbackSubmit = useCallback(() => {
+    const text = feedbackText.trim();
+    handleDeny(text || undefined);
+  }, [feedbackText, handleDeny]);
+
+  // ─── Focus management ─────────────────────────────────────────────────
+  useEffect(() => {
+    containerRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (feedbackExpanded) {
+      feedbackRef.current?.focus();
+    }
+  }, [feedbackExpanded]);
+
+  // ─── Keyboard shortcuts ────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInputFocused = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (feedbackExpanded) {
+          setFeedbackExpanded(false);
+          containerRef.current?.focus();
+        } else {
+          handleDeny();
+        }
+        return;
+      }
+
+      if (isInputFocused) {
+        if (e.key === "Enter" && feedbackExpanded) {
+          e.preventDefault();
+          handleFeedbackSubmit();
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case "y":
+          e.preventDefault();
+          handleAllow();
+          break;
+        case "a":
+          if (hasSuggestions) {
+            e.preventDefault();
+            handleAlwaysAllow();
+          }
+          break;
+        case "n":
+          e.preventDefault();
+          handleDeny();
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [
+    feedbackExpanded,
+    hasSuggestions,
+    handleAllow,
+    handleAlwaysAllow,
+    handleDeny,
+    handleFeedbackSubmit,
+  ]);
+
+  // ─── Build options ─────────────────────────────────────────────────────
+  const allowLabel = hasSuggestions ? t("permission.allowOnce") : t("permission.allow");
+
+  const options: {
+    value: OptionValue;
+    label: string;
+    shortcut?: string;
+    subtitle?: string;
+  }[] = [
+    { value: "yes", label: allowLabel, shortcut: "y" },
+    ...(hasSuggestions && suggestionLabel
+      ? [
+          {
+            value: "yes-always" as const,
+            label: `${t("permission.allow")}, ${suggestionLabel}`,
+            shortcut: "a",
+            subtitle: persistencePath
+              ? t("permission.savesTo", { path: persistencePath })
+              : undefined,
+          },
+        ]
+      : []),
+    { value: "no", label: t("permission.deny"), shortcut: "n" },
+    { value: "no-feedback", label: t("permission.denyFeedback") },
+  ];
+
+  // ─── Render ────────────────────────────────────────────────────────────
   return (
-    <div className="relative rounded-2xl border border-yellow-500/30 bg-white p-4 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.3)]">
-      <p className="mb-1 text-sm font-medium">Permission requested: {request.toolName}</p>
-      {request.input != null && (
+    <div
+      ref={containerRef}
+      tabIndex={-1}
+      className="relative animate-in fade-in slide-in-from-bottom-2 duration-200 rounded-2xl border border-yellow-500/30 bg-background p-4 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.3)] outline-none min-h-[120px]"
+    >
+      {/* Header: Tool name + pending count */}
+      <div className="mb-2 flex items-center gap-2">
+        <p className="text-sm font-medium">{preview.title}</p>
+        {pendingCount > 1 && (
+          <span className="text-xs text-muted-foreground">
+            ({t("permission.pendingCount", { current: pendingIndex + 1, total: pendingCount })})
+          </span>
+        )}
+      </div>
+
+      {/* Tool preview */}
+      {preview.code && preview.language && (
+        <div className="mb-2 max-h-24 overflow-auto rounded">
+          <CodeBlock code={preview.code} language={preview.language} className="text-sm" />
+        </div>
+      )}
+      {preview.code && !preview.language && (
         <pre className="mb-2 max-h-24 overflow-auto rounded bg-muted/50 p-2 text-xs">
-          {JSON.stringify(request.input, null, 2)}
+          {preview.code}
         </pre>
       )}
-      <div className="flex gap-2">
-        <Button size="sm" variant="default" onClick={() => onResolve({ behavior: "allow" })}>
-          Allow
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onResolve({ behavior: "deny", message: "User denied" })}
-        >
-          Deny
-        </Button>
+      {preview.subtitle && !preview.code && (
+        <p className="mb-2 truncate text-sm text-muted-foreground">{preview.subtitle}</p>
+      )}
+
+      {/* Decision reason */}
+      <p className="mb-3 text-xs text-muted-foreground">
+        <span className="mr-1">&#x23BF;</span>
+        {reason}
+      </p>
+
+      {/* Options */}
+      <div className="space-y-1">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={cn(
+              "flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-left text-sm transition-colors",
+              "hover:bg-muted/80 active:bg-muted",
+              option.value === "no-feedback" && feedbackExpanded && "bg-muted/50",
+            )}
+            onClick={() => handleOptionClick(option.value)}
+          >
+            <div className="min-w-0">
+              <span className="block truncate">{option.label}</span>
+              {option.subtitle && (
+                <span className="block text-xs text-muted-foreground">{option.subtitle}</span>
+              )}
+            </div>
+            {option.shortcut && <Kbd className="ml-2 shrink-0">{option.shortcut}</Kbd>}
+          </button>
+        ))}
+      </div>
+
+      {/* Feedback input */}
+      {feedbackExpanded && (
+        <div className="mt-2 pl-3">
+          <input
+            ref={feedbackRef}
+            type="text"
+            className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none ring-ring focus:ring-1"
+            placeholder={t("permission.feedbackPlaceholder")}
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Footer hint */}
+      <div className="mt-3 flex justify-end">
+        <span className="text-xs text-muted-foreground">
+          <Kbd>Esc</Kbd>
+        </span>
       </div>
     </div>
   );
