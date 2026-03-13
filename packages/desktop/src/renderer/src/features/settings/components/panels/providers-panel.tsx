@@ -19,10 +19,8 @@ import { useTranslation } from "react-i18next";
 import type { Provider, ProviderModelMap } from "../../../../../../shared/features/provider/types";
 
 import {
-  BUILT_IN_PROVIDERS,
-  getBuiltInProvider,
   resolveL10n,
-  type BuiltInProvider,
+  type ProviderTemplate,
 } from "../../../../../../shared/features/provider/built-in";
 import {
   AlertDialog,
@@ -38,6 +36,7 @@ import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Switch } from "../../../../components/ui/switch";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../../../components/ui/tooltip";
+import { useRendererApp } from "../../../../core/app";
 import { BenchmarkButton } from "../../../provider/benchmark-button";
 import { BenchmarkMetrics } from "../../../provider/benchmark-metrics";
 import { BenchmarkTooltipContent } from "../../../provider/benchmark-tooltip";
@@ -78,7 +77,7 @@ function providerToForm(p: Provider): ProviderFormData {
   };
 }
 
-function builtInToForm(t: BuiltInProvider, lang: string): ProviderFormData {
+function builtInToForm(t: ProviderTemplate, lang: string): ProviderFormData {
   return {
     name: resolveL10n(t.name, lang, t.nameLocalized),
     baseURL: t.baseURL,
@@ -93,6 +92,7 @@ function builtInToForm(t: BuiltInProvider, lang: string): ProviderFormData {
 
 export const ProvidersPanel = () => {
   const { t, i18n } = useTranslation();
+  const providerTemplates = useRendererApp().pluginManager.contributions.providerTemplates;
   const providers = useProviderStore((s) => s.providers);
   const loaded = useProviderStore((s) => s.loaded);
   const load = useProviderStore((s) => s.load);
@@ -160,7 +160,7 @@ export const ProvidersPanel = () => {
     });
   }, []);
 
-  const selectTemplate = useCallback((template: BuiltInProvider) => {
+  const selectTemplate = useCallback((template: ProviderTemplate) => {
     setShowTemplatePicker(false);
     setIsCreating(true);
     setShowApiKey(false);
@@ -331,7 +331,7 @@ export const ProvidersPanel = () => {
 
   const handleResetDefaults = useCallback(() => {
     if (!form.builtInId) return;
-    const template = getBuiltInProvider(form.builtInId);
+    const template = providerTemplates.find((t) => t.id === form.builtInId);
     if (!template) return;
     if (!window.confirm(t("settings.providers.resetConfirm"))) return;
     setForm((f) => ({
@@ -341,11 +341,11 @@ export const ProvidersPanel = () => {
       modelMap: { ...template.modelMap },
       envOverrides: { ...template.envOverrides },
     }));
-  }, [form.builtInId, t]);
+  }, [form.builtInId, providerTemplates, t]);
 
   const activeBuiltIn = useMemo(
-    () => (form.builtInId ? getBuiltInProvider(form.builtInId) : undefined),
-    [form.builtInId],
+    () => (form.builtInId ? providerTemplates.find((t) => t.id === form.builtInId) : undefined),
+    [form.builtInId, providerTemplates],
   );
 
   const activeApiKeyURL = activeBuiltIn?.apiKeyURL;
@@ -365,7 +365,7 @@ export const ProvidersPanel = () => {
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("settings.providers.chooseTemplate")}</p>
           <div className="grid grid-cols-3 gap-3">
-            {BUILT_IN_PROVIDERS.map((template) => {
+            {providerTemplates.map((template) => {
               const hostname = new URL(template.baseURL).hostname;
               const isUsed = usedBuiltInIds.has(template.id);
               return (
