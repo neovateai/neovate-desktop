@@ -122,7 +122,7 @@ export function AppLayoutTrafficLights() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative !size-6"
+        className={cn("relative !size-6 hover:bg-accent", isOpen && "bg-accent")}
         onClick={() => togglePanel("primarySidebar")}
         title={isOpen ? "Hide sidebar" : "Show sidebar"}
       >
@@ -232,9 +232,9 @@ export function AppLayoutSecondaryTitleBar() {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="size-7"
           onClick={() => togglePanel("secondarySidebar")}
           title={secondaryCollapsed ? "Show sidebar" : "Hide sidebar"}
+          className={cn("hover:bg-accent", !secondaryCollapsed && "bg-accent")}
         >
           <HugeiconsIcon
             icon={secondaryCollapsed ? PanelRightIcon : ViewSidebarRightIcon}
@@ -277,12 +277,12 @@ function ContentPanelToggle() {
       variant="ghost"
       size="icon-sm"
       onClick={() => togglePanel("contentPanel")}
-      title="Panels"
+      title={collapsed ? "Show content panel" : "Hide content panel"}
       className={cn("hover:bg-accent", !collapsed && "bg-accent")}
     >
       <HugeiconsIcon
         icon={collapsed ? SidebarRightIcon : SidebarRight01Icon}
-        size={24}
+        size={16}
         strokeWidth={1.5}
       />
     </Button>
