@@ -14,12 +14,12 @@ import { Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { type ReactNode, Suspense, lazy, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { TitlebarItem } from "../../core/plugin/contributions";
 import type { SeparatorId } from "./types";
 
 import { useRendererApp } from "../../core/app";
-import { useTranslation } from "react-i18next";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
 import { useAgentStore } from "../../features/agent/store";

@@ -104,7 +104,9 @@ export default function DebugView() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-xs font-medium uppercase text-muted-foreground">{t("debug.activeSessions")}</span>
+        <span className="text-xs font-medium uppercase text-muted-foreground">
+          {t("debug.activeSessions")}
+        </span>
         <div className="flex items-center gap-1.5">
           <Button
             variant="ghost"

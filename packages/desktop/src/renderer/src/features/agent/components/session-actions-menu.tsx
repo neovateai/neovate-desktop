@@ -90,7 +90,9 @@ export function SessionActionsMenu({
           <ContextMenuItem onClick={handleCopyWorkingDirectory}>
             {t("session.copyWorkingDirectory")}
           </ContextMenuItem>
-          <ContextMenuItem onClick={handleCopySessionId}>{t("session.copySessionId")}</ContextMenuItem>
+          <ContextMenuItem onClick={handleCopySessionId}>
+            {t("session.copySessionId")}
+          </ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
             {t("session.copyJsonlPath")}
           </ContextMenuItem>
@@ -121,7 +123,9 @@ export function SessionActionsMenu({
           {t("session.archive")}
         </MenuItem>
         <MenuSeparator />
-        <MenuItem onClick={handleCopyWorkingDirectory}>{t("session.copyWorkingDirectory")}</MenuItem>
+        <MenuItem onClick={handleCopyWorkingDirectory}>
+          {t("session.copyWorkingDirectory")}
+        </MenuItem>
         <MenuItem onClick={handleCopySessionId}>{t("session.copySessionId")}</MenuItem>
         <MenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
           {t("session.copyJsonlPath")}

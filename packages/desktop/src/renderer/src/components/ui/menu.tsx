@@ -15,7 +15,11 @@ const MenuPortal = MenuPrimitive.Portal;
 
 function MenuTrigger({ className, children, ...props }: MenuPrimitive.Trigger.Props) {
   return (
-    <MenuPrimitive.Trigger className={cn("cursor-pointer", className)} data-slot="menu-trigger" {...props}>
+    <MenuPrimitive.Trigger
+      className={cn("cursor-pointer", className)}
+      data-slot="menu-trigger"
+      {...props}
+    >
       {children}
     </MenuPrimitive.Trigger>
   );

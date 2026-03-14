@@ -1,5 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-
 import { useTranslation } from "react-i18next";
 
 type Props = {
