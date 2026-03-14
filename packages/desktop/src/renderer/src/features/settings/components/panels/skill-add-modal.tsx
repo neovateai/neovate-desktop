@@ -188,7 +188,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
               </div>
               <div className="flex items-center gap-2 pt-2 border-t border-border">
                 <span className="text-xs text-muted-foreground">Install to:</span>
-                <Select value={installScope} onValueChange={setInstallScope}>
+                <Select value={installScope} onValueChange={(v) => v && setInstallScope(v)}>
                   <SelectTrigger size="sm" className="w-36">
                     <SelectValue />
                   </SelectTrigger>

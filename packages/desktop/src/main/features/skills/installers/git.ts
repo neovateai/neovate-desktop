@@ -93,11 +93,9 @@ export class GitInstaller implements SkillInstaller {
     }
   }
 
-  /** Clean up any stale preview directories older than maxAge ms */
-  cleanupStale(maxAgeMs: number): void {
-    const now = Date.now();
+  /** Clean up any stale preview directories */
+  cleanupStale(): void {
     for (const [id, dir] of this.previewDirs) {
-      // Use the UUID timestamp approximation — or just clean all for simplicity
       rm(dir, { recursive: true, force: true })
         .then(() => this.previewDirs.delete(id))
         .catch(() => {});

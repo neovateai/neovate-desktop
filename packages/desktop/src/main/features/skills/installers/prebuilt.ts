@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cp, readdir, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp } from "node:fs/promises";
 import path from "node:path";
 
 import type { PreviewSkill } from "../../../../shared/features/skills/types";

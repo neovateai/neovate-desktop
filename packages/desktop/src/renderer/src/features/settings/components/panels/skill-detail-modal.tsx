@@ -257,7 +257,7 @@ export const SkillDetailModal = ({
             </div>
           ) : (
             <div className="flex items-center justify-end gap-2 w-full">
-              <Select value={installScope} onValueChange={setInstallScope}>
+              <Select value={installScope} onValueChange={(v) => v && setInstallScope(v)}>
                 <SelectTrigger size="sm" className="w-36">
                   <SelectValue />
                 </SelectTrigger>
