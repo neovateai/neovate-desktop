@@ -1,9 +1,6 @@
 import type { ToolUIPart } from "ai";
 
-import type {
-  ClaudeCodeUIMessage,
-  ClaudeCodeUITools,
-} from "../../../../../../shared/claude-code/types";
+import type { ClaudeCodeUITools } from "../../../../../../shared/claude-code/types";
 
 import { AgentTool } from "./agent-tool";
 import { AskUserQuestionTool } from "./ask-user-question-tool";
@@ -20,54 +17,31 @@ import { ReadTool } from "./read-tool";
 import { SkillTool } from "./skill-tool";
 import { TaskOutputTool } from "./task-output-tool";
 import { TaskStopTool } from "./task-stop-tool";
-import { TaskTool } from "./task-tool";
 import { TodoWriteTool } from "./todo-write-tool";
 import { WebFetchTool } from "./web-fetch-tool";
 import { WebSearchTool } from "./web-search-tool";
 import { WriteTool } from "./write-tool";
 
-function ClaudeCodeToolUIPart({
-  message,
-  part,
-}: {
-  message: ClaudeCodeUIMessage;
-  part: ToolUIPart<ClaudeCodeUITools>;
-}) {
-  if (
-    !part ||
-    part.state === "input-streaming" ||
-    part.callProviderMetadata?.claudeCode?.parentToolUseId
-  ) {
+function ClaudeCodeToolUIPart({ part }: { part: ToolUIPart<ClaudeCodeUITools> }) {
+  if (!part || part.state === "input-streaming") {
     return null;
   }
 
-  return <ClaudeCodeToolUIPartComponent key={part.toolCallId} message={message} part={part} />;
+  return <ClaudeCodeToolUIPartComponent key={part.toolCallId} part={part} />;
 }
 
-function ClaudeCodeToolUIPartComponent({
-  message,
-  part,
-}: {
-  message: ClaudeCodeUIMessage;
-  part: ToolUIPart<ClaudeCodeUITools>;
-}) {
+function ClaudeCodeToolUIPartComponent({ part }: { part: ToolUIPart<ClaudeCodeUITools> }) {
   switch (part.type) {
     case "tool-Task":
+    case "tool-Agent":
       return (
-        <TaskTool
-          message={message}
+        <AgentTool
           invocation={part}
-          renderToolPart={(childPart) => (
-            <ClaudeCodeToolUIPartComponent
-              key={childPart.toolCallId}
-              message={message}
-              part={childPart}
-            />
+          renderToolPart={(_childMessage, childPart) => (
+            <ClaudeCodeToolUIPartComponent key={childPart.toolCallId} part={childPart} />
           )}
         />
       );
-    case "tool-Agent":
-      return <AgentTool invocation={part} />;
     case "tool-AskUserQuestion":
       return <AskUserQuestionTool invocation={part} />;
     case "tool-Bash":

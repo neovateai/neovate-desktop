@@ -35,6 +35,7 @@ import { MessageInput } from "./message-input";
 import { MessageParts } from "./message-parts";
 import { PermissionDialog } from "./permission-dialog";
 import { TaskProgress } from "./task-progress";
+import { ClaudeCodeToolUIPart } from "./tool-parts";
 import { WelcomePanel } from "./welcome-panel";
 
 export function AgentChat() {
@@ -199,7 +200,11 @@ function AgentChatSession({
       <Conversation>
         <ConversationContent>
           {messages.map((message) => (
-            <MessageParts key={message.id} message={message} />
+            <MessageParts
+              key={message.id}
+              message={message}
+              renderToolPart={(_partMessage, part) => <ClaudeCodeToolUIPart part={part} />}
+            />
           ))}
         </ConversationContent>
         <ConversationScrollButton />
