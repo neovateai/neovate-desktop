@@ -42,6 +42,32 @@ describe("WorkbenchLayoutService", () => {
     expect(togglePart).not.toHaveBeenCalled();
   });
 
+  it("collapses an expanded part by delegating to togglePart", () => {
+    const togglePart = vi.fn();
+    const service = new WorkbenchLayoutService({
+      isExpanded: vi.fn(() => true),
+      togglePart,
+      maximizeContentPanel: vi.fn(),
+    });
+
+    service.collapsePart("contentPanel");
+
+    expect(togglePart).toHaveBeenCalledWith("contentPanel");
+  });
+
+  it("does nothing when the part is already collapsed", () => {
+    const togglePart = vi.fn();
+    const service = new WorkbenchLayoutService({
+      isExpanded: vi.fn(() => false),
+      togglePart,
+      maximizeContentPanel: vi.fn(),
+    });
+
+    service.collapsePart("contentPanel");
+
+    expect(togglePart).not.toHaveBeenCalled();
+  });
+
   it("delegates togglePart directly to the adapter", () => {
     const togglePart = vi.fn();
     const service = new WorkbenchLayoutService({
@@ -62,6 +88,7 @@ describe("WorkbenchLayoutService", () => {
       maximizeContentPanel: vi.fn(),
     });
 
+    expect(typeof service.collapsePart).toBe("function");
     expect(typeof service.maximizePart).toBe("function");
   });
 

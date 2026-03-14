@@ -18,7 +18,12 @@ let panel: ContentPanel;
 vi.mock("../../../core", () => ({
   useRendererApp: () => ({
     workbench: {
-      layout: { expandPart: vi.fn(), togglePart: vi.fn(), maximizePart: vi.fn() },
+      layout: {
+        expandPart: vi.fn(),
+        collapsePart: vi.fn(),
+        togglePart: vi.fn(),
+        maximizePart: vi.fn(),
+      },
       contentPanel: panel,
     },
   }),
@@ -39,6 +44,7 @@ beforeEach(() => {
     views: VIEWS,
     layout: {
       expandPart: vi.fn(),
+      collapsePart: vi.fn(),
       togglePart: vi.fn(),
       maximizePart: vi.fn(),
     } satisfies IWorkbenchLayoutService,

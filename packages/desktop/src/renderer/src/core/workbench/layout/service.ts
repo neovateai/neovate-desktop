@@ -21,6 +21,11 @@ export class WorkbenchLayoutService implements IWorkbenchLayoutService {
     return this.adapter.togglePart(part);
   }
 
+  collapsePart(part: CollapsibleWorkbenchPartId): void | Promise<void> {
+    if (!this.adapter.isExpanded(part)) return;
+    return this.adapter.togglePart(part);
+  }
+
   togglePart(part: CollapsibleWorkbenchPartId): void | Promise<void> {
     return this.adapter.togglePart(part);
   }
