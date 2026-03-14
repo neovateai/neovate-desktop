@@ -33,5 +33,6 @@
   "git.diff.oldVersion": "旧版本",
   "git.diff.newVersion": "新版本",
   "git.diff.close": "关闭差异视图",
-  "git.diff.linesHidden": "行已隐藏"
+  "git.diff.linesHidden": "行已隐藏",
+  "git.openFile": "打开文件"
 }

@@ -3,6 +3,7 @@ import type React from "react";
 import { Delete02Icon, FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../../../components/ui/menu";
 import { useProject } from "../hooks/use-project";
@@ -13,6 +14,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorProps) {
+  const { t } = useTranslation();
   const { projects, activeProject, loading, openProject, switchProject, removeProject } =
     useProject();
 
@@ -23,7 +25,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
           render={
             <button className="inline-flex items-center gap-2 rounded-full border border-input bg-[var(--background-secondary)] px-4 py-2 text-sm hover:bg-accent/50">
               <span className={activeProject ? "text-foreground" : "text-muted-foreground"}>
-                {activeProject?.name ?? "Select a project..."}
+                {activeProject?.name ?? t("project.selectProject")}
               </span>
               <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
             </button>
@@ -35,7 +37,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
       <MenuPopup side="bottom" align={variant === "select" ? "center" : "start"}>
         <MenuItem onClick={openProject} disabled={loading}>
           <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
-          <span>Open Project</span>
+          <span>{t("project.openProject")}</span>
         </MenuItem>
 
         {projects.length > 0 && (

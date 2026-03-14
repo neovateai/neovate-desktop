@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import debug from "debug";
 import { MoreHorizontal } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { encodeProjectPath } from "../../../../../shared/claude-code/paths";
 import { Button } from "../../../components/ui/button";
@@ -35,6 +36,7 @@ export function SessionActionsMenu({
   children,
   onRenameStart,
 }: SessionActionsMenuProps) {
+  const { t } = useTranslation();
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
@@ -73,24 +75,24 @@ export function SessionActionsMenu({
         <ContextMenuTrigger render={children as ReactElement}></ContextMenuTrigger>
         <ContextMenuPopup>
           <ContextMenuItem disabled={isNew} onClick={onRenameStart}>
-            Rename
+            {t("session.rename")}
           </ContextMenuItem>
           <ContextMenuItem
             disabled={isNew}
             onClick={() => togglePinSession(projectPath, sessionId)}
           >
-            {isPinned ? "Unpin" : "Pin"}
+            {isPinned ? t("session.unpin") : t("session.pin")}
           </ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleArchive}>
-            Archive
+            {t("session.archive")}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onClick={handleCopyWorkingDirectory}>
-            Copy working directory
+            {t("session.copyWorkingDirectory")}
           </ContextMenuItem>
-          <ContextMenuItem onClick={handleCopySessionId}>Copy session ID</ContextMenuItem>
+          <ContextMenuItem onClick={handleCopySessionId}>{t("session.copySessionId")}</ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
-            Copy session JSONL path
+            {t("session.copyJsonlPath")}
           </ContextMenuItem>
         </ContextMenuPopup>
       </ContextMenu>
@@ -110,19 +112,19 @@ export function SessionActionsMenu({
       />
       <MenuPopup side="bottom" align="end" className="text-xs">
         <MenuItem disabled={isNew} onClick={onRenameStart}>
-          Rename
+          {t("session.rename")}
         </MenuItem>
         <MenuItem disabled={isNew} onClick={() => togglePinSession(projectPath, sessionId)}>
-          {isPinned ? "Unpin" : "Pin"}
+          {isPinned ? t("session.unpin") : t("session.pin")}
         </MenuItem>
         <MenuItem disabled={isNew} onClick={handleArchive}>
-          Archive
+          {t("session.archive")}
         </MenuItem>
         <MenuSeparator />
-        <MenuItem onClick={handleCopyWorkingDirectory}>Copy working directory</MenuItem>
-        <MenuItem onClick={handleCopySessionId}>Copy session ID</MenuItem>
+        <MenuItem onClick={handleCopyWorkingDirectory}>{t("session.copyWorkingDirectory")}</MenuItem>
+        <MenuItem onClick={handleCopySessionId}>{t("session.copySessionId")}</MenuItem>
         <MenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
-          Copy session JSONL path
+          {t("session.copyJsonlPath")}
         </MenuItem>
       </MenuPopup>
     </Menu>

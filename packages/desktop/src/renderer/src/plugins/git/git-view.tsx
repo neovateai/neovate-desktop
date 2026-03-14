@@ -250,7 +250,7 @@ export default memo(function GitView() {
                         openFile(file);
                       }}
                       className="p-px hover:bg-accent rounded-sm"
-                      title="打开文件"
+                      title={t("git.openFile")}
                     >
                       <File className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                     </button>

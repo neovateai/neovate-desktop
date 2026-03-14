@@ -1,5 +1,6 @@
 import { X, Plus } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import type { ContentPanelView } from "../../core/plugin/contributions";
@@ -20,6 +21,7 @@ function useLazyComponents(views: ContentPanelView[]) {
 }
 
 export function ContentPanelTabs() {
+  const { t } = useTranslation();
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
   const views = app.pluginManager.contributions.contentPanelViews;
@@ -44,7 +46,7 @@ export function ContentPanelTabs() {
   if (!projectPath) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-xs text-muted-foreground">No project selected</p>
+        <p className="text-xs text-muted-foreground">{t("contentPanel.noProjectSelected")}</p>
       </div>
     );
   }
@@ -132,7 +134,7 @@ export function ContentPanelTabs() {
         {/* Empty state */}
         {tabs.length === 0 && (
           <div className="flex h-full items-center justify-center">
-            <p className="text-xs text-muted-foreground">No tabs open</p>
+            <p className="text-xs text-muted-foreground">{t("contentPanel.noTabsOpen")}</p>
           </div>
         )}
       </div>

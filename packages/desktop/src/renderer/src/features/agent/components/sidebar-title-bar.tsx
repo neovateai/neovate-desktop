@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
 import { CheckIcon, Plus } from "lucide-react";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
 
@@ -24,6 +25,7 @@ import { useNewSession } from "../hooks/use-new-session";
 const log = debug("neovate:sidebar-title-bar");
 
 export const SidebarTitleBar = memo(function SidebarTitleBar() {
+  const { t } = useTranslation();
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
   const sidebarSortBy = useConfigStore((s) => s.sidebarSortBy);
   const setConfig = useConfigStore((s) => s.setConfig);
@@ -43,7 +45,7 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
 
   return (
     <div className="flex items-center justify-between px-3 py-2">
-      <span className="text-sm font-medium text-foreground">Sessions</span>
+      <span className="text-sm font-medium text-foreground">{t("sidebar.sessions")}</span>
       <div className="flex items-center gap-1">
         {sidebarOrganize === "chronological" && (
           <Button
@@ -52,7 +54,7 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
             className="size-7"
             onClick={() => activeProject && createNewSession(activeProject.path)}
             disabled={!activeProject}
-            title="New chat"
+            title={t("sidebar.newChat")}
           >
             <Plus size={16} strokeWidth={1.5} />
           </Button>
@@ -62,41 +64,41 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
           size="icon"
           className="size-7"
           onClick={() => openProject()}
-          title="Add project"
+          title={t("sidebar.addProject")}
         >
           <HugeiconsIcon icon={FolderAddIcon} size={16} strokeWidth={1.5} />
         </Button>
         <Menu>
           <MenuTrigger
             render={
-              <Button variant="ghost" size="icon" className="size-7" title="Filter">
+              <Button variant="ghost" size="icon" className="size-7" title={t("sidebar.filter")}>
                 <HugeiconsIcon icon={FilterIcon} size={16} strokeWidth={1.5} />
               </Button>
             }
           />
           <MenuPopup side="bottom" align="end" className="text-xs">
             <MenuGroup>
-              <MenuGroupLabel>Organize</MenuGroupLabel>
+              <MenuGroupLabel>{t("sidebar.organize")}</MenuGroupLabel>
               <MenuItem onClick={() => handleOrganizeChange("byProject")}>
                 <HugeiconsIcon icon={FolderIcon} size={14} strokeWidth={1.5} />
-                <span className="flex-1">By project</span>
+                <span className="flex-1">{t("sidebar.organize.byProject")}</span>
                 {sidebarOrganize === "byProject" && <CheckIcon size={12} />}
               </MenuItem>
               <MenuItem onClick={() => handleOrganizeChange("chronological")}>
                 <HugeiconsIcon icon={Clock01Icon} size={14} strokeWidth={1.5} />
-                <span className="flex-1">Chronological list</span>
+                <span className="flex-1">{t("sidebar.organize.chronological")}</span>
                 {sidebarOrganize === "chronological" && <CheckIcon size={12} />}
               </MenuItem>
             </MenuGroup>
             <MenuSeparator />
             <MenuGroup>
-              <MenuGroupLabel>Sort by</MenuGroupLabel>
+              <MenuGroupLabel>{t("sidebar.sortBy")}</MenuGroupLabel>
               <MenuItem onClick={() => handleSortChange("created")}>
-                <span className="flex-1">Created</span>
+                <span className="flex-1">{t("sidebar.sortBy.created")}</span>
                 {sidebarSortBy === "created" && <CheckIcon size={14} />}
               </MenuItem>
               <MenuItem onClick={() => handleSortChange("updated")}>
-                <span className="flex-1">Updated</span>
+                <span className="flex-1">{t("sidebar.sortBy.updated")}</span>
                 {sidebarSortBy === "updated" && <CheckIcon size={14} />}
               </MenuItem>
             </MenuGroup>

@@ -19,6 +19,7 @@ import type { TitlebarItem } from "../../core/plugin/contributions";
 import type { SeparatorId } from "./types";
 
 import { useRendererApp } from "../../core/app";
+import { useTranslation } from "react-i18next";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
 import { useAgentStore } from "../../features/agent/store";
@@ -106,6 +107,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
 }
 
 export function AppLayoutTrafficLights() {
+  const { t } = useTranslation();
   const collapsed = useLayoutStore((s) => s.panels.primarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -124,7 +126,7 @@ export function AppLayoutTrafficLights() {
         size="icon"
         className={cn("relative !size-6 hover:bg-accent", isOpen && "bg-accent")}
         onClick={() => togglePanel("primarySidebar")}
-        title={isOpen ? "Hide sidebar" : "Show sidebar"}
+        title={isOpen ? t("sidebar.hideSidebar") : t("sidebar.showSidebar")}
       >
         <motion.span
           className="absolute inset-0 flex items-center justify-center"
@@ -155,7 +157,7 @@ export function AppLayoutTrafficLights() {
           className="!size-6"
           onClick={() => activeProject && createNewSession(activeProject.path)}
           disabled={!activeProject}
-          title="New chat"
+          title={t("sidebar.newChat")}
         >
           <Plus size={16} strokeWidth={1.5} />
         </Button>
@@ -190,7 +192,7 @@ export function AppLayoutPrimaryTitleBar() {
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-accent/50"
         >
           <HugeiconsIcon icon={FolderIcon} size={14} strokeWidth={1.5} className="opacity-60" />
-          <span className="truncate">{activeProject?.name ?? "No project"}</span>
+          <span className="truncate">{activeProject?.name ?? t("sidebar.noProject")}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
             size={14}
@@ -204,6 +206,7 @@ export function AppLayoutPrimaryTitleBar() {
 }
 
 export function AppLayoutSecondaryTitleBar() {
+  const { t } = useTranslation();
   const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -233,7 +236,7 @@ export function AppLayoutSecondaryTitleBar() {
           variant="ghost"
           size="icon-sm"
           onClick={() => togglePanel("secondarySidebar")}
-          title={secondaryCollapsed ? "Show sidebar" : "Hide sidebar"}
+          title={secondaryCollapsed ? t("sidebar.showSidebar") : t("sidebar.hideSidebar")}
           className={cn("hover:bg-accent", !secondaryCollapsed && "bg-accent")}
         >
           <HugeiconsIcon
@@ -246,7 +249,7 @@ export function AppLayoutSecondaryTitleBar() {
           variant="ghost"
           size="icon-sm"
           className="size-7"
-          title="Settings"
+          title={t("sidebar.settings")}
           onClick={() => setShowSettings(true)}
         >
           <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.5} />
@@ -261,14 +264,16 @@ export function AppLayoutPanelSeparator({ id }: { id: SeparatorId }) {
 }
 
 export function AppLayoutStatusBar() {
+  const { t } = useTranslation();
   return (
     <div data-slot="status-bar" className="flex h-6 shrink-0 items-center px-3">
-      <span className="text-[11px] text-muted-foreground">Ready</span>
+      <span className="text-[11px] text-muted-foreground">{t("status.ready")}</span>
     </div>
   );
 }
 
 function ContentPanelToggle() {
+  const { t } = useTranslation();
   const collapsed = useLayoutStore((s) => s.panels.contentPanel.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
 
@@ -277,7 +282,7 @@ function ContentPanelToggle() {
       variant="ghost"
       size="icon-sm"
       onClick={() => togglePanel("contentPanel")}
-      title={collapsed ? "Show content panel" : "Hide content panel"}
+      title={collapsed ? t("sidebar.showContentPanel") : t("sidebar.hideContentPanel")}
       className={cn("hover:bg-accent", !collapsed && "bg-accent")}
     >
       <HugeiconsIcon

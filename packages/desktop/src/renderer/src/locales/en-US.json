@@ -9,6 +9,7 @@
   "settings.rules.projectRules": "Project Rules",
   "settings.rules.projectRules.description": "Define custom AI behavior guidelines for this project. Create AGENTS.md in your workspace root to activate.",
   "settings.rules.configureRules": "Configure Rules",
+  "settings.backToApp": "Back to app",
   "settings.general": "General",
   "settings.general.language": "Language",
   "settings.general.language.description": "Select your preferred language for the interface",
@@ -181,5 +182,60 @@
   "branch.create.invalidChars": "Branch name contains invalid characters",
 
   "common.cancel": "Cancel",
-  "common.delete": "Delete"
+  "common.delete": "Delete",
+
+  "sidebar.newChat": "New chat",
+  "sidebar.settings": "Settings",
+  "sidebar.addProject": "Add project",
+  "sidebar.hideSidebar": "Hide sidebar",
+  "sidebar.showSidebar": "Show sidebar",
+  "sidebar.hideContentPanel": "Hide content panel",
+  "sidebar.showContentPanel": "Show content panel",
+  "sidebar.sessions": "Sessions",
+  "sidebar.filter": "Filter",
+  "sidebar.organize": "Organize",
+  "sidebar.organize.byProject": "By project",
+  "sidebar.organize.chronological": "Chronological list",
+  "sidebar.sortBy": "Sort by",
+  "sidebar.sortBy.created": "Created",
+  "sidebar.sortBy.updated": "Updated",
+  "sidebar.noProject": "No project",
+
+  "session.noConversations": "No conversations",
+  "session.noConversationsYet": "No conversations yet",
+  "session.startNewChat": "Start a new chat to get going",
+  "session.selectProject": "Select a project",
+  "session.newChat": "New Chat",
+  "session.rename": "Rename",
+  "session.pin": "Pin",
+  "session.unpin": "Unpin",
+  "session.archive": "Archive",
+  "session.copyWorkingDirectory": "Copy working directory",
+  "session.copySessionId": "Copy session ID",
+  "session.copyJsonlPath": "Copy session JSONL path",
+
+  "project.openProject": "Open Project",
+  "project.selectProject": "Select a project...",
+
+  "openIn.open": "Open",
+  "openIn.noAppsDetected": "No apps detected",
+  "openIn.copyPath": "Copy path",
+
+  "status.ready": "Ready",
+
+  "debug.activeSessions": "Active Sessions",
+  "debug.closeSession": "Close session",
+  "debug.maximizePanel": "Maximize content panel",
+  "debug.refresh": "Refresh",
+  "debug.active": "Active",
+  "debug.noActiveSessions": "No active sessions",
+
+  "editor.title": "Code Editor",
+  "editor.loading": "Loading...",
+
+  "contentPanel.noProjectSelected": "No project selected",
+  "contentPanel.noTabsOpen": "No tabs open",
+
+  "error.somethingWentWrong": "Something went wrong",
+  "error.tryAgain": "Try again"
 }

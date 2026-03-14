@@ -9,6 +9,7 @@
   "settings.rules.projectRules": "项目规则",
   "settings.rules.projectRules.description": "定义此项目的自定义 AI 行为准则。在工作区根目录创建 AGENTS.md 以激活。",
   "settings.rules.configureRules": "配置规则",
+  "settings.backToApp": "返回应用",
   "settings.general": "通用",
   "settings.general.language": "语言",
   "settings.general.language.description": "选择界面显示语言",
@@ -180,5 +181,60 @@
 
   "common.cancel": "取消",
   "common.delete": "删除",
-  "common.loading": "加载中..."
+  "common.loading": "加载中...",
+
+  "sidebar.newChat": "新建会话",
+  "sidebar.settings": "设置",
+  "sidebar.addProject": "添加项目",
+  "sidebar.hideSidebar": "隐藏侧边栏",
+  "sidebar.showSidebar": "显示侧边栏",
+  "sidebar.hideContentPanel": "隐藏内容面板",
+  "sidebar.showContentPanel": "显示内容面板",
+  "sidebar.sessions": "会话",
+  "sidebar.filter": "筛选",
+  "sidebar.organize": "组织方式",
+  "sidebar.organize.byProject": "按项目",
+  "sidebar.organize.chronological": "按时间顺序",
+  "sidebar.sortBy": "排序方式",
+  "sidebar.sortBy.created": "创建时间",
+  "sidebar.sortBy.updated": "更新时间",
+  "sidebar.noProject": "无项目",
+
+  "session.noConversations": "暂无会话",
+  "session.noConversationsYet": "暂无会话",
+  "session.startNewChat": "开始新聊天",
+  "session.selectProject": "选择一个项目",
+  "session.newChat": "新建会话",
+  "session.rename": "重命名",
+  "session.pin": "置顶",
+  "session.unpin": "取消置顶",
+  "session.archive": "归档",
+  "session.copyWorkingDirectory": "复制工作目录",
+  "session.copySessionId": "复制会话 ID",
+  "session.copyJsonlPath": "复制会话 JSONL 路径",
+
+  "project.openProject": "打开项目",
+  "project.selectProject": "选择项目...",
+
+  "openIn.open": "打开",
+  "openIn.noAppsDetected": "未检测到应用",
+  "openIn.copyPath": "复制路径",
+
+  "status.ready": "就绪",
+
+  "debug.activeSessions": "活跃会话",
+  "debug.closeSession": "关闭会话",
+  "debug.maximizePanel": "最大化内容面板",
+  "debug.refresh": "刷新",
+  "debug.active": "活跃",
+  "debug.noActiveSessions": "暂无活跃会话",
+
+  "editor.title": "代码编辑器",
+  "editor.loading": "加载中...",
+
+  "contentPanel.noProjectSelected": "未选择项目",
+  "contentPanel.noTabsOpen": "暂无打开的标签页",
+
+  "error.somethingWentWrong": "出错了",
+  "error.tryAgain": "重试"
 }

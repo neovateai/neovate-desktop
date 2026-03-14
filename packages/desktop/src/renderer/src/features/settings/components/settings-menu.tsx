@@ -69,7 +69,7 @@ export const SettingsMenu = ({
         onClick={() => setShowSettings(false)}
       >
         <ArrowLeft className="size-4" />
-        <span>Back to app</span>
+        <span>{t("settings.backToApp")}</span>
       </button>
 
       {/* Menu items */}

@@ -1,5 +1,6 @@
 import { ChevronDown, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { App } from "../../../../../shared/features/utils/types";
 
@@ -62,6 +63,7 @@ interface OpenAppButtonProps {
 }
 
 export function OpenAppButton({ cwd }: OpenAppButtonProps) {
+  const { t } = useTranslation();
   const [apps, setApps] = useState<App[]>([]);
   const [hasDetected, setHasDetected] = useState(false);
   const [defaultOpenApp, setDefaultOpenApp] = useState<App | null>(() => {
@@ -134,7 +136,7 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
         {effectiveIcon ? (
           <img alt="" className="pointer-events-none size-4 shrink-0" src={effectiveIcon} />
         ) : (
-          <span className="text-xs">Open</span>
+          <span className="text-xs">{t("openIn.open")}</span>
         )}
       </Button>
       <DropdownMenu onOpenChange={handleOpenChange}>
@@ -148,7 +150,7 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
         <DropdownMenuContent align="end">
           {apps.length === 0 && hasDetected ? (
             <div className="px-4 py-2">
-              <span className="text-sm text-muted-foreground">No apps detected</span>
+              <span className="text-sm text-muted-foreground">{t("openIn.noAppsDetected")}</span>
             </div>
           ) : (
             apps.map((app) => {
@@ -168,7 +170,7 @@ export function OpenAppButton({ cwd }: OpenAppButtonProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleCopyPath} className="pl-3">
             <Copy className="size-4 shrink-0" />
-            <span>Copy path</span>
+            <span>{t("openIn.copyPath")}</span>
             <span className="ml-auto text-xs text-muted-foreground">
               {copyPathDisplay.join("")}
             </span>

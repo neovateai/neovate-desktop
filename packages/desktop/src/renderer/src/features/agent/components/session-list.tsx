@@ -1,6 +1,7 @@
 import debug from "debug";
 import { SquarePen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
@@ -62,6 +63,7 @@ function MultiProjectSessionList() {
 // --- Single-project mode (existing behavior) ---
 
 function SingleProjectSessionList() {
+  const { t } = useTranslation();
   const sessions = useAgentStore((s) => s.sessions);
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
@@ -144,7 +146,7 @@ function SingleProjectSessionList() {
   if (!activeProject || !projectPath) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-xs text-muted-foreground">Select a project</p>
+        <p className="text-xs text-muted-foreground">{t("session.selectProject")}</p>
       </div>
     );
   }
@@ -158,7 +160,7 @@ function SingleProjectSessionList() {
         onClick={() => createNewSession(projectPath)}
       >
         <SquarePen size={14} />
-        <span>New Chat</span>
+        <span>{t("session.newChat")}</span>
       </Button>
 
       {pinnedItems.length === 0 && regularItems.length === 0 ? (
