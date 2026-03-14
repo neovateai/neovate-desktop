@@ -1,4 +1,5 @@
-import { MessageSquare } from "lucide-react";
+import { ChevronDown, MessageSquare } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -8,6 +9,16 @@ import type {
 } from "../../../../../../shared/features/config/types";
 
 import {
+  Menu,
+  MenuGroup,
+  MenuGroupLabel,
+  MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuTrigger,
+} from "../../../../components/ui/menu";
+import {
   Select,
   SelectItem,
   SelectPopup,
@@ -16,7 +27,10 @@ import {
 } from "../../../../components/ui/select";
 import { Spinner } from "../../../../components/ui/spinner";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
+import { client } from "../../../../orpc";
+import { useAgentStore } from "../../../agent/store";
 import { useConfigStore } from "../../../config/store";
+import { useProviderStore } from "../../../provider/store";
 import { SettingsRow } from "../settings-row";
 
 // Translation key mappings
@@ -30,6 +44,21 @@ const permissionModeKeys = {
   acceptEdits: "settings.chat.permissionMode.acceptEdits",
   bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
 } as const satisfies Record<ConfigPermissionMode, string>;
+
+/** Encode provider+model into a single radio value. "" = auto. */
+function encodeValue(providerId: string | undefined, model: string | undefined): string {
+  if (!model) return "";
+  return providerId ? `${providerId}:${model}` : `:${model}`;
+}
+
+/** Decode radio value back to providerId + model. */
+function decodeValue(value: string): { providerId: string | null; model: string | null } {
+  if (!value) return { providerId: null, model: null };
+  const idx = value.indexOf(":");
+  const providerId = value.slice(0, idx) || null;
+  const model = value.slice(idx + 1) || null;
+  return { providerId, model };
+}
 
 export const ChatPanel = () => {
   const { t } = useTranslation();
@@ -55,17 +84,12 @@ export const ChatPanel = () => {
       </h1>
 
       <div className="space-y-0">
-        {/* Model - Coming Soon */}
+        {/* Model */}
         <SettingsRow
           title={t("settings.chat.model")}
           description={t("settings.chat.model.description")}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{t("settings.chat.comingSoon")}</span>
-            <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-              {t("settings.chat.requiresBackend")}
-            </span>
-          </div>
+          <GlobalModelSelect />
         </SettingsRow>
 
         {/* Agent Language */}
@@ -131,3 +155,126 @@ export const ChatPanel = () => {
     </div>
   );
 };
+
+function GlobalModelSelect() {
+  const { t } = useTranslation();
+
+  // Current global selection state
+  const [selectedProviderId, setSelectedProviderId] = useState<string | undefined>();
+  const [selectedModel, setSelectedModel] = useState<string | undefined>();
+  const [selectionLoaded, setSelectionLoaded] = useState(false);
+
+  // Providers
+  const providers = useProviderStore((s) => s.providers);
+  const providersLoaded = useProviderStore((s) => s.loaded);
+  const loadProviders = useProviderStore((s) => s.load);
+
+  // SDK models from any active non-provider session
+  const sdkModels = useAgentStore((s) => {
+    for (const session of s.sessions.values()) {
+      if (!session.providerId && session.availableModels.length > 0) {
+        return session.availableModels;
+      }
+    }
+    return [];
+  });
+
+  // Load providers and current selection on mount
+  useEffect(() => {
+    if (!providersLoaded) loadProviders();
+  }, [providersLoaded, loadProviders]);
+
+  useEffect(() => {
+    client.config.getGlobalModelSelection().then((sel) => {
+      setSelectedProviderId(sel.providerId);
+      setSelectedModel(sel.model);
+      setSelectionLoaded(true);
+    });
+  }, []);
+
+  const enabledProviders = providers.filter((p) => p.enabled);
+
+  const handleSelect = useCallback((value: unknown) => {
+    const { providerId, model } = decodeValue(value as string);
+    setSelectedProviderId(providerId ?? undefined);
+    setSelectedModel(model ?? undefined);
+    client.config.setGlobalModelSelection({ providerId, model });
+  }, []);
+
+  if (!selectionLoaded) {
+    return <Spinner className="h-4 w-4" />;
+  }
+
+  // Build display label
+  const activeProvider = selectedProviderId
+    ? enabledProviders.find((p) => p.id === selectedProviderId)
+    : undefined;
+  const autoLabel = t("settings.chat.model.auto");
+
+  let displayLabel: string;
+  if (!selectedModel) {
+    displayLabel = autoLabel;
+  } else if (activeProvider) {
+    const modelDisplay = activeProvider.models[selectedModel]?.displayName ?? selectedModel;
+    displayLabel = `${activeProvider.name} / ${modelDisplay}`;
+  } else {
+    const sdkModel = sdkModels.find((m) => m.value === selectedModel);
+    displayLabel = sdkModel?.displayName ?? selectedModel;
+  }
+
+  const currentValue = encodeValue(selectedProviderId, selectedModel);
+
+  return (
+    <Menu>
+      <MenuTrigger className="inline-flex h-8 max-w-[220px] items-center gap-1 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none hover:bg-accent cursor-pointer">
+        <span className="truncate">{displayLabel}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+      </MenuTrigger>
+      <MenuPopup side="bottom" align="end" className="max-h-80 overflow-y-auto">
+        <MenuRadioGroup value={currentValue} onValueChange={handleSelect}>
+          {/* Default (auto) */}
+          <MenuRadioItem value="">{autoLabel}</MenuRadioItem>
+
+          <MenuSeparator />
+
+          {/* SDK Default models */}
+          {enabledProviders.length > 0 && (
+            <MenuGroup>
+              <MenuGroupLabel>{t("settings.chat.model.sdkDefault")}</MenuGroupLabel>
+            </MenuGroup>
+          )}
+          {sdkModels.map((m) => (
+            <MenuRadioItem
+              key={m.value}
+              value={encodeValue(undefined, m.value)}
+              className={enabledProviders.length > 0 ? "pl-6" : ""}
+            >
+              {m.displayName}
+            </MenuRadioItem>
+          ))}
+
+          {/* Provider groups */}
+          {enabledProviders.map((p) => (
+            <MenuGroup key={p.id}>
+              <MenuSeparator />
+              <MenuGroupLabel>{p.name}</MenuGroupLabel>
+              {Object.entries(p.models).map(([key, entry]) => {
+                const aliases: string[] = [];
+                if (p.modelMap.model === key) aliases.push("default");
+                if (p.modelMap.haiku === key) aliases.push("haiku");
+                if (p.modelMap.opus === key) aliases.push("opus");
+                if (p.modelMap.sonnet === key) aliases.push("sonnet");
+                const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
+                return (
+                  <MenuRadioItem key={key} value={encodeValue(p.id, key)} className="pl-6">
+                    {(entry.displayName ?? key) + badge}
+                  </MenuRadioItem>
+                );
+              })}
+            </MenuGroup>
+          ))}
+        </MenuRadioGroup>
+      </MenuPopup>
+    </Menu>
+  );
+}
