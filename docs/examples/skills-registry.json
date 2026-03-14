@@ -1,0 +1,66 @@
+[
+  {
+    "name": "PR Apply",
+    "description": "Analyze external PRs and apply similar changes to the current project",
+    "source": "git",
+    "sourceRef": "git:https://github.com/anthropics/claude-skills",
+    "skillName": "pr-apply",
+    "version": "1.0.0"
+  },
+  {
+    "name": "Codebase Visualizer",
+    "description": "Generate an interactive HTML tree view of your project structure",
+    "source": "git",
+    "sourceRef": "anthropics/claude-code-skills",
+    "skillName": "codebase-visualizer",
+    "version": "0.2.1"
+  },
+  {
+    "name": "Commit Conventions",
+    "description": "Create commits following conventional commit standards with smart scope detection",
+    "source": "npm",
+    "sourceRef": "npm:@claude-skills/commit-conventions@2.1.0",
+    "skillName": "commit-conventions",
+    "version": "2.1.0"
+  },
+  {
+    "name": "DB Migrate",
+    "description": "Generate and apply database migrations for Prisma, Drizzle, or Knex",
+    "source": "npm",
+    "sourceRef": "npm:@claude-skills/db-migrate@1.3.2",
+    "skillName": "db-migrate",
+    "version": "1.3.2"
+  },
+  {
+    "name": "API Docs Generator",
+    "description": "Generate OpenAPI specs and interactive docs from your codebase",
+    "source": "npm",
+    "sourceRef": "npm:@claude-skills/api-docs@0.8.0",
+    "skillName": "api-docs",
+    "version": "0.8.0"
+  },
+  {
+    "name": "Deploy Helper",
+    "description": "Deploy to Vercel, Fly.io, Railway, or AWS with guided workflows",
+    "source": "git",
+    "sourceRef": "git:https://github.com/community/claude-deploy-skills",
+    "skillName": "deploy-helper",
+    "version": "1.1.0"
+  },
+  {
+    "name": "Test Generator",
+    "description": "Generate unit and integration tests based on your codebase patterns",
+    "source": "git",
+    "sourceRef": "git:https://gitlab.com/ai-tools/claude-test-gen.git",
+    "skillName": "test-generator",
+    "version": "0.5.3"
+  },
+  {
+    "name": "i18n Helper",
+    "description": "Extract, manage, and auto-translate i18n strings across your project",
+    "source": "npm",
+    "sourceRef": "npm:@claude-skills/i18n-helper@1.0.1",
+    "skillName": "i18n-helper",
+    "version": "1.0.1"
+  }
+]

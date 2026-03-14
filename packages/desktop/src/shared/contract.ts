@@ -5,6 +5,7 @@ import { agentContract } from "./features/agent/contract";
 import { configContract } from "./features/config/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
+import { skillsContract } from "./features/skills/contract";
 import { storageContract } from "./features/storage/contract";
 import { updaterContract } from "./features/updater/contract";
 import { utilsContract } from "./features/utils/contract";
@@ -17,6 +18,7 @@ export const contract = {
   config: configContract,
   project: projectContract,
   provider: providerContract,
+  skills: skillsContract,
   storage: storageContract,
   updater: updaterContract,
   utils: utilsContract,

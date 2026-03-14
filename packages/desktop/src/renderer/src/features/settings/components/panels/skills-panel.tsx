@@ -1,213 +1,152 @@
-import { Loader2, Plus, Trash2, Wand2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Download, Loader2, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { RecommendedSkill, SkillMeta } from "../../../../../../shared/features/skills/types";
+
+import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
-import { Checkbox } from "../../../../components/ui/checkbox";
 import { Input } from "../../../../components/ui/input";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "../../../../components/ui/select";
+import { Switch } from "../../../../components/ui/switch";
 import { cn } from "../../../../lib/utils";
-import { useConfigStore } from "../../../config/store";
+import { client } from "../../../../orpc";
+import { useProjectStore } from "../../../project/store";
+import { SkillAddModal } from "./skill-add-modal";
+import { SkillDetailModal } from "./skill-detail-modal";
 
-// Types
-interface Skill {
-  name: string;
-  description: string;
-  path: string;
-  source: string;
-}
-
-interface PreviewSkill {
-  name: string;
-  description: string;
-  skillPath: string;
-}
-
-type AddFlowState =
-  | { phase: "idle" }
-  | { phase: "input" }
-  | { phase: "cloning"; source: string }
-  | {
-      phase: "selecting";
-      previewId: string;
-      source: string;
-      skills: PreviewSkill[];
-      selected: Set<string>;
-      installGlobally: boolean;
-      useClaude: boolean;
-    }
-  | { phase: "installing" }
-  | { phase: "error"; message: string };
-
-// TODO: Replace with actual oRPC client when skills API is available
-const skillsApi = {
-  list: async (_cwd: string): Promise<Skill[]> => [],
-  preview: async (
-    _cwd: string,
-    _source: string,
-  ): Promise<{ previewId: string; skills: PreviewSkill[] }> => ({
-    previewId: "",
-    skills: [],
-  }),
-  install: async (_params: {
-    cwd: string;
-    previewId: string;
-    selectedSkills: string[];
-    source: string;
-    global: boolean;
-    claude: boolean;
-  }): Promise<void> => {},
-  remove: async (_cwd: string, _name: string, _targetDir: string): Promise<void> => {},
-};
+type ScopeFilter = "all" | "global" | string; // string = projectPath
 
 export const SkillsPanel = () => {
   const { t } = useTranslation();
-  const loaded = useConfigStore((state) => state.loaded);
+  const projects = useProjectStore((s) => s.projects);
 
-  // TODO: Get selected project from project store when project management is implemented
-  const cwd = ".";
-
-  const [skills, setSkills] = useState<Skill[]>([]);
+  const [installed, setInstalled] = useState<SkillMeta[]>([]);
+  const [recommended, setRecommended] = useState<RecommendedSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [addFlow, setAddFlow] = useState<AddFlowState>({ phase: "idle" });
-  const [sourceInput, setSourceInput] = useState("");
-  const [removingSkill, setRemovingSkill] = useState<string | null>(null);
+  const [recommendedError, setRecommendedError] = useState<string | null>(null);
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Derived state for skills grouping
-  // TODO: Re-enable when project selection is implemented
-  const hasProject = false;
-  const folderName = "";
-  const globalSkills = skills.filter((s) => s.source === "global" || s.source === "global-claude");
-  const projectSkills = skills.filter(
-    (s) => s.source === "project" || s.source === "project-claude",
+  // Modal state
+  const [selectedSkill, setSelectedSkill] = useState<SkillMeta | null>(null);
+  const [selectedRecommended, setSelectedRecommended] = useState<RecommendedSkill | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const fetchData = useCallback(
+    async (forceRefresh = false) => {
+      setError(null);
+      setRecommendedError(null);
+      try {
+        const installedResult = await client.skills.list({ scope: "all" });
+        setInstalled(installedResult);
+      } catch (e: any) {
+        setError(e.message || t("settings.skills.loadFailed"));
+      }
+      try {
+        const recommendedResult = await client.skills.recommended({ forceRefresh });
+        setRecommended(recommendedResult);
+      } catch (e: any) {
+        setRecommendedError(e.message || "Failed to load recommended skills.");
+      }
+    },
+    [t],
   );
 
-  // Fetch skills on mount
-  const fetchSkills = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await skillsApi.list(cwd);
-      setSkills(result);
-    } catch (e: any) {
-      setError(e.message || t("settings.skills.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData(true);
+    setRefreshing(false);
+  }, [fetchData]);
 
   useEffect(() => {
-    fetchSkills();
-  }, [cwd]);
+    setLoading(true);
+    fetchData().finally(() => setLoading(false));
+  }, [fetchData]);
 
-  // Handle preview (clone + scan)
-  const handlePreview = async () => {
-    if (!sourceInput.trim()) return;
-    const source = sourceInput.trim();
-    setAddFlow({ phase: "cloning", source });
+  // Filter installed skills by scope
+  const filteredInstalled = useMemo(() => {
+    let list = installed;
+    if (scopeFilter === "global") {
+      list = list.filter((s) => s.scope === "global");
+    } else if (scopeFilter !== "all") {
+      list = list.filter((s) => s.scope === "project" && s.projectPath === scopeFilter);
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [installed, scopeFilter, searchQuery]);
 
+  // Filter recommended, sort installed to bottom
+  const filteredRecommended = useMemo(() => {
+    let list = recommended;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+      );
+    }
+    return [...list].sort((a, b) => {
+      if (a.installed !== b.installed) return a.installed ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [recommended, searchQuery]);
+
+  const handleToggleEnabled = async (skill: SkillMeta, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
-      const { previewId, skills: previewSkills } = await skillsApi.preview(cwd, source);
-      if (previewSkills.length === 0) {
-        setAddFlow({
-          phase: "error",
-          message: t("settings.skills.noSkillsFound"),
+      if (skill.enabled) {
+        await client.skills.disable({
+          name: skill.name,
+          scope: skill.scope,
+          projectPath: skill.projectPath,
         });
-        return;
+      } else {
+        await client.skills.enable({
+          name: skill.name,
+          scope: skill.scope,
+          projectPath: skill.projectPath,
+        });
       }
-      const selected = new Set(previewSkills.map((s) => s.name));
-      setAddFlow({
-        phase: "selecting",
-        previewId,
-        source,
-        skills: previewSkills,
-        selected,
-        installGlobally: !hasProject,
-        useClaude: false,
-      });
-    } catch (e: any) {
-      setAddFlow({
-        phase: "error",
-        message: e.message || t("settings.skills.fetchFailed"),
-      });
+      await fetchData();
+    } catch {
+      // Silently fail — user can retry
     }
   };
 
-  // Handle install
-  const handleInstall = async () => {
-    if (addFlow.phase !== "selecting") return;
-    const { previewId, source, selected, installGlobally, useClaude } = addFlow;
-    if (selected.size === 0) return;
-
-    setAddFlow({ phase: "installing" });
-
+  const handleInstallRecommended = async (
+    skill: RecommendedSkill,
+    scope: "global" | "project",
+    projectPath?: string,
+  ) => {
     try {
-      await skillsApi.install({
-        cwd,
-        previewId,
-        selectedSkills: Array.from(selected),
-        source,
-        global: installGlobally,
-        claude: useClaude,
+      await client.skills.install({
+        sourceRef: skill.sourceRef,
+        skillName: skill.skillName,
+        scope,
+        projectPath,
       });
-      setAddFlow({ phase: "idle" });
-      setSourceInput("");
-      await fetchSkills();
+      await fetchData();
     } catch (e: any) {
-      setAddFlow({
-        phase: "error",
-        message: e.message || t("settings.skills.installFailed"),
-      });
+      setError(e.message || t("settings.skills.installFailed"));
     }
   };
 
-  // Handle remove
-  const handleRemove = async (skill: Skill) => {
-    setRemovingSkill(skill.name);
-    const pathParts = skill.path.split("/");
-    pathParts.pop();
-    const skillFolderName = pathParts.pop();
-    const targetDir = pathParts.join("/");
+  const showScopeBadge = scopeFilter === "all";
 
-    try {
-      await skillsApi.remove(cwd, skillFolderName!, targetDir);
-      await fetchSkills();
-    } finally {
-      setRemovingSkill(null);
-    }
-  };
-
-  // Toggle skill selection
-  const toggleSkillSelection = (name: string) => {
-    if (addFlow.phase !== "selecting") return;
-    const newSelected = new Set(addFlow.selected);
-    if (newSelected.has(name)) {
-      newSelected.delete(name);
-    } else {
-      newSelected.add(name);
-    }
-    setAddFlow({ ...addFlow, selected: newSelected });
-  };
-
-  // Toggle install globally option
-  const toggleInstallGlobally = () => {
-    if (addFlow.phase !== "selecting") return;
-    setAddFlow({ ...addFlow, installGlobally: !addFlow.installGlobally });
-  };
-
-  // Toggle use claude directory option
-  const toggleUseClaude = () => {
-    if (addFlow.phase !== "selecting") return;
-    setAddFlow({ ...addFlow, useClaude: !addFlow.useClaude });
-  };
-
-  // Cancel add flow
-  const handleCancel = () => {
-    setAddFlow({ phase: "idle" });
-    setSourceInput("");
-  };
-
-  if (!loaded) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -218,253 +157,207 @@ export const SkillsPanel = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold flex items-center gap-2 text-foreground">
           <Wand2 className="size-[22px]" />
           {t("settings.skills")}
         </h1>
-        {addFlow.phase === "idle" && (
-          <Button variant="default" size="sm" onClick={() => setAddFlow({ phase: "input" })}>
-            <Plus className="size-4" />
-            {t("settings.skills.addSkill")}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
+            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
           </Button>
-        )}
+        </div>
       </div>
 
-      {/* Add Section */}
-      {addFlow.phase !== "idle" && (
-        <div className="mb-6 p-4 rounded-lg bg-muted border border-border">
-          {/* Input phase */}
-          {(addFlow.phase === "input" || addFlow.phase === "error") && (
-            <div>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  value={sourceInput}
-                  onChange={(e) => setSourceInput(e.target.value)}
-                  placeholder={t("settings.skills.sourcePlaceholder")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && sourceInput.trim()) {
-                      handlePreview();
-                    }
-                  }}
-                />
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handlePreview}
-                  disabled={!sourceInput.trim()}
-                >
-                  {t("settings.skills.preview")}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  Cancel
-                </Button>
-              </div>
-              {addFlow.phase === "error" && (
-                <p className="text-sm text-destructive">{addFlow.message}</p>
-              )}
-            </div>
-          )}
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search skills..."
+        />
+      </div>
 
-          {/* Cloning phase */}
-          {addFlow.phase === "cloning" && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              <span className="text-sm">
-                {t("settings.skills.fetching", { source: addFlow.source })}
-              </span>
-            </div>
-          )}
-
-          {/* Selecting phase */}
-          {addFlow.phase === "selecting" && (
-            <div>
-              <p className="text-sm mb-3 text-muted-foreground">
-                {t("settings.skills.selectToInstall")}
-              </p>
-              <div className="space-y-2 mb-4">
-                {addFlow.skills.map((skill) => {
-                  const isSelected = addFlow.selected.has(skill.name);
-                  return (
-                    <label
-                      key={skill.skillPath}
-                      className={cn(
-                        "flex items-start gap-3 p-2 rounded-md cursor-pointer transition-colors",
-                        isSelected ? "bg-accent" : "bg-transparent",
-                      )}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSkillSelection(skill.name)}
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                        {skill.description && (
-                          <p className="text-xs text-muted-foreground">{skill.description}</p>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-              {/* Install options */}
-              <div className="space-y-2 mb-4 pt-3 border-t border-border">
-                <label
-                  className={cn(
-                    "flex items-center gap-2 text-sm cursor-pointer text-muted-foreground",
-                    !hasProject && "opacity-50",
-                  )}
-                >
-                  <Checkbox
-                    checked={addFlow.installGlobally}
-                    onCheckedChange={toggleInstallGlobally}
-                    disabled={!hasProject}
-                  />
-                  {t("settings.skills.installGlobally")}
-                </label>
-                <label className="flex items-center gap-2 text-sm cursor-pointer text-muted-foreground">
-                  <Checkbox checked={addFlow.useClaude} onCheckedChange={toggleUseClaude} />
-                  {t("settings.skills.useClaudeDir")}
-                </label>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {t("settings.skills.selectedCount", {
-                    selected: addFlow.selected.size,
-                    total: addFlow.skills.length,
-                  })}
-                </span>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleCancel}>
-                    {t("common.cancel")}
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleInstall}
-                    disabled={addFlow.selected.size === 0}
-                  >
-                    {t("settings.skills.installCount", {
-                      count: addFlow.selected.size,
-                    })}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Installing phase */}
-          {addFlow.phase === "installing" && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              <span className="text-sm">{t("settings.skills.installing")}</span>
-            </div>
-          )}
+      {error && (
+        <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+          {error}
+          <button
+            className="ml-2 underline"
+            onClick={() => {
+              setError(null);
+              refresh();
+            }}
+          >
+            {t("settings.skills.retry")}
+          </button>
         </div>
       )}
 
-      {/* Skills List */}
-      <div>
-        {loading ? (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            <span className="text-sm">{t("settings.skills.loading")}</span>
-          </div>
-        ) : error ? (
-          <div>
-            <p className="text-sm mb-2 text-destructive">{error}</p>
-            <button className="text-sm underline text-muted-foreground" onClick={fetchSkills}>
-              {t("settings.skills.retry")}
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Global Skills Section */}
-            <div className="mb-6">
-              <h2 className="text-sm font-medium mb-3 text-muted-foreground">
-                {t("settings.skills.globalSkills")}
-              </h2>
-              {globalSkills.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("settings.skills.noGlobalSkills")}
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {globalSkills.map((skill) => (
-                    <div
-                      key={`${skill.source}-${skill.name}`}
-                      className="flex items-center justify-between p-3 rounded-md bg-muted border border-border"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-accent text-muted-foreground">
-                          {skill.source}
-                        </span>
-                      </div>
-                      <button
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-opacity disabled:opacity-50"
-                        onClick={() => handleRemove(skill)}
-                        disabled={removingSkill === skill.name}
-                        title={t("settings.skills.removeSkill")}
-                      >
-                        {removingSkill === skill.name ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="size-3.5 text-red-500" />
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+      {/* Installed Section */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Installed ({filteredInstalled.length})
+          </h2>
+          <Select value={scopeFilter} onValueChange={(v) => setScopeFilter(v as ScopeFilter)}>
+            <SelectTrigger size="sm" className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="global">Global</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.path}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectPopup>
+          </Select>
+        </div>
 
-            {/* Project Skills Section */}
-            {hasProject ? (
-              <div>
-                <h2 className="text-sm font-medium mb-3 text-muted-foreground">
-                  {t("settings.skills.projectSkills", { folder: folderName })}
-                </h2>
-                {projectSkills.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t("settings.skills.noProjectSkills")}
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    {projectSkills.map((skill) => (
-                      <div
-                        key={`${skill.source}-${skill.name}`}
-                        className="flex items-center justify-between p-3 rounded-md bg-muted border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                          <span className="text-xs px-2 py-0.5 rounded bg-accent text-muted-foreground">
-                            {skill.source}
-                          </span>
-                        </div>
-                        <button
-                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-opacity disabled:opacity-50"
-                          onClick={() => handleRemove(skill)}
-                          disabled={removingSkill === skill.name}
-                          title={t("settings.skills.removeSkill")}
-                        >
-                          {removingSkill === skill.name ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5 text-red-500" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        {filteredInstalled.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            {searchQuery
+              ? `No skills matching "${searchQuery}"`
+              : "No skills installed. Browse recommended skills below or add from URL."}
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {filteredInstalled.map((skill) => (
+              <div
+                key={`${skill.scope}-${skill.projectPath ?? ""}-${skill.name}`}
+                className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => setSelectedSkill(skill)}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-medium text-foreground truncate">{skill.name}</span>
+                  {showScopeBadge && (
+                    <Badge variant="outline" size="sm">
+                      {skill.scope === "global"
+                        ? "global"
+                        : (skill.projectPath?.split("/").pop() ?? "project")}
+                    </Badge>
+                  )}
+                  {skill.version && (
+                    <Badge variant="secondary" size="sm">
+                      v{skill.version}
+                    </Badge>
+                  )}
+                </div>
+                <div onClick={(e) => handleToggleEnabled(skill, e)}>
+                  <Switch checked={skill.enabled} />
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t("settings.skills.selectProject")}</p>
-            )}
-          </>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Recommended Section */}
+      {recommendedError ? (
+        <div className="mb-6">
+          <h2 className="text-sm font-medium mb-3 text-muted-foreground">Recommended</h2>
+          <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+            {recommendedError}
+            <button className="ml-2 underline" onClick={refresh}>
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : filteredRecommended.length === 0 ? null : (
+        <div className="mb-6">
+          <h2 className="text-sm font-medium mb-3 text-muted-foreground">
+            Recommended ({filteredRecommended.length})
+          </h2>
+          <div className="space-y-1">
+            {filteredRecommended.map((skill) => (
+              <div
+                key={skill.sourceRef}
+                className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => {
+                  if (skill.installed) {
+                    const match = installed.find((s) => s.name === skill.skillName);
+                    if (match) setSelectedSkill(match);
+                  } else {
+                    setSelectedRecommended(skill);
+                  }
+                }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{skill.name}</span>
+                    <Badge variant="outline" size="sm">
+                      {skill.source}
+                    </Badge>
+                    {skill.version && (
+                      <Badge variant="secondary" size="sm">
+                        v{skill.version}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {skill.description}
+                  </p>
+                </div>
+                {skill.installed ? (
+                  <Badge variant="secondary" size="sm">
+                    Installed
+                  </Badge>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleInstallRecommended(skill, "global");
+                    }}
+                  >
+                    <Download className="size-3.5" />
+                    Install
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add from URL */}
+      <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAddModal(true)}>
+        <Plus className="size-4" />
+        Add from URL/package...
+      </Button>
+
+      {/* Detail Modal */}
+      {selectedSkill && (
+        <SkillDetailModal
+          skill={selectedSkill}
+          onClose={() => setSelectedSkill(null)}
+          onRefresh={fetchData}
+        />
+      )}
+
+      {/* Recommended Detail Modal */}
+      {selectedRecommended && (
+        <SkillDetailModal
+          recommendedSkill={selectedRecommended}
+          projects={projects}
+          onClose={() => setSelectedRecommended(null)}
+          onRefresh={fetchData}
+          onInstall={handleInstallRecommended}
+        />
+      )}
+
+      {/* Add Modal */}
+      {showAddModal && (
+        <SkillAddModal
+          projects={projects}
+          onClose={() => setShowAddModal(false)}
+          onRefresh={fetchData}
+        />
+      )}
     </div>
   );
 };

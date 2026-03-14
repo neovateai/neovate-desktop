@@ -36,6 +36,9 @@ const DEFAULT_APP_CONFIG: AppConfig = {
 
   // Keybindings
   keybindings: {},
+
+  // Skills
+  skillsRegistryUrls: [],
 };
 
 const STORE_DEFAULTS: ConfigStoreSchema = {
