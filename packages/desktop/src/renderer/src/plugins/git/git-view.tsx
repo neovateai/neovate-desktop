@@ -1,4 +1,13 @@
-import { ChevronDown, ChevronRight, RefreshCw, Undo2, Plus, FileText, Minus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Undo2,
+  Plus,
+  FileText,
+  Minus,
+  File,
+} from "lucide-react";
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
@@ -41,6 +50,17 @@ export default memo(function GitView() {
         }),
       );
     }, DISPATCH_DELAY);
+  };
+
+  const openFile = (file: { fullPath: string }) => {
+    app.workbench.contentPanel.openView("editor");
+    window.dispatchEvent(
+      new CustomEvent("neovate:open-editor", {
+        detail: { fullPath: file.fullPath },
+      }),
+    );
+    // @ts-ignore 避免 dispatchEvent 时未初始化完成
+    window.pendingEditorRequest = { fullPath: file.fullPath };
   };
 
   useEffect(() => {
@@ -190,6 +210,16 @@ export default memo(function GitView() {
 
                 <div className="flex-shrink-0 flex items-center gap-0.5">
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFile(file);
+                      }}
+                      className="p-px hover:bg-accent rounded-sm"
+                      title="打开文件"
+                    >
+                      <File className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                    </button>
                     {isStaged ? (
                       <>
                         <button
@@ -272,14 +302,6 @@ export default memo(function GitView() {
   }
 
   const hasChanges = workingFiles.length > 0 || stagedFiles.length > 0;
-  if (!hasChanges) {
-    return (
-      <div className="flex h-full flex-col p-3 gap-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
-        <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noChanges")}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full mb-2 flex-col p-2 gap-1">
@@ -297,22 +319,28 @@ export default memo(function GitView() {
         </button>
       </div>
       <div className="flex flex-col h-full overflow-hidden">
-        {renderFileList(
-          stagedFiles,
-          stagedCollapsed,
-          () => setStagedCollapsed(!stagedCollapsed),
-          t("git.stagedChanges"),
-          true,
-        )}
-        {stagedFiles.length > 0 && workingFiles.length > 0 && (
-          <div className="border-t border-border/50"></div>
-        )}
-        {renderFileList(
-          workingFiles,
-          workingCollapsed,
-          () => setWorkingCollapsed(!workingCollapsed),
-          t("git.workingChanges"),
-          false,
+        {hasChanges ? (
+          <>
+            {renderFileList(
+              stagedFiles,
+              stagedCollapsed,
+              () => setStagedCollapsed(!stagedCollapsed),
+              t("git.stagedChanges"),
+              true,
+            )}
+            {stagedFiles.length > 0 && workingFiles.length > 0 && (
+              <div className="border-t border-border/50"></div>
+            )}
+            {renderFileList(
+              workingFiles,
+              workingCollapsed,
+              () => setWorkingCollapsed(!workingCollapsed),
+              t("git.workingChanges"),
+              false,
+            )}
+          </>
+        ) : (
+          <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noChanges")}</div>
         )}
       </div>
     </div>

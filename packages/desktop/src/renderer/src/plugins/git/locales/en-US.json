@@ -28,5 +28,6 @@
   "git.diff.oldVersion": "Old version",
   "git.diff.newVersion": "New version",
   "git.diff.close": "Close diff view",
-  "git.diff.linesHidden": "lines hidden"
+  "git.diff.linesHidden": "lines hidden",
+  "git.openFile": "Open file"
 }
