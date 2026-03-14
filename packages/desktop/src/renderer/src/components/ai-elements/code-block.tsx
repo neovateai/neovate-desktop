@@ -468,11 +468,12 @@ export const CodeBlockCopyButton = ({
       variant="ghost"
       {...props}
     >
-      {children ?? (isCopied ? (
-        <Tick02Icon className="size-3.5" variant="solid" />
-      ) : (
-        <Copy01Icon className="size-3.5" variant="solid" />
-      ))}
+      {children ??
+        (isCopied ? (
+          <Tick02Icon className="size-3.5" variant="solid" />
+        ) : (
+          <Copy01Icon className="size-3.5" variant="solid" />
+        ))}
     </Button>
   );
 };

@@ -198,11 +198,9 @@ const StatusDot = ({
   };
 
   // Running state uses primary color, non-running uses mapped color
-  const colorClass = isRunning ? "bg-primary" : (statusStyles[state] || "bg-muted-foreground");
+  const colorClass = isRunning ? "bg-primary" : statusStyles[state] || "bg-muted-foreground";
 
-  return (
-    <span className={cn("size-1.5 rounded-full shrink-0", colorClass)} />
-  );
+  return <span className={cn("size-1.5 rounded-full shrink-0", colorClass)} />;
 };
 
 export const ToolHeader = ({
@@ -251,17 +249,13 @@ export const ToolHeader = ({
         {/* Label Area */}
         <span className="flex items-center gap-1.5 text-sm min-w-0">
           {/* Action Name - medium weight main text */}
-          <span className="font-medium text-foreground shrink-0">
-            {mainLabel}
-          </span>
+          <span className="font-medium text-foreground shrink-0">{mainLabel}</span>
 
           {/* Extra info (e.g., search patterns) */}
           {extra && <span className="text-muted-foreground"> {extra}</span>}
 
           {/* Separator - dot separator */}
-          {hasFilePath && displayName && (
-            <span className="text-muted-foreground/40">·</span>
-          )}
+          {hasFilePath && displayName && <span className="text-muted-foreground/40">·</span>}
 
           {/* File Name - gray secondary text, truncatable */}
           {hasFilePath && displayName && (
@@ -289,7 +283,7 @@ export const ToolHeader = ({
             "size-3 text-muted-foreground/50 shrink-0",
             "opacity-0 group-hover:opacity-100 transition-opacity duration-150",
             "transition-transform duration-200",
-            "group-data-[state=open]:rotate-180"
+            "group-data-[state=open]:rotate-180",
           )}
           variant="solid"
         />
@@ -356,10 +350,12 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   return (
     <div className={cn("space-y-1.5", className)} {...props}>
       <div className="flex items-center gap-2">
-        <span className={cn(
-          "text-[11px] font-semibold uppercase tracking-wider",
-          errorText ? "text-red-500" : "text-muted-foreground"
-        )}>
+        <span
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-wider",
+            errorText ? "text-red-500" : "text-muted-foreground",
+          )}
+        >
           {errorText ? "Error" : "Output"}
         </span>
         <div className="flex-1 h-px bg-border/40" />

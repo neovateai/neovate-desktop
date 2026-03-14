@@ -123,7 +123,10 @@ export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
     }
     {...props}
   >
-    <ArrowDown01Icon className="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180" variant="solid" />
+    <ArrowDown01Icon
+      className="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
+      variant="solid"
+    />
     <span className="sr-only">Toggle plan</span>
   </CollapsibleTrigger>
 );

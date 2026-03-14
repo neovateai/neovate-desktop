@@ -204,7 +204,10 @@ export const QueueSectionLabel = ({
   ...props
 }: QueueSectionLabelProps) => (
   <span className={cn("flex items-center gap-2", className)} {...props}>
-    <ArrowDown01Icon className="size-4 transition-transform duration-200 group-data-[state=closed]:-rotate-90" variant="solid" />
+    <ArrowDown01Icon
+      className="size-4 transition-transform duration-200 group-data-[state=closed]:-rotate-90"
+      variant="solid"
+    />
     {icon}
     <span>
       {count} {label}

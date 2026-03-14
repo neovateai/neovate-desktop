@@ -74,7 +74,10 @@ function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquot
 
 function MarkdownTable({ className, children, ...props }: MarkdownTableProps) {
   return (
-    <div className="my-3 overflow-x-auto overflow-hidden rounded-lg border border-border/50 first:mt-0 last:mb-0" data-markdown-table-wrapper="true">
+    <div
+      className="my-3 overflow-x-auto overflow-hidden rounded-lg border border-border/50 first:mt-0 last:mb-0"
+      data-markdown-table-wrapper="true"
+    >
       <table className={cn("w-full border-collapse text-sm", className)} {...props}>
         {children}
       </table>
@@ -186,7 +189,13 @@ export const markdownBaseComponents: Components = {
     </h6>
   ),
   ul: ({ className, children, ...props }) => (
-    <ul className={cn("my-3 list-none space-y-1.5 pl-0 first:mt-0 last:mb-0 [&_ul]:my-1.5 [&_ul]:ml-4 [&_ol]:my-1.5 [&_ol]:ml-4", className)} {...props}>
+    <ul
+      className={cn(
+        "my-3 list-none space-y-1.5 pl-0 first:mt-0 last:mb-0 [&_ul]:my-1.5 [&_ul]:ml-4 [&_ol]:my-1.5 [&_ol]:ml-4",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </ul>
   ),
@@ -221,7 +230,10 @@ export const markdownBaseComponents: Components = {
     </li>
   ),
   hr: ({ className, ...props }) => (
-    <hr className={cn("my-4 border-0 h-px bg-border/60 first:mt-0 last:mb-0", className)} {...props} />
+    <hr
+      className={cn("my-4 border-0 h-px bg-border/60 first:mt-0 last:mb-0", className)}
+      {...props}
+    />
   ),
   strong: ({ className, children, ...props }) => (
     <strong className={cn("font-semibold text-foreground", className)} {...props}>
@@ -270,7 +282,13 @@ export const markdownBaseComponents: Components = {
     </th>
   ),
   td: ({ className, children, ...props }) => (
-    <td className={cn("border-b border-border/30 px-3 py-2 text-sm text-foreground align-top", className)} {...props}>
+    <td
+      className={cn(
+        "border-b border-border/30 px-3 py-2 text-sm text-foreground align-top",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </td>
   ),

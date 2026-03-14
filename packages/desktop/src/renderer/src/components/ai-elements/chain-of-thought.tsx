@@ -80,7 +80,7 @@ export const ChainOfThoughtHeader = memo(
           <ArrowDown01Icon
             className={cn(
               "size-4 transition-transform duration-200",
-              isOpen ? "rotate-180" : "rotate-0"
+              isOpen ? "rotate-180" : "rotate-0",
             )}
             variant="solid"
           />
