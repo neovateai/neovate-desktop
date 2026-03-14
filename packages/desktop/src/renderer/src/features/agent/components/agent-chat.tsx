@@ -1,5 +1,4 @@
 import type { FileUIPart } from "ai";
-
 import type { StickToBottomContext } from "use-stick-to-bottom";
 
 import debug from "debug";

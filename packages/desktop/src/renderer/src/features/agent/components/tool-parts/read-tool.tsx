@@ -1,8 +1,8 @@
 import type { BundledLanguage } from "shiki";
 
-import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/types";
-
 import { AlertCircle } from "lucide-react";
+
+import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { CodeBlock, CodeBlockCopyButton } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";

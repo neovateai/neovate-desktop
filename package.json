@@ -1,6 +1,7 @@
 {
   "name": "neovate-desktop-monorepo",
   "private": true,
+  "repository": "git@github.com:neovateai/neovate-desktop.git",
   "workspaces": [
     "packages/*"
   ],
@@ -37,6 +38,5 @@
   "lint-staged": {
     "*": "oxfmt --no-error-on-unmatched-pattern"
   },
-  "packageManager": "bun@1.3.10",
-  "repository": "git@github.com:neovateai/neovate-desktop.git"
+  "packageManager": "bun@1.3.10"
 }

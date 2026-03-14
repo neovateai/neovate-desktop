@@ -1,8 +1,8 @@
-import type { EditUIToolInvocation } from "../../../../../../shared/claude-code/types";
-
 import { MultiFileDiff } from "@pierre/diffs/react";
 import { AlertCircle } from "lucide-react";
 import { useTheme } from "next-themes";
+
+import type { EditUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
