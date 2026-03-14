@@ -51,8 +51,8 @@
   "settings.chat.notification.funk": "Funk",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
-  "settings.chat.comingSoon": "Coming Soon",
-  "settings.chat.requiresBackend": "Requires Backend Service",
+  "settings.chat.model.auto": "Default (auto)",
+  "settings.chat.model.sdkDefault": "SDK Default",
   "settings.chat.selectPlaceholder": "Select...",
 
   "settings.about": "About",
