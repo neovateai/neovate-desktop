@@ -5,6 +5,7 @@ import { useStore } from "zustand";
 import type { ContentPanelView } from "../../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../types";
 
+import { IMAGE_URLS, getEmpty1Url } from "../../../assets/images";
 import { useRendererApp } from "../../../core";
 import { cn } from "../../../lib/utils";
 import { useProjectStore } from "../../project/store";
@@ -64,7 +65,7 @@ function TabViewWithActivity({
 
 function EmptyState({
   message,
-  imgSrc = "/src/assets/images/empty1.png",
+  imgSrc = IMAGE_URLS.empty1,
   imgWidth = 67,
 }: {
   message: string;
@@ -154,7 +155,7 @@ export function ContentPanelRenderer() {
         {tabs.length === 0 && (
           <EmptyState
             message="No tabs open"
-            imgSrc={`/src/assets/images/empty1${resolvedTheme === "dark" ? "-dark" : ""}.png`}
+            imgSrc={getEmpty1Url(resolvedTheme as "dark" | "light" | undefined)}
           />
         )}
       </div>

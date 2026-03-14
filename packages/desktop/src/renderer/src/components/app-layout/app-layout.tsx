@@ -18,6 +18,7 @@ import { type ReactNode, Suspense, lazy, useRef } from "react";
 import type { TitlebarItem } from "../../core/plugin/contributions";
 import type { SeparatorId } from "./types";
 
+import { getChatPanelBgUrl } from "../../assets/images";
 import { useRendererApp } from "../../core/app";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
@@ -93,7 +94,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
         gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
         backgroundImage:
           !activeSession || activeSession.isNew
-            ? `url("/src/assets/images/chat-panel-bg-${resolvedTheme === "dark" ? "dark" : "light"}.png")`
+            ? `url("${getChatPanelBgUrl(resolvedTheme as "dark" | "light" | undefined)}")`
             : "",
         backgroundSize: "cover",
         backgroundPosition: "0 0",
