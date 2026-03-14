@@ -299,12 +299,12 @@ export function MessageInput({
         style={{
           border: "3px solid transparent",
           background:
-            "linear-gradient(white, white) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
+            "linear-gradient(var(--color-background), var(--color-background)) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
         }}
       >
         <div
           className={cn(
-            "border border-input focus-within:border-primary overflow-hidden",
+            "border border-input focus-within:!border-primary/50 overflow-hidden",
             dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
           )}
           style={{
@@ -312,7 +312,7 @@ export function MessageInput({
             backgroundColor: "var(--background)",
             color: "var(--foreground)",
             background:
-              "linear-gradient(white, white) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
+              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
           }}
         >
           {permissionMode === "plan" && (

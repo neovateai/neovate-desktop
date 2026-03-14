@@ -165,6 +165,7 @@ export type ToolPart = ToolUIPart | DynamicToolUIPart;
 export type ToolHeaderProps = {
   title?: string;
   className?: string;
+  preliminary?: boolean;
 } & (
   | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
   | {
@@ -175,8 +176,18 @@ export type ToolHeaderProps = {
 );
 
 // Status dot component
-const StatusDot = ({ state }: { state: ToolPart["state"] }) => {
-  const isRunning = state === "input-available" || state === "input-streaming";
+const StatusDot = ({
+  state,
+  preliminary = false,
+}: {
+  state: ToolPart["state"];
+  preliminary?: boolean;
+}) => {
+  const isRunning =
+    state === "input-available" ||
+    state === "input-streaming" ||
+    (preliminary && state === "output-available");
+
   const statusStyles = {
     "approval-requested": "bg-yellow-500",
     "approval-responded": "bg-blue-500",
@@ -209,6 +220,7 @@ export const ToolHeader = ({
   type,
   state,
   toolName,
+  preliminary,
   ...props
 }: ToolHeaderProps) => {
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
@@ -251,20 +263,22 @@ export const ToolHeader = ({
           {/* Only show displayName separately when it's a file path */}
           {hasFilePath && displayName && (
             <Tooltip>
-              <TooltipTrigger>
-                <span className="cursor-default">
-                  {extra ? "" : " "}
-                  <span className="text-muted-foreground">{displayName}</span>
-                </span>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <span className="cursor-default">
+                    {extra ? "" : " "}
+                    <span className="text-muted-foreground">{displayName}</span>
+                  </span>
+                }
+              />
               <TooltipContent side="top" align="start" className="max-w-md">
                 <p className="break-all">{fullPath}</p>
               </TooltipContent>
             </Tooltip>
           )}
         </span>
-        <StatusDot state={state} />
-        {/* Micro chevron - shows on hover, rotates 180° when open */}
+        <StatusDot state={state} preliminary={preliminary} />
+        {/* Micro chevron - shows on hover, rotates 180deg when open */}
         <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           <ChevronDown className="size-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
         </div>

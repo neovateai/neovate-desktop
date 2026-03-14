@@ -1,4 +1,4 @@
-import { RefreshCw, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Maximize2, RefreshCw, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import type { ActiveSessionInfo } from "../../../../shared/features/agent/types";
@@ -104,12 +104,13 @@ export default function DebugView() {
         <span className="text-xs font-medium uppercase text-muted-foreground">Active Sessions</span>
         <div className="flex items-center gap-1.5">
           <Button
-            variant="outline"
-            size="xs"
+            variant="ghost"
+            size="icon-sm"
             onClick={handleTestMaximize}
-            title="No-op if the content panel is collapsed"
+            title="Maximize content panel"
+            className="size-5"
           >
-            Test maximize content panel
+            <Maximize2 className="size-3" />
           </Button>
           <Button
             variant="ghost"

@@ -434,7 +434,6 @@ export default memo(function ReviewView() {
                 {category === "branch" && branchInfo
                   ? t("review.branchUpToDate", {
                       tracking: branchInfo.tracking,
-                      interpolation: { escapeValue: false },
                     })
                   : t(`review.empty.${category}.description`)}
               </p>

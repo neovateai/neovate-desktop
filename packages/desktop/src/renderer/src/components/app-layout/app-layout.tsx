@@ -6,6 +6,8 @@ import {
   Settings03Icon,
   ViewSidebarLeftIcon,
   ViewSidebarRightIcon,
+  SidebarRightIcon,
+  SidebarRight01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Plus } from "lucide-react";
@@ -19,11 +21,13 @@ import type { SeparatorId } from "./types";
 import { useRendererApp } from "../../core/app";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
+import { useAgentStore } from "../../features/agent/store";
 import { useConfigStore } from "../../features/config/store";
 import { OpenAppButton } from "../../features/open-in";
 import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
 import { useSettingsStore } from "../../features/settings";
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
   APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
@@ -78,13 +82,19 @@ export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
 
 export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useTheme();
+  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const sessions = useAgentStore((s) => s.sessions);
+  const activeSession = activeSessionId ? sessions.get(activeSessionId) : undefined;
   return (
     <div
       data-slot="chat-panel"
       className="min-w-0 overflow-hidden rounded-lg pb-2 bg-[var(--background-secondary)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
       style={{
         gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
-        backgroundImage: `url("/src/assets/images/chat-panel-bg-${resolvedTheme === "dark" ? "dark" : "light"}.png")`,
+        backgroundImage:
+          !activeSession || activeSession.isNew
+            ? `url("/src/assets/images/chat-panel-bg-${resolvedTheme === "dark" ? "dark" : "light"}.png")`
+            : "",
         backgroundSize: "cover",
         backgroundPosition: "0 0",
         backgroundRepeat: "no-repeat",
@@ -208,7 +218,7 @@ export function AppLayoutSecondaryTitleBar() {
       className="[-webkit-app-region:drag] flex flex-1 items-center"
     >
       <div className="flex-1" />
-      <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-2">
+      <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-1.5">
         {activeProject && <OpenAppButton cwd={activeProject.path} />}
         {items.map((item) => {
           const Component = lazyComponents.get(item.id)!;
@@ -218,15 +228,7 @@ export function AppLayoutSecondaryTitleBar() {
             </Suspense>
           );
         })}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="size-7"
-          title="Settings"
-          onClick={() => setShowSettings(true)}
-        >
-          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.5} />
-        </Button>
+        <ContentPanelToggle />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -239,6 +241,15 @@ export function AppLayoutSecondaryTitleBar() {
             size={16}
             strokeWidth={1.5}
           />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-7"
+          title="Settings"
+          onClick={() => setShowSettings(true)}
+        >
+          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.5} />
         </Button>
       </div>
     </div>
@@ -254,5 +265,26 @@ export function AppLayoutStatusBar() {
     <div data-slot="status-bar" className="flex h-6 shrink-0 items-center px-3">
       <span className="text-[11px] text-muted-foreground">Ready</span>
     </div>
+  );
+}
+
+function ContentPanelToggle() {
+  const collapsed = useLayoutStore((s) => s.panels.contentPanel.collapsed);
+  const togglePanel = useLayoutStore((s) => s.togglePanel);
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      onClick={() => togglePanel("contentPanel")}
+      title="Panels"
+      className={cn("hover:bg-accent", !collapsed && "bg-accent")}
+    >
+      <HugeiconsIcon
+        icon={collapsed ? SidebarRightIcon : SidebarRight01Icon}
+        size={24}
+        strokeWidth={1.5}
+      />
+    </Button>
   );
 }

@@ -14,11 +14,15 @@ function loadFixture(name: string) {
   return JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8")) as any[];
 }
 
-const makeAssistantMsg = (id: string, content: any[]) => ({
+const makeAssistantMsg = (
+  id: string,
+  content: any[],
+  options?: { uuid?: string; parentToolUseId?: string | null; sessionId?: string },
+) => ({
   type: "assistant" as const,
-  uuid: "uuid-a",
-  session_id: "sess-1",
-  parent_tool_use_id: null,
+  uuid: options?.uuid ?? "uuid-a",
+  session_id: options?.sessionId ?? "sess-1",
+  parent_tool_use_id: options?.parentToolUseId ?? null,
   error: null,
   message: {
     id,
@@ -119,6 +123,20 @@ const makeMessageStopEvent = () => ({
   type: "message_stop" as const,
 });
 
+const makeUserMsg = (
+  content: any,
+  options?: { uuid?: string; parentToolUseId?: string | null; sessionId?: string },
+) => ({
+  type: "user" as const,
+  uuid: options?.uuid ?? "uuid-u",
+  session_id: options?.sessionId ?? "sess-1",
+  parent_tool_use_id: options?.parentToolUseId ?? null,
+  message: {
+    role: "user" as const,
+    content,
+  },
+});
+
 describe("SDKMessageTransformer", () => {
   let t: SDKMessageTransformer;
   beforeEach(() => {
@@ -204,6 +222,31 @@ describe("SDKMessageTransformer", () => {
       "text-start",
       "text-delta",
       "text-end",
+    ]);
+  });
+
+  it("subagent assistant messages do not emit global step boundaries", () => {
+    collect(t.transform(makeAssistantMsg("msg-A", [{ type: "text", text: "A" }]) as any));
+
+    const chunks = collect(
+      t.transform(
+        makeAssistantMsg(
+          "msg-child",
+          [{ type: "tool_use", id: "call-child", name: "Glob", input: { pattern: "**/*" } }],
+          { parentToolUseId: "call-agent" },
+        ) as any,
+      ),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: "tool-input-available",
+        toolCallId: "call-child",
+        toolName: "Glob",
+        input: { pattern: "**/*" },
+        providerExecuted: true,
+        providerMetadata: { claudeCode: { parentToolUseId: "call-agent" } },
+      },
     ]);
   });
 
@@ -667,6 +710,64 @@ describe("SDKMessageTransformer", () => {
 
     expect(uiMessages.length).toBeGreaterThan(0);
     expect(uiMessages.at(-1)?.parts.map((part: any) => part.type)).toContain("tool-Read");
+  });
+
+  it("drops subagent kickoff prompt text when it duplicates an Agent prompt", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+    collect(
+      t.transform(
+        makeStreamEventMsg(
+          makeToolUseBlockStartEvent(0, "call-agent", "Agent", {
+            prompt: "Explore the repository",
+            description: "Repo scan",
+            subagent_type: "Explore",
+          }),
+        ) as any,
+      ),
+    );
+    collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any));
+
+    const chunks = collect(
+      t.transform(
+        makeUserMsg([{ type: "text", text: "Explore the repository" }], {
+          uuid: "user-agent",
+          parentToolUseId: "call-agent",
+        }) as any,
+      ),
+    );
+
+    expect(chunks).toEqual([]);
+  });
+
+  it("keeps subagent user text when it does not duplicate an Agent prompt", () => {
+    collect(t.transform(makeStreamEventMsg(makeMessageStartEvent("msg-stream")) as any));
+    collect(
+      t.transform(
+        makeStreamEventMsg(
+          makeToolUseBlockStartEvent(0, "call-agent", "Agent", {
+            prompt: "Explore the repository",
+            description: "Repo scan",
+            subagent_type: "Explore",
+          }),
+        ) as any,
+      ),
+    );
+    collect(t.transform(makeStreamEventMsg(makeBlockStopEvent(0)) as any));
+
+    const chunks = collect(
+      t.transform(
+        makeUserMsg([{ type: "text", text: "I will start with a glob search." }], {
+          uuid: "user-agent",
+          parentToolUseId: "call-agent",
+        }) as any,
+      ),
+    );
+
+    expect(chunks).toEqual([
+      { type: "text-start", id: "user-agent" },
+      { type: "text-delta", id: "user-agent", delta: "I will start with a glob search." },
+      { type: "text-end", id: "user-agent" },
+    ]);
   });
 
   it("real streamed tool_use sequence ignores the interleaved assistant snapshot", () => {

@@ -1,10 +1,8 @@
 import type { SDKMessage, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
 
-import { createUIMessageStream, readUIMessageStream } from "ai";
-
 import type { ClaudeCodeUIMessage } from "../../../../shared/claude-code/types";
 
-import { SDKMessageTransformer } from "../sdk-message-transformer";
+import { sdkMessagesToUIMessage } from "./sdk-messages-to-ui-message";
 
 /**
  * Convert raw SDK session messages into UI messages.
@@ -25,23 +23,7 @@ export async function sessionMessagesToUIMessages(
     if (batch.length === 0) return;
     const batchCopy = batch;
     batch = [];
-    const transformer = new SDKMessageTransformer();
-
-    const stream = createUIMessageStream<ClaudeCodeUIMessage>({
-      execute({ writer }) {
-        for (const msg of batchCopy) {
-          for (const chunk of transformer.transform(msg)) {
-            writer.write(chunk);
-          }
-        }
-      },
-    });
-
-    const messageStream = readUIMessageStream<ClaudeCodeUIMessage>({ stream });
-    let last: ClaudeCodeUIMessage | undefined;
-    for await (const msg of messageStream) {
-      last = msg;
-    }
+    const last = await sdkMessagesToUIMessage(batchCopy);
     if (last) results.push(last);
   };
 

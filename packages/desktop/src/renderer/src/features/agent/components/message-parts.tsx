@@ -1,6 +1,11 @@
-import { isToolUIPart } from "ai";
+import type { ReactNode } from "react";
 
-import type { ClaudeCodeUIMessage } from "../../../../../shared/claude-code/types";
+import { isToolUIPart, type ToolUIPart } from "ai";
+
+import type {
+  ClaudeCodeUIMessage,
+  ClaudeCodeUITools,
+} from "../../../../../shared/claude-code/types";
 
 import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
 import {
@@ -8,9 +13,29 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "../../../components/ai-elements/reasoning";
-import { ClaudeCodeToolUIPart } from "./tool-parts";
 
-export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
+type RenderToolPart = (
+  message: ClaudeCodeUIMessage,
+  part: ToolUIPart<ClaudeCodeUITools>,
+) => ReactNode;
+
+export function MessageParts({
+  message,
+  renderToolPart,
+}: {
+  message: ClaudeCodeUIMessage;
+  renderToolPart: RenderToolPart;
+}) {
+  return <MessagePartRenderer message={message} renderToolPart={renderToolPart} />;
+}
+
+export function MessagePartRenderer({
+  message,
+  renderToolPart,
+}: {
+  message: ClaudeCodeUIMessage;
+  renderToolPart: RenderToolPart;
+}) {
   return (
     <div className="flex flex-col gap-2 w-full">
       {message.parts.map((part, index) => {
@@ -20,7 +45,7 @@ export function MessageParts({ message }: { message: ClaudeCodeUIMessage }) {
           }
           return (
             <div key={part.toolCallId} data-key={part.toolCallId}>
-              <ClaudeCodeToolUIPart message={message} part={part} />
+              {renderToolPart(message, part)}
             </div>
           );
         }

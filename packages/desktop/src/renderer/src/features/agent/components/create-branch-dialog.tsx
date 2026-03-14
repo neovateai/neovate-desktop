@@ -94,7 +94,6 @@ export function CreateBranchDialog({ open, onOpenChange, cwd, currentBranch, onC
             {currentBranch
               ? t("branch.create.fromBranch", {
                   branch: currentBranch,
-                  interpolation: { escapeValue: false },
                 })
               : t("branch.create.fromHead")}
           </DialogDescription>
