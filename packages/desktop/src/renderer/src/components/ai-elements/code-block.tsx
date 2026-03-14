@@ -261,14 +261,15 @@ const CodeBlockBody = memo(
     return (
       <pre
         className={cn(
-          "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-3 text-xs",
+          "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-3",
+          "text-xs leading-5 font-mono",
           className,
         )}
         style={preStyle}
       >
         <code
           className={cn(
-            "font-mono text-xs",
+            "font-mono text-xs leading-5",
             showLineNumbers && "[counter-increment:line_0] [counter-reset:line]",
           )}
         >
@@ -287,6 +288,7 @@ const CodeBlockBody = memo(
 
 CodeBlockBody.displayName = "CodeBlockBody";
 
+// CodeBlock Container - v3.0 Spec: rounded-lg
 export const CodeBlockContainer = ({
   className,
   language,
@@ -295,7 +297,8 @@ export const CodeBlockContainer = ({
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => (
   <div
     className={cn(
-      "group relative w-full overflow-hidden rounded-md border bg-background text-foreground",
+      "group relative w-full overflow-hidden rounded-lg border border-border/50",
+      "bg-background text-foreground",
       className,
     )}
     data-language={language}
@@ -308,6 +311,7 @@ export const CodeBlockContainer = ({
   />
 );
 
+// CodeBlock Header - v3.0 Spec: h-8 (32px), px-3
 export const CodeBlockHeader = ({
   children,
   className,
@@ -315,7 +319,9 @@ export const CodeBlockHeader = ({
 }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex items-center justify-between border-b bg-muted/80 px-2.5 py-1.5 text-muted-foreground text-xs",
+      "flex items-center justify-between h-8 px-3",
+      "border-b border-border/50 bg-muted/60",
+      "text-xs text-muted-foreground",
       className,
     )}
     {...props}

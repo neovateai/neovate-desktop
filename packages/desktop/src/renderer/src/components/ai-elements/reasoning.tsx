@@ -24,6 +24,10 @@ import { cn } from "../../lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { Shimmer } from "./shimmer";
 
+// ============================================================================
+// Reasoning Context
+// ============================================================================
+
 interface ReasoningContextValue {
   isStreaming: boolean;
   isOpen: boolean;
@@ -40,6 +44,10 @@ export const useReasoning = () => {
   }
   return context;
 };
+
+// ============================================================================
+// Reasoning Container
+// ============================================================================
 
 export type ReasoningProps = ComponentProps<typeof Collapsible> & {
   isStreaming?: boolean;
@@ -129,7 +137,7 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn("not-prose overflow-hidden rounded-md border border-border/40", className)}
+          className={cn("w-full overflow-hidden rounded-lg border border-border/40", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -140,6 +148,10 @@ export const Reasoning = memo(
     );
   },
 );
+
+// ============================================================================
+// Reasoning Trigger - 规范：h-7 (28px), px-2
+// ============================================================================
 
 export type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
   getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode;
@@ -167,13 +179,13 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          // Layout - v3.0: h-7, px-2
-          "flex w-full items-center gap-2 h-7 px-2 rounded-md",
+          // Layout - v3.0: h-7 (28px), px-2
+          "flex w-full items-center gap-2 h-7 px-2",
           // Text styling
           "text-sm text-muted-foreground",
           // Interaction
-          "transition-colors duration-150 ease-out",
-          "hover:bg-muted/40 hover:text-foreground cursor-pointer",
+          "transition-colors duration-150",
+          "hover:bg-muted/50 hover:text-foreground cursor-pointer",
           "group/reasoning",
           className,
         )}
@@ -189,7 +201,7 @@ export const ReasoningTrigger = memo(
               className={cn(
                 "size-3 text-muted-foreground/50 shrink-0",
                 "transition-transform duration-200",
-                "group-data-[state=open]/reasoning:rotate-180"
+                "group-data-[state=open]/reasoning:rotate-180",
               )}
             />
           </>
@@ -198,6 +210,10 @@ export const ReasoningTrigger = memo(
     );
   },
 );
+
+// ============================================================================
+// Reasoning Content - 规范：text-sm leading-6
+// ============================================================================
 
 export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & {
   children: string;
@@ -209,15 +225,15 @@ export const ReasoningContent = memo(({ className, children, ...props }: Reasoni
   <CollapsibleContent
     className={cn(
       // Container styling - v3.0
-      "border-t border-border/40 mt-1 pt-2",
-      "pl-6 pr-2 pb-2",
-      "text-sm text-muted-foreground leading-relaxed",
-      // Left border decoration
-      "border-l-2 border-border/30 ml-2",
+      "border-t border-border/40 px-3 py-2",
+      // Text - 14px 字体，24px 行高
+      "text-sm text-muted-foreground leading-6",
+      // Background
+      "bg-muted/20",
       // Animation
       "data-[state=closed]:animate-out data-[state=open]:animate-in",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1.5",
-      "data-[state=open]:slide-in-from-top-1.5",
+      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "data-[state=closed]:slide-out-to-top-1 data-[state=open]:slide-in-from-top-1",
       "outline-none",
       className,
     )}
