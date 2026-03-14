@@ -1,10 +1,10 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import type { HugeIconProps } from "@hugeicons/react";
+import type { ComponentProps, FC, ReactNode } from "react";
 
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
-import { BrainIcon, ChevronDownIcon, DotIcon } from "lucide-react";
+import { ArrowDown01Icon, BrainIcon, MoreHorizontalIcon } from "@hugeicons/react";
 import { createContext, memo, useContext, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
@@ -69,15 +69,19 @@ export const ChainOfThoughtHeader = memo(
       <Collapsible onOpenChange={setIsOpen} open={isOpen}>
         <CollapsibleTrigger
           className={cn(
-            "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
+            "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground group",
             className,
           )}
           {...props}
         >
-          <BrainIcon className="size-4" />
+          <BrainIcon className="size-4" variant="solid" />
           <span className="flex-1 text-left">{children ?? "Chain of Thought"}</span>
-          <ChevronDownIcon
-            className={cn("size-4 transition-transform", isOpen ? "rotate-180" : "rotate-0")}
+          <ArrowDown01Icon
+            className={cn(
+              "size-4 transition-transform duration-200",
+              isOpen ? "rotate-180" : "rotate-0"
+            )}
+            variant="solid"
           />
         </CollapsibleTrigger>
       </Collapsible>
@@ -86,7 +90,7 @@ export const ChainOfThoughtHeader = memo(
 );
 
 export type ChainOfThoughtStepProps = ComponentProps<"div"> & {
-  icon?: LucideIcon;
+  icon?: FC<HugeIconProps>;
   label: ReactNode;
   description?: ReactNode;
   status?: "complete" | "active" | "pending";
@@ -101,7 +105,7 @@ const stepStatusStyles = {
 export const ChainOfThoughtStep = memo(
   ({
     className,
-    icon: Icon = DotIcon,
+    icon: Icon = MoreHorizontalIcon,
     label,
     description,
     status = "complete",
@@ -118,7 +122,7 @@ export const ChainOfThoughtStep = memo(
       {...props}
     >
       <div className="relative mt-0.5">
-        <Icon className="size-4" />
+        <Icon className="size-4" variant="solid" />
         <div className="absolute top-7 bottom-0 left-1/2 -mx-px w-px bg-border" />
       </div>
       <div className="flex-1 space-y-2 overflow-hidden">

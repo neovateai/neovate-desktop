@@ -3,7 +3,7 @@
 import type { ComponentProps, CSSProperties, FC, HTMLAttributes } from "react";
 import type { BundledLanguage, BundledTheme, HighlighterGeneric, ThemedToken } from "shiki";
 
-import { CheckIcon, CopyIcon } from "lucide-react";
+import { CodeIcon, Copy01Icon, Tick02Icon } from "@hugeicons/react";
 import {
   createContext,
   memo,
@@ -261,7 +261,7 @@ const CodeBlockBody = memo(
     return (
       <pre
         className={cn(
-          "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-3 text-xs",
+          "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-3 text-xs leading-5",
           className,
         )}
         style={preStyle}
@@ -295,7 +295,7 @@ export const CodeBlockContainer = ({
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => (
   <div
     className={cn(
-      "group relative w-full overflow-hidden rounded-md border bg-background text-foreground",
+      "group relative w-full overflow-hidden rounded-lg border border-border/50 bg-background text-foreground",
       className,
     )}
     data-language={language}
@@ -315,7 +315,7 @@ export const CodeBlockHeader = ({
 }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex items-center justify-between border-b bg-muted/80 px-2.5 py-1.5 text-muted-foreground text-xs",
+      "flex items-center justify-between h-8 border-b bg-muted/60 px-3 text-muted-foreground text-xs",
       className,
     )}
     {...props}
@@ -329,7 +329,8 @@ export const CodeBlockTitle = ({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex items-center gap-2", className)} {...props}>
+  <div className={cn("flex items-center gap-2 min-w-0", className)} {...props}>
+    <CodeIcon className="size-4 text-muted-foreground shrink-0" variant="solid" />
     {children}
   </div>
 );
@@ -459,17 +460,19 @@ export const CodeBlockCopyButton = ({
     [],
   );
 
-  const Icon = isCopied ? CheckIcon : CopyIcon;
-
   return (
     <Button
-      className={cn("shrink-0", className)}
+      className={cn("size-6 shrink-0", className)}
       onClick={copyToClipboard}
       size="icon"
       variant="ghost"
       {...props}
     >
-      {children ?? <Icon size={14} />}
+      {children ?? (isCopied ? (
+        <Tick02Icon className="size-3.5" variant="solid" />
+      ) : (
+        <Copy01Icon className="size-3.5" variant="solid" />
+      ))}
     </Button>
   );
 };

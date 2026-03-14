@@ -17,7 +17,10 @@ const isBlockCode = (className?: string) =>
 function MarkdownLink({ className, children, ...props }: MarkdownAnchorProps) {
   return (
     <a
-      className={cn("text-primary transition-colors underline-offset-2 hover:underline", className)}
+      className={cn(
+        "text-primary font-medium underline underline-offset-2 decoration-primary/30 hover:decoration-primary transition-colors",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -35,7 +38,7 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   }
 
   return (
-    <code className={cn("rounded-sm bg-muted px-1 py-0.5 font-mono text-xs", className)} {...props}>
+    <code className={cn("rounded bg-muted px-1 py-0.5 font-mono text-xs", className)} {...props}>
       {children}
     </code>
   );
@@ -43,7 +46,7 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
 
 function MarkdownPre({ className, children, ...props }: MarkdownPreProps) {
   return (
-    <pre className={cn("my-4 overflow-x-auto first:mt-0 last:mb-0", className)} {...props}>
+    <pre className={cn("my-3 overflow-x-auto first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </pre>
   );
@@ -53,7 +56,7 @@ function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquot
   return (
     <blockquote
       className={cn(
-        "my-4 border-l-2 border-muted-foreground/30 py-1 pl-4 italic text-muted-foreground first:mt-0 last:mb-0",
+        "my-3 border-l-2 border-primary/20 pl-3 py-0.5 italic text-muted-foreground bg-muted/30 rounded-r-md pr-3 first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -65,7 +68,7 @@ function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquot
 
 function MarkdownTable({ className, children, ...props }: MarkdownTableProps) {
   return (
-    <div className="my-4 overflow-x-auto first:mt-0 last:mb-0" data-markdown-table-wrapper="true">
+    <div className="my-3 overflow-x-auto overflow-hidden rounded-lg border border-border/50 first:mt-0 last:mb-0" data-markdown-table-wrapper="true">
       <table className={cn("w-full border-collapse text-sm", className)} {...props}>
         {children}
       </table>
@@ -78,7 +81,7 @@ function MarkdownImage({ className, alt, ...props }: MarkdownImageProps) {
     <img
       alt={alt}
       className={cn(
-        "my-4 max-w-full rounded-md border border-border/50 first:mt-0 last:mb-0",
+        "my-3 max-w-full h-auto rounded-lg border border-border/50 first:mt-0 last:mb-0",
         className,
       )}
       loading="lazy"
@@ -106,14 +109,14 @@ function MarkdownInput({ className, type, ...props }: MarkdownInputProps) {
 
 export const markdownBaseComponents: Components = {
   p: ({ className, children, ...props }) => (
-    <p className={cn("my-4 leading-relaxed first:mt-0 last:mb-0", className)} {...props}>
+    <p className={cn("my-3 leading-6 first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </p>
   ),
   h1: ({ className, children, ...props }) => (
     <h1
       className={cn(
-        "mt-6 mb-4 text-xl font-semibold leading-tight text-foreground first:mt-0",
+        "mt-6 mb-3 text-lg font-semibold leading-tight text-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -124,7 +127,7 @@ export const markdownBaseComponents: Components = {
   h2: ({ className, children, ...props }) => (
     <h2
       className={cn(
-        "mt-5 mb-3 text-lg font-semibold leading-tight text-foreground first:mt-0",
+        "mt-5 mb-2.5 text-base font-semibold leading-tight text-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -135,7 +138,7 @@ export const markdownBaseComponents: Components = {
   h3: ({ className, children, ...props }) => (
     <h3
       className={cn(
-        "mt-4 mb-2 text-base font-medium leading-tight text-foreground first:mt-0",
+        "mt-4 mb-2 text-sm font-semibold leading-tight text-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -146,7 +149,7 @@ export const markdownBaseComponents: Components = {
   h4: ({ className, children, ...props }) => (
     <h4
       className={cn(
-        "mt-4 mb-2 text-sm font-medium leading-tight text-foreground first:mt-0",
+        "mt-3 mb-2 text-sm font-medium leading-tight text-muted-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -177,13 +180,17 @@ export const markdownBaseComponents: Components = {
     </h6>
   ),
   ul: ({ className, children, ...props }) => (
-    <ul className={cn("my-4 list-disc space-y-1 pl-5 first:mt-0 last:mb-0", className)} {...props}>
+    <ul className={cn("my-3 list-none space-y-1 pl-0 first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </ul>
   ),
   ol: ({ className, children, ...props }) => (
     <ol
-      className={cn("my-4 list-decimal space-y-1 pl-5 first:mt-0 last:mb-0", className)}
+      className={cn(
+        "my-3 list-none space-y-1 pl-0 first:mt-0 last:mb-0",
+        "[counter-reset:list-item]",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -191,14 +198,25 @@ export const markdownBaseComponents: Components = {
   ),
   li: ({ className, children, ...props }) => (
     <li
-      className={cn("text-sm leading-relaxed marker:text-muted-foreground", className)}
+      className={cn(
+        "flex items-start gap-2 text-sm leading-6",
+        // Unordered list bullet - vertically centered with first line
+        "[ul>&]:before:content-[''] [ul>&]:before:size-1",
+        "[ul>&]:before:rounded-full [ul>&]:before:bg-muted-foreground/50",
+        "[ul>&]:before:mt-[0.6875rem] [ul>&]:before:shrink-0",
+        // Ordered list number
+        "[ol>&]:before:content-[counter(list-item)'.'] [ol>&]:before:[counter-increment:list-item]",
+        "[ol>&]:before:text-xs [ol>&]:before:text-muted-foreground/70",
+        "[ol>&]:before:min-w-[1.25rem] [ol>&]:before:text-right [ol>&]:before:shrink-0",
+        className,
+      )}
       {...props}
     >
       {children}
     </li>
   ),
   hr: ({ className, ...props }) => (
-    <hr className={cn("my-6 border-border first:mt-0 last:mb-0", className)} {...props} />
+    <hr className={cn("my-4 border-0 h-px bg-border/60 first:mt-0 last:mb-0", className)} {...props} />
   ),
   strong: ({ className, children, ...props }) => (
     <strong className={cn("font-semibold text-foreground", className)} {...props}>
@@ -221,7 +239,7 @@ export const markdownBaseComponents: Components = {
   blockquote: MarkdownBlockquote,
   table: MarkdownTable,
   thead: ({ className, children, ...props }) => (
-    <thead className={cn("bg-muted/40", className)} {...props}>
+    <thead className={cn("bg-muted/50", className)} {...props}>
       {children}
     </thead>
   ),
@@ -231,14 +249,14 @@ export const markdownBaseComponents: Components = {
     </tbody>
   ),
   tr: ({ className, children, ...props }) => (
-    <tr className={cn("align-top", className)} {...props}>
+    <tr className={cn("align-top [&:last-child>td]:border-b-0", className)} {...props}>
       {children}
     </tr>
   ),
   th: ({ className, children, ...props }) => (
     <th
       className={cn(
-        "border-b border-border px-3 py-2 text-left font-medium text-muted-foreground",
+        "border-b border-border/50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground",
         className,
       )}
       {...props}
@@ -247,7 +265,7 @@ export const markdownBaseComponents: Components = {
     </th>
   ),
   td: ({ className, children, ...props }) => (
-    <td className={cn("border-b border-border/50 px-3 py-2", className)} {...props}>
+    <td className={cn("border-b border-border/30 px-3 py-2 text-sm text-foreground", className)} {...props}>
       {children}
     </td>
   ),

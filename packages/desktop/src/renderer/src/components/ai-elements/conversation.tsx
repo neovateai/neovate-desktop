@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react";
 
-import { ArrowDownIcon, DownloadIcon } from "lucide-react";
+import { ArrowDown01Icon, Download04Icon } from "@hugeicons/react";
 import { useCallback } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
@@ -25,7 +25,7 @@ export type ConversationContentProps = ComponentProps<typeof StickToBottom.Conte
 
 export const ConversationContent = ({ className, ...props }: ConversationContentProps) => (
   <StickToBottom.Content
-    className={cn("flex flex-col gap-5 px-4 py-3 max-w-3xl mx-auto w-full", className)}
+    className={cn("flex flex-col gap-5 px-4 py-4 max-w-3xl mx-auto w-full", className)}
     {...props}
   />
 );
@@ -88,7 +88,7 @@ export const ConversationScrollButton = ({
         variant="outline"
         {...props}
       >
-        <ArrowDownIcon className="size-4" />
+        <ArrowDown01Icon className="size-4" variant="solid" />
       </Button>
     )
   );
@@ -148,7 +148,7 @@ export const ConversationDownload = ({
       variant="outline"
       {...props}
     >
-      {children ?? <DownloadIcon className="size-4" />}
+      {children ?? <Download04Icon className="size-4" variant="solid" />}
     </Button>
   );
 };

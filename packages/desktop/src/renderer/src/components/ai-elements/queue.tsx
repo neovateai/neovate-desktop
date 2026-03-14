@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react";
 
-import { ChevronDownIcon, PaperclipIcon } from "lucide-react";
+import { ArrowDown01Icon, Attachment01Icon } from "@hugeicons/react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -146,7 +146,7 @@ export const QueueItemFile = ({ children, className, ...props }: QueueItemFilePr
     className={cn("flex items-center gap-1 rounded border bg-muted px-2 py-1 text-xs", className)}
     {...props}
   >
-    <PaperclipIcon size={12} />
+    <Attachment01Icon className="size-3" variant="solid" />
     <span className="max-w-[100px] truncate">{children}</span>
   </span>
 );
@@ -203,7 +203,7 @@ export const QueueSectionLabel = ({
   ...props
 }: QueueSectionLabelProps) => (
   <span className={cn("flex items-center gap-2", className)} {...props}>
-    <ChevronDownIcon className="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
+    <ArrowDown01Icon className="size-4 transition-transform duration-200 group-data-[state=closed]:-rotate-90" variant="solid" />
     {icon}
     <span>
       {count} {label}

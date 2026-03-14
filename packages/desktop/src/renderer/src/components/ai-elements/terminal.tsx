@@ -3,7 +3,7 @@
 import type { ComponentProps, HTMLAttributes } from "react";
 
 import Ansi from "ansi-to-react";
-import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from "lucide-react";
+import { Copy01Icon, Delete02Icon, TerminalBrowserIcon, Tick02Icon } from "@hugeicons/react";
 import {
   createContext,
   useCallback,
@@ -99,7 +99,7 @@ export type TerminalTitleProps = HTMLAttributes<HTMLDivElement>;
 
 export const TerminalTitle = ({ className, children, ...props }: TerminalTitleProps) => (
   <div className={cn("flex items-center gap-2 text-xs text-zinc-400", className)} {...props}>
-    <TerminalIcon className="size-3.5" />
+    <TerminalBrowserIcon className="size-4" variant="solid" />
     {children ?? "Terminal"}
   </div>
 );
@@ -169,8 +169,6 @@ export const TerminalCopyButton = ({
     [],
   );
 
-  const Icon = isCopied ? CheckIcon : CopyIcon;
-
   return (
     <Button
       className={cn(
@@ -182,7 +180,11 @@ export const TerminalCopyButton = ({
       variant="ghost"
       {...props}
     >
-      {children ?? <Icon size={14} />}
+      {children ?? (isCopied ? (
+        <Tick02Icon className="size-3.5" variant="solid" />
+      ) : (
+        <Copy01Icon className="size-3.5" variant="solid" />
+      ))}
     </Button>
   );
 };
@@ -211,7 +213,7 @@ export const TerminalClearButton = ({
       variant="ghost"
       {...props}
     >
-      {children ?? <Trash2Icon size={14} />}
+      {children ?? <Delete02Icon className="size-3.5" variant="solid" />}
     </Button>
   );
 };
@@ -231,7 +233,7 @@ export const TerminalContent = ({ className, children, ...props }: TerminalConte
 
   return (
     <div
-      className={cn("max-h-96 overflow-auto p-3 font-mono text-xs leading-relaxed", className)}
+      className={cn("max-h-96 overflow-auto p-3 font-mono text-xs leading-5", className)}
       ref={containerRef}
       {...props}
     >
