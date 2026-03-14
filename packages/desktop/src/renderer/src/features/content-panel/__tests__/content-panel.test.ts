@@ -29,6 +29,7 @@ function makeOptions(overrides?: Partial<ContentPanelOptions>): ContentPanelOpti
     save: vi.fn(() => Promise.resolve()),
     layout: {
       expandPart: vi.fn(),
+      collapsePart: vi.fn(),
       togglePart: vi.fn(),
       maximizePart: vi.fn(),
     } satisfies IWorkbenchLayoutService,

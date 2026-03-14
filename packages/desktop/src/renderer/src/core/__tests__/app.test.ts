@@ -27,6 +27,7 @@ describe("RendererApp", () => {
     expect(app.workbench).toBeDefined();
     expect(app.workbench.layout).toBeDefined();
     expect(typeof app.workbench.layout.expandPart).toBe("function");
+    expect(typeof app.workbench.layout.collapsePart).toBe("function");
     expect(app.workbench.contentPanel).toBeDefined();
     expect(typeof app.workbench.contentPanel.openView).toBe("function");
   });

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Message, MessageContent, MessageResponse } from "../../components/ai-elements/message";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "../../components/ai-elements/reasoning";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { ClaudeCodeToolUIPart } from "../../features/agent/components/tool-parts";
 import { AgentTool } from "../../features/agent/components/tool-parts/agent-tool";
@@ -353,7 +358,7 @@ const webSearchInvocation = {
 const writeInvocation = {
   type: "tool-Write",
   toolCallId: "tool-write-demo",
-  state: "output-available",
+  state: "output-error",
   input: {
     file_path: `${rendererRoot}/dev/playgrounds/ai-elements-tool-demos.tsx`,
     content: `export const TOOL_LABELS = [
@@ -362,8 +367,25 @@ const writeInvocation = {
   "WebSearchTool",
 ];`,
   },
-  output: "Wrote file successfully.",
+  errorText:
+    "Failed to write file: Permission denied. You may not have write access to this location.",
 } as any;
+
+const reasoningSample = (
+  <Reasoning defaultOpen={false}>
+    <ReasoningTrigger />
+    <ReasoningContent>{`Let me analyze the codebase structure to find the relevant components.
+
+First, I'll search for files matching the pattern "**/*tool*.tsx" in the features directory.
+
+Based on the search results, I found:
+- agent-tool.tsx
+- edit-tool.tsx
+- web-search-tool.tsx
+
+Now I can proceed with implementing the solution.`}</ReasoningContent>
+  </Reasoning>
+);
 
 const markdownSample = `# Markdown
 
@@ -394,6 +416,12 @@ const TOOL_DEMOS: ToolDemo[] = [
         </MessageContent>
       </Message>
     ),
+  },
+  {
+    id: "reasoning",
+    label: "Reasoning",
+    summary: "Expandable thinking process with border and streaming support.",
+    render: () => reasoningSample,
   },
   {
     id: "agent-tool",
@@ -522,23 +550,34 @@ const TOOL_DEMOS: ToolDemo[] = [
   },
 ];
 
-function ToolPreview({ demo }: { demo: ToolDemo }) {
+const ToolPreview = function ToolPreview({ demo }: { demo: ToolDemo }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const expandedRef = useRef(false);
 
   useEffect(() => {
-    const triggers = containerRef.current?.querySelectorAll<HTMLElement>(
-      '[data-slot="collapsible-trigger"]',
-    );
+    // Only expand once per demo
+    expandedRef.current = false;
 
-    triggers?.forEach((trigger) => {
-      if (trigger.getAttribute("aria-expanded") !== "true") {
-        trigger.click();
-      }
+    const frame = requestAnimationFrame(() => {
+      if (expandedRef.current) return;
+
+      const triggers = containerRef.current?.querySelectorAll<HTMLElement>(
+        '[data-slot="collapsible-trigger"]',
+      );
+
+      triggers?.forEach((trigger) => {
+        if (trigger.getAttribute("aria-expanded") !== "true") {
+          expandedRef.current = true;
+          trigger.click();
+        }
+      });
     });
+
+    return () => cancelAnimationFrame(frame);
   }, [demo.id]);
 
   return <div ref={containerRef}>{demo.render()}</div>;
-}
+};
 
 export default function AiElementsPlayground() {
   const [activeToolId, setActiveToolId] = useState(TOOL_DEMOS[0]!.id);

@@ -20,6 +20,7 @@ export type MaximizableWorkbenchPartId = "contentPanel";
 
 export interface IWorkbenchLayoutService {
   expandPart(part: CollapsibleWorkbenchPartId): void | Promise<void>;
+  collapsePart(part: CollapsibleWorkbenchPartId): void | Promise<void>;
   togglePart(part: CollapsibleWorkbenchPartId): void | Promise<void>;
   maximizePart(part: MaximizableWorkbenchPartId): void | Promise<void>;
 }
