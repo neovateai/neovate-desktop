@@ -1,5 +1,5 @@
-import type { BundledLanguage } from "shiki";
 import type { ComponentProps, ReactNode } from "react";
+import type { BundledLanguage } from "shiki";
 import type { Components, ExtraProps } from "streamdown";
 
 import { Children, isValidElement } from "react";
@@ -58,10 +58,13 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   // Block code is handled by MarkdownPre, so just render a plain code element here
   if (!isBlockCode(className)) {
     return (
-      <code className={cn(
-        "inline-block rounded-md border bg-background px-2 py-0.5 text-xs align-middle",
-        className,
-      )} {...props}>
+      <code
+        className={cn(
+          "inline-block rounded-md border bg-background px-2 py-0.5 text-xs align-middle",
+          className,
+        )}
+        {...props}
+      >
         {children}
       </code>
     );
@@ -105,9 +108,7 @@ function MarkdownPre({ className, children }: MarkdownPreProps) {
 
   // Fallback for non-code pre elements
   return (
-    <pre className={cn("my-4 overflow-x-auto first:mt-0 last:mb-0", className)}>
-      {children}
-    </pre>
+    <pre className={cn("my-4 overflow-x-auto first:mt-0 last:mb-0", className)}>{children}</pre>
   );
 }
 
