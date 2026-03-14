@@ -7,6 +7,12 @@ import { memo, useState } from "react";
 import type { TurnResult } from "../store";
 
 import { Spinner } from "../../../components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../../components/ui/tooltip";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
@@ -178,9 +184,20 @@ export const SessionItem = memo(function SessionItem({
               onFocus={(e) => e.target.select()}
             />
           ) : (
-            <span className="flex-1 text-sm truncate">
-              {isRestoring ? "Restoring..." : displayTitle}
-            </span>
+            <TooltipProvider delay={300}>
+              <Tooltip>
+                <TooltipTrigger className="flex-1 text-sm truncate text-left cursor-pointer">
+                  {isRestoring ? "Restoring..." : displayTitle}
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={4}>
+                  {isRestoring
+                    ? "Restoring..."
+                    : displayTitle.length > 50
+                      ? displayTitle.slice(0, 50) + "..."
+                      : displayTitle}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           <span
             className={cn(
