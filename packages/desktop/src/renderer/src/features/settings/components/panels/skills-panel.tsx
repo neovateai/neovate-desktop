@@ -1,8 +1,12 @@
-import { Download, Loader2, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
+import { ArrowUpCircle, Download, Loader2, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { RecommendedSkill, SkillMeta } from "../../../../../../shared/features/skills/types";
+import type {
+  RecommendedSkill,
+  SkillMeta,
+  SkillUpdate,
+} from "../../../../../../shared/features/skills/types";
 
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
@@ -29,10 +33,11 @@ export const SkillsPanel = () => {
 
   const [installed, setInstalled] = useState<SkillMeta[]>([]);
   const [recommended, setRecommended] = useState<RecommendedSkill[]>([]);
+  const [updates, setUpdates] = useState<SkillUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [recommendedError, setRecommendedError] = useState<string | null>(null);
-  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("global");
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -55,7 +60,13 @@ export const SkillsPanel = () => {
         const recommendedResult = await client.skills.recommended({ forceRefresh });
         setRecommended(recommendedResult);
       } catch (e: any) {
-        setRecommendedError(e.message || "Failed to load recommended skills.");
+        setRecommendedError(e.message || t("settings.skills.recommendedLoadFailed"));
+      }
+      try {
+        const updatesResult = await client.skills.checkUpdates({ scope: "all" });
+        setUpdates(updatesResult);
+      } catch {
+        // Non-critical — silently ignore
       }
     },
     [t],
@@ -144,6 +155,15 @@ export const SkillsPanel = () => {
     }
   };
 
+  const getUpdate = useCallback(
+    (skill: SkillMeta) =>
+      updates.find(
+        (u) =>
+          u.name === skill.name && u.scope === skill.scope && u.projectPath === skill.projectPath,
+      ),
+    [updates],
+  );
+
   const showScopeBadge = scopeFilter === "all";
 
   if (loading) {
@@ -163,6 +183,9 @@ export const SkillsPanel = () => {
           {t("settings.skills")}
         </h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowAddModal(true)}>
+            <Plus className="size-3.5" />
+          </Button>
           <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
             <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
           </Button>
@@ -171,12 +194,12 @@ export const SkillsPanel = () => {
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10" />
         <Input
           className="pl-9"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search skills..."
+          placeholder={t("settings.skills.searchPlaceholder")}
         />
       </div>
 
@@ -199,15 +222,21 @@ export const SkillsPanel = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium text-muted-foreground">
-            Installed ({filteredInstalled.length})
+            {t("settings.skills.installed", { count: filteredInstalled.length })}
           </h2>
           <Select value={scopeFilter} onValueChange={(v) => setScopeFilter(v as ScopeFilter)}>
             <SelectTrigger size="sm" className="w-36">
-              <SelectValue />
+              <SelectValue>
+                {scopeFilter === "all"
+                  ? t("settings.skills.scopeAll")
+                  : scopeFilter === "global"
+                    ? t("settings.skills.scopeGlobal")
+                    : (projects.find((p) => p.path === scopeFilter)?.name ?? scopeFilter)}
+              </SelectValue>
             </SelectTrigger>
             <SelectPopup>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="global">Global</SelectItem>
+              <SelectItem value="all">{t("settings.skills.scopeAll")}</SelectItem>
+              <SelectItem value="global">{t("settings.skills.scopeGlobal")}</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.path}>
                   {p.name}
@@ -220,8 +249,8 @@ export const SkillsPanel = () => {
         {filteredInstalled.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
             {searchQuery
-              ? `No skills matching "${searchQuery}"`
-              : "No skills installed. Browse recommended skills below or add from URL."}
+              ? t("settings.skills.noMatchingSkills", { query: searchQuery })
+              : t("settings.skills.noInstalledSkills")}
           </p>
         ) : (
           <div className="space-y-1">
@@ -231,19 +260,35 @@ export const SkillsPanel = () => {
                 className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => setSelectedSkill(skill)}
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-medium text-foreground truncate">{skill.name}</span>
-                  {showScopeBadge && (
-                    <Badge variant="outline" size="sm">
-                      {skill.scope === "global"
-                        ? "global"
-                        : (skill.projectPath?.split("/").pop() ?? "project")}
-                    </Badge>
-                  )}
-                  {skill.version && (
-                    <Badge variant="secondary" size="sm">
-                      v{skill.version}
-                    </Badge>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {skill.name}
+                    </span>
+                    {showScopeBadge && (
+                      <Badge variant="outline" size="sm">
+                        {skill.scope === "global"
+                          ? t("settings.skills.scopeGlobal")
+                          : (skill.projectPath?.split("/").pop() ??
+                            t("settings.skills.scopeProject"))}
+                      </Badge>
+                    )}
+                    {skill.version && (
+                      <Badge variant="secondary" size="sm">
+                        v{skill.version}
+                      </Badge>
+                    )}
+                    {getUpdate(skill) && (
+                      <Badge variant="default" size="sm" className="gap-1">
+                        <ArrowUpCircle className="size-3" />
+                        {getUpdate(skill)!.latestVersion}
+                      </Badge>
+                    )}
+                  </div>
+                  {skill.description && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {skill.description}
+                    </p>
                   )}
                 </div>
                 <div onClick={(e) => handleToggleEnabled(skill, e)}>
@@ -258,18 +303,20 @@ export const SkillsPanel = () => {
       {/* Recommended Section */}
       {recommendedError ? (
         <div className="mb-6">
-          <h2 className="text-sm font-medium mb-3 text-muted-foreground">Recommended</h2>
+          <h2 className="text-sm font-medium mb-3 text-muted-foreground">
+            {t("settings.skills.recommended")}
+          </h2>
           <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             {recommendedError}
             <button className="ml-2 underline" onClick={refresh}>
-              Retry
+              {t("settings.skills.retry")}
             </button>
           </div>
         </div>
       ) : filteredRecommended.length === 0 ? null : (
         <div className="mb-6">
           <h2 className="text-sm font-medium mb-3 text-muted-foreground">
-            Recommended ({filteredRecommended.length})
+            {t("settings.skills.recommendedCount", { count: filteredRecommended.length })}
           </h2>
           <div className="space-y-1">
             {filteredRecommended.map((skill) => (
@@ -303,7 +350,7 @@ export const SkillsPanel = () => {
                 </div>
                 {skill.installed ? (
                   <Badge variant="secondary" size="sm">
-                    Installed
+                    {t("settings.skills.installedBadge")}
                   </Badge>
                 ) : (
                   <Button
@@ -315,7 +362,7 @@ export const SkillsPanel = () => {
                     }}
                   >
                     <Download className="size-3.5" />
-                    Install
+                    {t("settings.skills.install")}
                   </Button>
                 )}
               </div>
@@ -324,16 +371,11 @@ export const SkillsPanel = () => {
         </div>
       )}
 
-      {/* Add from URL */}
-      <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAddModal(true)}>
-        <Plus className="size-4" />
-        Add from URL/package...
-      </Button>
-
       {/* Detail Modal */}
       {selectedSkill && (
         <SkillDetailModal
           skill={selectedSkill}
+          update={getUpdate(selectedSkill)}
           onClose={() => setSelectedSkill(null)}
           onRefresh={fetchData}
         />
