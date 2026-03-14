@@ -20,8 +20,8 @@ import type { SeparatorId } from "./types";
 
 import { useRendererApp } from "../../core/app";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
-import { useAgentStore } from "../../features/agent/store";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
+import { useAgentStore } from "../../features/agent/store";
 import { useConfigStore } from "../../features/config/store";
 import { OpenAppButton } from "../../features/open-in";
 import { ProjectSelector } from "../../features/project/components/project-selector";
