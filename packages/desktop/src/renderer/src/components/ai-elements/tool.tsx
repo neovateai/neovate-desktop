@@ -258,7 +258,7 @@ export const ToolHeader = ({
           <ToolIcon className={cn("size-4", iconColor)} />
         </div>
         <span className="text-sm text-foreground truncate">
-          {mainLabel}
+          {mainLabel}&nbsp;
           {extra && <span className="text-muted-foreground"> {extra}</span>}
           {/* Only show displayName separately when it's a file path */}
           {hasFilePath && displayName && (
@@ -291,11 +291,7 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
-    className={cn(
-      "border-t border-border/50",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-3 p-3 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className,
-    )}
+    className={cn("border-t border-border/50 space-y-3 p-3 text-popover-foreground", className)}
     {...props}
   />
 );

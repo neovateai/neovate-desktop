@@ -1,37 +1,47 @@
-import type { BundledLanguage } from "shiki";
+import { MultiFileDiff } from "@pierre/diffs/react";
+import { AlertCircle } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import type { EditUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
 export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input } = invocation;
+  const { state, input, errorText } = invocation;
+  const { resolvedTheme } = useTheme();
 
-  const language = (input?.file_path?.match(/\.(\w+)$/)?.[1] ?? "typescript") as BundledLanguage;
-  const title = input?.file_path ? `Edit ${input.file_path}` : undefined;
+  const title = input?.file_path ? `Edit  ${input.file_path}` : undefined;
+  const hasError = state === "output-error";
+
+  const oldFile = {
+    name: input?.file_path?.split("/").pop() || "old",
+    contents: input?.old_string || "",
+  };
+  const newFile = {
+    name: input?.file_path?.split("/").pop() || "new",
+    contents: input?.new_string || "",
+  };
 
   return (
     <Tool>
       <ToolHeader type="tool-Edit" state={state} title={title} />
-      <ToolContent className="space-y-2">
-        {input?.old_string ? (
-          <>
-            <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Old String
-            </h4>
-            <CodeBlock code={input.old_string} language={language} className="text-xs" />
-          </>
-        ) : null}
-        {input?.new_string ? (
-          <>
-            <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              New String
-            </h4>
-            <CodeBlock code={input.new_string} language={language} className="text-xs" />
-          </>
-        ) : null}
+      <ToolContent>
+        {hasError && errorText ? (
+          <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span className="whitespace-pre-wrap">{errorText}</span>
+          </div>
+        ) : (
+          <MultiFileDiff
+            oldFile={oldFile}
+            newFile={newFile}
+            options={{
+              theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+              diffStyle: "unified",
+            }}
+          />
+        )}
       </ToolContent>
     </Tool>
   );

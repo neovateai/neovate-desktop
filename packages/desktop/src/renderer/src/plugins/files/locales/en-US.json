@@ -9,6 +9,8 @@
   "confirmDelete": "Are you sure you want to delete {{fileName}}?",
   "newFilePlaceholder": "New file.txt",
   "newFolderPlaceholder": "New folder",
+  "delete.title": "Delete Confirmation",
+  "delete.description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
   "error.deleteFailed": "Delete failed: {{error}}",
   "error.renameFailed": "Rename failed: {{error}}",
   "error.createFileFailed": "Failed to create file",

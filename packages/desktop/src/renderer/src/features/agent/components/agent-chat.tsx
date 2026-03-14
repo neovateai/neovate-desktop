@@ -1,4 +1,5 @@
 import type { FileUIPart } from "ai";
+import type { StickToBottomContext } from "use-stick-to-bottom";
 
 import debug from "debug";
 import { useEffect, useRef, useState } from "react";
@@ -175,6 +176,9 @@ function AgentChatSession({
     useClaudeCodeChat(sessionId);
   const hasPendingRequest = pendingRequests.length > 0;
 
+  // Ref to access scroll context for smooth scrolling on new message
+  const conversationContextRef = useRef<StickToBottomContext | null>(null);
+
   const handleSend = (text: string, attachments?: ImageAttachment[]) => {
     chatLog(
       "handleSend: sessionId=%s msgLen=%d attachments=%d",
@@ -188,6 +192,8 @@ function AgentChatSession({
       files: files.length > 0 ? files : undefined,
       metadata: { sessionId, parentToolUseId: null },
     });
+    // Smooth scroll to bottom when user sends a new message
+    conversationContextRef.current?.scrollToBottom("smooth");
   };
 
   const handleCancel = () => {
@@ -197,7 +203,7 @@ function AgentChatSession({
 
   return (
     <div className="flex h-full flex-col">
-      <Conversation>
+      <Conversation contextRef={conversationContextRef}>
         <ConversationContent>
           {messages.map((message) => (
             <MessageParts

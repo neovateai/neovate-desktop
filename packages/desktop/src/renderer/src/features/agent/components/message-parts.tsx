@@ -62,7 +62,7 @@ export function MessagePartRenderer({
                   {message.role === "assistant" ? (
                     <MessageResponse>{part.text}</MessageResponse>
                   ) : (
-                    <p>{part.text}</p>
+                    <p className="m-0 whitespace-pre-wrap">{part.text}</p>
                   )}
                 </MessageContent>
               </Message>

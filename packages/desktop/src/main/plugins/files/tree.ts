@@ -2,6 +2,8 @@ import { minimatch } from "minimatch";
 import fs from "node:fs";
 import path from "node:path";
 
+import { getExcludePatterns } from "./utils/ignore";
+
 export interface FileTreeNode {
   fileName: string;
   fullPath: string;
@@ -11,27 +13,11 @@ export interface FileTreeNode {
   languageId?: string;
 }
 
-const EXCLUDE_FILE_TYPE_PATTERN = [
-  "**/node_modules",
-  "**/node_modules/**",
-  /** 编译产物忽略 */
-  "**/dist",
-  "**/dist/**",
-  "**/.*/**",
-  "**/.*",
-];
-
-function getExcludePatterns(): string[] {
-  // const gitignorePatterns = getGitignorePatterns();
-  const allPatterns = [...EXCLUDE_FILE_TYPE_PATTERN];
-  return [...new Set(allPatterns)];
-}
-
 export async function getFileTree(parent: string, root?: string): Promise<FileTreeNode[]> {
   const includePatterns: string[] = [];
   const actualRoot = root || parent;
 
-  const excludePatterns = getExcludePatterns();
+  const excludePatterns = await getExcludePatterns(actualRoot);
 
   const dirFilePath = parent;
   const tree: FileTreeNode[] = [];

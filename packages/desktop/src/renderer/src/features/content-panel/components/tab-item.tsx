@@ -37,14 +37,15 @@ function TabButton({
       onClick={() => !isOrphan && contentPanel.activateView(tab.id)}
     >
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
-      <span className="truncate">{tab.name}</span>
+      <span className="truncate font-medium">{tab.name}</span>
       <Button
         variant="ghost"
         size="icon-xs"
         className={cn(
           "size-4 transition-opacity",
           isOrphan && "opacity-100",
-          !isOrphan && "opacity-0 group-hover:opacity-100",
+          !isOrphan && isActive && "opacity-100",
+          !isOrphan && !isActive && "opacity-0 group-hover:opacity-100",
         )}
         onClick={(e) => {
           e.stopPropagation();

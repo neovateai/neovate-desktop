@@ -1,530 +1,604 @@
-import { CheckIcon, CopyIcon, MessageSquareIcon, RefreshCwIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import {
-  Agent,
-  AgentContent,
-  AgentHeader,
-  AgentInstructions,
-  AgentOutput,
-  AgentTool,
-  AgentTools,
-} from "../../components/ai-elements/agent";
-import { Artifact, ArtifactClose, ArtifactHeader } from "../../components/ai-elements/artifact";
-import {
-  Attachment,
-  AttachmentPreview,
-  AttachmentRemove,
-  Attachments,
-} from "../../components/ai-elements/attachments";
-import {
-  ChainOfThought,
-  ChainOfThoughtContent,
-  ChainOfThoughtHeader,
-  ChainOfThoughtStep,
-} from "../../components/ai-elements/chain-of-thought";
-import {
-  Checkpoint,
-  CheckpointIcon,
-  CheckpointTrigger,
-} from "../../components/ai-elements/checkpoint";
-import {
-  CodeBlock,
-  CodeBlockActions,
-  CodeBlockCopyButton,
-  CodeBlockHeader,
-  CodeBlockTitle,
-} from "../../components/ai-elements/code-block";
-import {
-  Confirmation,
-  ConfirmationAccepted,
-  ConfirmationAction,
-  ConfirmationActions,
-  ConfirmationRejected,
-  ConfirmationRequest,
-} from "../../components/ai-elements/confirmation";
-import {
-  Context,
-  ContextContent,
-  ContextContentBody,
-  ContextContentHeader,
-  ContextInputUsage,
-  ContextOutputUsage,
-  ContextTrigger,
-} from "../../components/ai-elements/context";
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-} from "../../components/ai-elements/conversation";
-import {
-  InlineCitation,
-  InlineCitationCard,
-  InlineCitationCardBody,
-  InlineCitationCardTrigger,
-  InlineCitationCarousel,
-  InlineCitationCarouselContent,
-  InlineCitationCarouselItem,
-  InlineCitationQuote,
-  InlineCitationSource,
-} from "../../components/ai-elements/inline-citation";
-import {
-  Message,
-  MessageActions,
-  MessageContent,
-  MessageResponse,
-} from "../../components/ai-elements/message";
-import {
-  Plan,
-  PlanAction,
-  PlanContent,
-  PlanDescription,
-  PlanFooter,
-  PlanHeader,
-  PlanTitle,
-  PlanTrigger,
-} from "../../components/ai-elements/plan";
-import {
-  Queue,
-  QueueItem,
-  QueueItemContent,
-  QueueItemIndicator,
-  QueueList,
-  QueueSection,
-  QueueSectionContent,
-  QueueSectionLabel,
-  QueueSectionTrigger,
-} from "../../components/ai-elements/queue";
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "../../components/ai-elements/reasoning";
-import { Shimmer } from "../../components/ai-elements/shimmer";
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from "../../components/ai-elements/sources";
-import { Task, TaskContent, TaskItem, TaskTrigger } from "../../components/ai-elements/task";
-import {
-  Terminal,
-  TerminalActions,
-  TerminalClearButton,
-  TerminalContent,
-  TerminalCopyButton,
-  TerminalHeader,
-  TerminalTitle,
-} from "../../components/ai-elements/terminal";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "../../components/ai-elements/tool";
-import { Button } from "../../components/ui/button";
+import { Message, MessageContent, MessageResponse } from "../../components/ai-elements/message";
 import { ScrollArea } from "../../components/ui/scroll-area";
+import { ClaudeCodeToolUIPart } from "../../features/agent/components/tool-parts";
+import { AgentTool } from "../../features/agent/components/tool-parts/agent-tool";
+import { AskUserQuestionTool } from "../../features/agent/components/tool-parts/ask-user-question-tool";
+import { BashTool } from "../../features/agent/components/tool-parts/bash-tool";
+import { EditTool } from "../../features/agent/components/tool-parts/edit-tool";
+import { EnterPlanModeTool } from "../../features/agent/components/tool-parts/enter-plan-mode-tool";
+import { EnterWorktreeTool } from "../../features/agent/components/tool-parts/enter-worktree-tool";
+import { ExitPlanModeTool } from "../../features/agent/components/tool-parts/exit-plan-mode-tool";
+import { GlobTool } from "../../features/agent/components/tool-parts/glob-tool";
+import { GrepTool } from "../../features/agent/components/tool-parts/grep-tool";
+import { MultiEditTool } from "../../features/agent/components/tool-parts/multi-edit-tool";
+import { NotebookEditTool } from "../../features/agent/components/tool-parts/notebook-edit-tool";
+import { ReadTool } from "../../features/agent/components/tool-parts/read-tool";
+import { SkillTool } from "../../features/agent/components/tool-parts/skill-tool";
+import { TaskOutputTool } from "../../features/agent/components/tool-parts/task-output-tool";
+import { TaskStopTool } from "../../features/agent/components/tool-parts/task-stop-tool";
+import { TodoWriteTool } from "../../features/agent/components/tool-parts/todo-write-tool";
+import { WebFetchTool } from "../../features/agent/components/tool-parts/web-fetch-tool";
+import { WebSearchTool } from "../../features/agent/components/tool-parts/web-search-tool";
+import { WriteTool } from "../../features/agent/components/tool-parts/write-tool";
+import { cn } from "../../lib/utils";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        {title}
-      </h2>
-      <div className="rounded-lg border border-border p-4">{children}</div>
-    </div>
-  );
-}
-
-const webSearchTool = {
-  description: "Search the web for information",
-  parameters: {
-    jsonSchema: {
-      type: "object" as const,
-      properties: { query: { type: "string", description: "Search query" } },
-      required: ["query"],
-    },
-  },
+type ToolDemo = {
+  id: string;
+  label: string;
+  summary: string;
+  render: () => ReactNode;
 };
 
-const agentOutputSchema = `{
-  type: "object",
-  properties: {
-    answer: { type: "string" },
-    sources: { type: "array", items: { type: "string" } }
-  }
-}`;
+const rendererRoot =
+  "/Users/dinq/GitHub/neovateai/neovate-desktop/packages/desktop/src/renderer/src";
+
+const agentMessage = {
+  id: "agent:playground-inspector",
+  role: "assistant",
+  metadata: { sessionId: "demo-session", parentToolUseId: null },
+  parts: [
+    {
+      type: "text",
+      text: "I inspected the playground entry point and confirmed the tool demos can live inside AI Elements.",
+      state: "done",
+    },
+    {
+      type: "tool-Read",
+      toolCallId: "tool-read-from-agent",
+      state: "output-available",
+      input: {
+        file_path: `${rendererRoot}/dev/playground.tsx`,
+        limit: 40,
+      },
+      output: `1→import { lazy, Suspense, useState } from "react";
+2→
+3→const PLAYGROUNDS = [
+4→  { id: "ai-elements", label: "AI Elements" },
+5→] as const;`,
+      providerExecuted: true,
+    },
+    {
+      type: "text",
+      text: "A secondary tool navigation can be added without changing the left-hand playground tabs.",
+      state: "done",
+    },
+  ],
+} as any;
+
+const agentInvocation = {
+  type: "tool-Agent",
+  toolCallId: "tool-agent-demo",
+  state: "output-available",
+  input: {
+    description: "Inspect tool playground architecture",
+    prompt:
+      "Identify where a secondary tool navigation should live and what demo coverage is missing.",
+    subagent_type: "explorer",
+  },
+  output: agentMessage,
+  providerExecuted: true,
+} as any;
+
+const askUserQuestionInvocation = {
+  type: "tool-AskUserQuestion",
+  toolCallId: "tool-ask-user-question-demo",
+  state: "output-available",
+  input: {
+    questions: [
+      {
+        header: "Grouping",
+        question: "How should the AI Elements tool demos be organized?",
+        options: [
+          {
+            label: "One tool per submenu item",
+            description: "Makes each renderer easy to inspect in isolation.",
+          },
+          {
+            label: "One long page",
+            description: "Keeps everything together but is harder to scan.",
+          },
+        ],
+        multiSelect: false,
+      },
+    ],
+  },
+  output: "Selection recorded: render one dedicated submenu item for every tool.",
+} as any;
+
+const bashInvocation = {
+  type: "tool-Bash",
+  toolCallId: "tool-bash-demo",
+  state: "output-available",
+  input: {
+    command: "bun run --filter=neovate-desktop dev",
+    description: "Start the desktop playground",
+  },
+  output: "Starting development server...\n✓ Ready on http://localhost:5173",
+} as any;
+
+const editInvocation = {
+  type: "tool-Edit",
+  toolCallId: "tool-edit-demo",
+  state: "output-available",
+  input: {
+    file_path: `${rendererRoot}/dev/playgrounds/ai-elements.tsx`,
+    old_string: 'const [activeToolId, setActiveToolId] = useState("AgentTool");',
+    new_string: "const [activeToolId, setActiveToolId] = useState(TOOL_DEMOS[0]!.id);",
+  },
+  output: "Updated active tool initialization.",
+} as any;
+
+const enterPlanModeInvocation = {
+  type: "tool-EnterPlanMode",
+  toolCallId: "tool-enter-plan-mode-demo",
+  state: "output-available",
+  input: {},
+  output: "Entered plan mode.",
+} as any;
+
+const enterWorktreeInvocation = {
+  type: "tool-EnterWorktree",
+  toolCallId: "tool-enter-worktree-demo",
+  state: "output-available",
+  input: {
+    name: "feat-playground-render-all-tools",
+  },
+  output:
+    "Created /Users/dinq/GitHub/neovateai/neovate-desktop/.worktrees/feat-playground-render-all-tools.",
+} as any;
+
+const exitPlanModeInvocation = {
+  type: "tool-ExitPlanMode",
+  toolCallId: "tool-exit-plan-mode-demo",
+  state: "output-available",
+  input: {
+    plan: "1. Add secondary tool navigation\n2. Render each tool demo separately\n3. Verify types",
+  },
+  output: "Plan approved. Switching back to implementation mode.",
+} as any;
+
+const globInvocation = {
+  type: "tool-Glob",
+  toolCallId: "tool-glob-demo",
+  state: "output-available",
+  input: {
+    pattern: "**/*tool*.tsx",
+    path: `${rendererRoot}/features/agent/components/tool-parts`,
+  },
+  output: `features/agent/components/tool-parts/agent-tool.tsx
+features/agent/components/tool-parts/edit-tool.tsx
+features/agent/components/tool-parts/web-search-tool.tsx`,
+} as any;
+
+const grepInvocation = {
+  type: "tool-Grep",
+  toolCallId: "tool-grep-demo",
+  state: "output-available",
+  input: {
+    pattern: "ToolHeader",
+    path: `${rendererRoot}/features/agent/components/tool-parts`,
+    "-n": true,
+  },
+  output: `edit-tool.tsx:17:      <ToolHeader type="tool-Edit" state={state} title={title} />
+read-tool.tsx:19:      <ToolHeader type="tool-Read" state={state} title={title} />
+write-tool.tsx:16:      <ToolHeader type="tool-Write" state={state} title={title} />`,
+} as any;
+
+const multiEditInvocation = {
+  type: "tool-MultiEdit",
+  toolCallId: "tool-multi-edit-demo",
+  state: "output-available",
+  input: {
+    file_path: `${rendererRoot}/dev/playgrounds/ai-elements.tsx`,
+    edits: [
+      {
+        old_string: 'label: "AI Elements"',
+        new_string: 'label: "AI Elements Playground"',
+      },
+      {
+        old_string: 'summary: "Nested sub-agent output with a child Read tool."',
+        new_string: 'summary: "Nested sub-agent output with an auto-expanded child Read tool."',
+      },
+    ],
+  },
+  output: "Applied 2 edits.",
+} as any;
+
+const notebookEditInvocation = {
+  type: "tool-NotebookEdit",
+  toolCallId: "tool-notebook-edit-demo",
+  state: "output-available",
+  input: {
+    notebook_path: "/tmp/playground-analysis.ipynb",
+    cell_id: "cell-3",
+    cell_type: "code",
+    edit_mode: "replace",
+    new_source:
+      "tool_names = [demo['label'] for demo in TOOL_DEMOS]\nprint(f'{len(tool_names)} tool demos loaded')",
+  },
+  output: "Updated notebook cell.",
+} as any;
+
+const readInvocation = {
+  type: "tool-Read",
+  toolCallId: "tool-read-demo",
+  state: "output-available",
+  input: {
+    file_path: `${rendererRoot}/dev/playgrounds/ai-elements.tsx`,
+    offset: 1,
+    limit: 12,
+  },
+  output: `1→import { useEffect, useRef, useState, type ReactNode } from "react";
+2→
+3→import { ScrollArea } from "../../components/ui/scroll-area";
+4→import { cn } from "../../lib/utils";
+5→import { ClaudeCodeToolUIPart } from "../../features/agent/components/tool-parts";`,
+} as any;
+
+const skillInvocation = {
+  type: "tool-Skill",
+  toolCallId: "tool-skill-demo",
+  state: "output-available",
+  input: {
+    skill: "frontend-design",
+    args: "Preserve the desktop playground visual language while adding a second sidebar.",
+  },
+  output:
+    "Loaded /frontend-design. Preserve the existing desktop chrome and make the tool navigation feel native to the playground.",
+} as any;
+
+const taskInvocation = {
+  type: "tool-Task",
+  toolCallId: "tool-task-demo",
+  state: "output-available",
+  input: {
+    description: "Review missing tool demos",
+    prompt:
+      "List the remaining Claude Code tool renderers that still need dedicated playground coverage.",
+    subagent_type: "explorer",
+  },
+  output: [
+    {
+      type: "text",
+      text: "Identified 20 tool renderers that should each have their own playground entry.",
+    },
+    {
+      type: "text",
+      text: "Prepared sample invocations for the tool demos that only need static UI rendering.",
+    },
+  ],
+  providerExecuted: true,
+} as any;
+
+const taskOutputInvocation = {
+  type: "tool-TaskOutput",
+  toolCallId: "tool-task-output-demo",
+  state: "output-available",
+  input: {
+    task_id: "task-42",
+    block: true,
+    timeout: 30000,
+  },
+  output: `{
+  "status": "completed",
+  "output": "Generated demo data for AgentTool, EditTool, and the remaining tool renderers."
+}`,
+} as any;
+
+const taskStopInvocation = {
+  type: "tool-TaskStop",
+  toolCallId: "tool-task-stop-demo",
+  state: "output-available",
+  input: {
+    task_id: "task-42",
+  },
+  output: {
+    success: true,
+    message: "Task stopped.",
+  },
+} as any;
+
+const todoWriteInvocation = {
+  type: "tool-TodoWrite",
+  toolCallId: "tool-todo-write-demo",
+  state: "output-available",
+  input: {
+    todos: [
+      {
+        content: "Split AI Elements tools into submenu items",
+        status: "completed",
+        activeForm: "Splitting AI Elements tools into submenu items",
+      },
+      {
+        content: "Write demo invocations for every tool renderer",
+        status: "in_progress",
+        activeForm: "Writing demo invocations for every tool renderer",
+      },
+      {
+        content: "Verify the playground still typechecks",
+        status: "pending",
+        activeForm: "Verifying the playground still typechecks",
+      },
+    ],
+  },
+  output: "Updated todo list.",
+} as any;
+
+const webFetchInvocation = {
+  type: "tool-WebFetch",
+  toolCallId: "tool-web-fetch-demo",
+  state: "output-available",
+  input: {
+    url: "https://docs.anthropic.com/en/docs/claude-code/sdk/sdk-typescript",
+    prompt: "Summarize the Claude Code tool invocation shapes needed for a UI playground.",
+  },
+  output:
+    "The Claude Code SDK exposes tool invocations as typed UI parts with input, output, and state fields that can be rendered directly by the client.",
+} as any;
+
+const webSearchInvocation = {
+  type: "tool-WebSearch",
+  toolCallId: "tool-web-search-demo",
+  state: "output-available",
+  input: {
+    query: "Claude Code tool UI invocation examples",
+    allowed_domains: ["docs.anthropic.com"],
+  },
+  output:
+    "Found official Claude Code SDK docs covering Bash, Read, Edit, MultiEdit, WebSearch, WebFetch, Task, Agent, and plan-mode tool inputs.",
+} as any;
+
+const writeInvocation = {
+  type: "tool-Write",
+  toolCallId: "tool-write-demo",
+  state: "output-available",
+  input: {
+    file_path: `${rendererRoot}/dev/playgrounds/ai-elements-tool-demos.tsx`,
+    content: `export const TOOL_LABELS = [
+  "AgentTool",
+  "EditTool",
+  "WebSearchTool",
+];`,
+  },
+  output: "Wrote file successfully.",
+} as any;
+
+const markdownSample = `# Markdown
+
+This playground now renders **Markdown** directly through \`MessageResponse\`.
+
+- Lists
+- \`inline code\`
+- [links](https://neovateai.dev)
+
+> Blockquotes should inherit the AI Elements typography.
+
+\`\`\`ts
+export function renderMarkdown() {
+  return "streamdown";
+}
+\`\`\`
+`;
+
+const TOOL_DEMOS: ToolDemo[] = [
+  {
+    id: "markdown",
+    label: "Markdown",
+    summary: "Standalone markdown rendering using the AI Elements message renderer.",
+    render: () => (
+      <Message from="assistant">
+        <MessageContent>
+          <MessageResponse>{markdownSample}</MessageResponse>
+        </MessageContent>
+      </Message>
+    ),
+  },
+  {
+    id: "agent-tool",
+    label: "AgentTool",
+    summary: "Nested sub-agent output with a child Read tool.",
+    render: () => (
+      <AgentTool
+        invocation={agentInvocation}
+        renderToolPart={(_message, part) => <ClaudeCodeToolUIPart part={part} />}
+      />
+    ),
+  },
+  {
+    id: "ask-user-question-tool",
+    label: "AskUserQuestionTool",
+    summary: "Resolved user choice displayed as a tool response.",
+    render: () => <AskUserQuestionTool invocation={askUserQuestionInvocation} />,
+  },
+  {
+    id: "bash-tool",
+    label: "BashTool",
+    summary: "Shell command plus terminal-style output.",
+    render: () => <BashTool invocation={bashInvocation} />,
+  },
+  {
+    id: "edit-tool",
+    label: "EditTool",
+    summary: "Single string replacement preview for a file edit.",
+    render: () => <EditTool invocation={editInvocation} />,
+  },
+  {
+    id: "enter-plan-mode-tool",
+    label: "EnterPlanModeTool",
+    summary: "Plan-mode transition notice.",
+    render: () => <EnterPlanModeTool invocation={enterPlanModeInvocation} />,
+  },
+  {
+    id: "enter-worktree-tool",
+    label: "EnterWorktreeTool",
+    summary: "Worktree creation message for isolated feature work.",
+    render: () => <EnterWorktreeTool invocation={enterWorktreeInvocation} />,
+  },
+  {
+    id: "exit-plan-mode-tool",
+    label: "ExitPlanModeTool",
+    summary: "Plan approval message before returning to implementation.",
+    render: () => <ExitPlanModeTool invocation={exitPlanModeInvocation} />,
+  },
+  {
+    id: "glob-tool",
+    label: "GlobTool",
+    summary: "Matched tool-part files for a glob pattern.",
+    render: () => <GlobTool invocation={globInvocation} />,
+  },
+  {
+    id: "grep-tool",
+    label: "GrepTool",
+    summary: "Pattern matches with file and line numbers.",
+    render: () => <GrepTool invocation={grepInvocation} />,
+  },
+  {
+    id: "multi-edit-tool",
+    label: "MultiEditTool",
+    summary: "Sequential edit preview within one file.",
+    render: () => <MultiEditTool invocation={multiEditInvocation} />,
+  },
+  {
+    id: "notebook-edit-tool",
+    label: "NotebookEditTool",
+    summary: "Edited Jupyter cell source rendered as code.",
+    render: () => <NotebookEditTool invocation={notebookEditInvocation} />,
+  },
+  {
+    id: "read-tool",
+    label: "ReadTool",
+    summary: "Read file output with line markers stripped in the UI.",
+    render: () => <ReadTool invocation={readInvocation} />,
+  },
+  {
+    id: "skill-tool",
+    label: "SkillTool",
+    summary: "Loaded skill output for a UI workflow.",
+    render: () => <SkillTool invocation={skillInvocation} />,
+  },
+  {
+    id: "task-tool",
+    label: "TaskTool",
+    summary: "Task alias rendered through the Agent tool component.",
+    render: () => <AgentTool invocation={taskInvocation} />,
+  },
+  {
+    id: "task-output-tool",
+    label: "TaskOutputTool",
+    summary: "Polled task output rendered as a code block.",
+    render: () => <TaskOutputTool invocation={taskOutputInvocation} />,
+  },
+  {
+    id: "task-stop-tool",
+    label: "TaskStopTool",
+    summary: "Task stop action header for an existing task id.",
+    render: () => <TaskStopTool invocation={taskStopInvocation} />,
+  },
+  {
+    id: "todo-write-tool",
+    label: "TodoWriteTool",
+    summary: "Mixed pending, in-progress, and completed todo states.",
+    render: () => <TodoWriteTool invocation={todoWriteInvocation} />,
+  },
+  {
+    id: "web-fetch-tool",
+    label: "WebFetchTool",
+    summary: "Fetched URL plus summarized result.",
+    render: () => <WebFetchTool invocation={webFetchInvocation} />,
+  },
+  {
+    id: "web-search-tool",
+    label: "WebSearchTool",
+    summary: "Search query rendered with summarized findings.",
+    render: () => <WebSearchTool invocation={webSearchInvocation} />,
+  },
+  {
+    id: "write-tool",
+    label: "WriteTool",
+    summary: "Full file content preview for a write operation.",
+    render: () => <WriteTool invocation={writeInvocation} />,
+  },
+];
+
+function ToolPreview({ demo }: { demo: ToolDemo }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const triggers = containerRef.current?.querySelectorAll<HTMLElement>(
+      '[data-slot="collapsible-trigger"]',
+    );
+
+    triggers?.forEach((trigger) => {
+      if (trigger.getAttribute("aria-expanded") !== "true") {
+        trigger.click();
+      }
+    });
+  }, [demo.id]);
+
+  return <div ref={containerRef}>{demo.render()}</div>;
+}
 
 export default function AiElementsPlayground() {
-  const [confirmed, setConfirmed] = useState<boolean | null>(null);
-  const [terminalOutput, setTerminalOutput] = useState(
-    "$ bun run dev\n\nStarting development server...\n✓ Ready on http://localhost:5173",
-  );
-
-  const confirmationState =
-    confirmed === null
-      ? ("approval-requested" as const)
-      : confirmed
-        ? ("approval-responded" as const)
-        : ("output-denied" as const);
-
-  const confirmationApproval =
-    confirmed === null
-      ? { id: "call_123" }
-      : confirmed
-        ? { id: "call_123", approved: true as const }
-        : { id: "call_123", approved: false as const };
+  const [activeToolId, setActiveToolId] = useState(TOOL_DEMOS[0]!.id);
+  const activeTool = TOOL_DEMOS.find((demo) => demo.id === activeToolId) ?? TOOL_DEMOS[0]!;
 
   return (
-    <ScrollArea className="h-full w-full">
-      <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-        <div>
-          <h1 className="text-base font-semibold">AI Elements</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            All installed components rendered with sample data
-          </p>
+    <div className="flex h-full min-h-0">
+      <aside className="flex w-80 shrink-0 flex-col border-r bg-muted/20">
+        <div className="border-b px-4 py-4">
+          <h1 className="text-sm font-semibold">Renderers</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Select a renderer.</p>
         </div>
 
-        <Section title="Shimmer">
-          <Shimmer as="p" className="text-sm font-medium" duration={2} spread={3}>
-            Generating a response for you…
-          </Shimmer>
-        </Section>
-
-        <Section title="Message">
-          <div className="flex flex-col gap-3">
-            <Message from="user">
-              <MessageContent>What's the weather in Tokyo?</MessageContent>
-            </Message>
-            <Message from="assistant">
-              <MessageContent>
-                <MessageResponse>
-                  {`The weather in Tokyo is currently **22°C** with partly cloudy skies. Humidity is at 65%.`}
-                </MessageResponse>
-              </MessageContent>
-              <MessageActions>
-                <Button size="icon-sm" variant="ghost" onClick={() => {}}>
-                  <CopyIcon size={14} />
-                </Button>
-                <Button size="icon-sm" variant="ghost" onClick={() => {}}>
-                  <RefreshCwIcon size={14} />
-                </Button>
-              </MessageActions>
-            </Message>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="flex flex-col gap-1 p-2">
+            {TOOL_DEMOS.map((demo) => (
+              <button
+                key={demo.id}
+                type="button"
+                onClick={() => setActiveToolId(demo.id)}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-left transition-colors",
+                  activeTool.id === demo.id
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                )}
+              >
+                <div className="text-sm font-medium">{demo.label}</div>
+                <div
+                  className={cn(
+                    "mt-1 text-xs leading-5",
+                    activeTool.id === demo.id
+                      ? "text-accent-foreground/80"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {demo.summary}
+                </div>
+              </button>
+            ))}
           </div>
-        </Section>
+        </ScrollArea>
+      </aside>
 
-        <Section title="Conversation (empty state)">
-          <div className="h-32 rounded-md border bg-muted/30 overflow-hidden">
-            <Conversation className="h-full">
-              <ConversationContent>
-                <ConversationEmptyState
-                  icon={<MessageSquareIcon className="size-5" />}
-                  title="Start a conversation"
-                />
-              </ConversationContent>
-            </Conversation>
+      <main className="min-w-0 flex-1">
+        <ScrollArea className="h-full">
+          <div className="mx-auto flex max-w-5xl flex-col gap-4 p-6">
+            <div>
+              <h2 className="text-lg font-semibold">{activeTool.label}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{activeTool.summary}</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Playground demos auto-expand the tool body so the renderer can be inspected
+                directly.
+              </p>
+            </div>
+
+            <ToolPreview demo={activeTool} />
           </div>
-        </Section>
-
-        <Section title="Reasoning">
-          <Reasoning defaultOpen={true} isStreaming={false}>
-            <ReasoningTrigger />
-            <ReasoningContent>
-              {`First, I'll break down the problem. The user asked about weather in Tokyo — I need temperature, conditions, and humidity.`}
-            </ReasoningContent>
-          </Reasoning>
-        </Section>
-
-        <Section title="Chain of Thought">
-          <ChainOfThought defaultOpen={true}>
-            <ChainOfThoughtHeader>Reasoning steps</ChainOfThoughtHeader>
-            <ChainOfThoughtContent>
-              <ChainOfThoughtStep label="Identify the user intent" />
-              <ChainOfThoughtStep label="Fetch weather data for Tokyo" />
-              <ChainOfThoughtStep label="Format the response" />
-            </ChainOfThoughtContent>
-          </ChainOfThought>
-        </Section>
-
-        <Section title="Tool">
-          <Tool defaultOpen={true}>
-            <ToolHeader type="tool-get_weather" state="output-available" />
-            <ToolContent>
-              <ToolInput input={{ location: "Tokyo", units: "celsius" }} />
-              <ToolOutput
-                output={{ temperature: 22, condition: "Partly Cloudy", humidity: 65 }}
-                errorText={undefined}
-              />
-            </ToolContent>
-          </Tool>
-        </Section>
-
-        <Section title="Code Block">
-          <CodeBlock
-            code={
-              "async function getWeather(location: string) {\n  const res = await fetch(`/api/weather?q=${location}`);\n  return res.json();\n}"
-            }
-            language="typescript"
-          >
-            <CodeBlockHeader>
-              <CodeBlockTitle>weather.ts</CodeBlockTitle>
-              <CodeBlockActions>
-                <CodeBlockCopyButton />
-              </CodeBlockActions>
-            </CodeBlockHeader>
-          </CodeBlock>
-        </Section>
-
-        <Section title="Task">
-          <Task defaultOpen={true}>
-            <TaskTrigger title="Research weather API options" />
-            <TaskContent>
-              <TaskItem>Compare OpenWeatherMap vs WeatherAPI</TaskItem>
-              <TaskItem>Check rate limits and pricing</TaskItem>
-              <TaskItem>Evaluate response formats</TaskItem>
-            </TaskContent>
-          </Task>
-        </Section>
-
-        <Section title="Plan">
-          <Plan defaultOpen={true}>
-            <PlanHeader>
-              <PlanTitle>Add Weather Feature</PlanTitle>
-              <PlanDescription>Integrate real-time weather data into the app</PlanDescription>
-              <PlanAction>Edit</PlanAction>
-              <PlanTrigger />
-            </PlanHeader>
-            <PlanContent>
-              <Task>
-                <TaskTrigger title="Step 1: Choose weather API" />
-                <TaskContent>
-                  <TaskItem>Evaluate providers</TaskItem>
-                </TaskContent>
-              </Task>
-              <Task>
-                <TaskTrigger title="Step 2: Implement integration" />
-                <TaskContent>
-                  <TaskItem>Write fetch utility</TaskItem>
-                  <TaskItem>Add error handling</TaskItem>
-                </TaskContent>
-              </Task>
-            </PlanContent>
-            <PlanFooter>2 of 2 steps remaining</PlanFooter>
-          </Plan>
-        </Section>
-
-        <Section title="Queue">
-          <Queue>
-            <QueueSection defaultOpen={true}>
-              <QueueSectionTrigger>
-                <QueueSectionLabel label="Pending tasks" count={3} />
-              </QueueSectionTrigger>
-              <QueueSectionContent>
-                <QueueList>
-                  <QueueItem>
-                    <QueueItemIndicator completed={false} />
-                    <QueueItemContent>Fetch Tokyo weather</QueueItemContent>
-                  </QueueItem>
-                  <QueueItem>
-                    <QueueItemIndicator completed={false} />
-                    <QueueItemContent>Format response</QueueItemContent>
-                  </QueueItem>
-                  <QueueItem>
-                    <QueueItemIndicator completed={true} />
-                    <QueueItemContent completed>Send to user</QueueItemContent>
-                  </QueueItem>
-                </QueueList>
-              </QueueSectionContent>
-            </QueueSection>
-          </Queue>
-        </Section>
-
-        <Section title="Sources">
-          <Sources>
-            <SourcesTrigger count={2} />
-            <SourcesContent>
-              <Source href="https://openweathermap.org" title="OpenWeatherMap API" />
-              <Source href="https://weatherapi.com" title="WeatherAPI Documentation" />
-            </SourcesContent>
-          </Sources>
-        </Section>
-
-        <Section title="Inline Citation">
-          <p className="text-sm">
-            Tokyo's average temperature in spring is around 15–20°C{" "}
-            <InlineCitation>
-              <InlineCitationCard>
-                <InlineCitationCardTrigger sources={["https://jma.go.jp"]} />
-                <InlineCitationCardBody>
-                  <InlineCitationCarousel>
-                    <InlineCitationCarouselContent>
-                      <InlineCitationCarouselItem>
-                        <InlineCitationSource
-                          title="Japan Meteorological Agency"
-                          url="https://jma.go.jp"
-                        />
-                        <InlineCitationQuote>
-                          Spring temperatures in Tokyo range from 10°C to 20°C.
-                        </InlineCitationQuote>
-                      </InlineCitationCarouselItem>
-                    </InlineCitationCarouselContent>
-                  </InlineCitationCarousel>
-                </InlineCitationCardBody>
-              </InlineCitationCard>
-            </InlineCitation>
-            .
-          </p>
-        </Section>
-
-        <Section title="Checkpoint">
-          <Checkpoint>
-            <CheckpointIcon />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">Weather data fetched</span>
-              <span className="text-xs text-muted-foreground">Saved 2 minutes ago</span>
-            </div>
-            <CheckpointTrigger onClick={() => {}}>Restore</CheckpointTrigger>
-          </Checkpoint>
-        </Section>
-
-        <Section title="Confirmation">
-          <Confirmation approval={confirmationApproval} state={confirmationState}>
-            <ConfirmationRequest>
-              Delete <code className="text-xs bg-muted px-1 rounded">data.json</code>? This cannot
-              be undone.
-            </ConfirmationRequest>
-            <ConfirmationAccepted>
-              <span className="flex items-center gap-1.5 text-sm">
-                <CheckIcon size={14} /> File deleted
-              </span>
-            </ConfirmationAccepted>
-            <ConfirmationRejected>
-              <span className="flex items-center gap-1.5 text-sm">
-                <XIcon size={14} /> Cancelled
-              </span>
-            </ConfirmationRejected>
-            <ConfirmationActions>
-              <ConfirmationAction variant="outline" onClick={() => setConfirmed(false)}>
-                Cancel
-              </ConfirmationAction>
-              <ConfirmationAction onClick={() => setConfirmed(true)}>Delete</ConfirmationAction>
-            </ConfirmationActions>
-          </Confirmation>
-          {confirmed !== null && (
-            <Button className="mt-2" size="sm" variant="outline" onClick={() => setConfirmed(null)}>
-              Reset
-            </Button>
-          )}
-        </Section>
-
-        <Section title="Context (Token Usage)">
-          <Context
-            maxTokens={128000}
-            usedTokens={45200}
-            usage={{
-              inputTokens: 28000,
-              outputTokens: 12000,
-              totalTokens: 40000,
-              inputTokenDetails: { noCacheTokens: 28000, cacheReadTokens: 0, cacheWriteTokens: 0 },
-              outputTokenDetails: { reasoningTokens: 0, textTokens: 0 },
-            }}
-            modelId="anthropic:claude-sonnet-4-5"
-          >
-            <ContextTrigger />
-            <ContextContent>
-              <ContextContentHeader />
-              <ContextContentBody>
-                <ContextInputUsage />
-                <ContextOutputUsage />
-              </ContextContentBody>
-            </ContextContent>
-          </Context>
-        </Section>
-
-        <Section title="Agent">
-          <Agent>
-            <AgentHeader name="Research Assistant" model="anthropic/claude-sonnet-4-5" />
-            <AgentContent>
-              <AgentInstructions>
-                You are a helpful research assistant. Search the web to answer questions accurately.
-              </AgentInstructions>
-              <AgentTools>
-                <AgentTool value="web_search" tool={webSearchTool as any} />
-              </AgentTools>
-              <AgentOutput schema={agentOutputSchema} />
-            </AgentContent>
-          </Agent>
-        </Section>
-
-        <Section title="Artifact">
-          <Artifact>
-            <ArtifactHeader>
-              <div className="flex-1">
-                <div className="text-sm font-medium">weather-widget.tsx</div>
-                <div className="text-xs text-muted-foreground">React Component</div>
-              </div>
-              <ArtifactClose />
-            </ArtifactHeader>
-            <div className="p-4">
-              <CodeBlock
-                code={
-                  "export function WeatherWidget({ city }: { city: string }) {\n  return <div>Weather for {city}</div>;\n}"
-                }
-                language="typescript"
-              />
-            </div>
-          </Artifact>
-        </Section>
-
-        <Section title="Attachments">
-          <Attachments variant="grid">
-            <Attachment
-              data={{
-                id: "1",
-                type: "file",
-                mediaType: "application/pdf",
-                filename: "report.pdf",
-                url: "",
-              }}
-            >
-              <AttachmentPreview />
-              <AttachmentRemove />
-            </Attachment>
-            <Attachment
-              data={{
-                id: "2",
-                type: "file",
-                mediaType: "image/jpeg",
-                filename: "photo.jpg",
-                url: "https://picsum.photos/seed/tokyo/200/150",
-              }}
-            >
-              <AttachmentPreview />
-              <AttachmentRemove />
-            </Attachment>
-          </Attachments>
-        </Section>
-
-        <Section title="Terminal">
-          <Terminal
-            output={terminalOutput}
-            isStreaming={false}
-            onClear={() => setTerminalOutput("")}
-          >
-            <TerminalHeader>
-              <TerminalTitle>Shell</TerminalTitle>
-              <TerminalActions>
-                <TerminalCopyButton />
-                <TerminalClearButton />
-              </TerminalActions>
-            </TerminalHeader>
-            <TerminalContent />
-          </Terminal>
-        </Section>
-      </div>
-    </ScrollArea>
+        </ScrollArea>
+      </main>
+    </div>
   );
 }

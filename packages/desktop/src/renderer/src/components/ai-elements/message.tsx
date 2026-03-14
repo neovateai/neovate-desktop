@@ -3,18 +3,16 @@
 import type { UIMessage } from "ai";
 import type { ComponentProps, FC, HTMLAttributes, ReactElement } from "react";
 
-import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
-import { math } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 
+import { markdownPlugins } from "../../lib/markdown";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { ButtonGroup, ButtonGroupText } from "../ui/group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { markdownBaseComponents } from "./markdown-base-components";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -39,25 +37,6 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
       "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm leading-relaxed",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:bg-background group-[.is-user]:px-4 group-[.is-user]:py-2.5 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground",
-      // Markdown paragraph spacing
-      "[&_p]:mb-4 [&_p:last-child]:mb-0",
-      // Inline code styles
-      "[&_code]:bg-muted [&_code]:rounded-sm [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs",
-      // Headings
-      "[&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:text-foreground",
-      "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-foreground",
-      "[&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground",
-      // Lists
-      "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1",
-      "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1",
-      // Blockquote
-      "[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic",
-      // Links
-      "[&_a]:text-primary [&_a]:hover:underline [&_a]:underline-offset-2 [&_a]:transition-colors",
-      // Tables
-      "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
-      "[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-muted-foreground",
-      "[&_td]:border-b [&_td]:border-border/50 [&_td]:px-3 [&_td]:py-2",
       className,
     )}
     {...props}
@@ -297,36 +276,12 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const streamdownPlugins = { cjk, code, math, mermaid };
-
 export const MessageResponse: FC<MessageResponseProps> = memo<MessageResponseProps>(
   ({ className, ...props }) => (
     <Streamdown
-      className={cn(
-        "size-full leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        // Paragraph spacing
-        "[&_p]:mb-4 [&_p:last-child]:mb-0",
-        // Inline code
-        "[&_code:not(pre_code)]:bg-muted [&_code:not(pre_code)]:rounded-sm [&_code:not(pre_code)]:px-1 [&_code:not(pre_code)]:py-0.5 [&_code:not(pre_code)]:font-mono [&_code:not(pre_code)]:text-xs",
-        // Headings
-        "[&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:text-foreground",
-        "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-foreground",
-        "[&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground",
-        // Lists
-        "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1",
-        "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1",
-        "[&_li]:text-sm [&_li]:leading-relaxed",
-        // Blockquote
-        "[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic",
-        // Links
-        "[&_a]:text-primary [&_a]:hover:underline [&_a]:underline-offset-2 [&_a]:transition-colors",
-        // Tables
-        "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
-        "[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-muted-foreground",
-        "[&_td]:border-b [&_td]:border-border/50 [&_td]:px-3 [&_td]:py-2",
-        className,
-      )}
-      plugins={streamdownPlugins}
+      className={cn("markdown-root size-full", className)}
+      components={markdownBaseComponents}
+      plugins={markdownPlugins}
       {...props}
     />
   ),

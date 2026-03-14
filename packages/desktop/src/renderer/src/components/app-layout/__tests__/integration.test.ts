@@ -30,8 +30,8 @@ describe("resize flow integration", () => {
       secondarySidebar: { width: 240, collapsed: true },
     };
     const minWidth = computeMinWindowWidth(panels);
-    // fixed(48) + primary(250) + chat(320) + 1 handle(5) = 623
-    expect(minWidth).toBe(623);
+    // fixed(48) + primary(250) + chat(460) + 1 handle(5) = 763
+    expect(minWidth).toBe(763);
   });
 
   it("computeMinWindowWidth grows when more panels are expanded", () => {
@@ -53,7 +53,7 @@ describe("resize flow integration", () => {
   it("bulldozer drag through entire layout is conservative", () => {
     const panels: PanelMap = {
       primarySidebar: { width: 300, collapsed: false },
-      chatPanel: { width: 500, collapsed: false },
+      chatPanel: { width: 640, collapsed: false },
       contentPanel: { width: 400, collapsed: false },
       secondarySidebar: { width: 300, collapsed: false },
     };
@@ -63,12 +63,12 @@ describe("resize flow integration", () => {
     // shrinkable: chat(180) + content(100) + secondary(60) = 340 > 300, so cap at 300
     // Shrink order: chat first (adjacent), then content, then secondary
     // chat gives 180, content gives 100, secondary gives 20 (300-180-100=20)
-    expect(result.chatPanel.width).toBe(320); // at min
+    expect(result.chatPanel.width).toBe(460); // at min
     expect(result.contentPanel.width).toBe(300); // at min
     expect(result.secondarySidebar.width).toBe(280); // partially shrunk
     expect(result.primarySidebar.width).toBe(600); // at max
     // Verify conservation: total before == total after
-    const before = 300 + 500 + 400 + 300;
+    const before = 300 + 640 + 400 + 300;
     const after =
       result.primarySidebar.width +
       result.chatPanel.width +

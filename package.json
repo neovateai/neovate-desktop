@@ -1,6 +1,7 @@
 {
   "name": "neovate-desktop-monorepo",
   "private": true,
+  "repository": "git@github.com:neovateai/neovate-desktop.git",
   "workspaces": [
     "packages/*"
   ],

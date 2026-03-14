@@ -1,41 +1,47 @@
-import type { BundledLanguage } from "shiki";
+import { MultiFileDiff } from "@pierre/diffs/react";
+import { AlertCircle } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import type { MultiEditUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
 export function MultiEditTool({ invocation }: { invocation: MultiEditUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input } = invocation;
+  const { state, input, errorText } = invocation;
+  const { resolvedTheme } = useTheme();
 
-  const language = (input?.file_path?.match(/\.(\w+)$/)?.[1] ?? "typescript") as BundledLanguage;
   const editCount = input?.edits?.length ?? 0;
   const title = input?.file_path ? `MultiEdit ${input.file_path} (${editCount} edits)` : undefined;
+  const hasError = state === "output-error";
+  const fileName = input?.file_path?.split("/").pop() || "file";
 
   return (
     <Tool>
       <ToolHeader type="tool-MultiEdit" state={state} title={title} />
-      <ToolContent>
-        {input?.edits?.map((edit, index) => (
-          <div key={edit.old_string} className="space-y-2">
-            <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Edit {index + 1}
-            </h4>
-            {edit.old_string ? (
-              <div className="space-y-1">
-                <h5 className="text-muted-foreground text-xs">Old</h5>
-                <CodeBlock code={edit.old_string} language={language} className="text-xs" />
-              </div>
-            ) : null}
-            {edit.new_string ? (
-              <div className="space-y-1">
-                <h5 className="text-muted-foreground text-xs">New</h5>
-                <CodeBlock code={edit.new_string} language={language} className="text-xs" />
-              </div>
-            ) : null}
+      <ToolContent className="space-y-3">
+        {hasError && errorText ? (
+          <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span className="whitespace-pre-wrap">{errorText}</span>
           </div>
-        ))}
+        ) : (
+          input?.edits?.map((edit, index) => (
+            <div key={`${edit.old_string}-${index}`} className="space-y-1">
+              <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Edit {index + 1}
+              </h4>
+              <MultiFileDiff
+                oldFile={{ name: fileName, contents: edit.old_string || "" }}
+                newFile={{ name: fileName, contents: edit.new_string || "" }}
+                options={{
+                  theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+                  diffStyle: "unified",
+                }}
+              />
+            </div>
+          ))
+        )}
       </ToolContent>
     </Tool>
   );

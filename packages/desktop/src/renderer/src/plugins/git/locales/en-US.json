@@ -15,6 +15,11 @@
   "git.revertAllFiles": "Revert All Changes",
   "git.viewAllWorkingChanges": "View Working Changes",
   "git.viewAllStageChanges": "View Staged Changes",
+  "git.revert.title": "Revert File",
+  "git.revert.description": "Are you sure you want to revert \"{{name}}\"? This action cannot be undone.",
+  "git.revertAll.title": "Revert All Changes",
+  "git.revertAll.description": "Are you sure you want to revert all working changes? This action cannot be undone.",
+  "git.revert.confirm": "Revert",
   "git.diff.selectFile": "Select a file to view diff",
   "git.diff.loading": "Loading diff...",
   "git.diff.error": "Failed to load diff",
@@ -28,5 +33,6 @@
   "git.diff.oldVersion": "Old version",
   "git.diff.newVersion": "New version",
   "git.diff.close": "Close diff view",
-  "git.diff.linesHidden": "lines hidden"
+  "git.diff.linesHidden": "lines hidden",
+  "git.openFile": "Open file"
 }

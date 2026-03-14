@@ -1,7 +1,26 @@
-import { ChevronDown, ChevronRight, RefreshCw, Undo2, Plus, FileText, Minus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Undo2,
+  Plus,
+  FileText,
+  Minus,
+  File,
+} from "lucide-react";
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog";
+import { Button } from "../../components/ui/button";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useGit } from "./hooks/useGit";
@@ -17,6 +36,9 @@ export default memo(function GitView() {
 
   const [workingCollapsed, setWorkingCollapsed] = useState(false);
   const [stagedCollapsed, setStagedCollapsed] = useState(false);
+  const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
+  const [revertTarget, setRevertTarget] = useState<"all" | "single" | null>(null);
+  const [fileToRevert, setFileToRevert] = useState<GitFile | null>(null);
 
   const {
     loading,
@@ -31,6 +53,27 @@ export default memo(function GitView() {
     revert,
   } = useGit(cwd);
 
+  const handleRevertRequest = (file?: GitFile) => {
+    if (file) {
+      setFileToRevert(file);
+      setRevertTarget("single");
+    } else {
+      setRevertTarget("all");
+    }
+    setRevertConfirmOpen(true);
+  };
+
+  const handleConfirmRevert = async () => {
+    if (revertTarget === "all") {
+      await revertAll();
+    } else if (revertTarget === "single" && fileToRevert) {
+      await revert(fileToRevert);
+    }
+    setRevertConfirmOpen(false);
+    setRevertTarget(null);
+    setFileToRevert(null);
+  };
+
   const showDiff = (file: { relPath: string }, isStaged: boolean) => {
     app.workbench.contentPanel.openView("git-diff");
     // 发送事件让diff组件加载指定文件
@@ -41,6 +84,17 @@ export default memo(function GitView() {
         }),
       );
     }, DISPATCH_DELAY);
+  };
+
+  const openFile = (file: { fullPath: string }) => {
+    app.workbench.contentPanel.openView("editor");
+    window.dispatchEvent(
+      new CustomEvent("neovate:open-editor", {
+        detail: { fullPath: file.fullPath },
+      }),
+    );
+    // @ts-ignore 避免 dispatchEvent 时未初始化完成
+    window.pendingEditorRequest = { fullPath: file.fullPath };
   };
 
   useEffect(() => {
@@ -156,7 +210,7 @@ export default memo(function GitView() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    revertAll();
+                    handleRevertRequest();
                   }}
                   className="p-px hover:bg-accent rounded-sm"
                   title={t("git.revertAllFiles")}
@@ -190,6 +244,16 @@ export default memo(function GitView() {
 
                 <div className="flex-shrink-0 flex items-center gap-0.5">
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFile(file);
+                      }}
+                      className="p-px hover:bg-accent rounded-sm"
+                      title="打开文件"
+                    >
+                      <File className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                    </button>
                     {isStaged ? (
                       <>
                         <button
@@ -205,7 +269,7 @@ export default memo(function GitView() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            revert(file);
+                            handleRevertRequest(file);
                           }}
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
@@ -228,7 +292,7 @@ export default memo(function GitView() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            revert(file);
+                            handleRevertRequest(file);
                           }}
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
@@ -272,14 +336,6 @@ export default memo(function GitView() {
   }
 
   const hasChanges = workingFiles.length > 0 || stagedFiles.length > 0;
-  if (!hasChanges) {
-    return (
-      <div className="flex h-full flex-col p-3 gap-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
-        <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noChanges")}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full mb-2 flex-col overflow-hidden">
@@ -296,25 +352,54 @@ export default memo(function GitView() {
           />
         </button>
       </div>
-      <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
-        {renderFileList(
-          stagedFiles,
-          stagedCollapsed,
-          () => setStagedCollapsed(!stagedCollapsed),
-          t("git.stagedChanges"),
-          true,
-        )}
-        {stagedFiles.length > 0 && workingFiles.length > 0 && (
-          <div className="border-t border-border/50"></div>
-        )}
-        {renderFileList(
-          workingFiles,
-          workingCollapsed,
-          () => setWorkingCollapsed(!workingCollapsed),
-          t("git.workingChanges"),
-          false,
+      <div className="flex flex-col h-full overflow-hidden">
+        {hasChanges ? (
+          <>
+            {renderFileList(
+              stagedFiles,
+              stagedCollapsed,
+              () => setStagedCollapsed(!stagedCollapsed),
+              t("git.stagedChanges"),
+              true,
+            )}
+            {stagedFiles.length > 0 && workingFiles.length > 0 && (
+              <div className="border-t border-border/50"></div>
+            )}
+            {renderFileList(
+              workingFiles,
+              workingCollapsed,
+              () => setWorkingCollapsed(!workingCollapsed),
+              t("git.workingChanges"),
+              false,
+            )}
+          </>
+        ) : (
+          <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noChanges")}</div>
         )}
       </div>
+
+      <AlertDialog open={revertConfirmOpen} onOpenChange={setRevertConfirmOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {revertTarget === "all" ? t("git.revertAll.title") : t("git.revert.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {revertTarget === "all"
+                ? t("git.revertAll.description")
+                : t("git.revert.description", { name: fileToRevert?.fileName })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              {t("common.cancel", { ns: "translation" })}
+            </AlertDialogClose>
+            <Button variant="destructive" onClick={handleConfirmRevert}>
+              {t("git.revert.confirm")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </div>
   );
 });
