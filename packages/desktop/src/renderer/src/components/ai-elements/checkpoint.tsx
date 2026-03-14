@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps, HTMLAttributes } from "react";
 import type { HugeIconProps } from "@hugeicons/react";
+import type { ComponentProps, HTMLAttributes } from "react";
 
 import { Bookmark01Icon, Search02Icon } from "@hugeicons/react";
 

@@ -1,8 +1,8 @@
 "use client";
 
+import type { HugeIconProps } from "@hugeicons/react";
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
-import type { HugeIconProps } from "@hugeicons/react";
 
 import {
   Attachment01Icon,
