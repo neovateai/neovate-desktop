@@ -7,7 +7,7 @@ import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
-import { BrainIcon, ChevronDownIcon } from "lucide-react";
+import { BrainIcon, ArrowDown01Icon } from "@hugeicons/react";
 import {
   createContext,
   memo,
@@ -129,7 +129,7 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn("not-prose overflow-hidden rounded-md border border-border/50", className)}
+          className={cn("not-prose overflow-hidden rounded-md border border-border/40", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -167,19 +167,29 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-2 py-1.5 px-2 rounded-md text-muted-foreground text-sm transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer group",
+          // Layout - v3.0: h-7, px-2
+          "flex w-full items-center gap-2 h-7 px-2 rounded-md",
+          // Text styling
+          "text-sm text-muted-foreground",
+          // Interaction
+          "transition-colors duration-150 ease-out",
+          "hover:bg-muted/40 hover:text-foreground cursor-pointer",
+          "group/reasoning",
           className,
         )}
         {...props}
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4 shrink-0" />
-            <span className="truncate">{getThinkingMessage(isStreaming, duration)}</span>
-            <ChevronDownIcon
+            <BrainIcon className="size-4 text-muted-foreground/70 shrink-0" variant="solid" />
+            <span className="flex-1 truncate">
+              {getThinkingMessage(isStreaming, duration)}
+            </span>
+            <ArrowDown01Icon
               className={cn(
-                "size-4 transition-transform ml-auto shrink-0",
-                isOpen ? "rotate-180" : "rotate-0",
+                "size-3 text-muted-foreground/50 shrink-0",
+                "transition-transform duration-200",
+                "group-data-[state=open]/reasoning:rotate-180"
               )}
             />
           </>
@@ -198,8 +208,17 @@ const streamdownPlugins = { cjk, code, math, mermaid };
 export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
   <CollapsibleContent
     className={cn(
-      "border-t border-border/50 py-2.5 px-3 text-sm",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      // Container styling - v3.0
+      "border-t border-border/40 mt-1 pt-2",
+      "pl-6 pr-2 pb-2",
+      "text-sm text-muted-foreground leading-relaxed",
+      // Left border decoration
+      "border-l-2 border-border/30 ml-2",
+      // Animation
+      "data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1.5",
+      "data-[state=open]:slide-in-from-top-1.5",
+      "outline-none",
       className,
     )}
     {...props}

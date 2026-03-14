@@ -7,7 +7,7 @@ import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/react";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 
@@ -39,25 +39,60 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
       "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm leading-relaxed",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:bg-background group-[.is-user]:px-4 group-[.is-user]:py-2.5 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground",
-      // Markdown paragraph spacing
-      "[&_p]:mb-4 [&_p:last-child]:mb-0",
-      // Inline code styles
-      "[&_code]:bg-muted [&_code]:rounded-sm [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs",
-      // Headings
-      "[&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:text-foreground",
-      "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-foreground",
-      "[&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground",
-      // Lists
-      "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1",
-      "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1",
-      // Blockquote
-      "[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic",
-      // Links
-      "[&_a]:text-primary [&_a]:hover:underline [&_a]:underline-offset-2 [&_a]:transition-colors",
-      // Tables
+      // v3.0 Markdown Styles
+      // Base typography
+      "text-[15px] leading-7 text-foreground tracking-[-0.01em]",
+      // Paragraph spacing
+      "[&>p]:mb-4 [&>p:last-child]:mb-0",
+      // Headings - updated sizes and spacing
+      "[&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:mt-8 [&_h1]:mb-4 [&_h1]:tracking-tight",
+      "[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:tracking-tight",
+      "[&_h3]:text-lg [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-2",
+      "[&_h4]:text-base [&_h4]:font-medium [&_h4]:mt-3 [&_h4]:mb-2 [&_h4]:text-muted-foreground",
+      // Inline code - v3.0: bg-muted/60, rounded-md, px-1.5, text-[13px]
+      "[&_code:not(pre_code)]:bg-muted/60 [&_code:not(pre_code)]:rounded-md",
+      "[&_code:not(pre_code)]:px-1.5 [&_code:not(pre_code)]:py-0.5",
+      "[&_code:not(pre_code)]:font-mono [&_code:not(pre_code)]:text-[13px]",
+      "[&_code:not(pre_code)]:text-foreground/90",
+      // Unordered lists - v3.0: custom bullets
+      "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ul]:my-4",
+      "[&_ul>li]:relative [&_ul>li]:pl-5",
+      "[&_ul>li]:before:content-[''] [&_ul>li]:before:absolute [&_ul>li]:before:left-1.5 [&_ul>li]:before:top-[0.6em]",
+      "[&_ul>li]:before:w-1 [&_ul>li]:before:h-1 [&_ul>li]:before:rounded-full [&_ul>li]:before:bg-muted-foreground/60",
+      // Ordered lists - v3.0: custom numbers with CSS counter
+      "[&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:my-4",
+      "[&_ol]:counter-reset-[item]",
+      "[&_ol>li]:relative [&_ol>li]:pl-6",
+      "[&_ol>li]:before:content-[counter(item)] [&_ol>li]:before:counter-increment-item",
+      "[&_ol>li]:before:absolute [&_ol>li]:before:left-0 [&_ol>li]:before:top-0",
+      "[&_ol>li]:before:text-xs [&_ol>li]:before:font-medium [&_ol>li]:before:text-muted-foreground/70",
+      // Task lists
+      "[&_li:has(>input[type=checkbox])]:pl-0",
+      "[&_li>input[type=checkbox]]:mr-2 [&_li>input[type=checkbox]]:align-middle [&_li>input[type=checkbox]]:accent-primary",
+      // Blockquote - v3.0: left border + subtle background
+      "[&_blockquote]:border-l-2 [&_blockquote]:border-primary/30",
+      "[&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-4",
+      "[&_blockquote]:text-muted-foreground [&_blockquote]:italic",
+      "[&_blockquote]:bg-muted/20 [&_blockquote]:rounded-r-md [&_blockquote]:pr-3",
+      // Links - v3.0: border-bottom style
+      "[&_a]:text-primary [&_a]:font-medium [&_a]:no-underline",
+      "[&_a]:border-b [&_a]:border-primary/30",
+      "[&_a]:transition-all [&_a]:duration-200",
+      "[&_a]:hover:border-primary [&_a]:hover:text-primary",
+      // Tables - v3.0: updated styling with hover
       "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
-      "[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-muted-foreground",
-      "[&_td]:border-b [&_td]:border-border/50 [&_td]:px-3 [&_td]:py-2",
+      "[&_th]:bg-muted/50 [&_th]:text-left [&_th]:font-semibold",
+      "[&_th]:px-4 [&_th]:py-2.5 [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider",
+      "[&_th]:text-muted-foreground [&_th]:border-b [&_th]:border-border",
+      "[&_td]:px-4 [&_td]:py-2.5 [&_td]:text-[15px] [&_td]:text-foreground",
+      "[&_td]:border-b [&_td]:border-border/50",
+      "[&_tr:last-child_td]:border-b-0",
+      "[&_tr:hover]:bg-muted/25",
+      // Horizontal rule
+      "[&_hr]:my-6 [&_hr]:border-0 [&_hr]:h-px [&_hr]:bg-border/70",
+      // Images
+      "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg",
+      "[&_img]:my-4 [&_img]:border [&_img]:border-border/50 [&_img]:shadow-sm",
       className,
     )}
     {...props}
@@ -255,7 +290,7 @@ export const MessageBranchPrevious = ({ children, ...props }: MessageBranchPrevi
       variant="ghost"
       {...props}
     >
-      {children ?? <ChevronLeftIcon size={14} />}
+      {children ?? <ArrowLeft01Icon className="size-3.5" />}
     </Button>
   );
 };
@@ -275,7 +310,7 @@ export const MessageBranchNext = ({ children, ...props }: MessageBranchNextProps
       variant="ghost"
       {...props}
     >
-      {children ?? <ChevronRightIcon size={14} />}
+      {children ?? <ArrowRight01Icon className="size-3.5" />}
     </Button>
   );
 };
@@ -303,27 +338,61 @@ export const MessageResponse: FC<MessageResponseProps> = memo<MessageResponsePro
   ({ className, ...props }) => (
     <Streamdown
       className={cn(
-        "size-full leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        // v3.0 Markdown Styles for Streamdown
+        // Base typography
+        "text-[15px] leading-7 text-foreground tracking-[-0.01em]",
         // Paragraph spacing
         "[&_p]:mb-4 [&_p:last-child]:mb-0",
-        // Inline code
-        "[&_code:not(pre_code)]:bg-muted [&_code:not(pre_code)]:rounded-sm [&_code:not(pre_code)]:px-1 [&_code:not(pre_code)]:py-0.5 [&_code:not(pre_code)]:font-mono [&_code:not(pre_code)]:text-xs",
-        // Headings
-        "[&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:text-foreground",
-        "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-foreground",
-        "[&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground",
-        // Lists
-        "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1",
-        "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1",
-        "[&_li]:text-sm [&_li]:leading-relaxed",
-        // Blockquote
-        "[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic",
-        // Links
-        "[&_a]:text-primary [&_a]:hover:underline [&_a]:underline-offset-2 [&_a]:transition-colors",
-        // Tables
+        // Headings - updated sizes and spacing
+        "[&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:mt-8 [&_h1]:mb-4 [&_h1]:tracking-tight",
+        "[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:tracking-tight",
+        "[&_h3]:text-lg [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-2",
+        "[&_h4]:text-base [&_h4]:font-medium [&_h4]:mt-3 [&_h4]:mb-2 [&_h4]:text-muted-foreground",
+        // Inline code - v3.0
+        "[&_code:not(pre_code)]:bg-muted/60 [&_code:not(pre_code)]:rounded-md",
+        "[&_code:not(pre_code)]:px-1.5 [&_code:not(pre_code)]:py-0.5",
+        "[&_code:not(pre_code)]:font-mono [&_code:not(pre_code)]:text-[13px]",
+        "[&_code:not(pre_code)]:text-foreground/90",
+        // Unordered lists - v3.0: custom bullets
+        "[&_ul]:list-none [&_ul]:pl-0 [&_ul]:space-y-2 [&_ul]:my-4",
+        "[&_ul>li]:relative [&_ul>li]:pl-5",
+        "[&_ul>li]:before:content-[''] [&_ul>li]:before:absolute [&_ul>li]:before:left-1.5 [&_ul>li]:before:top-[0.6em]",
+        "[&_ul>li]:before:w-1 [&_ul>li]:before:h-1 [&_ul>li]:before:rounded-full [&_ul>li]:before:bg-muted-foreground/60",
+        // Ordered lists - v3.0
+        "[&_ol]:list-none [&_ol]:pl-0 [&_ol]:space-y-2 [&_ol]:my-4",
+        "[&_ol]:counter-reset-[item]",
+        "[&_ol>li]:relative [&_ol>li]:pl-6",
+        "[&_ol>li]:before:content-[counter(item)] [&_ol>li]:before:counter-increment-item",
+        "[&_ol>li]:before:absolute [&_ol>li]:before:left-0 [&_ol>li]:before:top-0",
+        "[&_ol>li]:before:text-xs [&_ol>li]:before:font-medium [&_ol>li]:before:text-muted-foreground/70",
+        // Task lists
+        "[&_li:has(>input[type=checkbox])]:pl-0",
+        "[&_li>input[type=checkbox]]:mr-2 [&_li>input[type=checkbox]]:align-middle [&_li>input[type=checkbox]]:accent-primary",
+        // Blockquote - v3.0
+        "[&_blockquote]:border-l-2 [&_blockquote]:border-primary/30",
+        "[&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-4",
+        "[&_blockquote]:text-muted-foreground [&_blockquote]:italic",
+        "[&_blockquote]:bg-muted/20 [&_blockquote]:rounded-r-md [&_blockquote]:pr-3",
+        // Links - v3.0: border-bottom style
+        "[&_a]:text-primary [&_a]:font-medium [&_a]:no-underline",
+        "[&_a]:border-b [&_a]:border-primary/30",
+        "[&_a]:transition-all [&_a]:duration-200",
+        "[&_a]:hover:border-primary [&_a]:hover:text-primary",
+        // Tables - v3.0
         "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
-        "[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-muted-foreground",
-        "[&_td]:border-b [&_td]:border-border/50 [&_td]:px-3 [&_td]:py-2",
+        "[&_th]:bg-muted/50 [&_th]:text-left [&_th]:font-semibold",
+        "[&_th]:px-4 [&_th]:py-2.5 [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider",
+        "[&_th]:text-muted-foreground [&_th]:border-b [&_th]:border-border",
+        "[&_td]:px-4 [&_td]:py-2.5 [&_td]:text-[15px] [&_td]:text-foreground",
+        "[&_td]:border-b [&_td]:border-border/50",
+        "[&_tr:last-child_td]:border-b-0",
+        "[&_tr:hover]:bg-muted/25",
+        // Horizontal rule
+        "[&_hr]:my-6 [&_hr]:border-0 [&_hr]:h-px [&_hr]:bg-border/70",
+        // Images
+        "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg",
+        "[&_img]:my-4 [&_img]:border [&_img]:border-border/50 [&_img]:shadow-sm",
         className,
       )}
       plugins={streamdownPlugins}

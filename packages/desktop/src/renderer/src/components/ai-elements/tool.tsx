@@ -1,33 +1,32 @@
 "use client";
 
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import type { LucideProps } from "lucide-react";
 import type { ComponentProps } from "react";
 
 import {
-  BookOpen,
-  Bot,
-  CheckSquare,
-  ChevronDown,
-  ClipboardList,
-  Download,
-  FileEdit,
-  FilePlus,
-  FileText,
-  Files,
-  GitBranch,
-  Globe,
-  HelpCircle,
-  ListTodo,
-  LogOut,
-  Map,
-  Regex,
-  Search,
-  Square,
-  Terminal,
-  Wand2,
-  FileIcon,
-} from "lucide-react";
+  File02Icon,
+  FileAddIcon,
+  FileEditIcon,
+  Files01Icon,
+  BookOpen01Icon,
+  TerminalIcon,
+  Search01Icon,
+  TextWrapIcon,
+  GlobeIcon,
+  Download04Icon,
+  HelpCircleIcon,
+  CheckmarkCircle02Icon,
+  Note01Icon,
+  ClipboardIcon,
+  SquareIcon,
+  AiChat02Icon,
+  MagicWand01Icon,
+  RoadmapIcon,
+  Logout01Icon,
+  GitBranchIcon,
+  ArrowDown01Icon,
+  File01Icon,
+} from "@hugeicons/react";
 import { isValidElement, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
@@ -35,51 +34,51 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/colla
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { CodeBlock } from "./code-block";
 
-// Tool type to icon and color mapping (following design spec)
-const toolIconMap: Record<string, { icon: React.FC<LucideProps>; color: string }> = {
+// Tool type to icon and color mapping (v3.0 design spec)
+const toolIconMap: Record<string, { icon: React.FC<{ className?: string; variant?: string }>; color: string }> = {
   // File operations
-  Read: { icon: FileText, color: "text-blue-500" },
-  Write: { icon: FilePlus, color: "text-green-500" },
-  Edit: { icon: FileEdit, color: "text-amber-500" },
-  MultiEdit: { icon: Files, color: "text-orange-500" },
+  Read: { icon: File02Icon, color: "text-blue-500" },
+  Write: { icon: FileAddIcon, color: "text-green-500" },
+  Edit: { icon: FileEditIcon, color: "text-amber-500" },
+  MultiEdit: { icon: Files01Icon, color: "text-orange-500" },
 
   // Notebook & Code
-  NotebookEdit: { icon: BookOpen, color: "text-purple-500" },
+  NotebookEdit: { icon: BookOpen01Icon, color: "text-purple-500" },
 
   // System & Shell
-  Bash: { icon: Terminal, color: "text-slate-500" },
+  Bash: { icon: TerminalIcon, color: "text-slate-500" },
 
   // Search
-  Glob: { icon: Search, color: "text-cyan-500" },
-  Grep: { icon: Regex, color: "text-indigo-500" },
+  Glob: { icon: Search01Icon, color: "text-cyan-500" },
+  Grep: { icon: TextWrapIcon, color: "text-indigo-500" },
 
   // Web
-  WebSearch: { icon: Globe, color: "text-sky-500" },
-  WebFetch: { icon: Download, color: "text-teal-500" },
+  WebSearch: { icon: GlobeIcon, color: "text-sky-500" },
+  WebFetch: { icon: Download04Icon, color: "text-teal-500" },
 
   // User interaction
-  AskUserQuestion: { icon: HelpCircle, color: "text-violet-500" },
+  AskUserQuestion: { icon: HelpCircleIcon, color: "text-violet-500" },
 
   // Task management
-  TodoWrite: { icon: CheckSquare, color: "text-emerald-500" },
-  Task: { icon: ListTodo, color: "text-pink-500" },
-  TaskOutput: { icon: ClipboardList, color: "text-rose-500" },
-  TaskStop: { icon: Square, color: "text-red-500" },
+  TodoWrite: { icon: CheckmarkCircle02Icon, color: "text-emerald-500" },
+  Task: { icon: Note01Icon, color: "text-pink-500" },
+  TaskOutput: { icon: ClipboardIcon, color: "text-rose-500" },
+  TaskStop: { icon: SquareIcon, color: "text-red-500" },
 
   // Agent & Skills
-  Agent: { icon: Bot, color: "text-primary" },
-  Skill: { icon: Wand2, color: "text-fuchsia-500" },
+  Agent: { icon: AiChat02Icon, color: "text-primary" },
+  Skill: { icon: MagicWand01Icon, color: "text-fuchsia-500" },
 
   // Plan mode
-  EnterPlanMode: { icon: Map, color: "text-blue-400" },
-  ExitPlanMode: { icon: LogOut, color: "text-gray-400" },
+  EnterPlanMode: { icon: RoadmapIcon, color: "text-blue-400" },
+  ExitPlanMode: { icon: Logout01Icon, color: "text-gray-400" },
 
   // Worktree
-  EnterWorktree: { icon: GitBranch, color: "text-orange-400" },
+  EnterWorktree: { icon: GitBranchIcon, color: "text-orange-400" },
 };
 
 // Get tool icon info by name
-function getToolIconInfo(toolName: string): { icon: React.FC<LucideProps>; color: string } {
+function getToolIconInfo(toolName: string): { icon: React.FC<{ className?: string; variant?: string }>; color: string } {
   // Try exact match first
   if (toolIconMap[toolName]) {
     return toolIconMap[toolName];
@@ -94,7 +93,7 @@ function getToolIconInfo(toolName: string): { icon: React.FC<LucideProps>; color
   }
 
   // Default fallback
-  return { icon: FileIcon, color: "text-muted-foreground" };
+  return { icon: File01Icon, color: "text-muted-foreground" };
 }
 
 // Get filename from path
@@ -153,7 +152,7 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 export const Tool = ({ className, ...props }: ToolProps) => (
   <Collapsible
     className={cn(
-      "group/tool not-prose w-full overflow-hidden rounded-md border border-border/50",
+      "group/tool not-prose w-full overflow-hidden rounded-md border border-border/40",
       className,
     )}
     {...props}
@@ -175,44 +174,27 @@ export type ToolHeaderProps = {
     }
 );
 
-// Status dot component
+// Status dot component - v3.0: static color dots, no animation
+const statusStyles = {
+  "approval-requested": "bg-amber-500",
+  "approval-responded": "bg-blue-500",
+  "input-available": "bg-primary",
+  "input-streaming": "bg-primary",
+  "output-available": "bg-green-500",
+  "output-denied": "bg-orange-500",
+  "output-error": "bg-red-500",
+  "running": "bg-primary",
+};
+
 const StatusDot = ({
   state,
-  preliminary = false,
 }: {
   state: ToolPart["state"];
-  preliminary?: boolean;
-}) => {
-  const isRunning =
-    state === "input-available" ||
-    state === "input-streaming" ||
-    (preliminary && state === "output-available");
-
-  const statusStyles = {
-    "approval-requested": "bg-yellow-500",
-    "approval-responded": "bg-blue-500",
-    "input-available": "bg-primary",
-    "input-streaming": "bg-primary",
-    "output-available": "bg-green-500",
-    "output-denied": "bg-orange-500",
-    "output-error": "bg-red-500",
-  };
-
-  if (isRunning) {
-    return (
-      <span className="relative flex size-1.5">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-        <span className="relative inline-flex rounded-full size-1.5 bg-primary" />
-      </span>
-    );
-  }
-
-  return (
-    <span
-      className={cn("size-1.5 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
-    />
-  );
-};
+}) => (
+  <span
+    className={cn("size-1.5 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
+  />
+);
 
 export const ToolHeader = ({
   className,
@@ -220,11 +202,10 @@ export const ToolHeader = ({
   type,
   state,
   toolName,
-  preliminary,
   ...props
 }: ToolHeaderProps) => {
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
-  const { displayName, fullPath, actionName, extra } = useMemo(
+  const { displayName, fullPath, actionName } = useMemo(
     () => parseToolTitle(title ?? derivedName),
     [title, derivedName],
   );
@@ -239,50 +220,68 @@ export const ToolHeader = ({
   // - If title was parsed with actionName, use that
   // - Otherwise use displayName or derivedName as fallback
   const hasFilePath = fullPath !== null;
-  const mainLabel = hasFilePath
-    ? actionName || derivedName
-    : actionName || displayName || derivedName;
+  const actionText = actionName || derivedName;
 
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded-md",
-        "transition-colors cursor-pointer group w-full",
+        // Layout - v3.0 spec: h-7, px-2 py-1
+        "flex w-full items-center gap-2 h-7 px-2 py-1 rounded-md",
+        // Interaction
+        "transition-colors duration-150 ease-out",
+        "hover:bg-muted/40 cursor-pointer group/tool",
         className,
       )}
       {...props}
     >
-      <TooltipProvider>
-        {/* Icon with hover background */}
-        <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0 transition-colors group-hover:bg-muted">
-          <ToolIcon className={cn("size-4", iconColor)} />
-        </div>
-        <span className="text-sm text-foreground truncate">
-          {mainLabel}
-          {extra && <span className="text-muted-foreground"> {extra}</span>}
-          {/* Only show displayName separately when it's a file path */}
-          {hasFilePath && displayName && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span className="cursor-default">
-                    {extra ? "" : " "}
-                    <span className="text-muted-foreground">{displayName}</span>
-                  </span>
-                }
-              />
-              <TooltipContent side="top" align="start" className="max-w-md">
-                <p className="break-all">{fullPath}</p>
-              </TooltipContent>
-            </Tooltip>
+      {/* Icon Container with micro chevron */}
+      <span className="relative flex items-center justify-center shrink-0">
+        <ToolIcon
+          className={cn("size-4", iconColor)}
+          variant="solid"
+        />
+        {/* Expand Indicator - subtle hint */}
+        <ArrowDown01Icon
+          className={cn(
+            "absolute -bottom-0.5 -right-0.5 size-2.5",
+            "bg-background rounded-full",
+            "text-muted-foreground/70",
+            "opacity-0 group-hover/tool:opacity-100",
+            "transition-all duration-150",
+            "group-data-[state=open]:rotate-180"
           )}
+        />
+      </span>
+
+      {/* Label Area */}
+      <span className="flex-1 min-w-0 flex items-center gap-1.5 text-sm">
+        {/* Action Name */}
+        <span className="text-foreground font-medium truncate">
+          {actionText}
         </span>
-        <StatusDot state={state} preliminary={preliminary} />
-        {/* Micro chevron - shows on hover, rotates 180deg when open */}
-        <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ChevronDown className="size-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-        </div>
-      </TooltipProvider>
+
+        {/* Separator - only show when both action and displayName exist */}
+        {actionText && displayName && (
+          <span className="text-muted-foreground/50">·</span>
+        )}
+
+        {/* File/Subject Name */}
+        {displayName && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-muted-foreground truncate">
+                {displayName}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="start">
+              <p className="break-all text-xs">{fullPath}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+
+      {/* Status Indicator - static color dot */}
+      <StatusDot state={state} />
     </CollapsibleTrigger>
   );
 };
@@ -292,8 +291,11 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      "border-t border-border/50",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-3 p-3 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "border-t border-border/40",
+      "data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1.5",
+      "data-[state=open]:slide-in-from-top-1.5",
+      "space-y-3 p-3 text-popover-foreground outline-none",
       className,
     )}
     {...props}
@@ -306,8 +308,13 @@ export type ToolInputProps = ComponentProps<"div"> & {
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-1.5", className)} {...props}>
-    <span className="text-xs font-medium text-muted-foreground">Input</span>
-    <div className="rounded-md border border-border/50 bg-muted/30 overflow-hidden">
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Input
+      </span>
+      <div className="flex-1 h-px bg-border/30" />
+    </div>
+    <div className="rounded-md border border-border/50 bg-muted/25 overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -333,16 +340,24 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
 
   return (
     <div className={cn("space-y-1.5", className)} {...props}>
-      <span className="text-xs font-medium text-muted-foreground">
-        {errorText ? "Error" : "Output"}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className={cn(
+          "text-[11px] font-medium uppercase tracking-wide",
+          errorText ? "text-destructive" : "text-muted-foreground"
+        )}>
+          {errorText ? "Error" : "Output"}
+        </span>
+        <div className="flex-1 h-px bg-border/30" />
+      </div>
       <div
         className={cn(
-          "rounded-md border border-border/50 overflow-hidden",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-background",
+          "rounded-md border overflow-hidden",
+          errorText
+            ? "border-destructive/30 bg-destructive/5"
+            : "border-border/50 bg-background"
         )}
       >
-        {errorText && <div className="p-3 text-sm">{errorText}</div>}
+        {errorText && <div className="p-3 text-sm text-destructive">{errorText}</div>}
         {Output}
       </div>
     </div>

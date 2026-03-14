@@ -3,7 +3,7 @@
 import type { ComponentProps, CSSProperties, FC, HTMLAttributes } from "react";
 import type { BundledLanguage, BundledTheme, HighlighterGeneric, ThemedToken } from "shiki";
 
-import { CheckIcon, CopyIcon } from "lucide-react";
+import { Tick02Icon, Copy01Icon } from "@hugeicons/react";
 import {
   createContext,
   memo,
@@ -459,7 +459,7 @@ export const CodeBlockCopyButton = ({
     [],
   );
 
-  const Icon = isCopied ? CheckIcon : CopyIcon;
+  const Icon = isCopied ? Tick02Icon : Copy01Icon;
 
   return (
     <Button
@@ -469,7 +469,7 @@ export const CodeBlockCopyButton = ({
       variant="ghost"
       {...props}
     >
-      {children ?? <Icon size={14} />}
+      {children ?? <Icon className="size-3.5" />}
     </Button>
   );
 };
