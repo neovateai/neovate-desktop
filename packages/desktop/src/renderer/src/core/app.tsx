@@ -273,7 +273,6 @@ export class RendererApp implements IRendererApp {
           <PluginContextReact.Provider value={ctx}>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <ToastProvider>
-                <ThemeSync />
                 <Suspense
                   fallback={
                     <div className="flex h-screen items-center justify-center">
