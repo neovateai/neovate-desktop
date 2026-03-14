@@ -1,8 +1,6 @@
 import type { FileUIPart } from "ai";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 
-import type { StickToBottomContext } from "use-stick-to-bottom";
-
 import debug from "debug";
 import { useEffect, useRef, useState } from "react";
 
