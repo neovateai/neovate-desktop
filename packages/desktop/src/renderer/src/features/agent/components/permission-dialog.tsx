@@ -169,5 +169,5 @@ export function PermissionDialog({ sessionId }: Props) {
     );
   }
 
-  return <div className="relative z-10 mx-4">{content}</div>;
+  return <div className="relative z-10 mx-4 min-w-0 max-w-full">{content}</div>;
 }

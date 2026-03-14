@@ -40,6 +40,9 @@ const DEFAULT_CONFIG: AppConfig = {
 
   // Keybindings
   keybindings: {},
+
+  // Skills
+  skillsRegistryUrls: [],
 };
 
 export const useConfigStore = create<ConfigState>()(

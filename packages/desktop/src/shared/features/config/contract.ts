@@ -44,6 +44,10 @@ export const configContract = {
         z.object({ key: z.literal("keybindings"), value: keybindingsValueSchema }),
         z.object({ key: z.literal("sidebarOrganize"), value: sidebarOrganizeValueSchema }),
         z.object({ key: z.literal("sidebarSortBy"), value: sidebarSortByValueSchema }),
+        z.object({
+          key: z.literal("skillsRegistryUrls"),
+          value: z.array(z.string().url()),
+        }),
       ]),
     )
     .output(type<void>()),

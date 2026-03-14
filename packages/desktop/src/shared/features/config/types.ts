@@ -29,4 +29,7 @@ export type AppConfig = {
 
   // Keybindings
   keybindings: Record<string, string>;
+
+  // Skills
+  skillsRegistryUrls: string[];
 };

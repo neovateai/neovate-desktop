@@ -11,6 +11,7 @@ import { SessionManager } from "./features/agent/session-manager";
 import { getShellEnvironment } from "./features/agent/shell-env";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
+import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
 import editorPlugin from "./plugins/editor";
@@ -37,10 +38,13 @@ const mainApp = new MainApp({
 });
 const updaterService = new UpdaterService();
 
+const skillsService = new SkillsService(projectStore, configStore, process.resourcesPath);
+
 const appContext: AppContext = {
   sessionManager,
   configStore,
   projectStore,
+  skillsService,
   stateStore,
   updaterService,
   mainApp,

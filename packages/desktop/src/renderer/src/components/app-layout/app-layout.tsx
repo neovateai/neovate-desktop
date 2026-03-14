@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import type { TitlebarItem } from "../../core/plugin/contributions";
 import type { SeparatorId } from "./types";
 
+import { getChatPanelBgUrl } from "../../assets/images";
 import { useRendererApp } from "../../core/app";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
@@ -30,6 +31,7 @@ import { useProjectStore } from "../../features/project/store";
 import { useSettingsStore } from "../../features/settings";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { Separator } from "../ui/separator";
 import {
   APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
   APP_LAYOUT_GRID,
@@ -94,7 +96,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
         gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
         backgroundImage:
           !activeSession || activeSession.isNew
-            ? `url("/src/assets/images/chat-panel-bg-${resolvedTheme === "dark" ? "dark" : "light"}.png")`
+            ? `url("${getChatPanelBgUrl(resolvedTheme as "dark" | "light" | undefined)}")`
             : "",
         backgroundSize: "cover",
         backgroundPosition: "0 0",
@@ -232,6 +234,7 @@ export function AppLayoutSecondaryTitleBar() {
             </Suspense>
           );
         })}
+        <Separator orientation="vertical" className="mx-2 my-1 w-[2px] rounded-xl" />
         <ContentPanelToggle />
         <Button
           variant="ghost"

@@ -9,6 +9,7 @@ import type { Project } from "../../../../shared/features/project/types";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
+import { getEmpty2Url } from "../../assets/images";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -213,7 +214,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
         <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center flex-col gap-2 ">
           <img
-            src={`/src/assets/images/empty2${resolvedTheme === "dark" ? "-dark" : ""}.png`}
+            src={getEmpty2Url(resolvedTheme as "dark" | "light" | undefined)}
             alt="Empty"
             className="shrink-0"
             style={{ width: 67 + "px", marginLeft: "10px" }}

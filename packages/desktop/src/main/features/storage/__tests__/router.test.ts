@@ -27,6 +27,7 @@ beforeEach(() => {
     sessionManager: {} as any,
     configStore: {} as any,
     projectStore: {} as any,
+    skillsService: {} as any,
     mainApp: {} as any,
     stateStore: {} as any,
     updaterService: {} as any,
