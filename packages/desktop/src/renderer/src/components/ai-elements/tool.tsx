@@ -247,14 +247,14 @@ export const ToolHeader = ({
     <CollapsibleTrigger
       className={cn(
         "flex items-center gap-2 py-1.5 px-2 rounded-md",
-        "transition-colors cursor-pointer group w-full",
+        "transition-colors cursor-pointer group w-full hover:bg-muted/50",
         className,
       )}
       {...props}
     >
       <TooltipProvider>
-        {/* Icon with hover background */}
-        <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0 transition-colors group-hover:bg-muted">
+        {/* Icon */}
+        <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0">
           <ToolIcon className={cn("size-4", iconColor)} />
         </div>
         <span className="text-sm text-foreground truncate">
