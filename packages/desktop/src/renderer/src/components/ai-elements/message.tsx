@@ -7,7 +7,7 @@ import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
-import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/react";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 
@@ -332,7 +332,7 @@ export const MessageBranchPrevious = ({ children, ...props }: MessageBranchPrevi
       variant="ghost"
       {...props}
     >
-      {children ?? <ArrowLeft01Icon className="size-3.5" />}
+      {children ?? <ArrowLeftIcon className="size-3.5" />}
     </Button>
   );
 };
@@ -352,7 +352,7 @@ export const MessageBranchNext = ({ children, ...props }: MessageBranchNextProps
       variant="ghost"
       {...props}
     >
-      {children ?? <ArrowRight01Icon className="size-3.5" />}
+      {children ?? <ArrowRightIcon className="size-3.5" />}
     </Button>
   );
 };
