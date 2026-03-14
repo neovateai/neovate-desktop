@@ -31,7 +31,7 @@ import { isValidElement, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { CodeBlock } from "./code-block";
 
 // ============================================================================
