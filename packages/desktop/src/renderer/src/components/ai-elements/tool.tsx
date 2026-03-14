@@ -278,9 +278,9 @@ export const ToolHeader = ({
           )}
         </span>
         <StatusDot state={state} preliminary={preliminary} />
-        {/* Micro chevron - shows on hover, rotates 180deg when open */}
+        {/* Micro chevron - shows on hover, starts pointing right (-rotate-90), rotates to down (0) when open */}
         <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ChevronDown className="size-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          <ChevronDown className="size-3 text-muted-foreground transition-transform -rotate-90 group-data-[open]/tool:rotate-0" />
         </div>
       </TooltipProvider>
     </CollapsibleTrigger>
