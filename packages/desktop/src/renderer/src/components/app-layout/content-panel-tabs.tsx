@@ -58,7 +58,7 @@ export function ContentPanelTabs() {
   return (
     <div className="flex h-full flex-col">
       {/* Tab bar */}
-      <div className="flex items-center gap-0.5 border-b border-border px-1 py-1">
+      <div className="flex items-center gap-0.5 border-b border-border px-1 h-10">
         {tabs.map((tab) => (
           <button
             key={tab.id}
