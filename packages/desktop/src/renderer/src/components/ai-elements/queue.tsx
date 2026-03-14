@@ -2,7 +2,8 @@
 
 import type { ComponentProps } from "react";
 
-import { ArrowDown01Icon, Attachment01Icon } from "@hugeicons/react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { Attachment01Icon } from "@hugeicons/react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";

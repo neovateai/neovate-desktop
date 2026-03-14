@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react";
 
-import { ArrowDown01Icon } from "@hugeicons/react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { createContext, useContext } from "react";
 
 import { cn } from "../../lib/utils";

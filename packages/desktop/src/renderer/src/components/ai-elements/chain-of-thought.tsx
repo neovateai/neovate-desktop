@@ -3,7 +3,8 @@
 import type { HugeIconProps } from "@hugeicons/react";
 import type { ComponentProps, FC, ReactNode } from "react";
 
-import { ArrowDown01Icon, BrainIcon, MoreHorizontalIcon } from "@hugeicons/react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { BrainIcon, MoreHorizontalIcon } from "@hugeicons/react";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { createContext, memo, useContext, useMemo } from "react";
 

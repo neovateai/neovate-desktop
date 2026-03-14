@@ -2,7 +2,8 @@
 
 import type { ComponentProps } from "react";
 
-import { ArrowDown01Icon, Download04Icon } from "@hugeicons/react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { Download04Icon } from "@hugeicons/react";
 import { useCallback } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 

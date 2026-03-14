@@ -2,7 +2,8 @@
 
 import type { ComponentProps } from "react";
 
-import { ArrowDown01Icon, BookOpen01Icon } from "@hugeicons/react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { BookOpen01Icon } from "@hugeicons/react";
 
 import { cn } from "../../lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";

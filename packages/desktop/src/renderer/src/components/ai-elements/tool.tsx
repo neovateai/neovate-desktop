@@ -4,9 +4,9 @@ import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import type { ComponentProps, FC } from "react";
 import type { HugeIconProps } from "@hugeicons/react";
 
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import {
   AiChat02Icon,
-  ArrowDown01Icon,
   BookOpen01Icon,
   ClipboardIcon,
   Copy01Icon,
