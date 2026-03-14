@@ -38,7 +38,13 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   }
 
   return (
-    <code className={cn("rounded bg-muted px-1 py-0.5 font-mono text-xs", className)} {...props}>
+    <code
+      className={cn(
+        "rounded bg-muted px-1.5 py-0.5 font-mono text-[0.8125rem] leading-none align-baseline",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </code>
   );
@@ -109,7 +115,7 @@ function MarkdownInput({ className, type, ...props }: MarkdownInputProps) {
 
 export const markdownBaseComponents: Components = {
   p: ({ className, children, ...props }) => (
-    <p className={cn("my-3 leading-6 first:mt-0 last:mb-0", className)} {...props}>
+    <p className={cn("my-3 text-sm leading-6 first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </p>
   ),
@@ -180,14 +186,14 @@ export const markdownBaseComponents: Components = {
     </h6>
   ),
   ul: ({ className, children, ...props }) => (
-    <ul className={cn("my-3 list-none space-y-1 pl-0 first:mt-0 last:mb-0", className)} {...props}>
+    <ul className={cn("my-3 list-none space-y-1.5 pl-0 first:mt-0 last:mb-0 [&_ul]:my-1.5 [&_ul]:ml-4 [&_ol]:my-1.5 [&_ol]:ml-4", className)} {...props}>
       {children}
     </ul>
   ),
   ol: ({ className, children, ...props }) => (
     <ol
       className={cn(
-        "my-3 list-none space-y-1 pl-0 first:mt-0 last:mb-0",
+        "my-3 list-none space-y-1.5 pl-0 first:mt-0 last:mb-0 [&_ul]:my-1.5 [&_ul]:ml-4 [&_ol]:my-1.5 [&_ol]:ml-4",
         "[counter-reset:list-item]",
         className,
       )}
@@ -199,14 +205,13 @@ export const markdownBaseComponents: Components = {
   li: ({ className, children, ...props }) => (
     <li
       className={cn(
-        "flex items-start gap-2 text-sm leading-6",
-        // Unordered list bullet - vertically centered with first line
-        "[ul>&]:before:content-[''] [ul>&]:before:size-1",
-        "[ul>&]:before:rounded-full [ul>&]:before:bg-muted-foreground/50",
-        "[ul>&]:before:mt-[0.6875rem] [ul>&]:before:shrink-0",
+        "flex items-baseline gap-2 text-sm leading-6",
+        // Unordered list bullet - use inline-flex for baseline alignment
+        "[ul>&]:before:content-['•'] [ul>&]:before:text-muted-foreground/60",
+        "[ul>&]:before:text-[0.5rem] [ul>&]:before:leading-6 [ul>&]:before:shrink-0",
         // Ordered list number
         "[ol>&]:before:content-[counter(list-item)'.'] [ol>&]:before:[counter-increment:list-item]",
-        "[ol>&]:before:text-xs [ol>&]:before:text-muted-foreground/70",
+        "[ol>&]:before:text-xs [ol>&]:before:leading-6 [ol>&]:before:text-muted-foreground/70",
         "[ol>&]:before:min-w-[1.25rem] [ol>&]:before:text-right [ol>&]:before:shrink-0",
         className,
       )}
@@ -249,14 +254,14 @@ export const markdownBaseComponents: Components = {
     </tbody>
   ),
   tr: ({ className, children, ...props }) => (
-    <tr className={cn("align-top [&:last-child>td]:border-b-0", className)} {...props}>
+    <tr className={cn("[&:last-child>td]:border-b-0", className)} {...props}>
       {children}
     </tr>
   ),
   th: ({ className, children, ...props }) => (
     <th
       className={cn(
-        "border-b border-border/50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground",
+        "border-b border-border/50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground align-bottom",
         className,
       )}
       {...props}
@@ -265,7 +270,7 @@ export const markdownBaseComponents: Components = {
     </th>
   ),
   td: ({ className, children, ...props }) => (
-    <td className={cn("border-b border-border/30 px-3 py-2 text-sm text-foreground", className)} {...props}>
+    <td className={cn("border-b border-border/30 px-3 py-2 text-sm text-foreground align-top", className)} {...props}>
       {children}
     </td>
   ),
