@@ -63,7 +63,7 @@ export function InputToolbar({
   const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
 
   return (
-    <div className="flex items-center gap-1 border-border/50 px-2 py-1 bg-background-secondary">
+    <div className="flex items-center gap-1 border-border/50 px-2 py-2 bg-background-secondary">
       <Button
         type="button"
         variant="ghost"

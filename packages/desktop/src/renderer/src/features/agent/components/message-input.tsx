@@ -284,7 +284,7 @@ export function MessageInput({
   );
 
   return (
-    <div className={cn("p-4", dockAttached ? "px-4 pb-4 pt-0" : "border-t border-border")}>
+    <div className={cn("px-4 pt-4 pb-1", dockAttached ? "pb-1 pt-0" : "border-t border-border")}>
       {activeSessionId && <QueryStatus sessionId={activeSessionId} />}
       <input
         ref={fileInputRef}
