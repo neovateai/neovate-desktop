@@ -1,18 +1,17 @@
 "use client";
 
-import type { HugeIconProps } from "@hugeicons/react";
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 
 import {
-  Attachment01Icon,
-  Cancel01Icon,
-  File02Icon,
-  Globe02Icon,
-  Image01Icon,
-  Music01Icon,
-  Video01Icon,
-} from "@hugeicons/react";
+  FileTextIcon,
+  GlobeIcon,
+  ImageIcon,
+  Music2Icon,
+  PaperclipIcon,
+  VideoIcon,
+  XIcon,
+} from "lucide-react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
@@ -37,15 +36,13 @@ export type AttachmentMediaCategory =
 
 export type AttachmentVariant = "grid" | "inline" | "list";
 
-type HugeIconComponent = React.FC<HugeIconProps>;
-
-const mediaCategoryIcons: Record<AttachmentMediaCategory, HugeIconComponent> = {
-  audio: Music01Icon,
-  document: File02Icon,
-  image: Image01Icon,
-  source: Globe02Icon,
-  unknown: Attachment01Icon,
-  video: Video01Icon,
+const mediaCategoryIcons: Record<AttachmentMediaCategory, typeof ImageIcon> = {
+  audio: Music2Icon,
+  document: FileTextIcon,
+  image: ImageIcon,
+  source: GlobeIcon,
+  unknown: PaperclipIcon,
+  video: VideoIcon,
 };
 
 // ============================================================================
@@ -231,8 +228,8 @@ export const AttachmentPreview = ({
 
   const iconSize = variant === "inline" ? "size-3" : "size-4";
 
-  const renderIcon = (Icon: HugeIconComponent) => (
-    <Icon className={cn(iconSize, "text-muted-foreground")} variant="solid" />
+  const renderIcon = (Icon: typeof ImageIcon) => (
+    <Icon className={cn(iconSize, "text-muted-foreground")} />
   );
 
   const renderContent = () => {
@@ -346,7 +343,7 @@ export const AttachmentRemove = ({
       variant="ghost"
       {...props}
     >
-      {children ?? <Cancel01Icon variant="solid" />}
+      {children ?? <XIcon />}
       <span className="sr-only">{label}</span>
     </Button>
   );

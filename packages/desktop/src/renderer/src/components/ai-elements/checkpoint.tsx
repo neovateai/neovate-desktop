@@ -1,9 +1,9 @@
 "use client";
 
-import type { HugeIconProps } from "@hugeicons/react";
+import type { LucideProps } from "lucide-react";
 import type { ComponentProps, HTMLAttributes } from "react";
 
-import { Bookmark01Icon, Search02Icon } from "@hugeicons/react";
+import { BookmarkIcon, FileSearch } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -22,12 +22,10 @@ export const Checkpoint = ({ className, children, ...props }: CheckpointProps) =
   </div>
 );
 
-export type CheckpointIconProps = HugeIconProps;
+export type CheckpointIconProps = LucideProps;
 
 export const CheckpointIcon = ({ className, children, ...props }: CheckpointIconProps) =>
-  children ?? (
-    <Bookmark01Icon className={cn("size-4 shrink-0", className)} variant="solid" {...props} />
-  );
+  children ?? <BookmarkIcon className={cn("size-4 shrink-0", className)} {...props} />;
 
 export type CheckpointTriggerProps = ComponentProps<typeof Button> & {
   tooltip?: string;
@@ -56,7 +54,7 @@ export const CheckpointReviewTrigger = ({
         />
       }
     >
-      <Search02Icon className="size-3.5" variant="solid" />
+      <FileSearch className="size-3.5" />
     </TooltipTrigger>
     <TooltipContent align="start" side="bottom">
       Review changes

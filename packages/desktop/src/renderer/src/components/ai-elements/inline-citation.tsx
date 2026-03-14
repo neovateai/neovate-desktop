@@ -2,7 +2,7 @@
 
 import type { ComponentProps, FC } from "react";
 
-import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/react";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import type { CarouselApi } from "../ui/carousel";
@@ -178,7 +178,7 @@ export const InlineCitationCarouselPrev = ({
       type="button"
       {...props}
     >
-      <ArrowLeft01Icon className="size-3.5 text-muted-foreground" variant="solid" />
+      <ArrowLeftIcon className="size-4 text-muted-foreground" />
     </button>
   );
 };
@@ -205,7 +205,7 @@ export const InlineCitationCarouselNext = ({
       type="button"
       {...props}
     >
-      <ArrowRight01Icon className="size-3.5 text-muted-foreground" variant="solid" />
+      <ArrowRightIcon className="size-4 text-muted-foreground" />
     </button>
   );
 };

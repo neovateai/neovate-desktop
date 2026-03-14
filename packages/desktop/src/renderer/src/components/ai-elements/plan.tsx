@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react";
 
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { ChevronsUpDownIcon } from "lucide-react";
 import { createContext, useContext } from "react";
 
 import { cn } from "../../lib/utils";
@@ -115,7 +115,7 @@ export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
   <CollapsibleTrigger
     render={
       <Button
-        className={cn("size-8 group", className)}
+        className={cn("size-8", className)}
         data-slot="plan-trigger"
         size="icon"
         variant="ghost"
@@ -123,10 +123,7 @@ export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
     }
     {...props}
   >
-    <ArrowDown01Icon
-      className="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
-      variant="solid"
-    />
+    <ChevronsUpDownIcon className="size-4" />
     <span className="sr-only">Toggle plan</span>
   </CollapsibleTrigger>
 );

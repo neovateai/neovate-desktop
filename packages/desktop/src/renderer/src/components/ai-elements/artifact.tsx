@@ -1,9 +1,9 @@
 "use client";
 
-import type { HugeIconProps } from "@hugeicons/react";
-import type { ComponentProps, FC, HTMLAttributes } from "react";
+import type { LucideIcon } from "lucide-react";
+import type { ComponentProps, HTMLAttributes } from "react";
 
-import { Cancel01Icon } from "@hugeicons/react";
+import { XIcon } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -46,7 +46,7 @@ export const ArtifactClose = ({
     variant={variant}
     {...props}
   >
-    {children ?? <Cancel01Icon className="size-4" variant="solid" />}
+    {children ?? <XIcon className="size-4" />}
     <span className="sr-only">Close</span>
   </Button>
 );
@@ -72,7 +72,7 @@ export const ArtifactActions = ({ className, ...props }: ArtifactActionsProps) =
 export type ArtifactActionProps = ComponentProps<typeof Button> & {
   tooltip?: string;
   label?: string;
-  icon?: FC<HugeIconProps>;
+  icon?: LucideIcon;
 };
 
 export const ArtifactAction = ({
@@ -93,7 +93,7 @@ export const ArtifactAction = ({
       variant={variant}
       {...props}
     >
-      {Icon ? <Icon className="size-4" variant="solid" /> : children}
+      {Icon ? <Icon className="size-4" /> : children}
       <span className="sr-only">{label || tooltip}</span>
     </Button>
   );

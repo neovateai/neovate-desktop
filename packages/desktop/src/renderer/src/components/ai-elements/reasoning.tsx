@@ -2,9 +2,8 @@
 
 import type { ComponentProps, ReactNode } from "react";
 
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
-import { BrainIcon } from "@hugeicons/react";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
+import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import {
   createContext,
   memo,
@@ -128,10 +127,7 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn(
-            "not-prose w-full overflow-hidden rounded-lg border border-border/40",
-            className,
-          )}
+          className={cn("not-prose overflow-hidden rounded-md border border-border", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -169,22 +165,26 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-2 h-7 px-2 rounded-md text-muted-foreground text-sm transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer group",
+          "flex w-full items-center gap-2 py-1.5 px-2 rounded-md text-muted-foreground text-sm transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer group",
           className,
         )}
         {...props}
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4 shrink-0" variant="solid" />
-            <span className="flex-1 truncate">{getThinkingMessage(isStreaming, duration)}</span>
-            <ArrowDown01Icon
-              className={cn(
-                "size-3 shrink-0 transition-transform duration-200",
-                isOpen ? "rotate-180" : "rotate-0",
-              )}
-              variant="solid"
-            />
+            <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0">
+              <BrainIcon className="size-4" />
+            </div>
+            <span className="truncate">{getThinkingMessage(isStreaming, duration)}</span>
+            {/* Chevron icon - shows on hover, starts pointing right (-rotate-90), rotates to down (0) when open */}
+            <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ChevronDownIcon
+                className={cn(
+                  "size-3 text-muted-foreground transition-transform",
+                  isOpen ? "rotate-0" : "-rotate-90",
+                )}
+              />
+            </div>
           </>
         )}
       </CollapsibleTrigger>
@@ -199,8 +199,8 @@ export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & 
 export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
   <CollapsibleContent
     className={cn(
-      "border-t border-border/40 px-3 py-2 text-sm text-muted-foreground leading-6 bg-muted/20",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "border-t border-border/50 py-2.5 px-3 text-sm",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
       className,
     )}
     {...props}
