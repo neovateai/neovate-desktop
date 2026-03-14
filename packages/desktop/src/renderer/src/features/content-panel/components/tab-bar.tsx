@@ -14,7 +14,7 @@ export function TabBar({
   registeredViewTypes: Set<string>;
 }) {
   return (
-    <div className="flex items-center border-b border-border py-1">
+    <div className="flex items-center border-b border-border px-1 h-10">
       <ScrollArea
         scrollFade
         className="min-w-0 flex-1 [&_[data-slot=scroll-area-scrollbar]]:hidden [&_[data-slot=scroll-area-viewport]]:!flex [&_[data-slot=scroll-area-viewport]]:items-center"
