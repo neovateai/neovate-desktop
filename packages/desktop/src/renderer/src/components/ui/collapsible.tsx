@@ -18,7 +18,11 @@ function CollapsibleTrigger({ className, ...props }: CollapsiblePrimitive.Trigge
   );
 }
 
-function CollapsiblePanel({ className, ...props }: CollapsiblePrimitive.Panel.Props) {
+function CollapsiblePanel({
+  className,
+  keepMounted = true,
+  ...props
+}: CollapsiblePrimitive.Panel.Props) {
   return (
     <CollapsiblePrimitive.Panel
       className={cn(
@@ -26,6 +30,7 @@ function CollapsiblePanel({ className, ...props }: CollapsiblePrimitive.Panel.Pr
         className,
       )}
       data-slot="collapsible-panel"
+      keepMounted={keepMounted}
       {...props}
     />
   );
