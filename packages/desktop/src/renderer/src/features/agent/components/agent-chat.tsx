@@ -222,13 +222,13 @@ function AgentChatSession({
             {error.message}
           </div>
         )}
-        <div className={cn("relative", hasPendingRequest && "grid")}>
-          <div className={cn(hasPendingRequest && "col-start-1 row-start-1 self-end z-10")}>
+        <div className={cn("relative min-w-0", hasPendingRequest && "grid")}>
+          <div className={cn(hasPendingRequest && "col-start-1 row-start-1 self-end z-10 min-w-0")}>
             <PermissionDialog sessionId={sessionId} />
           </div>
           <div
             className={cn(
-              "relative",
+              "relative min-w-0",
               hasPendingRequest && "col-start-1 row-start-1 self-end pointer-events-none z-0",
             )}
           >

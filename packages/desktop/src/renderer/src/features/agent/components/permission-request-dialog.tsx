@@ -195,11 +195,11 @@ export function PermissionRequestDialog({
     <div
       ref={containerRef}
       tabIndex={-1}
-      className="relative animate-in fade-in slide-in-from-bottom-2 duration-200 rounded-2xl border border-yellow-500/30 bg-background p-4 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.3)] outline-none min-h-[120px]"
+      className="relative min-w-0 max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200 rounded-2xl border border-yellow-500/30 bg-background p-4 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.3)] outline-none min-h-[120px]"
     >
       {/* Header: Tool name + pending count */}
-      <div className="mb-2 flex items-center gap-2">
-        <p className="text-sm font-medium">{preview.title}</p>
+      <div className="mb-2 flex min-w-0 items-center gap-2">
+        <p className="truncate text-sm font-medium">{preview.title}</p>
         {pendingCount > 1 && (
           <span className="text-xs text-muted-foreground">
             ({t("permission.pendingCount", { current: pendingIndex + 1, total: pendingCount })})
@@ -209,12 +209,12 @@ export function PermissionRequestDialog({
 
       {/* Tool preview */}
       {preview.code && preview.language && (
-        <div className="mb-2 max-h-24 overflow-auto rounded">
+        <div className="mb-2 min-w-0 max-w-full max-h-24 overflow-auto rounded">
           <CodeBlock code={preview.code} language={preview.language} className="text-sm" />
         </div>
       )}
       {preview.code && !preview.language && (
-        <pre className="mb-2 max-h-24 overflow-auto rounded bg-muted/50 p-2 text-xs">
+        <pre className="mb-2 min-w-0 max-w-full max-h-24 overflow-auto rounded bg-muted/50 p-2 text-xs">
           {preview.code}
         </pre>
       )}
@@ -223,7 +223,7 @@ export function PermissionRequestDialog({
       )}
 
       {/* Decision reason */}
-      <p className="mb-3 text-xs text-muted-foreground">
+      <p className="mb-3 min-w-0 break-all text-xs text-muted-foreground">
         <span className="mr-1">&#x23BF;</span>
         {reason}
       </p>
