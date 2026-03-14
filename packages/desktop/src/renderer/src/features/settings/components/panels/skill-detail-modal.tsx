@@ -1,8 +1,13 @@
-import { FolderOpen, Loader2, Trash2 } from "lucide-react";
+import { ArrowUpCircle, FolderOpen, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../../../../shared/features/project/types";
-import type { RecommendedSkill, SkillMeta } from "../../../../../../shared/features/skills/types";
+import type {
+  RecommendedSkill,
+  SkillMeta,
+  SkillUpdate,
+} from "../../../../../../shared/features/skills/types";
 
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
@@ -27,6 +32,7 @@ import { client } from "../../../../orpc";
 
 interface SkillDetailModalProps {
   skill?: SkillMeta;
+  update?: SkillUpdate;
   recommendedSkill?: RecommendedSkill;
   projects?: Project[];
   onClose: () => void;
@@ -40,18 +46,21 @@ interface SkillDetailModalProps {
 
 export const SkillDetailModal = ({
   skill,
+  update,
   recommendedSkill,
   projects = [],
   onClose,
   onRefresh,
   onInstall,
 }: SkillDetailModalProps) => {
+  const { t } = useTranslation();
   const isInstalled = !!skill;
   const [content, setContent] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [installScope, setInstallScope] = useState<string>("global");
 
   // Fetch SKILL.md content for installed skills
@@ -113,6 +122,22 @@ export const SkillDetailModal = ({
     });
   };
 
+  const handleUpdate = async () => {
+    if (!skill) return;
+    setUpdating(true);
+    try {
+      await client.skills.update({
+        name: skill.name,
+        scope: skill.scope,
+        projectPath: skill.projectPath,
+      });
+      await onRefresh();
+      onClose();
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleInstall = async () => {
     if (!recommendedSkill || !onInstall) return;
     setInstalling(true);
@@ -134,32 +159,40 @@ export const SkillDetailModal = ({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogPopup className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>{displayName}</DialogTitle>
-            {isInstalled && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {skill.enabled ? "Enabled" : "Disabled"}
-                </span>
-                <Switch checked={skill.enabled} onCheckedChange={handleToggle} />
-              </div>
-            )}
-          </div>
+          <DialogTitle>{displayName}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
+          {isInstalled && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">
+                {skill.enabled
+                  ? t("settings.skills.detail.enabled")
+                  : t("settings.skills.detail.disabled")}
+              </span>
+              <Switch checked={skill.enabled} onCheckedChange={handleToggle} />
+            </div>
+          )}
           {isInstalled && (
             <div className="flex items-center gap-2 flex-wrap mt-1">
               <Badge variant="outline" size="sm">
                 {skill.scope === "global"
-                  ? "Global"
-                  : (skill.projectPath?.split("/").pop() ?? "Project")}
+                  ? t("settings.skills.scopeGlobal")
+                  : (skill.projectPath?.split("/").pop() ?? t("settings.skills.scopeProject"))}
               </Badge>
               {skill.version && (
                 <Badge variant="secondary" size="sm">
                   v{skill.version}
                 </Badge>
               )}
+              {update && (
+                <Badge variant="default" size="sm" className="gap-1">
+                  <ArrowUpCircle className="size-3" />
+                  {update.latestVersion}
+                </Badge>
+              )}
               {skill.installedFrom && (
-                <span className="text-xs text-muted-foreground">Source: {skill.installedFrom}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("settings.skills.detail.source", { source: skill.installedFrom })}
+                </span>
               )}
             </div>
           )}
@@ -182,17 +215,33 @@ export const SkillDetailModal = ({
           {isInstalled && fm && (
             <div className="mb-4 space-y-1 text-xs text-muted-foreground">
               {fm.disableModelInvocation !== undefined && (
-                <div>Model invocation: {fm.disableModelInvocation ? "disabled" : "enabled"}</div>
+                <div>
+                  {t("settings.skills.detail.modelInvocation", {
+                    status: fm.disableModelInvocation
+                      ? t("settings.skills.detail.disabled")
+                      : t("settings.skills.detail.enabled"),
+                  })}
+                </div>
               )}
               {fm.userInvocable !== undefined && (
-                <div>User invocable: {fm.userInvocable ? "yes" : "no"}</div>
+                <div>
+                  {t("settings.skills.detail.userInvocable", {
+                    status: fm.userInvocable ? t("common.yes") : t("common.no"),
+                  })}
+                </div>
               )}
               {fm.allowedTools && fm.allowedTools.length > 0 && (
-                <div>Allowed tools: {fm.allowedTools.join(", ")}</div>
+                <div>
+                  {t("settings.skills.detail.allowedTools", { tools: fm.allowedTools.join(", ") })}
+                </div>
               )}
-              {fm.context && <div>Context: {fm.context}</div>}
-              {fm.model && <div>Model: {fm.model}</div>}
-              {fm.argumentHint && <div>Arguments: {fm.argumentHint}</div>}
+              {fm.context && (
+                <div>{t("settings.skills.detail.context", { value: fm.context })}</div>
+              )}
+              {fm.model && <div>{t("settings.skills.detail.model", { value: fm.model })}</div>}
+              {fm.argumentHint && (
+                <div>{t("settings.skills.detail.arguments", { value: fm.argumentHint })}</div>
+              )}
             </div>
           )}
 
@@ -200,7 +249,7 @@ export const SkillDetailModal = ({
           {loadingContent ? (
             <div className="flex items-center gap-2 text-muted-foreground py-4">
               <Loader2 className="size-4 animate-spin" />
-              <span className="text-sm">Loading content...</span>
+              <span className="text-sm">{t("settings.skills.detail.loadingContent")}</span>
             </div>
           ) : content ? (
             <div className="rounded-md bg-muted border border-border p-4 max-h-64 overflow-y-auto">
@@ -210,7 +259,9 @@ export const SkillDetailModal = ({
 
           {/* Path for installed skills */}
           {isInstalled && (
-            <div className="mt-3 text-xs text-muted-foreground truncate">Path: {skill.dirPath}</div>
+            <div className="mt-3 text-xs text-muted-foreground break-all">
+              {t("settings.skills.detail.path", { path: skill.dirPath })}
+            </div>
           )}
         </DialogPanel>
 
@@ -220,14 +271,28 @@ export const SkillDetailModal = ({
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleOpenFolder}>
                   <FolderOpen className="size-3.5" />
-                  Open Folder
+                  {t("settings.skills.detail.openFolder")}
                 </Button>
+                {update && (
+                  <Button variant="default" size="sm" onClick={handleUpdate} disabled={updating}>
+                    {updating ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <ArrowUpCircle className="size-3.5" />
+                    )}
+                    {updating
+                      ? t("settings.skills.detail.updating")
+                      : t("settings.skills.detail.update")}
+                  </Button>
+                )}
               </div>
               {confirmRemove ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-destructive">Delete skill directory?</span>
+                  <span className="text-xs text-destructive">
+                    {t("settings.skills.detail.deleteConfirm")}
+                  </span>
                   <Button variant="outline" size="sm" onClick={() => setConfirmRemove(false)}>
-                    Cancel
+                    {t("common.cancel")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -240,7 +305,7 @@ export const SkillDetailModal = ({
                     ) : (
                       <Trash2 className="size-3.5" />
                     )}
-                    Remove
+                    {t("settings.skills.detail.remove")}
                   </Button>
                 </div>
               ) : (
@@ -251,7 +316,7 @@ export const SkillDetailModal = ({
                   className="text-destructive"
                 >
                   <Trash2 className="size-3.5" />
-                  Uninstall
+                  {t("settings.skills.detail.uninstall")}
                 </Button>
               )}
             </div>
@@ -259,10 +324,14 @@ export const SkillDetailModal = ({
             <div className="flex items-center justify-end gap-2 w-full">
               <Select value={installScope} onValueChange={(v) => v && setInstallScope(v)}>
                 <SelectTrigger size="sm" className="w-36">
-                  <SelectValue />
+                  <SelectValue>
+                    {installScope === "global"
+                      ? t("settings.skills.scopeGlobal")
+                      : (projects.find((p) => p.path === installScope)?.name ?? installScope)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
-                  <SelectItem value="global">Global</SelectItem>
+                  <SelectItem value="global">{t("settings.skills.scopeGlobal")}</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.path}>
                       {p.name}
@@ -272,7 +341,7 @@ export const SkillDetailModal = ({
               </Select>
               <Button variant="default" size="sm" onClick={handleInstall} disabled={installing}>
                 {installing ? <Loader2 className="size-3.5 animate-spin" /> : null}
-                {installing ? "Installing..." : "Install"}
+                {installing ? t("settings.skills.installing") : t("settings.skills.install")}
               </Button>
             </div>
           )}

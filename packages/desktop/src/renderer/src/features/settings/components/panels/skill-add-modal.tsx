@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../../../../shared/features/project/types";
 import type { PreviewSkill } from "../../../../../../shared/features/skills/types";
@@ -45,6 +46,7 @@ interface SkillAddModalProps {
 }
 
 export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalProps) => {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<AddPhase>({ step: "input" });
   const [sourceInput, setSourceInput] = useState("");
   const [installScope, setInstallScope] = useState<string>("global");
@@ -57,7 +59,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
     try {
       const result = await client.skills.preview({ source });
       if (result.skills.length === 0) {
-        setPhase({ step: "input", error: "No skills found in this source." });
+        setPhase({ step: "input", error: t("settings.skills.noSkillsFound") });
         return;
       }
       setPhase({
@@ -68,7 +70,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
         selected: new Set(result.skills.map((s) => s.name)),
       });
     } catch (e: any) {
-      setPhase({ step: "input", error: e.message || "Failed to fetch skills." });
+      setPhase({ step: "input", error: e.message || t("settings.skills.fetchFailed") });
     }
   };
 
@@ -107,7 +109,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
       await onRefresh();
       onClose();
     } catch (e: any) {
-      setPhase({ step: "input", error: e.message || "Failed to install skills." });
+      setPhase({ step: "input", error: e.message || t("settings.skills.installFailed") });
     }
   };
 
@@ -115,10 +117,8 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
     <Dialog open onOpenChange={(open) => !open && handleCancel()}>
       <DialogPopup className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Skill</DialogTitle>
-          <DialogDescription>
-            Install skills from a Git repository, npm package, or local path.
-          </DialogDescription>
+          <DialogTitle>{t("settings.skills.addSkill")}</DialogTitle>
+          <DialogDescription>{t("settings.skills.addDescription")}</DialogDescription>
         </DialogHeader>
 
         <DialogPanel>
@@ -128,14 +128,14 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
               <Input
                 value={sourceInput}
                 onChange={(e) => setSourceInput(e.target.value)}
-                placeholder="user/repo, git URL, npm:package, or local path"
+                placeholder={t("settings.skills.sourcePlaceholder")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && sourceInput.trim()) handleFetch();
                 }}
                 autoFocus
               />
               <div className="text-xs text-muted-foreground space-y-1">
-                <div>Examples:</div>
+                <div>{t("settings.skills.examples")}</div>
                 <div className="pl-2">github.com/user/claude-skills</div>
                 <div className="pl-2">npm:@claude-skills/pr-apply</div>
                 <div className="pl-2">/path/to/local/skill</div>
@@ -148,7 +148,9 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {phase.step === "fetching" && (
             <div className="flex flex-col items-center gap-3 py-6">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">Fetching skills from source...</div>
+              <div className="text-sm text-muted-foreground">
+                {t("settings.skills.fetchingFromSource")}
+              </div>
               <div className="text-xs text-muted-foreground truncate max-w-full">
                 {phase.source}
               </div>
@@ -159,7 +161,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {phase.step === "select" && (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">
-                Found {phase.skills.length} skill{phase.skills.length !== 1 ? "s" : ""} in source:
+                {t("settings.skills.foundSkills", { count: phase.skills.length })}
               </div>
               <div className="space-y-1">
                 {phase.skills.map((skill) => {
@@ -187,13 +189,19 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                 })}
               </div>
               <div className="flex items-center gap-2 pt-2 border-t border-border">
-                <span className="text-xs text-muted-foreground">Install to:</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("settings.skills.installTo")}
+                </span>
                 <Select value={installScope} onValueChange={(v) => v && setInstallScope(v)}>
                   <SelectTrigger size="sm" className="w-36">
-                    <SelectValue />
+                    <SelectValue>
+                      {installScope === "global"
+                        ? t("settings.skills.scopeGlobal")
+                        : (projects.find((p) => p.path === installScope)?.name ?? installScope)}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectPopup>
-                    <SelectItem value="global">Global</SelectItem>
+                    <SelectItem value="global">{t("settings.skills.scopeGlobal")}</SelectItem>
                     {projects.map((p) => (
                       <SelectItem key={p.id} value={p.path}>
                         {p.name}
@@ -209,7 +217,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {phase.step === "installing" && (
             <div className="flex flex-col items-center gap-3 py-6">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">Installing skills...</div>
+              <div className="text-sm text-muted-foreground">{t("settings.skills.installing")}</div>
             </div>
           )}
         </DialogPanel>
@@ -218,7 +226,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {phase.step === "input" && (
             <div className="flex justify-end gap-2 w-full">
               <Button variant="outline" size="sm" onClick={onClose}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="default"
@@ -226,7 +234,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                 onClick={handleFetch}
                 disabled={!sourceInput.trim()}
               >
-                Next
+                {t("settings.skills.next")}
               </Button>
             </div>
           )}
@@ -234,7 +242,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {phase.step === "fetching" && (
             <div className="flex justify-end w-full">
               <Button variant="outline" size="sm" onClick={handleCancel}>
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           )}
@@ -242,11 +250,14 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {phase.step === "select" && (
             <div className="flex items-center justify-between w-full">
               <span className="text-xs text-muted-foreground">
-                {phase.selected.size} of {phase.skills.length} selected
+                {t("settings.skills.selectedCount", {
+                  selected: phase.selected.size,
+                  total: phase.skills.length,
+                })}
               </span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleCancel}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   variant="default"
@@ -254,7 +265,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                   onClick={handleInstall}
                   disabled={phase.selected.size === 0}
                 >
-                  Install ({phase.selected.size})
+                  {t("settings.skills.installCount", { count: phase.selected.size })}
                 </Button>
               </div>
             </div>
