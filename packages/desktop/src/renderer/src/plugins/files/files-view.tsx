@@ -9,6 +9,16 @@ import type { Project } from "../../../../shared/features/project/types";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog";
+import { Button } from "../../components/ui/button";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useFilesTranslation } from "./i18n";
@@ -31,6 +41,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
   const { resolvedTheme } = useTheme();
   const cwd = project?.path || "";
 
@@ -101,16 +113,22 @@ function FilesViewComponent({ project }: FilesViewProps) {
       window.pendingEditorRequest = { fullPath: item.fullPath };
     }
   };
-  const handleDelete = async (item: FileTreeItem) => {
+  const handleDelete = (item: FileTreeItem) => {
+    setItemToDelete(item);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
     try {
-      const result = await client.files.delete({ path: item.fullPath });
+      const result = await client.files.delete({ path: itemToDelete.fullPath });
       if (result.success) {
-        if (selectedKey === item.fullPath) {
+        if (selectedKey === itemToDelete.fullPath) {
           setSelectedKey(null);
         }
         setExpandedKeys((prev) => {
           const newSet = new Set(prev);
-          newSet.delete(item.fullPath);
+          newSet.delete(itemToDelete.fullPath);
           return newSet;
         });
       } else {
@@ -119,6 +137,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     } catch (error) {
       console.error("Error deleting file:", error);
       alert(t("error.deleteFailed", { error: String(error) }));
+    } finally {
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
     }
   };
   const handleRename = async (oldPath: string, newPath: string) => {
@@ -249,6 +270,25 @@ function FilesViewComponent({ project }: FilesViewProps) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("delete.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("delete.description", { name: itemToDelete?.fileName })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              {t("common.cancel", { ns: "translation" })}
+            </AlertDialogClose>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              {t("common.delete", { ns: "translation" })}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </div>
   );
 }

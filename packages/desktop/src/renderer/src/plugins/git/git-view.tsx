@@ -11,6 +11,16 @@ import {
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog";
+import { Button } from "../../components/ui/button";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useGit } from "./hooks/useGit";
@@ -26,6 +36,9 @@ export default memo(function GitView() {
 
   const [workingCollapsed, setWorkingCollapsed] = useState(false);
   const [stagedCollapsed, setStagedCollapsed] = useState(false);
+  const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
+  const [revertTarget, setRevertTarget] = useState<"all" | "single" | null>(null);
+  const [fileToRevert, setFileToRevert] = useState<GitFile | null>(null);
 
   const {
     loading,
@@ -39,6 +52,27 @@ export default memo(function GitView() {
     removeFromStage,
     revert,
   } = useGit(cwd);
+
+  const handleRevertRequest = (file?: GitFile) => {
+    if (file) {
+      setFileToRevert(file);
+      setRevertTarget("single");
+    } else {
+      setRevertTarget("all");
+    }
+    setRevertConfirmOpen(true);
+  };
+
+  const handleConfirmRevert = async () => {
+    if (revertTarget === "all") {
+      await revertAll();
+    } else if (revertTarget === "single" && fileToRevert) {
+      await revert(fileToRevert);
+    }
+    setRevertConfirmOpen(false);
+    setRevertTarget(null);
+    setFileToRevert(null);
+  };
 
   const showDiff = (file: { relPath: string }, isStaged: boolean) => {
     app.workbench.contentPanel.openView("git-diff");
@@ -176,7 +210,7 @@ export default memo(function GitView() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    revertAll();
+                    handleRevertRequest();
                   }}
                   className="p-px hover:bg-accent rounded-sm"
                   title={t("git.revertAllFiles")}
@@ -235,7 +269,7 @@ export default memo(function GitView() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            revert(file);
+                            handleRevertRequest(file);
                           }}
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
@@ -258,7 +292,7 @@ export default memo(function GitView() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            revert(file);
+                            handleRevertRequest(file);
                           }}
                           className="p-px hover:bg-accent rounded-sm"
                           title={t("git.revertFile")}
@@ -343,6 +377,29 @@ export default memo(function GitView() {
           <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noChanges")}</div>
         )}
       </div>
+
+      <AlertDialog open={revertConfirmOpen} onOpenChange={setRevertConfirmOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {revertTarget === "all" ? t("git.revertAll.title") : t("git.revert.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {revertTarget === "all"
+                ? t("git.revertAll.description")
+                : t("git.revert.description", { name: fileToRevert?.fileName })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              {t("common.cancel", { ns: "translation" })}
+            </AlertDialogClose>
+            <Button variant="destructive" onClick={handleConfirmRevert}>
+              {t("git.revert.confirm")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </div>
   );
 });

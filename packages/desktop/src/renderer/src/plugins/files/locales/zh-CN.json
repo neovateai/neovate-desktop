@@ -9,6 +9,8 @@
   "confirmDelete": "确定要删除 {{fileName}} 吗？",
   "newFilePlaceholder": "新文件.txt",
   "newFolderPlaceholder": "新文件夹",
+  "delete.title": "删除确认",
+  "delete.description": "确定要删除 \"{{name}}\" 吗？此操作无法撤销。",
   "error.deleteFailed": "删除失败：{{error}}",
   "error.renameFailed": "重命名失败：{{error}}",
   "error.createFileFailed": "创建文件失败",

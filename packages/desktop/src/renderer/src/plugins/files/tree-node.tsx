@@ -141,7 +141,7 @@ export function TreeNode({
   };
 
   const handleDelete = () => {
-    if (onDelete && confirm(t("confirmDelete", { fileName }))) {
+    if (onDelete) {
       onDelete(item);
     }
   };
