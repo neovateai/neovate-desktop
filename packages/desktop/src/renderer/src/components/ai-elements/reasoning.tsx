@@ -174,12 +174,15 @@ export const ReasoningTrigger = memo(
           <>
             <BrainIcon className="size-4 shrink-0" />
             <span className="truncate">{getThinkingMessage(isStreaming, duration)}</span>
-            <ChevronDownIcon
-              className={cn(
-                "size-4 transition-transform ml-auto shrink-0",
-                isOpen ? "rotate-180" : "rotate-0",
-              )}
-            />
+            {/* Chevron icon - shows on hover, starts pointing right (-rotate-90), rotates to down (0) when open */}
+            <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ChevronDownIcon
+                className={cn(
+                  "size-3 text-muted-foreground transition-transform",
+                  isOpen ? "rotate-0" : "-rotate-90",
+                )}
+              />
+            </div>
           </>
         )}
       </CollapsibleTrigger>
