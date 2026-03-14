@@ -358,7 +358,7 @@ const webSearchInvocation = {
 const writeInvocation = {
   type: "tool-Write",
   toolCallId: "tool-write-demo",
-  state: "output-available",
+  state: "output-error",
   input: {
     file_path: `${rendererRoot}/dev/playgrounds/ai-elements-tool-demos.tsx`,
     content: `export const TOOL_LABELS = [
@@ -367,7 +367,8 @@ const writeInvocation = {
   "WebSearchTool",
 ];`,
   },
-  output: "Wrote file successfully.",
+  errorText:
+    "Failed to write file: Permission denied. You may not have write access to this location.",
 } as any;
 
 const reasoningSample = (

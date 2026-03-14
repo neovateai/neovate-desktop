@@ -53,7 +53,7 @@ function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquot
   return (
     <blockquote
       className={cn(
-        "my-4 border-l-2 border-muted-foreground/30 py-1 pl-4 italic text-muted-foreground first:mt-0 last:mb-0",
+        "my-4 border-l-2 border-muted-foreground/30 py-1 pl-4 text-sm italic text-muted-foreground first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -106,14 +106,14 @@ function MarkdownInput({ className, type, ...props }: MarkdownInputProps) {
 
 export const markdownBaseComponents: Components = {
   p: ({ className, children, ...props }) => (
-    <p className={cn("my-4 leading-relaxed first:mt-0 last:mb-0", className)} {...props}>
+    <p className={cn("my-4 text-sm leading-relaxed first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </p>
   ),
   h1: ({ className, children, ...props }) => (
     <h1
       className={cn(
-        "mt-6 mb-4 text-xl font-semibold leading-tight text-foreground first:mt-0",
+        "mt-6 mb-4 text-base font-semibold leading-tight text-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -124,7 +124,7 @@ export const markdownBaseComponents: Components = {
   h2: ({ className, children, ...props }) => (
     <h2
       className={cn(
-        "mt-5 mb-3 text-lg font-semibold leading-tight text-foreground first:mt-0",
+        "mt-5 mb-3 text-sm font-semibold leading-tight text-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -135,7 +135,7 @@ export const markdownBaseComponents: Components = {
   h3: ({ className, children, ...props }) => (
     <h3
       className={cn(
-        "mt-4 mb-2 text-base font-medium leading-tight text-foreground first:mt-0",
+        "mt-4 mb-2 text-sm font-medium leading-tight text-foreground first:mt-0",
         className,
       )}
       {...props}

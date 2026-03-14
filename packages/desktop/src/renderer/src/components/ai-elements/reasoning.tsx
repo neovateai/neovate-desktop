@@ -172,7 +172,9 @@ export const ReasoningTrigger = memo(
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4 shrink-0" />
+            <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0">
+              <BrainIcon className="size-4" />
+            </div>
             <span className="truncate">{getThinkingMessage(isStreaming, duration)}</span>
             {/* Chevron icon - shows on hover, starts pointing right (-rotate-90), rotates to down (0) when open */}
             <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
