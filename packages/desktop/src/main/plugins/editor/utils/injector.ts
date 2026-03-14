@@ -7,11 +7,19 @@ import { getCodeServerBinaryPath } from "./constants";
 const OVERWRITE_CSS = `
 /* modify the empty icon */
 .monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .letterpress {
-  background-image: url('https://mdn.alipayobjects.com/huamei_9rin5s/afts/img/DFf4TIiXtU4AAAAAerAAAAgADiB8AQFr/original')!important;
+  background-image: url('https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*Wrd1TL3S_pYAAAAAQFAAAAgAenyRAQ/original')!important;
+  max-width: 128px;
+  max-height: 95px;
 }
 /* modify the empty icon: [dark theme] */
 .vs-dark.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .letterpress {
-  background-image: url('https://mdn.alipayobjects.com/huamei_9rin5s/afts/img/MJYNQ4LBABwAAAAAeYAAAAgADiB8AQFr/original')!important;
+  background-image: url('https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*hgaTTZvoTicAAAAAQDAAAAgAenyRAQ/original')!important;
+  max-width: 128px;
+  max-height: 95px;
+}
+
+.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark>.watermark-container {
+  gap: 8px
 }
 /* hide the default shortcuts tips */
 .monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .shortcuts .watermark-box {
