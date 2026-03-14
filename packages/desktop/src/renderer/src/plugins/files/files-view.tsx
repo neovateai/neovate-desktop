@@ -199,10 +199,10 @@ function FilesViewComponent({ project }: FilesViewProps) {
   };
   /** 添加文件到对话 */
   const handleAddContext = (item: FileTreeItem) => {
-    log("insert-mention dispatching path=%s", item.relPath);
+    log("insert-chat dispatching mention=%s", item.relPath);
     window.dispatchEvent(
-      new CustomEvent("neovate:insert-mention", {
-        detail: { path: item.relPath },
+      new CustomEvent("neovate:insert-chat", {
+        detail: { mentions: [{ id: item.relPath, label: item.relPath }] },
       }),
     );
   };

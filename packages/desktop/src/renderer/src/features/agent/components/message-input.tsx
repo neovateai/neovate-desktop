@@ -16,6 +16,7 @@ import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
 import { useAgentStore } from "../store";
 import { extractText } from "../utils/extract-text";
+import { buildInsertChatContent, type InsertChatDetail } from "../utils/insert-chat";
 import { readFileAsAttachment } from "../utils/read-file-as-attachment";
 import { AttachmentPreview } from "./attachment-preview";
 import { createImagePasteExtension } from "./image-paste-extension";
@@ -250,23 +251,22 @@ export function MessageInput({
     }
   }, [showSettings]);
 
-  // Listen for insert-mention events from file tree
+  // Listen for insert-chat events from file tree and other entry points
   useEffect(() => {
     if (!editor) return;
     const handler = (e: Event) => {
-      const { path } = (e as CustomEvent<{ path: string }>).detail;
-      log("insert-mention received path=%s", path);
-      editor
-        .chain()
-        .focus()
-        .insertContent([
-          { type: "mention", attrs: { id: path, label: path } },
-          { type: "text", text: " " },
-        ])
-        .run();
+      const detail = (e as CustomEvent<InsertChatDetail>).detail ?? {};
+      const content = buildInsertChatContent(detail);
+      log(
+        "insert-chat received textLen=%d mentions=%d",
+        detail.text?.length ?? 0,
+        detail.mentions?.length ?? 0,
+      );
+      if (content.length === 0) return;
+      editor.chain().focus().insertContent(content).run();
     };
-    window.addEventListener("neovate:insert-mention", handler);
-    return () => window.removeEventListener("neovate:insert-mention", handler);
+    window.addEventListener("neovate:insert-chat", handler);
+    return () => window.removeEventListener("neovate:insert-chat", handler);
   }, [editor]);
 
   const handleFileSelect = useCallback(
