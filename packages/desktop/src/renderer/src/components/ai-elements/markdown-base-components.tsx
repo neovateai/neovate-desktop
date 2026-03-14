@@ -58,7 +58,10 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   // Block code is handled by MarkdownPre, so just render a plain code element here
   if (!isBlockCode(className)) {
     return (
-      <code className={className} {...props}>
+      <code className={cn(
+        "inline-block rounded-md border bg-background px-2 py-0.5 text-xs align-middle",
+        className,
+      )} {...props}>
         {children}
       </code>
     );
@@ -69,7 +72,10 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
 
   return (
     <CodeBlock
-      className={cn("inline-block rounded-sm text-xs", className)}
+      className={cn(
+        "inline-block rounded-md border bg-background px-2 py-0.5 text-xs align-middle",
+        className,
+      )}
       code={codeContent}
       language={language}
     />
