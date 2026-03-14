@@ -2,6 +2,7 @@
 
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import type { ComponentProps, FC } from "react";
+import type { HugeIconProps } from "@hugeicons/react";
 
 import {
   AiChat02Icon,
@@ -26,7 +27,6 @@ import {
   TerminalBrowserIcon,
   TextWrapIcon,
 } from "@hugeicons/react";
-import type { HugeIconProps } from "@hugeicons/react";
 import { isValidElement, useMemo } from "react";
 
 import { cn } from "../../lib/utils";

@@ -2,8 +2,8 @@
 
 import type { ComponentProps, ReactNode } from "react";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { ArrowDown01Icon, BrainIcon } from "@hugeicons/react";
+import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import {
   createContext,
   memo,

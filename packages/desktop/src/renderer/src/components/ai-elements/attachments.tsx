@@ -2,6 +2,7 @@
 
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
+import type { HugeIconProps } from "@hugeicons/react";
 
 import {
   Attachment01Icon,
@@ -12,7 +13,6 @@ import {
   Music01Icon,
   Video01Icon,
 } from "@hugeicons/react";
-import type { HugeIconProps, HugeiconsProps } from "@hugeicons/react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 import { cn } from "../../lib/utils";

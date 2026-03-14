@@ -2,8 +2,8 @@
 
 import type { ComponentProps, HTMLAttributes } from "react";
 
-import Ansi from "ansi-to-react";
 import { Copy01Icon, Delete02Icon, TerminalBrowserIcon, Tick02Icon } from "@hugeicons/react";
+import Ansi from "ansi-to-react";
 import {
   createContext,
   useCallback,
