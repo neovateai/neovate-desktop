@@ -167,6 +167,7 @@ export function AppLayoutTrafficLights() {
 }
 
 export function AppLayoutPrimaryTitleBar() {
+  const { t } = useTranslation();
   const activeProject = useProjectStore((s) => s.activeProject);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
 
