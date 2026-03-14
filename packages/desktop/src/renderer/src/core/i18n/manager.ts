@@ -64,6 +64,9 @@ export class I18nManager {
         useSuspense: false,
         bindI18n: "languageChanged loaded",
       },
+      interpolation: {
+        escapeValue: false,
+      },
     });
 
     // If no preference was saved, save detected locale to store
