@@ -52,7 +52,7 @@ describe("DebugView", () => {
       expect(activeSessions).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Test maximize content panel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Maximize content panel" }));
 
     expect(maximizePart).toHaveBeenCalledWith("contentPanel");
   });
