@@ -6,6 +6,7 @@ import type { ContentPanelView } from "../../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../types";
 
 import { IMAGE_URLS, getEmpty1Url } from "../../../assets/images";
+import { ErrorBoundary } from "../../../components/ui/error-boundary";
 import { useRendererApp } from "../../../core";
 import { cn } from "../../../lib/utils";
 import { useProjectStore } from "../../project/store";
@@ -59,6 +60,41 @@ function TabViewWithActivity({
       aria-hidden={!isActive || undefined}
     >
       {children}
+    </div>
+  );
+}
+
+function ViewErrorFallback({
+  error,
+  onRetry,
+  onClose,
+}: {
+  error: Error;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+      <p className="text-sm font-medium text-destructive">Something went wrong</p>
+      <pre className="max-w-md overflow-auto rounded-md bg-muted px-4 py-3 text-left text-xs text-muted-foreground">
+        {error.message}
+      </pre>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
+        >
+          Try Again
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+        >
+          Close Tab
+        </button>
+      </div>
     </div>
   );
 }
@@ -140,11 +176,21 @@ export function ContentPanelRenderer() {
                       isActive={state.activeTabId === tab.id}
                       deactivation={view.deactivation}
                     >
-                      <Suspense>
-                        <ContentPanelViewContextProvider viewId={tab.id}>
-                          <LazyComponent />
-                        </ContentPanelViewContextProvider>
-                      </Suspense>
+                      <ErrorBoundary
+                        fallback={(error, reset) => (
+                          <ViewErrorFallback
+                            error={error}
+                            onRetry={reset}
+                            onClose={() => contentPanel.closeView(tab.id)}
+                          />
+                        )}
+                      >
+                        <Suspense>
+                          <ContentPanelViewContextProvider viewId={tab.id}>
+                            <LazyComponent />
+                          </ContentPanelViewContextProvider>
+                        </Suspense>
+                      </ErrorBoundary>
                     </TabViewWithActivity>
                   );
                 })}
