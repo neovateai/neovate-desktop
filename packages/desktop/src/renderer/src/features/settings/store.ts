@@ -3,7 +3,7 @@ import { create } from "zustand";
 export type SettingsMenuId =
   | "general"
   | "chat"
-  | "rules"
+  // | "rules"
   | "skills"
   | "keybindings"
   | "providers"
