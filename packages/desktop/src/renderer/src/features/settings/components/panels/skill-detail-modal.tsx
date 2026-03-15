@@ -1,4 +1,4 @@
-import { ArrowUpCircle, FolderOpen, Loader2, Trash2 } from "lucide-react";
+import { ArrowUpCircle, FolderOpen, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../../components/ui/select";
+import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { client } from "../../../../orpc";
 
@@ -248,7 +249,7 @@ export const SkillDetailModal = ({
           {/* SKILL.md content */}
           {loadingContent ? (
             <div className="flex items-center gap-2 text-muted-foreground py-4">
-              <Loader2 className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               <span className="text-sm">{t("settings.skills.detail.loadingContent")}</span>
             </div>
           ) : content ? (
@@ -276,7 +277,7 @@ export const SkillDetailModal = ({
                 {update && (
                   <Button variant="default" size="sm" onClick={handleUpdate} disabled={updating}>
                     {updating ? (
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Spinner className="size-3.5" />
                     ) : (
                       <ArrowUpCircle className="size-3.5" />
                     )}
@@ -300,11 +301,7 @@ export const SkillDetailModal = ({
                     onClick={handleRemove}
                     disabled={removing}
                   >
-                    {removing ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-3.5" />
-                    )}
+                    {removing ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}
                     {t("settings.skills.detail.remove")}
                   </Button>
                 </div>
@@ -340,7 +337,7 @@ export const SkillDetailModal = ({
                 </SelectPopup>
               </Select>
               <Button variant="default" size="sm" onClick={handleInstall} disabled={installing}>
-                {installing ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                {installing ? <Spinner className="size-3.5" /> : null}
                 {installing ? t("settings.skills.installing") : t("settings.skills.install")}
               </Button>
             </div>

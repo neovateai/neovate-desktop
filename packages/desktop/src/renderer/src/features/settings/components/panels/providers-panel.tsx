@@ -6,7 +6,6 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  Loader2,
   Plus,
   RotateCcw,
   Server,
@@ -34,6 +33,14 @@ import {
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "../../../../components/ui/select";
+import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../../../components/ui/tooltip";
 import { useRendererApp } from "../../../../core/app";
@@ -126,6 +133,9 @@ export const ProvidersPanel = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
 
+  // Reset confirmation state
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
   useEffect(() => {
     if (!loaded) load();
   }, [loaded, load]);
@@ -206,17 +216,18 @@ export const ProvidersPanel = () => {
   }, []);
 
   const validate = (): string | null => {
-    if (!form.name.trim()) return "Name is required";
+    if (!form.name.trim()) return t("settings.providers.validation.nameRequired");
     try {
       new URL(form.baseURL);
     } catch {
-      return "Invalid base URL";
+      return t("settings.providers.validation.invalidURL");
     }
-    if (!form.apiKey.trim()) return "API key is required";
-    if (Object.keys(form.models).length === 0) return "At least one model is required";
+    if (!form.apiKey.trim()) return t("settings.providers.validation.apiKeyRequired");
+    if (Object.keys(form.models).length === 0)
+      return t("settings.providers.validation.modelRequired");
     for (const [slot, modelId] of Object.entries(form.modelMap)) {
       if (modelId && !(modelId in form.models)) {
-        return `Model map "${slot}" references "${modelId}" which is not in models`;
+        return t("settings.providers.validation.modelMapInvalid", { slot, modelId });
       }
     }
     return null;
@@ -331,9 +342,13 @@ export const ProvidersPanel = () => {
 
   const handleResetDefaults = useCallback(() => {
     if (!form.builtInId) return;
+    setResetConfirmOpen(true);
+  }, [form.builtInId]);
+
+  const handleConfirmReset = useCallback(() => {
+    if (!form.builtInId) return;
     const template = providerTemplates.find((t) => t.id === form.builtInId);
     if (!template) return;
-    if (!window.confirm(t("settings.providers.resetConfirm"))) return;
     setForm((f) => ({
       ...f,
       baseURL: template.baseURL,
@@ -341,7 +356,8 @@ export const ProvidersPanel = () => {
       modelMap: { ...template.modelMap },
       envOverrides: { ...template.envOverrides },
     }));
-  }, [form.builtInId, providerTemplates, t]);
+    setResetConfirmOpen(false);
+  }, [form.builtInId, providerTemplates]);
 
   const activeBuiltIn = useMemo(
     () => (form.builtInId ? providerTemplates.find((t) => t.id === form.builtInId) : undefined),
@@ -457,6 +473,23 @@ export const ProvidersPanel = () => {
         </AlertDialogPopup>
       </AlertDialog>
 
+      <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("settings.providers.resetDefaults")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("settings.providers.resetConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              {t("settings.providers.cancel")}
+            </AlertDialogClose>
+            <Button variant="destructive" onClick={handleConfirmReset}>
+              {t("settings.providers.resetDefaults")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
+
       {isEditing && (
         <div className="space-y-4">
           {error && (
@@ -532,7 +565,7 @@ export const ProvidersPanel = () => {
                 title={t("settings.providers.copyApiKey")}
               >
                 {apiKeyCopied ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-success-foreground" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
@@ -604,9 +637,7 @@ export const ProvidersPanel = () => {
                       <span className="text-muted-foreground">{entry.displayName}</span>
                     )}
                     <div className="ml-auto flex items-center gap-1.5">
-                      {isRunning && (
-                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      )}
+                      {isRunning && <Spinner className="h-3 w-3" />}
                       {result && !isRunning && result.success && (
                         <Tooltip>
                           <TooltipTrigger className="cursor-default">
@@ -673,26 +704,30 @@ export const ProvidersPanel = () => {
               {(["model", "haiku", "opus", "sonnet"] as const).map((slot) => (
                 <div key={slot}>
                   <label className="text-xs text-muted-foreground capitalize">{slot}</label>
-                  <select
+                  <Select
                     value={form.modelMap[slot] ?? ""}
-                    onChange={(e) =>
+                    onValueChange={(val) =>
                       setForm((f) => ({
                         ...f,
                         modelMap: {
                           ...f.modelMap,
-                          [slot]: e.target.value || undefined,
+                          [slot]: val || undefined,
                         },
                       }))
                     }
-                    className="w-full h-7 text-xs bg-background border border-input rounded-md px-2"
                   >
-                    <option value="">--</option>
-                    {modelKeys.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger size="sm" className="w-full mt-1">
+                      <SelectValue>{form.modelMap[slot] ?? "--"}</SelectValue>
+                    </SelectTrigger>
+                    <SelectPopup>
+                      <SelectItem value="">--</SelectItem>
+                      {modelKeys.map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {k}
+                        </SelectItem>
+                      ))}
+                    </SelectPopup>
+                  </Select>
                 </div>
               ))}
             </div>

@@ -121,9 +121,11 @@
   "settings.providers.benchmark.total": "Total",
   "settings.providers.benchmark.failed": "Failed",
   "settings.providers.benchmark.cancel": "Cancel",
-
-  "settings.mcp.title": "MCP",
-  "settings.mcp.comingSoon": "MCP configuration coming soon...",
+  "settings.providers.validation.nameRequired": "Name is required",
+  "settings.providers.validation.invalidURL": "Invalid base URL",
+  "settings.providers.validation.apiKeyRequired": "API key is required",
+  "settings.providers.validation.modelRequired": "At least one model is required",
+  "settings.providers.validation.modelMapInvalid": "Model map \"{{slot}}\" references \"{{modelId}}\" which is not in models",
 
   "settings.skills": "Skills",
   "settings.skills.addSkill": "Add Skill",

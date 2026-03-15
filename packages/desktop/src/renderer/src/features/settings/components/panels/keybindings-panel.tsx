@@ -98,7 +98,7 @@ const KeybindingRow = ({
   }, [isRecording, onStopRecording]);
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border">
+    <div className="flex items-center justify-between py-4 border-b border-border last:border-b-0">
       <div className="flex-1 flex items-center gap-2">
         <div>
           <div

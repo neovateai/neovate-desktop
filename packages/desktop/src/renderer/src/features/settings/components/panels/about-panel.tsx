@@ -87,9 +87,7 @@ export const AboutPanel = () => {
         <SettingsRow
           title={t("settings.about.sdkVersion")}
           description={t("settings.about.sdkVersion.description", { version: sdkVersion })}
-        >
-          <></>
-        </SettingsRow>
+        />
 
         {/* Feedback */}
         <SettingsRow

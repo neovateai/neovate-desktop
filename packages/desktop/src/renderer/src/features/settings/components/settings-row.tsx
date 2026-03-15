@@ -5,7 +5,7 @@ import { cn } from "../../../lib/utils";
 interface SettingsRowProps {
   title: string;
   description?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 

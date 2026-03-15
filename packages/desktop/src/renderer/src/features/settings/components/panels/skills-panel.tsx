@@ -1,4 +1,4 @@
-import { ArrowUpCircle, Download, Loader2, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
+import { ArrowUpCircle, Download, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../../components/ui/select";
+import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
@@ -169,7 +170,7 @@ export const SkillsPanel = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <Spinner className="h-6 w-6" />
       </div>
     );
   }
@@ -177,7 +178,7 @@ export const SkillsPanel = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold flex items-center gap-2 text-foreground">
           <Wand2 className="size-[22px]" />
           {t("settings.skills")}

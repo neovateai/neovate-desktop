@@ -121,6 +121,11 @@
   "settings.providers.benchmark.total": "总耗时",
   "settings.providers.benchmark.failed": "失败",
   "settings.providers.benchmark.cancel": "取消",
+  "settings.providers.validation.nameRequired": "名称不能为空",
+  "settings.providers.validation.invalidURL": "无效的 API 地址",
+  "settings.providers.validation.apiKeyRequired": "API 密钥不能为空",
+  "settings.providers.validation.modelRequired": "至少需要一个模型",
+  "settings.providers.validation.modelMapInvalid": "模型映射 \"{{slot}}\" 引用了不存在的模型 \"{{modelId}}\"",
 
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",

@@ -1,3 +1,4 @@
+import createDebug from "debug";
 import { Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +11,8 @@ import { localeOptions, type Locales } from "../../../../core/i18n";
 import { client } from "../../../../orpc";
 import { useConfigStore } from "../../../config/store";
 import { SettingsRow } from "../settings-row";
+
+const log = createDebug("neovate:settings");
 
 export const GeneralPanel = () => {
   const { t } = useTranslation();
@@ -35,7 +38,7 @@ export const GeneralPanel = () => {
     try {
       await client.utils.setLoginItem({ openAtLogin: enabled });
     } catch (error) {
-      console.error("Failed to set login item:", error);
+      log("Failed to set login item:", error);
     }
   };
 

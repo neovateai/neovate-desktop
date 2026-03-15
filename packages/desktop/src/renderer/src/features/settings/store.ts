@@ -7,8 +7,7 @@ export type SettingsMenuId =
   | "skills"
   | "keybindings"
   | "providers"
-  | "about"
-  | "mcp";
+  | "about";
 
 interface SettingsUIState {
   showSettings: boolean;

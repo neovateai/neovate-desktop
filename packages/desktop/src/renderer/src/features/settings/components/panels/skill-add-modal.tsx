@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -24,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../../components/ui/select";
+import { Spinner } from "../../../../components/ui/spinner";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
 
@@ -147,7 +147,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {/* Step 1.5: Fetching */}
           {phase.step === "fetching" && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+              <Spinner className="size-6" />
               <div className="text-sm text-muted-foreground">
                 {t("settings.skills.fetchingFromSource")}
               </div>
@@ -216,7 +216,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
           {/* Step 3: Installing */}
           {phase.step === "installing" && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+              <Spinner className="size-6" />
               <div className="text-sm text-muted-foreground">{t("settings.skills.installing")}</div>
             </div>
           )}
