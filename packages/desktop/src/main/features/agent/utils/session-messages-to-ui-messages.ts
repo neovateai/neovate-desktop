@@ -1,8 +1,12 @@
 import type { SDKMessage, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
 
+import debug from "debug";
+
 import type { ClaudeCodeUIMessage } from "../../../../shared/claude-code/types";
 
 import { sdkMessagesToUIMessage } from "./sdk-messages-to-ui-message";
+
+const log = debug("neovate:session-messages");
 
 /**
  * Convert raw SDK session messages into UI messages.
@@ -16,6 +20,7 @@ import { sdkMessagesToUIMessage } from "./sdk-messages-to-ui-message";
 export async function sessionMessagesToUIMessages(
   sessionMessages: SessionMessage[],
 ): Promise<ClaudeCodeUIMessage[]> {
+  log("START count=%d", sessionMessages.length);
   const results: ClaudeCodeUIMessage[] = [];
   let batch: SDKMessage[] = [];
 
@@ -111,5 +116,6 @@ export async function sessionMessagesToUIMessages(
   }
 
   await flushBatch();
+  log("DONE results=%d", results.length);
   return results;
 }

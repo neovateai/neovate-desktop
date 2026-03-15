@@ -2,6 +2,9 @@ import type { ContractRouterClient } from "@orpc/contract";
 import type { ChatRequestOptions, ChatTransport } from "ai";
 
 import { eventIteratorToUnproxiedDataStream } from "@orpc/client";
+import debug from "debug";
+
+const log = debug("neovate:agent-chat:transport");
 
 import type {
   ClaudeCodeUIDispatch,
@@ -30,6 +33,12 @@ export class ClaudeCodeChatTransport implements ChatTransport<ClaudeCodeUIMessag
       throw new Error("Cannot send chat request without a message");
     }
 
+    log(
+      "sendMessages: chatId=%s trigger=%s messages=%d",
+      options.chatId,
+      options.trigger,
+      options.messages.length,
+    );
     return eventIteratorToUnproxiedDataStream(
       await this.rpc.claudeCode.stream(
         { sessionId: options.chatId, message: lastMessage },
@@ -53,6 +62,7 @@ export class ClaudeCodeChatTransport implements ChatTransport<ClaudeCodeUIMessag
     chatId: string;
     dispatch: ClaudeCodeUIDispatch;
   }): Promise<ClaudeCodeUIDispatchResult> {
+    log("dispatch: chatId=%s kind=%s", chatId, dispatch.kind);
     return this.rpc.claudeCode.dispatch({ sessionId: chatId, dispatch });
   }
 }

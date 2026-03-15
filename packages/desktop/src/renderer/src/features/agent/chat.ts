@@ -3,7 +3,10 @@ import type { ChatInit } from "ai";
 
 import { consumeEventIterator } from "@orpc/client";
 import { AbstractChat } from "ai";
+import debug from "debug";
 import { StoreApi } from "zustand";
+
+const log = debug("neovate:agent-chat:core");
 
 import type {
   ClaudeCodeUIDispatch,
@@ -48,9 +51,15 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
     this.store = state.store;
     this.#transport = transport;
+    log("init: sessionId=%s messages=%d", id, messages?.length ?? 0);
     this.#unsubscribe = consumeEventIterator(transport.subscribe({ chatId: id }), {
       onEvent: (event) => this.#handleMessage(event),
       onError: (error) => {
+        log(
+          "subscribe error: sessionId=%s error=%s",
+          id,
+          error instanceof Error ? error.message : String(error),
+        );
         this.store.setState({ eventError: error });
       },
     });
@@ -77,6 +86,12 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   #handleMessage(message: ClaudeCodeUIEvent) {
     if (message.kind === "request") {
+      log(
+        "permission request: sessionId=%s requestId=%s toolName=%s",
+        this.id,
+        message.requestId,
+        message.request.toolName,
+      );
       this.store.setState((state) => ({
         pendingRequests: state.pendingRequests.some((item) => item.requestId === message.requestId)
           ? state.pendingRequests
@@ -104,6 +119,12 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     respond: { type: "permission_request"; result: PermissionResult },
   ) => {
     if (respond.type === "permission_request") {
+      log(
+        "respondToRequest: sessionId=%s requestId=%s behavior=%s",
+        this.id,
+        requestId,
+        respond.result.behavior,
+      );
       const request = this.store
         .getState()
         .pendingRequests.find((request) => request.requestId === requestId);
@@ -132,6 +153,11 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   };
 
   interrupt = async () => {
+    log(
+      "interrupt: sessionId=%s pending=%d",
+      this.id,
+      this.store.getState().pendingRequests.length,
+    );
     await this.dispatch({ kind: "interrupt" });
     // Clear pending permission requests so dialogs don't stay stuck after interrupt
     this.store.setState({ pendingRequests: [] });
@@ -139,6 +165,7 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   };
 
   dispose = async () => {
+    log("dispose: sessionId=%s", this.id);
     this.#unsubscribeStore?.();
     await this.#unsubscribe?.();
   };
