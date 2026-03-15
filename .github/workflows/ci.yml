@@ -72,26 +72,13 @@ jobs:
         id: sizes
         working-directory: packages/desktop
         run: |
-          echo "Calculating artifact sizes..."
-          DMG_FILE=$(find release -name "*-${{ matrix.arch }}.dmg" -type f | head -n 1)
           ZIP_FILE=$(find release -name "*-${{ matrix.arch }}.zip" -type f | head -n 1)
-          if [ -f "$DMG_FILE" ]; then
-            DMG_SIZE_BYTES=$(stat -f%z "$DMG_FILE" 2>/dev/null || stat -c%s "$DMG_FILE" 2>/dev/null)
-            DMG_SIZE_MB=$(echo "scale=2; $DMG_SIZE_BYTES / 1048576" | bc)
-            echo "dmg_size=${DMG_SIZE_MB} MB" >> $GITHUB_OUTPUT
-          else
-            echo "dmg_size=N/A" >> $GITHUB_OUTPUT
-          fi
           if [ -f "$ZIP_FILE" ]; then
             ZIP_SIZE_BYTES=$(stat -f%z "$ZIP_FILE" 2>/dev/null || stat -c%s "$ZIP_FILE" 2>/dev/null)
             ZIP_SIZE_MB=$(echo "scale=2; $ZIP_SIZE_BYTES / 1048576" | bc)
-            echo "zip_size=${ZIP_SIZE_MB} MB" >> $GITHUB_OUTPUT
-          else
-            echo "zip_size=N/A" >> $GITHUB_OUTPUT
           fi
           mkdir -p size-info
-          echo "DMG: ${DMG_SIZE_MB:-N/A} MB" > size-info/${{ matrix.arch }}-sizes.txt
-          echo "ZIP: ${ZIP_SIZE_MB:-N/A} MB" >> size-info/${{ matrix.arch }}-sizes.txt
+          echo "ZIP: ${ZIP_SIZE_MB:-N/A} MB" > size-info/${{ matrix.arch }}-sizes.txt
           cat size-info/${{ matrix.arch }}-sizes.txt
       - name: Upload size info
         uses: actions/upload-artifact@v4
@@ -104,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: neovate-dev-${{ matrix.arch }}
-          path: packages/desktop/release/*-${{ matrix.arch }}.*
+          path: packages/desktop/release/*-${{ matrix.arch }}.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -126,24 +113,20 @@ jobs:
             const path = require('path');
             const identifier = '<!-- neovate-build -->';
 
-            const readSizeInfo = (arch) => {
+            const readSize = (arch) => {
               try {
                 const sizeFile = path.join('size-info', `size-info-${arch}`, `${arch}-sizes.txt`);
                 const content = fs.readFileSync(sizeFile, 'utf8');
-                const lines = content.trim().split('\n');
-                const dmgLine = lines.find(l => l.startsWith('DMG:'));
-                const zipLine = lines.find(l => l.startsWith('ZIP:'));
-                const dmgSize = dmgLine ? dmgLine.split(':')[1].trim() : 'N/A';
-                const zipSize = zipLine ? zipLine.split(':')[1].trim() : 'N/A';
-                return { dmg: dmgSize, zip: zipSize };
+                const zipLine = content.trim().split('\n').find(l => l.startsWith('ZIP:'));
+                return zipLine ? zipLine.split(':')[1].trim() : 'N/A';
               } catch (error) {
                 console.error(`Error reading size info for ${arch}:`, error);
-                return { dmg: 'N/A', zip: 'N/A' };
+                return 'N/A';
               }
             };
 
-            const arm64Sizes = readSizeInfo('arm64');
-            const x64Sizes = readSizeInfo('x64');
+            const arm64Size = readSize('arm64');
+            const x64Size = readSize('x64');
 
             const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
@@ -161,10 +144,10 @@ jobs:
               identifier,
               '## Build Ready',
               '',
-              '| Architecture | Download | DMG Size | ZIP Size |',
-              '|--------------|----------|----------|----------|',
-              `| Apple Silicon | ${arm64 ? `[Download](${artifactUrl(arm64)})` : 'N/A'} | ${arm64Sizes.dmg} | ${arm64Sizes.zip} |`,
-              `| Intel | ${x64 ? `[Download](${artifactUrl(x64)})` : 'N/A'} | ${x64Sizes.dmg} | ${x64Sizes.zip} |`,
+              '| Architecture | Download | Size |',
+              '|--------------|----------|------|',
+              `| Apple Silicon | ${arm64 ? `[Download](${artifactUrl(arm64)})` : 'N/A'} | ${arm64Size} |`,
+              `| Intel | ${x64 ? `[Download](${artifactUrl(x64)})` : 'N/A'} | ${x64Size} |`,
             ].join('\n');
 
             const { data: comments } = await github.rest.issues.listComments({
