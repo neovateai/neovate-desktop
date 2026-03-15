@@ -311,6 +311,7 @@ export function MessageInput({
             border: "2px solid transparent",
             backgroundColor: "var(--background)",
             color: "var(--foreground)",
+            transition: "all .2s",
             background:
               "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
           }}

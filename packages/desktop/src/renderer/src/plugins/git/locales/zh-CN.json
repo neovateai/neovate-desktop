@@ -34,5 +34,12 @@
   "git.diff.newVersion": "新版本",
   "git.diff.close": "关闭差异视图",
   "git.diff.linesHidden": "行已隐藏",
-  "git.openFile": "打开文件"
+  "git.openFile": "打开文件",
+  "git.stageChanges": "暂存更改",
+  "git.unstageChanges": "取消暂存",
+  "git.discardChanges": "放弃更改",
+  "git.diff.showingLines": "正在显示 {{current}}/{{total}} 行",
+  "git.diff.showMore": "显示更多{{count}}行",
+  "git.diff.showAll": "显示全部",
+  "git.diff.loadingMore": "正在加载更多内容..."
 }

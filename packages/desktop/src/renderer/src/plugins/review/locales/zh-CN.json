@@ -33,5 +33,9 @@
   "review.menu.showFileTree": "显示文件树",
   "review.menu.hideFileTree": "隐藏文件树",
   "review.menu.expandAll": "全部展开",
-  "review.menu.collapseAll": "全部折叠"
+  "review.menu.collapseAll": "全部折叠",
+  "review.diffs.showingLines": "正在显示 {{current}}/{{total}} 行",
+  "review.diffs.showMore": "显示更多{{count}}行",
+  "review.diffs.showAll": "显示全部",
+  "review.diffs.loadingMore": "正在加载更多内容..."
 }

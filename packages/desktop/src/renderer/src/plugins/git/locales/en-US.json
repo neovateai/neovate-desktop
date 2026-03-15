@@ -34,5 +34,12 @@
   "git.diff.newVersion": "New version",
   "git.diff.close": "Close diff view",
   "git.diff.linesHidden": "lines hidden",
-  "git.openFile": "Open file"
+  "git.openFile": "Open file",
+  "git.stageChanges": "Stage Changes",
+  "git.unstageChanges": "Unstage Changes",
+  "git.discardChanges": "Discard Changes",
+  "git.diff.showingLines": "Showing {{current}}/{{total}} lines",
+  "git.diff.showMore": "Show {{count}} more lines",
+  "git.diff.showAll": "Show all",
+  "git.diff.loadingMore": "Loading more content..."
 }

@@ -30,6 +30,14 @@ import { useReviewTranslation } from "./i18n";
 
 type DiffStyle = "unified" | "split";
 
+interface TruncatedDiffData {
+  oldContent: string;
+  newContent: string;
+  isTruncated: boolean;
+  totalLineCount: number;
+  visibleLineCount: number;
+}
+
 export default memo(function ReviewView() {
   const { t } = useReviewTranslation();
   const { app } = usePluginContext();
@@ -46,6 +54,8 @@ export default memo(function ReviewView() {
   );
   const [showFileTree, setShowFileTree] = useState(!!savedState.showFileTree);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const [fileLineLimits, setFileLineLimits] = useState<Record<string, number>>({});
+  const [fileExpanding, setFileExpanding] = useState<Record<string, boolean>>({});
 
   const { files, loading, error, branchInfo, diffs, loadingDiffs, refresh, loadDiff } =
     useReview(category);
@@ -109,6 +119,12 @@ export default memo(function ReviewView() {
       } else {
         next.add(relPath);
         loadDiff(relPath);
+
+        // Reset line limit for newly opened files
+        setFileLineLimits(prevLimits => ({
+          ...prevLimits,
+          [relPath]: 500
+        }));
       }
       return next;
     });
@@ -117,6 +133,14 @@ export default memo(function ReviewView() {
   const expandAll = () => {
     const allPaths = new Set(files.map((f) => f.relPath));
     setExpandedFiles(allPaths);
+
+    // Set initial line limits for all files
+    const initialLimits: Record<string, number> = {};
+    files.forEach(f => {
+      initialLimits[f.relPath] = 500;
+    });
+    setFileLineLimits(initialLimits);
+
     // Batch load diffs with concurrency limit
     const toLoad = files.filter((f) => !diffs[f.relPath] && !loadingDiffs[f.relPath]);
     let idx = 0;
@@ -131,6 +155,64 @@ export default memo(function ReviewView() {
 
   const collapseAll = () => {
     setExpandedFiles(new Set());
+  };
+
+  const countLines = (content: string): number => {
+    if (!content || content.length === 0) return 0;
+    return content.split('\n').length || 0;
+  };
+
+  const createTruncatedDiffData = (
+    oldContent: string,
+    newContent: string,
+    limit: number
+  ): TruncatedDiffData => {
+    const oldLineCount = oldContent ? countLines(oldContent) : 0;
+    const newLineCount = newContent ? countLines(newContent) : 0;
+    const maxLineCount = Math.max(oldLineCount, newLineCount);
+
+    if (maxLineCount <= limit) {
+      return {
+        oldContent,
+        newContent,
+        isTruncated: false,
+        totalLineCount: maxLineCount,
+        visibleLineCount: maxLineCount
+      };
+    }
+
+    const oldLines = oldContent.split('\n');
+    const newLines = newContent.split('\n');
+
+    const truncatedOld = oldLines.slice(0, limit).join('\n');
+    const truncatedNew = newLines.slice(0, limit).join('\n');
+
+    return {
+      oldContent: truncatedOld,
+      newContent: truncatedNew,
+      isTruncated: true,
+      totalLineCount: maxLineCount,
+      visibleLineCount: limit
+    };
+  };
+
+  const handleShowMore = (relPath: string) => {
+    setFileExpanding(prev => ({ ...prev, [relPath]: true }));
+
+    setTimeout(() => {
+      setFileLineLimits(prev => ({
+        ...prev,
+        [relPath]: (prev[relPath] || 500) + 500
+      }));
+      setFileExpanding(prev => ({ ...prev, [relPath]: false }));
+    }, 50);
+  };
+
+  const handleShowAll = (relPath: string) => {
+    setFileLineLimits(prev => ({
+      ...prev,
+      [relPath]: Infinity
+    }));
   };
 
   // Listen for neovate:open-review event
@@ -238,6 +320,16 @@ export default memo(function ReviewView() {
     const diff = diffs[file.relPath];
     const isLoadingDiff = loadingDiffs[file.relPath];
 
+    // Get line limits for this specific file
+    const lineLimit = fileLineLimits[file.relPath] || 500;
+    const isExpanding = fileExpanding[file.relPath] || false;
+
+    // Calculate truncated content
+    let truncatedDiff: TruncatedDiffData | null = null;
+    if (diff) {
+      truncatedDiff = createTruncatedDiffData(diff.oldContent, diff.newContent, lineLimit);
+    }
+
     return (
       <div
         key={file.relPath}
@@ -272,16 +364,55 @@ export default memo(function ReviewView() {
                 <div className="py-4 text-center text-sm text-muted-foreground">
                   {t("review.noChanges")}
                 </div>
-              ) : (
-                <MultiFileDiff
-                  oldFile={{ name: file.fileName, contents: diff.oldContent }}
-                  newFile={{ name: file.fileName, contents: diff.newContent }}
-                  options={{
-                    theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-                    diffStyle,
-                  }}
-                />
-              )
+              ) : truncatedDiff ? (
+                <>
+                  <MultiFileDiff
+                    oldFile={{ name: file.fileName, contents: truncatedDiff.oldContent }}
+                    newFile={{ name: file.fileName, contents: truncatedDiff.newContent }}
+                    options={{
+                      theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+                      diffStyle,
+                    }}
+                  />
+                  {truncatedDiff.isTruncated && (
+                    <div className="flex items-center justify-center p-3 border-t bg-background/50 backdrop-blur-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm text-muted-foreground">
+                          {t("review.diffs.showingLines", {
+                            current: truncatedDiff.visibleLineCount,
+                            total: truncatedDiff.totalLineCount,
+                          })}
+                        </div>
+
+                        {isExpanding ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            <span className="text-sm text-muted-foreground">{t("review.diffs.loadingMore")}</span>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleShowMore(file.relPath)}
+                              className="px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors"
+                            >
+                              {t("review.diffs.showMore", { count: Math.min(500, truncatedDiff.totalLineCount - truncatedDiff.visibleLineCount) })}
+                            </button>
+
+                            {truncatedDiff.totalLineCount - truncatedDiff.visibleLineCount > 1000 && (
+                              <button
+                                onClick={() => handleShowAll(file.relPath)}
+                                className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                              >
+                                {t("review.diffs.showAll")}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : null
             ) : null}
           </div>
         )}

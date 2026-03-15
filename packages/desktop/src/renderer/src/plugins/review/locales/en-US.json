@@ -33,5 +33,9 @@
   "review.menu.showFileTree": "Show File Tree",
   "review.menu.hideFileTree": "Hide File Tree",
   "review.menu.expandAll": "Expand All",
-  "review.menu.collapseAll": "Collapse All"
+  "review.menu.collapseAll": "Collapse All",
+  "review.diffs.showingLines": "Showing {{current}}/{{total}} lines",
+  "review.diffs.showMore": "Show {{count}} more lines",
+  "review.diffs.showAll": "Show all",
+  "review.diffs.loadingMore": "Loading more content..."
 }
