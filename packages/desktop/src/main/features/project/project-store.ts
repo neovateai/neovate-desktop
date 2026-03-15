@@ -1,6 +1,9 @@
+import debug from "debug";
 import Store from "electron-store";
 import os from "node:os";
 import path from "node:path";
+
+const log = debug("neovate:project:store");
 
 import type {
   Project,
@@ -40,15 +43,18 @@ export class ProjectStore {
   }
 
   add(project: Project): void {
+    log("add project", { id: project.id, name: project.name, path: project.path });
     const projects = this.getAll();
     projects.push(project);
     this.store.set("projects", projects);
   }
 
   remove(id: string): void {
+    log("remove project", { id });
     const projects = this.getAll().filter((p) => p.id !== id);
     this.store.set("projects", projects);
     if (this.store.get("activeProjectId") === id) {
+      log("removed project was active, clearing activeProjectId");
       this.store.set("activeProjectId", null);
     }
   }
@@ -59,7 +65,11 @@ export class ProjectStore {
   }
 
   setActive(id: string | null): void {
-    if (id !== null && !this.get(id)) return;
+    if (id !== null && !this.get(id)) {
+      log("setActive: project not found, ignoring", { id });
+      return;
+    }
+    log("set active project", { id });
     this.store.set("activeProjectId", id);
   }
 
@@ -78,6 +88,7 @@ export class ProjectStore {
   }
 
   archiveSession(projectPath: string, sessionId: string): void {
+    log("archive session", { projectPath, sessionId });
     const archived = this.store.get("archivedSessions");
     const list = archived[projectPath] ?? [];
     if (!list.includes(sessionId)) {
@@ -88,6 +99,7 @@ export class ProjectStore {
     const pinned = this.store.get("pinnedSessions");
     const pinnedList = pinned[projectPath];
     if (pinnedList?.includes(sessionId)) {
+      log("session was pinned, unpinning", { sessionId });
       pinned[projectPath] = pinnedList.filter((id) => id !== sessionId);
       this.store.set("pinnedSessions", pinned);
     }
@@ -101,8 +113,10 @@ export class ProjectStore {
     const pinned = this.store.get("pinnedSessions");
     const list = pinned[projectPath] ?? [];
     if (list.includes(sessionId)) {
+      log("unpin session", { projectPath, sessionId });
       pinned[projectPath] = list.filter((id) => id !== sessionId);
     } else {
+      log("pin session", { projectPath, sessionId });
       pinned[projectPath] = [...list, sessionId];
     }
     this.store.set("pinnedSessions", pinned);
@@ -126,6 +140,7 @@ export class ProjectStore {
   }
 
   reorder(projectIds: string[]): void {
+    log("reorder projects", { projectIds });
     const projects = this.getAll();
     const map = new Map(projects.map((p) => [p.id, p]));
     const reordered = projectIds.flatMap((id) => {
