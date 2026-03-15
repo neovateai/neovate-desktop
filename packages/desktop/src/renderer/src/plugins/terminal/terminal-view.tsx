@@ -114,7 +114,13 @@ export default function TerminalView() {
     const fitAddon = new FitAddon();
     fitAddonRef.current = fitAddon;
     xterm.loadAddon(fitAddon);
-    xterm.loadAddon(new WebLinksAddon());
+    xterm.loadAddon(
+      new WebLinksAddon((event, uri) => {
+        if (isMac ? event.metaKey : event.ctrlKey) {
+          window.open(uri);
+        }
+      }),
+    );
     xterm.open(container);
     fitAddon.fit();
 
