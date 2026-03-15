@@ -1,10 +1,7 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
-import debug from "debug";
 import { Columns2, AlignJustify, File, FilePlus, GitBranch, GitCommit } from "lucide-react";
 import { useTheme } from "next-themes";
 import { memo, useEffect, useState } from "react";
-
-const log = debug("neovate:git:diff");
 
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
@@ -16,12 +13,6 @@ interface DiffData {
   newContent: string;
   fileName: string;
   fileStatus?: string;
-}
-
-interface TruncatedDiffData extends DiffData {
-  isTruncated: boolean;
-  totalLineCount: number;
-  visibleLineCount: number;
 }
 
 type DiffStyle = "unified" | "split";
@@ -36,20 +27,17 @@ export default memo(function GitDiffView() {
 
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [diffData, setDiffData] = useState<DiffData | null>(null);
-  const [truncatedDiffData, setTruncatedDiffData] = useState<TruncatedDiffData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [diffStyle, setDiffStyle] = useState<DiffStyle>("unified");
-  const [visibleLineLimit, setVisibleLineLimit] = useState(500);
-  const [isExpanding, setIsExpanding] = useState(false);
 
   const oldFile = {
-    name: truncatedDiffData?.fileName || "",
-    contents: truncatedDiffData?.oldContent || "",
+    name: diffData?.fileName || "",
+    contents: diffData?.oldContent || "",
   };
   const newFile = {
-    name: truncatedDiffData?.fileName || "",
-    contents: truncatedDiffData?.newContent || "",
+    name: diffData?.fileName || "",
+    contents: diffData?.newContent || "",
   };
 
   useEffect(() => {
@@ -57,7 +45,6 @@ export default memo(function GitDiffView() {
       const { relPath = "", isStaged = false } =
         (e as CustomEvent<{ relPath: string; isStaged: boolean }>)?.detail || {};
       if (relPath) {
-        log("handleOpenGitDiff", { relPath, isStaged });
         setCurrentFilePath(relPath);
         loadDiff(relPath, isStaged ? "staged" : "working");
       }
@@ -68,13 +55,6 @@ export default memo(function GitDiffView() {
       window.removeEventListener("neovate:open-git-diff", handleOpenGitDiff);
     };
   }, [cwd]);
-
-  useEffect(() => {
-    if (diffData) {
-      const truncated = createTruncatedDiffData(diffData, visibleLineLimit);
-      setTruncatedDiffData(truncated);
-    }
-  }, [diffData, visibleLineLimit]);
 
   const getFileDiff = async (file: string, type: "working" | "staged") => {
     try {
@@ -93,7 +73,7 @@ export default memo(function GitDiffView() {
 
   const loadDiff = async (relPath: string, type: "working" | "staged") => {
     if (!cwd) return;
-    log("loadDiff", { relPath, type });
+
     setLoading(true);
     setError(null);
 
@@ -103,19 +83,12 @@ export default memo(function GitDiffView() {
       if (diff && diff.data) {
         const fileName = relPath.split("/").pop() || relPath;
 
-        const fullData = {
+        setDiffData({
           oldContent: diff.data.oldContent || "",
           newContent: diff.data.newContent || "",
           fileName,
           fileStatus: diff.data.fileStatus || "",
-        };
-
-        setDiffData(fullData);
-        setVisibleLineLimit(500); // Reset limit for new file
-
-        // Create truncated version
-        const truncated = createTruncatedDiffData(fullData, 500);
-        setTruncatedDiffData(truncated);
+        });
       } else {
         setError(t("git.diff.loadFailed"));
       }
@@ -129,65 +102,6 @@ export default memo(function GitDiffView() {
 
   const toggleDiffStyle = () => {
     setDiffStyle((prev) => (prev === "split" ? "unified" : "split"));
-  };
-
-  const countLines = (content: string): number => {
-    if (!content || content.length === 0) return 0;
-    return content.split("\n").length || 0;
-  };
-
-  const truncateContent = (
-    content: string,
-    linesLimit: number,
-  ): { truncated: string; totalLines: number; isTruncated: boolean } => {
-    if (!content || content.length === 0) {
-      return { truncated: "", totalLines: 0, isTruncated: false };
-    }
-
-    const lines = content.split("\n");
-    const totalLines = lines.length;
-
-    if (totalLines <= linesLimit) {
-      return { truncated: content, totalLines, isTruncated: false };
-    }
-
-    const truncatedText = lines.slice(0, linesLimit).join("\n");
-    return { truncated: truncatedText, totalLines, isTruncated: true };
-  };
-
-  const createTruncatedDiffData = (originalData: DiffData, limit: number): TruncatedDiffData => {
-    const oldLineCount = originalData.oldContent ? countLines(originalData.oldContent) : 0;
-    const newLineCount = originalData.newContent ? countLines(originalData.newContent) : 0;
-    const maxLineCount = Math.max(oldLineCount, newLineCount);
-
-    const oldTruncated = truncateContent(originalData.oldContent || "", limit);
-    const newTruncated = truncateContent(originalData.newContent || "", limit);
-
-    return {
-      ...originalData,
-      oldContent: oldTruncated.truncated,
-      newContent: newTruncated.truncated,
-      isTruncated: oldTruncated.isTruncated || newTruncated.isTruncated,
-      totalLineCount: maxLineCount,
-      visibleLineCount: Math.min(limit, maxLineCount),
-    };
-  };
-
-  const handleShowMore = async () => {
-    if (!diffData) return;
-
-    setIsExpanding(true);
-
-    // Use a small delay to allow UI to update
-    setTimeout(() => {
-      setVisibleLineLimit((prev) => prev + 500);
-      setIsExpanding(false);
-    }, 50);
-  };
-
-  const handleShowAll = () => {
-    if (!diffData) return;
-    setVisibleLineLimit(Infinity);
   };
 
   if (!currentFilePath) {
@@ -316,49 +230,6 @@ export default memo(function GitDiffView() {
               diffStyle,
             }}
           />
-        )}
-
-        {truncatedDiffData?.isTruncated && (
-          <div className="flex items-center justify-center p-4 border-t bg-background/50 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
-                {t("git.diff.showingLines", {
-                  current: truncatedDiffData.visibleLineCount,
-                  total: truncatedDiffData.totalLineCount,
-                })}
-              </div>
-
-              {isExpanding ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-muted-foreground">{t("git.diff.loadingMore")}</span>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleShowMore}
-                    className="px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors"
-                  >
-                    {t("git.diff.showMore", {
-                      count: Math.min(
-                        500,
-                        truncatedDiffData.totalLineCount - truncatedDiffData.visibleLineCount,
-                      ),
-                    })}
-                  </button>
-
-                  {truncatedDiffData.totalLineCount - truncatedDiffData.visibleLineCount > 1000 && (
-                    <button
-                      onClick={handleShowAll}
-                      className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                    >
-                      {t("git.diff.showAll")}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
         )}
       </div>
     </div>
