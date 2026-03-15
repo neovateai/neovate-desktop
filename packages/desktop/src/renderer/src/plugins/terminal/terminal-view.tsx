@@ -1,15 +1,18 @@
 import type { ContractRouterClient } from "@orpc/contract";
 
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
 import { useTheme } from "next-themes";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "@xterm/xterm/css/xterm.css";
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 import { usePluginContext } from "../../core/app";
 import { useConfigStore } from "../../features/config/store";
+import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
@@ -72,6 +75,18 @@ export default function TerminalView() {
 
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const searchAddonRef = useRef<SearchAddon | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{
+    resultIndex: number;
+    resultCount: number;
+  } | null>(null);
+
+  const { isActive } = useContentPanelViewContext();
 
   const terminalFont = useConfigStore((s) => s.terminalFont);
   const terminalFontSize = useConfigStore((s) => s.terminalFontSize);
@@ -91,6 +106,20 @@ export default function TerminalView() {
   }, [terminalFont, terminalFontSize]);
 
   useEffect(() => {
+    if (isActive && fitAddonRef.current) {
+      requestAnimationFrame(() => {
+        fitAddonRef.current?.fit();
+      });
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (searchVisible) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchVisible]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
@@ -100,6 +129,7 @@ export default function TerminalView() {
     const { terminalFont: initFont, terminalFontSize: initFontSize } = useConfigStore.getState();
 
     const xterm = new Terminal({
+      allowProposedApi: true,
       cursorBlink: true,
       cursorStyle: "bar",
       lineHeight: 1.2,
@@ -124,6 +154,19 @@ export default function TerminalView() {
     xterm.open(container);
     fitAddon.fit();
 
+    // Unicode 11 — correct CJK and emoji character widths
+    const unicode11 = new Unicode11Addon();
+    xterm.loadAddon(unicode11);
+    xterm.unicode.activeVersion = "11";
+
+    // Search addon
+    const searchAddon = new SearchAddon();
+    searchAddonRef.current = searchAddon;
+    xterm.loadAddon(searchAddon);
+    const resultsDisposable = searchAddon.onDidChangeResults((results) => {
+      setSearchResults(results);
+    });
+
     // WebGL renderer — falls back to canvas on context loss
     const webgl = new WebglAddon();
     webgl.onContextLoss(() => webgl.dispose());
@@ -137,11 +180,17 @@ export default function TerminalView() {
       }
     });
 
-    // Cmd+K (Mac) / Ctrl+K (Win/Linux) — clear
+    // Keyboard shortcuts
     xterm.attachCustomKeyEventHandler((event) => {
       const modifier = isMac ? event.metaKey : event.ctrlKey;
-      if (event.type === "keydown" && modifier && event.key === "k") {
+      if (event.type !== "keydown" || !modifier) return true;
+      if (event.key === "k") {
         xterm.clear();
+        return false;
+      }
+      if (event.key === "f") {
+        setSearchVisible(true);
+        requestAnimationFrame(() => searchInputRef.current?.focus());
         return false;
       }
       return true;
@@ -208,13 +257,75 @@ export default function TerminalView() {
       mounted = false;
       xtermRef.current = null;
       fitAddonRef.current = null;
+      searchAddonRef.current = null;
       abortController.abort();
       clearTimeout(resizeTimer);
+      clearTimeout(searchTimerRef.current);
+      resultsDisposable.dispose();
       observer.disconnect();
       if (sessionId) client.terminal.kill({ sessionId });
       xterm.dispose();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div ref={containerRef} className="h-full w-full overflow-hidden" />;
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      if (value) {
+        searchAddonRef.current?.findNext(value, { caseSensitive: false });
+      } else {
+        searchAddonRef.current?.clearDecorations();
+        setSearchResults(null);
+      }
+    }, 50);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      clearTimeout(searchTimerRef.current);
+      setSearchVisible(false);
+      setSearchQuery("");
+      searchAddonRef.current?.clearDecorations();
+      setSearchResults(null);
+      xtermRef.current?.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (e.shiftKey) {
+        searchAddonRef.current?.findPrevious(searchQuery, { caseSensitive: false });
+      } else {
+        searchAddonRef.current?.findNext(searchQuery, { caseSensitive: false });
+      }
+    }
+  };
+
+  const searchLabel =
+    searchResults === null
+      ? null
+      : searchResults.resultCount === 0
+        ? "No results"
+        : `${searchResults.resultIndex + 1} of ${searchResults.resultCount}`;
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div ref={containerRef} className="h-full w-full" />
+      {searchVisible && (
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 shadow-sm">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
+            className="w-40 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+            placeholder="Search..."
+          />
+          {searchLabel && (
+            <span className="whitespace-nowrap text-xs text-muted-foreground">{searchLabel}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
