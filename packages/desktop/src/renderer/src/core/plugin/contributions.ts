@@ -1,6 +1,10 @@
 import type React from "react";
 
+import debug from "debug";
+
 import type { ProviderTemplate } from "../../../../shared/features/provider/built-in";
+
+const log = debug("neovate:plugin");
 
 // ─── Contribution Types ─────────────────────────────────────────────
 
@@ -56,7 +60,7 @@ function deduplicateTemplates(templates: ProviderTemplate[]): ProviderTemplate[]
   const seen = new Set<string>();
   return templates.filter((t) => {
     if (seen.has(t.id)) {
-      console.debug("[plugin] duplicate providerTemplate id=%s, skipping", t.id);
+      log("duplicate providerTemplate id=%s, skipping", t.id);
       return false;
     }
     seen.add(t.id);

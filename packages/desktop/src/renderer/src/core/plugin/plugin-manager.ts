@@ -1,7 +1,11 @@
+import debug from "debug";
+
 import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
 import { buildContributions, PluginContributions, type WindowContribution } from "./contributions";
+
+const log = debug("neovate:plugin");
 
 type HookFn = (...args: unknown[]) => unknown;
 
@@ -32,6 +36,7 @@ export class PluginManager {
 
   /** Collect window contributions from all plugins (sequential, deduplicates by windowType) */
   async configWindowContributions(): Promise<void> {
+    log("configWindowContributions");
     const seen = new Map<string, string>();
     const result: WindowContribution[] = [];
     for (const plugin of this.#plugins) {
@@ -40,8 +45,8 @@ export class PluginManager {
       for (const w of contributions) {
         const existing = seen.get(w.windowType);
         if (existing) {
-          console.warn(
-            `Plugin "${plugin.name}" registers duplicate window type "${w.windowType}" (already registered by "${existing}"), skipping`,
+          log(
+            `plugin "${plugin.name}" registers duplicate window type "${w.windowType}" (already registered by "${existing}"), skipping`,
           );
           continue;
         }
@@ -54,17 +59,20 @@ export class PluginManager {
 
   /** Collect and merge configContributions from all plugins (parallel) */
   async configContributions(): Promise<void> {
+    log("configContributions", { pluginCount: this.#plugins.length });
     const results = await this.applyParallel("configContributions");
     this.contributions = buildContributions(results);
   }
 
   /** Run activate hooks (series, enforce order) */
   async activate(ctx: PluginContext): Promise<void> {
+    log("activate", { pluginCount: this.#plugins.length });
     await this.applySeries("activate", ctx);
   }
 
   /** Run deactivate hooks (series) */
   async deactivate(): Promise<void> {
+    log("deactivate");
     await this.applySeries("deactivate");
   }
 

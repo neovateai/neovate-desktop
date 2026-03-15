@@ -1,3 +1,4 @@
+import debug from "debug";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cp, rm } from "node:fs/promises";
@@ -11,6 +12,7 @@ import type { SkillInstaller } from "./types";
 import { scanSkillDirs } from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
+const log = debug("neovate:skills:git");
 
 export class GitInstaller implements SkillInstaller {
   private previewDirs = new Map<string, string>();
@@ -25,6 +27,7 @@ export class GitInstaller implements SkillInstaller {
   }
 
   async scan(sourceRef: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
+    log("scan", { sourceRef });
     const url = this.normalizeUrl(sourceRef);
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
@@ -39,6 +42,7 @@ export class GitInstaller implements SkillInstaller {
   }
 
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
+    log("install", { sourceRef, skillName, targetDir });
     const url = this.normalizeUrl(sourceRef);
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
@@ -60,6 +64,7 @@ export class GitInstaller implements SkillInstaller {
     skillNames: string[],
     targetDir: string,
   ): Promise<void> {
+    log("installFromPreview", { previewId, skillNames });
     const tmpDir = this.previewDirs.get(previewId);
     if (!tmpDir) throw new Error("Preview not found or expired");
 
@@ -81,6 +86,7 @@ export class GitInstaller implements SkillInstaller {
   }
 
   async getLatestVersion(sourceRef: string): Promise<string | undefined> {
+    log("getLatestVersion", { sourceRef });
     try {
       const url = this.normalizeUrl(sourceRef);
       const { stdout } = await execFileAsync("git", ["ls-remote", url, "HEAD"], {

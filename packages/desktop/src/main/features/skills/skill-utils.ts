@@ -1,5 +1,8 @@
+import debug from "debug";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+
+const log = debug("neovate:skills:utils");
 
 import type {
   InstallMeta,
@@ -88,6 +91,7 @@ export function parseFrontmatter(content: string): {
  * Returns PreviewSkill[] for use in previews.
  */
 export async function scanSkillDirs(baseDir: string, singleName?: string): Promise<PreviewSkill[]> {
+  log("scanSkillDirs", { baseDir, singleName });
   const skills: PreviewSkill[] = [];
 
   // If singleName provided, check that specific directory
@@ -138,6 +142,7 @@ export async function scanInstalledSkills(
   scope: "global" | "project",
   projectPath?: string,
 ): Promise<SkillMeta[]> {
+  log("scanInstalledSkills", { skillsDir, scope });
   const skills: SkillMeta[] = [];
 
   let entries: string[];
