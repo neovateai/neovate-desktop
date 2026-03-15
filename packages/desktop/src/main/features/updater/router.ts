@@ -35,7 +35,6 @@ export const updaterRouter = os.updater.router({
   }),
 
   subscribe: os.updater.subscribe.handler(async function* ({ signal, context }) {
-    log("subscribe handler");
     yield context.updaterService.getState();
     for await (const s of context.updaterService.publisher.subscribe("state", { signal })) {
       yield s;

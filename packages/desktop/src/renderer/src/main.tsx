@@ -1,3 +1,4 @@
+import "./core/logger";
 import "./assets/main.css";
 import { RendererApp } from "./core";
 

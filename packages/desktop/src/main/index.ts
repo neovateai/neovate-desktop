@@ -1,3 +1,4 @@
+import "./core/logger";
 import { electronApp, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";

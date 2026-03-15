@@ -127,7 +127,6 @@ export async function getExcludePatterns(rootPath: string): Promise<string[]> {
   const cached = gitignoreCache.get(cacheKey);
 
   if (cached) {
-    log("using cached exclude patterns", { rootPath });
     return cached;
   }
   log("computing exclude patterns", { rootPath });
