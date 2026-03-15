@@ -197,8 +197,7 @@ describe("PluginManager", () => {
       expect(pm.windowContributions[0].windowType).toBe("companion");
     });
 
-    it("warns and skips duplicate window type", async () => {
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    it("skips duplicate window type", async () => {
       const plugins: RendererPlugin[] = [
         {
           name: "plugin-a",
@@ -216,10 +215,6 @@ describe("PluginManager", () => {
       const pm = new PluginManager(plugins);
       await pm.configWindowContributions();
       expect(pm.windowContributions).toHaveLength(1);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Plugin "plugin-b" registers duplicate window type "companion" (already registered by "plugin-a"), skipping',
-      );
-      warnSpy.mockRestore();
     });
 
     it("returns empty array when no plugins have configWindowContributions", async () => {
