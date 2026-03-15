@@ -296,5 +296,21 @@
   "contentPanel.noTabsOpen": "No tabs open",
 
   "error.somethingWentWrong": "Something went wrong",
-  "error.tryAgain": "Try again"
+  "error.tryAgain": "Try again",
+
+  "chat.placeholder": "Type a message...",
+  "chat.attachImage": "Attach image",
+  "chat.attachImages": "Attach images",
+  "chat.removeAttachment": "Remove {{filename}}",
+  "chat.sendEnter": "Send (Enter)",
+  "chat.sendCmdEnter": "Send (⌘Enter)",
+  "chat.planMode": "Plan mode",
+  "chat.planModeExit": "Shift+Tab to exit",
+  "chat.sdkDefault": "SDK Default",
+  "chat.manageProviders": "Manage Providers...",
+  "chat.setProjectDefault": "Set as project default",
+  "chat.setGlobalDefault": "Set as global default",
+  "chat.clearSessionOverride": "Clear session override",
+  "chat.providerSwitchHint": "Provider switch requires a new session",
+  "chat.messageActions": "Message actions"
 }

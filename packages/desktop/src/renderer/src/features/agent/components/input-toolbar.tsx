@@ -62,14 +62,20 @@ export function InputToolbar({
 }: Props) {
   const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
 
+  const { t } = useTranslation();
+
   return (
-    <div className="flex items-center gap-1 border-border/50 px-2 py-2 bg-background-secondary">
+    <div
+      className="flex items-center gap-1 border-border/50 px-2 py-2 bg-background-secondary"
+      role="toolbar"
+      aria-label={t("chat.messageActions")}
+    >
       <Button
         type="button"
         variant="ghost"
         size="icon"
         className="h-7 w-7"
-        title="Attach image"
+        title={t("chat.attachImage")}
         onClick={onAttach}
       >
         <Paperclip className="h-4 w-4" />
@@ -94,7 +100,7 @@ export function InputToolbar({
           className="h-7 w-7"
           disabled={disabled}
           onClick={onSend}
-          title={sendMessageWith === "cmdEnter" ? "Send (⌘+Enter)" : "Send (Enter)"}
+          title={sendMessageWith === "cmdEnter" ? t("chat.sendCmdEnter") : t("chat.sendEnter")}
         >
           <SendHorizonal className="h-4 w-4" />
         </Button>
@@ -209,6 +215,7 @@ function ConnectedModelSelect({
   chatStore: StoreApi<ClaudeCodeChatStoreState>;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
   const setModelScope = useAgentStore((s) => s.setModelScope);
   const currentModel = useAgentStore((s) => s.sessions.get(activeSessionId)?.currentModel);
@@ -378,8 +385,10 @@ function ConnectedModelSelect({
                   .filter((p) => p.enabled)
                   .map((p) => (
                     <div key={p.id}>
-                      <div
-                        className={`px-3 py-1.5 text-xs font-medium ${
+                      <button
+                        type="button"
+                        disabled={hasMessages && providerId !== p.id}
+                        className={`w-full text-left px-3 py-1.5 text-xs font-medium ${
                           providerId === p.id
                             ? "text-foreground"
                             : hasMessages
@@ -388,7 +397,7 @@ function ConnectedModelSelect({
                         }`}
                         title={
                           hasMessages && providerId !== p.id
-                            ? "Provider switch requires a new session"
+                            ? t("chat.providerSwitchHint")
                             : undefined
                         }
                         onClick={() => {
@@ -399,7 +408,7 @@ function ConnectedModelSelect({
                       >
                         {providerId === p.id ? "\u2022 " : "\u25CB "}
                         {p.name}
-                      </div>
+                      </button>
                       {providerId === p.id && (
                         <MenuRadioGroup
                           value={currentModel ?? ""}
@@ -429,17 +438,17 @@ function ConnectedModelSelect({
             {/* SDK Default section */}
             <div>
               {providers.filter((p) => p.enabled).length > 0 && (
-                <div
-                  className={`px-3 py-1.5 text-xs font-medium ${
+                <button
+                  type="button"
+                  disabled={hasMessages && !!providerId}
+                  className={`w-full text-left px-3 py-1.5 text-xs font-medium ${
                     !providerId
                       ? "text-foreground"
                       : hasMessages
                         ? "text-muted-foreground/50 cursor-not-allowed"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
                   }`}
-                  title={
-                    hasMessages && providerId ? "Provider switch requires a new session" : undefined
-                  }
+                  title={hasMessages && providerId ? t("chat.providerSwitchHint") : undefined}
                   onClick={() => {
                     if (providerId && !hasMessages) {
                       handleProviderSwitch(null);
@@ -447,8 +456,8 @@ function ConnectedModelSelect({
                   }}
                 >
                   {!providerId ? "\u2022 " : "\u25CB "}
-                  SDK Default
-                </div>
+                  {t("chat.sdkDefault")}
+                </button>
               )}
               {!providerId && availableModels && (
                 <MenuRadioGroup
@@ -478,7 +487,7 @@ function ConnectedModelSelect({
               }}
             >
               <Settings className="h-3 w-3" />
-              Manage Providers...
+              {t("chat.manageProviders")}
             </button>
           </MenuPopup>
         </Menu>
@@ -486,15 +495,15 @@ function ConnectedModelSelect({
       <ContextMenuPopup>
         <ContextMenuItem onClick={() => handleScopeAction("project")}>
           <FolderOpen className="h-4 w-4" />
-          Set as project default
+          {t("chat.setProjectDefault")}
         </ContextMenuItem>
         <ContextMenuItem onClick={() => handleScopeAction("global")}>
           <Globe className="h-4 w-4" />
-          Set as global default
+          {t("chat.setGlobalDefault")}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => handleScopeAction("clear")}>
-          Clear session override
+          {t("chat.clearSessionOverride")}
         </ContextMenuItem>
       </ContextMenuPopup>
     </ContextMenu>

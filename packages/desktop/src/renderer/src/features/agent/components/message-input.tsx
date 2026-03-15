@@ -3,7 +3,9 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Extension, useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import debug from "debug";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { ImageAttachment, PermissionMode } from "../../../../../shared/features/agent/types";
 
@@ -46,6 +48,7 @@ export function MessageInput({
   cwd,
   dockAttached = false,
 }: Props) {
+  const { t } = useTranslation();
   const cwdRef = useLatestRef(cwd);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createNewSession } = useNewSession();
@@ -120,7 +123,7 @@ export function MessageInput({
         blockquote: false,
       }),
       Placeholder.configure({
-        placeholder: "Type a message...",
+        placeholder: t("chat.placeholder"),
       }),
       mentionExtension,
       slashCommandsExtension,
@@ -189,7 +192,6 @@ export function MessageInput({
                     return true;
                   }
                   if (event.key === "Escape") {
-                    editor.commands.clearContent();
                     editor.commands.blur();
                     return true;
                   }
@@ -292,6 +294,7 @@ export function MessageInput({
         accept="image/*"
         multiple
         className="hidden"
+        aria-label={t("chat.attachImages")}
         onChange={handleFileSelect}
       />
       <div
@@ -315,17 +318,27 @@ export function MessageInput({
               "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
           }}
         >
-          {permissionMode === "plan" && (
-            <div
-              className={cn(
-                "flex items-center gap-1.5 border-b border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-600 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400",
-                dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
-              )}
-            >
-              <span className="font-medium">Plan mode</span>
-              <span className="text-blue-500/70 dark:text-blue-400/50">Shift+Tab to exit</span>
-            </div>
-          )}
+          <AnimatePresence>
+            {permissionMode === "plan" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 border-b border-info/20 bg-info/5 px-3 py-1 text-xs text-info-foreground",
+                    dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+                  )}
+                >
+                  <span className="font-medium">{t("chat.planMode")}</span>
+                  <span className="text-info-foreground/50">{t("chat.planModeExit")}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <EditorContent editor={editor} />
           <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
           <InputToolbar

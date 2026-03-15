@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { cn } from "../../../lib/utils";
+
 export type SuggestionItem = {
   id?: string;
   label: string;
@@ -74,9 +76,10 @@ export const SuggestionList = forwardRef<SuggestionListHandle, Props>(
             <button
               key={item.id ?? item.label}
               ref={index === selectedIndex ? selectedRef : undefined}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${
-                index === selectedIndex ? "bg-accent" : ""
-              }`}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left",
+                index === selectedIndex && "bg-accent",
+              )}
               onClick={() => command(item)}
               onMouseEnter={() => setSelectedIndex(index)}
               type="button"

@@ -161,8 +161,8 @@
   }
 
   .tiptap .slash-command {
-    background: rgba(20, 184, 166, 0.15);
-    color: #14b8a6;
+    background: --alpha(var(--success) / 15%);
+    color: var(--success-foreground);
     border-radius: 0.25rem;
     padding: 0.125rem 0.375rem;
     font-size: 0.875em;

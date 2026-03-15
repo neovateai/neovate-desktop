@@ -298,5 +298,21 @@
   "contentPanel.noTabsOpen": "暂无打开的标签页",
 
   "error.somethingWentWrong": "出错了",
-  "error.tryAgain": "重试"
+  "error.tryAgain": "重试",
+
+  "chat.placeholder": "输入消息...",
+  "chat.attachImage": "附加图片",
+  "chat.attachImages": "附加图片",
+  "chat.removeAttachment": "移除 {{filename}}",
+  "chat.sendEnter": "发送 (Enter)",
+  "chat.sendCmdEnter": "发送 (⌘Enter)",
+  "chat.planMode": "计划模式",
+  "chat.planModeExit": "Shift+Tab 退出",
+  "chat.sdkDefault": "SDK 默认",
+  "chat.manageProviders": "管理服务商...",
+  "chat.setProjectDefault": "设为项目默认",
+  "chat.setGlobalDefault": "设为全局默认",
+  "chat.clearSessionOverride": "清除会话覆盖",
+  "chat.providerSwitchHint": "切换服务商需要新建会话",
+  "chat.messageActions": "消息操作"
 }
