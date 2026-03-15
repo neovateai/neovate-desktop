@@ -52,7 +52,7 @@ export const SettingsMenu = ({
 
   return (
     <div
-      className="w-56 h-full flex flex-col pt-8 border-r border-border bg-background"
+      className="w-56 h-full flex flex-col pt-8 px-3 border-r border-border bg-background"
       style={{
         // @ts-expect-error - Electron specific CSS property
         WebkitAppRegion: "drag",
@@ -60,7 +60,7 @@ export const SettingsMenu = ({
     >
       {/* Back to app button */}
       <button
-        className="flex items-center text-muted-foreground gap-3 mx-2 px-4 py-3 text-sm transition-colors cursor-pointer hover:text-foreground border-b border-border"
+        className="flex items-center text-muted-foreground gap-3 px-3 py-3 text-sm transition-colors cursor-pointer hover:text-foreground border-b border-border"
         style={{
           // @ts-expect-error - Electron specific CSS property
           WebkitAppRegion: "no-drag",
@@ -80,10 +80,11 @@ export const SettingsMenu = ({
           return (
             <button
               key={item.id}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer rounded-[6px] mx-2",
+                "w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors cursor-pointer rounded-[6px] border",
                 isActive
-                  ? "bg-accent text-accent-foreground border-border"
+                  ? "bg-accent text-accent-foreground border-border font-medium"
                   : "text-muted-foreground hover:text-foreground border-transparent",
               )}
               style={{

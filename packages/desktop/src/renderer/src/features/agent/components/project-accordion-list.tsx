@@ -55,7 +55,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
       setActiveSession(sessionId);
     },
     [switchToProjectByPath, project.path, setActiveSession],
-  );
+  ) as (sessionId: string, projectPath?: string) => void;
 
   const handleLoad = useCallback(
     async (sessionId: string) => {
@@ -68,7 +68,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
       }
     },
     [switchToProjectByPath, project.path, loadSession],
-  );
+  ) as (sessionId: string, projectPath?: string) => Promise<void>;
 
   if (items.length === 0) {
     return <EmptySessionState variant="compact" />;

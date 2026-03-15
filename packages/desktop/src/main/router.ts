@@ -16,6 +16,7 @@ import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
+import { rulesRouter } from "./features/rules/router";
 import { skillsRouter } from "./features/skills/router";
 import { storageRouter } from "./features/storage/router";
 import { updaterRouter } from "./features/updater/router";
@@ -43,6 +44,7 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
     config: configRouter,
     project: projectRouter,
     provider: providerRouter,
+    rules: rulesRouter,
     skills: skillsRouter,
     storage: storageRouter,
     updater: updaterRouter,

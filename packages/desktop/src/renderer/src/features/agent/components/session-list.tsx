@@ -1,6 +1,6 @@
 import debug from "debug";
 import { SquarePen } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
@@ -62,7 +62,7 @@ function MultiProjectSessionList() {
 
 // --- Single-project mode (existing behavior) ---
 
-function SingleProjectSessionList() {
+const SingleProjectSessionList = memo(function SingleProjectSessionList() {
   const { t } = useTranslation();
   const sessions = useAgentStore((s) => s.sessions);
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
@@ -86,14 +86,24 @@ function SingleProjectSessionList() {
     }
   }, [projectPath, loadSessionPreferences]);
 
-  const handleLoad = async (sessionId: string) => {
-    setRestoring(sessionId);
-    try {
-      await loadSession(sessionId);
-    } finally {
-      setRestoring((prev) => (prev === sessionId ? null : prev));
-    }
-  };
+  const handleLoad = useCallback(
+    async (sessionId: string) => {
+      setRestoring(sessionId);
+      try {
+        await loadSession(sessionId);
+      } finally {
+        setRestoring((prev) => (prev === sessionId ? null : prev));
+      }
+    },
+    [loadSession],
+  );
+
+  const handleActivate = useCallback(
+    (sessionId: string) => {
+      setActiveSession(sessionId);
+    },
+    [setActiveSession],
+  ) as (sessionId: string, projectPath?: string) => void;
 
   const { pinnedItems, regularItems, pinned } = useMemo(() => {
     if (!projectPath) return { pinnedItems: [], regularItems: [], pinned: new Set<string>() };
@@ -178,7 +188,7 @@ function SingleProjectSessionList() {
                     activeSessionId={activeSessionId}
                     isPinned={true}
                     restoring={restoring}
-                    onActivate={setActiveSession}
+                    onActivate={handleActivate}
                     onLoad={handleLoad}
                   />
                 );
@@ -194,7 +204,7 @@ function SingleProjectSessionList() {
                 activeSessionId={activeSessionId}
                 isPinned={pinned.has(id)}
                 restoring={restoring}
-                onActivate={setActiveSession}
+                onActivate={handleActivate}
                 onLoad={handleLoad}
               />
             );
@@ -203,4 +213,4 @@ function SingleProjectSessionList() {
       )}
     </div>
   );
-}
+});

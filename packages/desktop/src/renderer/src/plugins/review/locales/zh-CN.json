@@ -34,8 +34,6 @@
   "review.menu.hideFileTree": "隐藏文件树",
   "review.menu.expandAll": "全部展开",
   "review.menu.collapseAll": "全部折叠",
-  "review.diffs.showingLines": "正在显示 {{current}}/{{total}} 行",
-  "review.diffs.showMore": "显示更多{{count}}行",
-  "review.diffs.showAll": "显示全部",
-  "review.diffs.loadingMore": "正在加载更多内容..."
+  "review.highFileCount": "{{count}} 个文件 — 大量差异可能导致卡顿。所有文件默认折叠。",
+  "review.expandAllConfirm": "即将展开 {{count}} 个文件，可能会比较慢。是否继续？"
 }

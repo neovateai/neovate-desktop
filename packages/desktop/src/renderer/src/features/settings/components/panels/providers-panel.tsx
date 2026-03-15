@@ -268,7 +268,7 @@ export const ProvidersPanel = () => {
       }
       cancel();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+      setError(e instanceof Error ? e.message : t("settings.providers.saveFailed"));
     }
   }, [form, isCreating, editingId, addProvider, updateProvider, cancel]);
 
@@ -286,7 +286,7 @@ export const ProvidersPanel = () => {
       setDeleteConfirmOpen(false);
       setProviderToDelete(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete");
+      setError(e instanceof Error ? e.message : t("settings.providers.deleteFailed"));
     }
   }, [editingId, providerToDelete, removeProvider, cancel]);
 
@@ -296,7 +296,7 @@ export const ProvidersPanel = () => {
       try {
         await updateProvider(p.id, { enabled: !p.enabled });
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to toggle");
+        setError(e instanceof Error ? e.message : t("settings.providers.toggleFailed"));
       }
     },
     [updateProvider],
@@ -513,32 +513,35 @@ export const ProvidersPanel = () => {
           )}
 
           {/* Name */}
-          <div>
-            <label className="text-sm font-medium">{t("settings.providers.name")}</label>
+          <label className="block">
+            <span className="text-sm font-medium">{t("settings.providers.name")}</span>
             <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="OpenRouter"
               className="mt-1"
             />
-          </div>
+          </label>
 
           {/* Base URL */}
-          <div>
-            <label className="text-sm font-medium">{t("settings.providers.baseURL")}</label>
+          <label className="block">
+            <span className="text-sm font-medium">{t("settings.providers.baseURL")}</span>
             <Input
               value={form.baseURL}
               onChange={(e) => setForm((f) => ({ ...f, baseURL: e.target.value }))}
               placeholder="https://openrouter.ai/api"
               className="mt-1"
             />
-          </div>
+          </label>
 
           {/* API Key */}
           <div>
-            <label className="text-sm font-medium">{t("settings.providers.apiKey")}</label>
+            <label htmlFor="provider-apikey" className="text-sm font-medium">
+              {t("settings.providers.apiKey")}
+            </label>
             <div className="mt-1 flex items-center gap-1.5">
               <Input
+                id="provider-apikey"
                 type={showApiKey ? "text" : "password"}
                 value={form.apiKey}
                 onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
@@ -619,7 +622,7 @@ export const ProvidersPanel = () => {
           {/* Models */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">{t("settings.providers.models")}</label>
+              <span className="text-sm font-medium">{t("settings.providers.models")}</span>
               {canCheck && (
                 <BenchmarkButton
                   baseURL={form.baseURL}
@@ -705,7 +708,7 @@ export const ProvidersPanel = () => {
 
           {/* Model Map */}
           <div>
-            <label className="text-sm font-medium">{t("settings.providers.modelMap")}</label>
+            <span className="text-sm font-medium">{t("settings.providers.modelMap")}</span>
             <div className="mt-1 grid grid-cols-2 gap-2">
               {(["model", "haiku", "opus", "sonnet"] as const).map((slot) => (
                 <div key={slot}>
@@ -741,7 +744,7 @@ export const ProvidersPanel = () => {
 
           {/* Env Overrides */}
           <div>
-            <label className="text-sm font-medium">{t("settings.providers.envOverrides")}</label>
+            <span className="text-sm font-medium">{t("settings.providers.envOverrides")}</span>
             <div className="mt-1 space-y-1">
               {Object.entries(form.envOverrides).map(([key, value]) => (
                 <div key={key} className="flex items-center gap-2 text-sm">

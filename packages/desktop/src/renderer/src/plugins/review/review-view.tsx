@@ -1,5 +1,6 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
 import {
+  AlertTriangle,
   Bot,
   ChevronDown,
   ChevronRight,
@@ -11,7 +12,7 @@ import {
   AlignJustify,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Popover, PopoverTrigger, PopoverPopup } from "../../components/ui/popover";
 import {
@@ -24,11 +25,57 @@ import {
 import { usePluginContext } from "../../core/app";
 import { useContentPanelViewContext } from "../../features/content-panel";
 import { useProjectStore } from "../../features/project/store";
+import { useIntersectionObserver } from "../../hooks/use-intersection-observer";
 import { useActiveSession } from "../../hooks/useActiveSession";
 import { useReview, type ReviewCategory, type ReviewFile } from "./hooks/useReview";
 import { useReviewTranslation } from "./i18n";
 
 type DiffStyle = "unified" | "split";
+
+const FILE_SIZE_LIMIT = 1_000_000; // 1MB
+const HIGH_FILE_COUNT = 200;
+
+// L3: Viewport-aware diff rendering — only mounts MultiFileDiff when visible
+function LazyDiffContent({
+  file,
+  diff,
+  options,
+  forceVisible,
+  lastHeight,
+  onHeightChange,
+}: {
+  file: ReviewFile;
+  diff: { oldContent: string; newContent: string };
+  options: Record<string, unknown>;
+  forceVisible: boolean;
+  lastHeight?: number;
+  onHeightChange: (height: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInViewport = useIntersectionObserver(containerRef, { rootMargin: "200px" });
+  const shouldRender = forceVisible || isInViewport;
+
+  useEffect(() => {
+    if (shouldRender && containerRef.current) {
+      const height = containerRef.current.offsetHeight;
+      if (height > 0) onHeightChange(height);
+    }
+  }, [shouldRender, diff]);
+
+  return (
+    <div ref={containerRef}>
+      {shouldRender ? (
+        <MultiFileDiff
+          oldFile={{ name: file.fileName, contents: diff.oldContent }}
+          newFile={{ name: file.fileName, contents: diff.newContent }}
+          options={options}
+        />
+      ) : (
+        <div style={{ height: lastHeight ?? 80 }} />
+      )}
+    </div>
+  );
+}
 
 export default memo(function ReviewView() {
   const { t } = useReviewTranslation();
@@ -46,9 +93,23 @@ export default memo(function ReviewView() {
   );
   const [showFileTree, setShowFileTree] = useState(!!savedState.showFileTree);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const [forceVisibleFiles, setForceVisibleFiles] = useState<Set<string>>(new Set());
+  const [diffHeights, setDiffHeights] = useState<Record<string, number>>({});
 
   const { files, loading, error, branchInfo, diffs, loadingDiffs, refresh, loadDiff } =
     useReview(category);
+
+  // L1: Memoize diff options to avoid unnecessary MultiFileDiff re-renders
+  const diffOptions = useMemo(
+    () => ({
+      theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+      diffStyle,
+      expandUnchanged: false,
+      expansionLineCount: 20,
+      tokenizeMaxLineLength: 500,
+    }),
+    [resolvedTheme, diffStyle],
+  );
 
   // Fetch branch info for the select label even when not on branch category
   const [selectBranchLabel, setSelectBranchLabel] = useState<string | null>(null);
@@ -114,19 +175,43 @@ export default memo(function ReviewView() {
     });
   };
 
+  // L4: Progressive expand all — batch 10 files at a time with idle callbacks
   const expandAll = () => {
-    const allPaths = new Set(files.map((f) => f.relPath));
-    setExpandedFiles(allPaths);
-    // Batch load diffs with concurrency limit
-    const toLoad = files.filter((f) => !diffs[f.relPath] && !loadingDiffs[f.relPath]);
+    if (files.length > HIGH_FILE_COUNT) {
+      if (!window.confirm(t("review.expandAllConfirm", { count: files.length }))) return;
+    }
+
+    const ordered = files.map((f) => f.relPath);
     let idx = 0;
-    const loadNext = () => {
-      if (idx >= toLoad.length) return;
-      const file = toLoad[idx++];
-      loadDiff(file.relPath).then(loadNext);
+
+    const expandBatch = () => {
+      const batch = ordered.slice(idx, idx + 10);
+      if (batch.length === 0) return;
+      idx += batch.length;
+
+      setExpandedFiles((prev) => {
+        const next = new Set(prev);
+        for (const p of batch) next.add(p);
+        return next;
+      });
+
+      // 5 concurrent loadDiff per batch
+      let loadIdx = 0;
+      const loadNext = () => {
+        if (loadIdx >= batch.length) return;
+        const relPath = batch[loadIdx++];
+        if (!diffs[relPath] && !loadingDiffs[relPath]) {
+          loadDiff(relPath).then(loadNext);
+        } else {
+          loadNext();
+        }
+      };
+      for (let i = 0; i < Math.min(5, batch.length); i++) loadNext();
+
+      requestIdleCallback(expandBatch);
     };
-    // Start 5 concurrent loaders
-    for (let i = 0; i < Math.min(5, toLoad.length); i++) loadNext();
+
+    expandBatch();
   };
 
   const collapseAll = () => {
@@ -145,9 +230,14 @@ export default memo(function ReviewView() {
     return () => window.removeEventListener("neovate:open-review", handler);
   }, []);
 
-  // Scroll to file from file tree
+  // Scroll to file from file tree — force visible to bypass intersection observer
   const diffContainerRef = useRef<HTMLDivElement>(null);
   const scrollToFile = (relPath: string) => {
+    setForceVisibleFiles((prev) => {
+      const next = new Set(prev);
+      next.add(relPath);
+      return next;
+    });
     if (!expandedFiles.has(relPath)) {
       toggleFile(relPath);
     }
@@ -233,6 +323,11 @@ export default memo(function ReviewView() {
     return null;
   };
 
+  // L2: File-level guards
+  const isBinary = (content: string) => content.slice(0, 8192).includes("\0");
+  const isFileTooLarge = (diff: { oldContent: string; newContent: string }) =>
+    diff.oldContent.length + diff.newContent.length > FILE_SIZE_LIMIT;
+
   const renderFileDiff = (file: ReviewFile) => {
     const isExpanded = expandedFiles.has(file.relPath);
     const diff = diffs[file.relPath];
@@ -268,18 +363,26 @@ export default memo(function ReviewView() {
                 <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : diff ? (
-              diff.oldContent === "" && diff.newContent === "" ? (
+              isBinary(diff.oldContent) || isBinary(diff.newContent) ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  {t("review.binaryFile")}
+                </div>
+              ) : isFileTooLarge(diff) ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  {t("review.fileTooLarge")}
+                </div>
+              ) : diff.oldContent === "" && diff.newContent === "" ? (
                 <div className="py-4 text-center text-sm text-muted-foreground">
                   {t("review.noChanges")}
                 </div>
               ) : (
-                <MultiFileDiff
-                  oldFile={{ name: file.fileName, contents: diff.oldContent }}
-                  newFile={{ name: file.fileName, contents: diff.newContent }}
-                  options={{
-                    theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-                    diffStyle,
-                  }}
+                <LazyDiffContent
+                  file={file}
+                  diff={diff}
+                  options={diffOptions}
+                  forceVisible={forceVisibleFiles.has(file.relPath)}
+                  lastHeight={diffHeights[file.relPath]}
+                  onHeightChange={(h) => setDiffHeights((prev) => ({ ...prev, [file.relPath]: h }))}
                 />
               )
             ) : null}
@@ -402,6 +505,14 @@ export default memo(function ReviewView() {
       {!loading && !error && files.length > 0 && (
         <div className="px-3 py-1 text-xs text-muted-foreground border-b shrink-0">
           {statsLine()}
+        </div>
+      )}
+
+      {/* L2: High file count warning */}
+      {!loading && !error && files.length > HIGH_FILE_COUNT && (
+        <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950 border-b shrink-0">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+          {t("review.highFileCount", { count: files.length })}
         </div>
       )}
 

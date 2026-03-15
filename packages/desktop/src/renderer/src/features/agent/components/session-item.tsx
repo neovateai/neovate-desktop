@@ -3,7 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { formatDistanceToNowStrict } from "date-fns";
 import debug from "debug";
 import { Archive, Circle, Pin, PinOff } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import type { TurnResult } from "../store";
 
@@ -72,6 +72,7 @@ export const SessionItem = memo(function SessionItem({
 
   const displayTitle = title || sessionId.slice(0, 8);
   const isProcessing = isStreaming || isRestoring;
+  const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
 
   const handlePinToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -212,7 +213,7 @@ export const SessionItem = memo(function SessionItem({
               isConfirming && "hidden",
             )}
           >
-            {formatRelativeTime(createdAt)}
+            {relativeTime}
           </span>
           {isConfirming ? (
             <button

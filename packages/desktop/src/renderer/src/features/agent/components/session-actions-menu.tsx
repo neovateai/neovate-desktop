@@ -42,10 +42,10 @@ export function SessionActionsMenu({
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
   const isPinned = (pinnedSessions[projectPath] ?? []).includes(sessionId);
 
-  const sessions = useAgentStore((s) => s.sessions);
-  const session = sessions.get(sessionId);
-  const cwd = session?.cwd ?? projectPath;
-  const isNew = session?.isNew ?? false;
+  const sessionCwd = useAgentStore((s) => s.sessions.get(sessionId)?.cwd);
+  const sessionIsNew = useAgentStore((s) => s.sessions.get(sessionId)?.isNew);
+  const cwd = sessionCwd ?? projectPath;
+  const isNew = sessionIsNew ?? false;
 
   const handleCopySessionId = () => {
     log("copySessionId: %s", sessionId.slice(0, 8));

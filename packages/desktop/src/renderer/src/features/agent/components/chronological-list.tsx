@@ -29,18 +29,18 @@ export const ChronologicalList = memo(function ChronologicalList() {
   const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
 
   const handleActivate = useCallback(
-    (sessionId: string, projectPath: string) => {
-      switchToProjectByPath(projectPath);
+    (sessionId: string, projectPath?: string) => {
+      if (projectPath) switchToProjectByPath(projectPath);
       setActiveSession(sessionId);
     },
     [switchToProjectByPath, setActiveSession],
   );
 
   const handleLoad = useCallback(
-    async (sessionId: string, projectPath: string) => {
+    async (sessionId: string, projectPath?: string) => {
       setRestoring(sessionId);
       try {
-        switchToProjectByPath(projectPath);
+        if (projectPath) switchToProjectByPath(projectPath);
         await loadSession(sessionId);
       } finally {
         setRestoring((prev) => (prev === sessionId ? null : prev));
@@ -64,8 +64,8 @@ export const ChronologicalList = memo(function ChronologicalList() {
             activeSessionId={activeSessionId}
             isPinned={false}
             restoring={restoring}
-            onActivate={(sid) => handleActivate(sid, item.projectPath)}
-            onLoad={(sid) => handleLoad(sid, item.projectPath)}
+            onActivate={handleActivate}
+            onLoad={handleLoad}
           />
         );
       })}

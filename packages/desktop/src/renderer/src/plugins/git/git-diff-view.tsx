@@ -1,7 +1,7 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
 import { Columns2, AlignJustify, File, FilePlus, GitBranch, GitCommit } from "lucide-react";
 import { useTheme } from "next-themes";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
@@ -30,6 +30,17 @@ export default memo(function GitDiffView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [diffStyle, setDiffStyle] = useState<DiffStyle>("unified");
+
+  const diffOptions = useMemo(
+    () => ({
+      theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
+      diffStyle,
+      expandUnchanged: false,
+      expansionLineCount: 20,
+      tokenizeMaxLineLength: 500,
+    }),
+    [resolvedTheme, diffStyle],
+  );
 
   const oldFile = {
     name: diffData?.fileName || "",
@@ -207,29 +218,16 @@ export default memo(function GitDiffView() {
           <MultiFileDiff
             oldFile={{ name: "(empty)", contents: "" }}
             newFile={newFile}
-            options={{
-              theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-              diffStyle,
-            }}
+            options={diffOptions}
           />
         ) : isDeletedFile ? (
           <MultiFileDiff
             oldFile={oldFile}
             newFile={{ name: "(empty)", contents: "" }}
-            options={{
-              theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-              diffStyle,
-            }}
+            options={diffOptions}
           />
         ) : (
-          <MultiFileDiff
-            oldFile={oldFile}
-            newFile={newFile}
-            options={{
-              theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-              diffStyle,
-            }}
-          />
+          <MultiFileDiff oldFile={oldFile} newFile={newFile} options={diffOptions} />
         )}
       </div>
     </div>

@@ -34,8 +34,6 @@
   "review.menu.hideFileTree": "Hide File Tree",
   "review.menu.expandAll": "Expand All",
   "review.menu.collapseAll": "Collapse All",
-  "review.diffs.showingLines": "Showing {{current}}/{{total}} lines",
-  "review.diffs.showMore": "Show {{count}} more lines",
-  "review.diffs.showAll": "Show all",
-  "review.diffs.loadingMore": "Loading more content..."
+  "review.highFileCount": "{{count}} files — large diff may be slow. All files collapsed by default.",
+  "review.expandAllConfirm": "This will expand {{count}} files. This may be slow. Continue?"
 }

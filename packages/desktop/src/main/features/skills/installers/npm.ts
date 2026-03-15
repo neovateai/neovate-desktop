@@ -24,13 +24,13 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   async scan(sourceRef: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
-    log("scan", { sourceRef });
-    const pkg = this.normalizePackage(sourceRef);
+    const { pkg, registry } = this.parseSourceRef(sourceRef);
+    log("scan", { pkg, registry: registry ?? "default" });
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
     await mkdir(tmpDir, { recursive: true });
 
-    await this.fetchAndExtract(pkg, tmpDir);
+    await this.fetchAndExtract(pkg, tmpDir, registry);
 
     this.previewDirs.set(previewId, tmpDir);
     // npm pack extracts to a "package" subdirectory
@@ -40,14 +40,14 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
-    log("install", { sourceRef, skillName, targetDir });
-    const pkg = this.normalizePackage(sourceRef);
+    const { pkg, registry } = this.parseSourceRef(sourceRef);
+    log("install", { pkg, skillName, targetDir, registry: registry ?? "default" });
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
     await mkdir(tmpDir, { recursive: true });
 
     try {
-      await this.fetchAndExtract(pkg, tmpDir);
+      await this.fetchAndExtract(pkg, tmpDir, registry);
       const extractedDir = path.join(tmpDir, "package");
       const src = path.join(extractedDir, skillName);
       const dest = path.join(targetDir, skillName);
@@ -85,10 +85,13 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   async getLatestVersion(sourceRef: string): Promise<string | undefined> {
-    log("getLatestVersion", { sourceRef });
+    const { pkg: rawPkg, registry } = this.parseSourceRef(sourceRef);
+    const pkg = rawPkg.replace(/@[\d.]+$/, "");
+    log("getLatestVersion", { pkg, registry: registry ?? "default" });
     try {
-      const pkg = this.normalizePackage(sourceRef).replace(/@[\d.]+$/, "");
-      const { stdout } = await execFileAsync("npm", ["view", pkg, "version"], {
+      const args = ["view", pkg, "version"];
+      if (registry) args.push("--registry", registry);
+      const { stdout } = await execFileAsync("npm", args, {
         timeout: 15_000,
       });
       return stdout.trim() || undefined;
@@ -97,13 +100,21 @@ export class NpmInstaller implements SkillInstaller {
     }
   }
 
-  private normalizePackage(sourceRef: string): string {
-    return sourceRef.replace(/^npm:/, "");
+  private parseSourceRef(sourceRef: string): { pkg: string; registry?: string } {
+    const raw = sourceRef.replace(/^npm:/, "");
+    const qIdx = raw.indexOf("?registry=");
+    if (qIdx === -1) return { pkg: raw };
+    return {
+      pkg: raw.slice(0, qIdx),
+      registry: raw.slice(qIdx + "?registry=".length),
+    };
   }
 
-  private async fetchAndExtract(pkg: string, destDir: string): Promise<void> {
+  private async fetchAndExtract(pkg: string, destDir: string, registry?: string): Promise<void> {
     // npm pack downloads tarball to cwd
-    await execFileAsync("npm", ["pack", pkg, "--pack-destination", destDir], {
+    const args = ["pack", pkg, "--pack-destination", destDir];
+    if (registry) args.push("--registry", registry);
+    await execFileAsync("npm", args, {
       timeout: 60_000,
       cwd: destDir,
     });
