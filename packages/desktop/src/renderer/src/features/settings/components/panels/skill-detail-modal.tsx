@@ -1,3 +1,4 @@
+import debug from "debug";
 import { ArrowUpCircle, FolderOpen, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +31,8 @@ import {
 import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { client } from "../../../../orpc";
+
+const log = debug("neovate:settings:skills");
 
 interface SkillDetailModalProps {
   skill?: SkillMeta;
@@ -100,6 +103,7 @@ export const SkillDetailModal = ({
 
   const handleRemove = async () => {
     if (!skill) return;
+    log("removing skill: name=%s scope=%s", skill.name, skill.scope);
     setRemoving(true);
     try {
       await client.skills.remove({
@@ -125,6 +129,7 @@ export const SkillDetailModal = ({
 
   const handleUpdate = async () => {
     if (!skill) return;
+    log("updating skill: name=%s scope=%s", skill.name, skill.scope);
     setUpdating(true);
     try {
       await client.skills.update({
@@ -141,6 +146,7 @@ export const SkillDetailModal = ({
 
   const handleInstall = async () => {
     if (!recommendedSkill || !onInstall) return;
+    log("installing recommended skill: name=%s scope=%s", recommendedSkill.name, installScope);
     setInstalling(true);
     try {
       const scope = installScope === "global" ? "global" : "project";
