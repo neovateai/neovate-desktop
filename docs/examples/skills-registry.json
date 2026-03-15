@@ -62,5 +62,13 @@
     "sourceRef": "npm:@claude-skills/i18n-helper@1.0.1",
     "skillName": "i18n-helper",
     "version": "1.0.1"
+  },
+  {
+    "name": "Corp Deploy",
+    "description": "Internal deploy helper for corporate infrastructure",
+    "source": "npm",
+    "sourceRef": "npm:@corp/skills-pack@1.0.0?registry=https://registry.tnpm.example.com/",
+    "skillName": "corp-deploy",
+    "version": "1.0.0"
   }
 ]
