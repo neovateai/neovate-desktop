@@ -21,13 +21,10 @@ async function beforePack(context) {
   if (!arch) throw new Error(`Unsupported arch: ${context.arch}`);
 
   console.log(`  • downloading bun for ${context.packager.platform.name}/${arch}...`);
-  execSync(
-    `bun scripts/download-bun.ts --platform ${context.packager.platform.name} --arch ${arch}`,
-    {
-      cwd: projectDir,
-      stdio: "inherit",
-    },
-  );
+  execSync(`bun scripts/download-bun.ts --platform darwin --arch ${arch}`, {
+    cwd: projectDir,
+    stdio: "inherit",
+  });
 }
 
 const config = {
