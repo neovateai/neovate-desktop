@@ -37,6 +37,7 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
 
   const fetchBranches = useCallback(
     async (searchQuery = "") => {
+      log("fetchBranches: cwd=%s query=%s", cwd, searchQuery);
       setLoading(true);
       setError(null);
       try {
@@ -46,11 +47,17 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
           limit: searchQuery ? undefined : 50,
         });
         if (result.success && result.data) {
+          log(
+            "fetchBranches: count=%d current=%s",
+            result.data.branches.length,
+            result.data.current,
+          );
           setBranches(result.data.branches);
           setCurrentBranch(result.data.current);
           setDetachedHead(result.data.detachedHead);
           setIsGitRepo(true);
         } else {
+          log("fetchBranches: error %s", result.error);
           setIsGitRepo(false);
           setError(result.error ?? t("branch.loadFailed"));
         }
@@ -79,10 +86,12 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
       .branches({ cwd, limit: 1 })
       .then((result) => {
         if (result.success && result.data) {
+          log("initialCheck: cwd=%s current=%s", cwd, result.data.current);
           setCurrentBranch(result.data.current);
           setDetachedHead(result.data.detachedHead);
           setIsGitRepo(true);
         } else {
+          log("initialCheck: not a git repo cwd=%s", cwd);
           setIsGitRepo(false);
         }
       })
@@ -138,6 +147,7 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
   );
 
   const handleCreated = useCallback((name: string) => {
+    log("branchCreated: name=%s", name);
     setCurrentBranch(name);
     setDetachedHead(undefined);
   }, []);

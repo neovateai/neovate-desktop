@@ -1,6 +1,7 @@
 import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { formatDistanceToNowStrict } from "date-fns";
+import debug from "debug";
 import { Archive, Circle, Pin, PinOff } from "lucide-react";
 import { memo, useState } from "react";
 
@@ -18,6 +19,8 @@ import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
 import { SessionActionsMenu } from "./session-actions-menu";
+
+const log = debug("neovate:session");
 
 function formatRelativeTime(iso: string): string {
   const distance = formatDistanceToNowStrict(new Date(iso), { addSuffix: false });
@@ -72,11 +75,13 @@ export const SessionItem = memo(function SessionItem({
 
   const handlePinToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    log("pinToggle: sid=%s isPinned=%s", sessionId, isPinned);
     togglePinSession(projectPath, sessionId);
   };
 
   const handleArchive = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    log("archive: sid=%s isActive=%s", sessionId, isActive);
     archiveSession(projectPath, sessionId, isActive);
     setIsConfirming(false);
   };
@@ -89,8 +94,10 @@ export const SessionItem = memo(function SessionItem({
   const handleSaveRename = async () => {
     const trimmed = editingValue.trim();
     if (trimmed && trimmed !== title) {
+      log("saveRename: sid=%s title=%s", sessionId, trimmed);
       try {
         await renameSession(sessionId, trimmed);
+        log("saveRename: done sid=%s", sessionId);
       } catch (error) {
         console.error("Failed to rename session:", error);
       }
