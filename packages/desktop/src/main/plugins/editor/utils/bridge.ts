@@ -108,6 +108,7 @@ export class ExtensionBridgeServer extends EventEmitter {
           });
 
           socket.on("close", () => {
+            log("client disconnected", { cwd: currentCwd });
             if (currentCwd) {
               this.clients.delete(currentCwd);
             }

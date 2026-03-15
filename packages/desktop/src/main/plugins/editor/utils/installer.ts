@@ -102,11 +102,8 @@ function readExtensionManifest(tempDir: string): ExtensionManifest {
   }
 
   if (!fs.existsSync(manifestPath)) {
-    console.error("[readExtensionManifest] extension manifest not found, directory contents:");
-    const files = fs.readdirSync(tempDir, { withFileTypes: true });
-    files.forEach((file) => {
-      console.error(`  ${file.isDirectory() ? "📁" : "📄"} ${file.name}`);
-    });
+    const entries = fs.readdirSync(tempDir, { withFileTypes: true }).map((f) => f.name);
+    log("extension manifest not found at %s, dir contents: %o", manifestPath, entries);
     throw new Error(`Extension manifest not found. Lookup failed at: ${manifestPath}`);
   }
 
@@ -116,7 +113,7 @@ function readExtensionManifest(tempDir: string): ExtensionManifest {
 
     // 验证必要的字段，但允许 publisher 为空（使用 undefined_publisher）
     if (!manifest.name || !manifest.version) {
-      console.error("[readExtensionManifest] manifest missing required fields:", {
+      log("manifest missing required fields", {
         publisher: manifest.publisher,
         name: manifest.name,
         version: manifest.version,

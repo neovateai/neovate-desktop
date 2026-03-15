@@ -34,7 +34,10 @@ function EditorViewCore(props: { cwd: string }) {
     initRef.current = true;
 
     startEditor();
-    client.editor.connect().then(() => seExtReady(true));
+    client.editor.connect().then(() => {
+      log("extension bridge connected");
+      seExtReady(true);
+    });
   }, [cwd]);
 
   useEffect(() => {
@@ -50,6 +53,7 @@ function EditorViewCore(props: { cwd: string }) {
 
   useEffect(() => {
     if (extReady) {
+      log("setting theme", { theme: resolvedTheme });
       client.editor.setTheme({ cwd, theme: resolvedTheme || "dark" });
     }
   }, [resolvedTheme, extReady]);
@@ -61,6 +65,7 @@ function EditorViewCore(props: { cwd: string }) {
       if (!fullPath) {
         return;
       }
+      log("opening file", { fullPath, line });
       client.editor.open({ cwd, filePath: fullPath, line });
       // @ts-ignore 清理
       window.pendingEditorRequest = undefined;
