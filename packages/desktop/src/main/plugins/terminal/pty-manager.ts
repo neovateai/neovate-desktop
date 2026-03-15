@@ -1,9 +1,12 @@
 import type { IPty } from "node-pty";
 
 import { EventPublisher } from "@orpc/server";
+import debug from "debug";
 import * as pty from "node-pty";
 
 import { ShellEnvService } from "./shell-env-service";
+
+const log = debug("neovate:terminal:pty");
 
 export interface PtySession {
   pty: IPty;
@@ -32,19 +35,26 @@ export class PtyManager {
     const publisher = new EventPublisher<{ data: string }>();
     const exitController = new AbortController();
 
+    const cwd = opts.cwd ?? process.env.HOME;
+    log("spawning pty", { shell, cwd, cols, rows });
+
     const term = pty.spawn(shell, [], {
       name: "xterm-256color",
       cols,
       rows,
-      cwd: opts.cwd ?? process.env.HOME,
+      cwd,
       env: shellEnv,
     });
 
     term.onData((chunk) => publisher.publish("data", chunk));
-    term.onExit(() => exitController.abort());
+    term.onExit(() => {
+      log("pty exited", { sessionId });
+      exitController.abort();
+    });
 
     const sessionId = crypto.randomUUID();
     this.#sessions.set(sessionId, { pty: term, publisher, exitController });
+    log("pty session created", { sessionId });
     return sessionId;
   }
 
@@ -64,6 +74,7 @@ export class PtyManager {
   kill(sessionId: string): void {
     const session = this.#sessions.get(sessionId);
     if (!session) return;
+    log("killing pty session", { sessionId });
     this.#sessions.delete(sessionId);
     try {
       session.pty.kill();
@@ -73,6 +84,8 @@ export class PtyManager {
   }
 
   killAll(): void {
+    const count = this.#sessions.size;
+    log("killing all pty sessions", { count });
     for (const sessionId of this.#sessions.keys()) {
       this.kill(sessionId);
     }

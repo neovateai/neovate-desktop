@@ -6,6 +6,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
+import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import "@xterm/xterm/css/xterm.css";
@@ -14,6 +15,8 @@ import { usePluginContext } from "../../core/app";
 import { useConfigStore } from "../../features/config/store";
 import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
+
+const log = debug("neovate:terminal");
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
 
@@ -220,12 +223,15 @@ export default function TerminalView() {
       const rows = Math.max(1, xterm.rows);
 
       const cwd = useProjectStore.getState().activeProject?.path;
+      log("spawning terminal session", { cwd, cols, rows });
       const result = await client.terminal.spawn({ cwd, cols, rows });
       if (!mounted) {
+        log("unmounted before session ready, killing", { sessionId: result.sessionId });
         client.terminal.kill({ sessionId: result.sessionId });
         return;
       }
       sessionId = result.sessionId;
+      log("terminal session ready", { sessionId });
 
       xterm.options.disableStdin = false;
       const inputDisposable = xterm.onData((data) => {
@@ -233,6 +239,7 @@ export default function TerminalView() {
       });
 
       try {
+        log("starting output stream", { sessionId });
         const stream = await (client as any).terminal.stream(
           { sessionId },
           { signal: abortController.signal },
@@ -241,6 +248,7 @@ export default function TerminalView() {
           xterm.write(chunk as string);
         }
         // Stream ended naturally (PTY exited)
+        log("stream ended naturally", { sessionId });
         if (mounted) {
           xterm.write("\r\n\x1b[90mProcess exited.\x1b[0m\r\n");
           xterm.options.disableStdin = true;
@@ -255,6 +263,7 @@ export default function TerminalView() {
 
     return () => {
       mounted = false;
+      log("unmounting terminal, cleaning up", { sessionId });
       xtermRef.current = null;
       fitAddonRef.current = null;
       searchAddonRef.current = null;
