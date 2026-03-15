@@ -1,0 +1,9 @@
+packages/desktop/vendor/
+packages/desktop/dist/
+packages/desktop/release/
+packages/desktop/out/
+node_modules/
+bun.lock
+packages/desktop/src/renderer/src/components/ui/
+packages/desktop/src/renderer/src/locales/
+packages/desktop/src/renderer/src/assets/

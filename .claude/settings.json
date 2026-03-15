@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun test:run*)",
+      "Bash(bun check)",
+      "Bash(bun lint)",
+      "Bash(bun format*)",
+      "Bash(bun run --filter=neovate-desktop typecheck)",
+      "Bash(bun ready*)",
+      "Bash(oxlint*)",
+      "Bash(oxfmt*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)"
+    ]
+  }
+}
