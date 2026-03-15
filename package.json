@@ -19,6 +19,7 @@
     "build:unpack": "bun run --filter=neovate-desktop build:unpack",
     "build:mac": "bun run --filter=neovate-desktop build:mac",
     "build:mac:dev": "bun run --filter=neovate-desktop build:mac:dev",
+    "release": "bunx bumpp packages/desktop/package.json",
     "ready": "bun scripts/ready.ts",
     "prepare": "husky"
   },

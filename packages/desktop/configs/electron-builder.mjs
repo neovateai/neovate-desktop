@@ -46,6 +46,7 @@ const config = {
       provider: "github",
       owner: "neovateai",
       repo: "neovate-desktop",
+      releaseType: "draft",
     },
   ],
 
