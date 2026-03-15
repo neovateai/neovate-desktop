@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { ChatSession } from "../store";
@@ -11,6 +11,38 @@ export type UnifiedItem =
   | { kind: "memory"; session: ChatSession; projectPath: string }
   | { kind: "persisted"; info: SessionInfo; projectPath: string };
 
+/** Returns true when session metadata relevant to the list hasn't changed. */
+function sessionsMetaEqual(a: Map<string, ChatSession>, b: Map<string, ChatSession>): boolean {
+  if (a.size !== b.size) return false;
+  for (const [id, sa] of a) {
+    const sb = b.get(id);
+    if (
+      !sb ||
+      sa.sessionId !== sb.sessionId ||
+      sa.cwd !== sb.cwd ||
+      sa.title !== sb.title ||
+      sa.createdAt !== sb.createdAt ||
+      sa.isNew !== sb.isNew
+    )
+      return false;
+  }
+  return true;
+}
+
+/**
+ * Returns a referentially stable `sessions` Map that only changes when
+ * session metadata (id, cwd, title, createdAt, isNew) actually differs.
+ * This prevents the downstream useMemo from recomputing on every chat message.
+ */
+function useStableSessions(): Map<string, ChatSession> {
+  const sessions = useAgentStore((s) => s.sessions);
+  const ref = useRef(sessions);
+  if (!sessionsMetaEqual(ref.current, sessions)) {
+    ref.current = sessions;
+  }
+  return ref.current;
+}
+
 interface UseFilteredSessionsOptions {
   /** Filter to a specific project path. If omitted, includes all registered projects. */
   projectPath?: string;
@@ -22,7 +54,7 @@ export function useFilteredSessions({
   projectPath,
   filter,
 }: UseFilteredSessionsOptions): UnifiedItem[] {
-  const sessions = useAgentStore((s) => s.sessions);
+  const sessions = useStableSessions();
   const agentSessions = useAgentStore((s) => s.agentSessions);
   const projects = useProjectStore((s) => s.projects);
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
