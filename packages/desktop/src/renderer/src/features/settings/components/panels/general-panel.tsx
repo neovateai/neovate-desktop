@@ -1,5 +1,6 @@
 import createDebug from "debug";
 import { Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Input } from "../../../../components/ui/input";
@@ -32,6 +33,24 @@ export const GeneralPanel = () => {
     setConfig("locale", newLocale as Locales);
     app.i18nManager.applyUILocale(newLocale as Locales);
   };
+
+  // Debounced terminal font input
+  const [localTerminalFont, setLocalTerminalFont] = useState(config.terminalFont);
+  const terminalFontTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    setLocalTerminalFont(config.terminalFont);
+  }, [config.terminalFont]);
+
+  useEffect(() => {
+    if (localTerminalFont === config.terminalFont) return;
+    terminalFontTimerRef.current = setTimeout(() => {
+      setConfig("terminalFont", localTerminalFont);
+    }, 500);
+    return () => {
+      if (terminalFontTimerRef.current) clearTimeout(terminalFontTimerRef.current);
+    };
+  }, [localTerminalFont]);
 
   const handleRunOnStartupChange = async (enabled: boolean) => {
     setConfig("runOnStartup", enabled);
@@ -113,7 +132,7 @@ export const GeneralPanel = () => {
             max={32}
             value={config.terminalFontSize}
             onChange={(e) => setConfig("terminalFontSize", Number(e.target.value))}
-            className="w-20"
+            className="w-24"
           />
         </SettingsRow>
 
@@ -124,8 +143,8 @@ export const GeneralPanel = () => {
         >
           <Input
             type="text"
-            value={config.terminalFont}
-            onChange={(e) => setConfig("terminalFont", e.target.value)}
+            value={localTerminalFont}
+            onChange={(e) => setLocalTerminalFont(e.target.value)}
             placeholder={t("settings.general.terminalFont.default")}
             className="w-40"
           />

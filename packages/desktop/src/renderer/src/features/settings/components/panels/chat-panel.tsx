@@ -106,7 +106,7 @@ export const ChatPanel = () => {
             value={config.agentLanguage}
             onValueChange={(val) => setConfig("agentLanguage", val as AgentLanguage)}
           >
-            <SelectTrigger size="sm" className="w-36">
+            <SelectTrigger size="sm" className="min-w-36">
               <SelectValue placeholder={t("settings.chat.selectPlaceholder")}>
                 {t(agentLanguageKeys[config.agentLanguage])}
               </SelectValue>
@@ -127,7 +127,7 @@ export const ChatPanel = () => {
             value={config.permissionMode}
             onValueChange={(val) => setConfig("permissionMode", val as ConfigPermissionMode)}
           >
-            <SelectTrigger size="sm" className="w-36">
+            <SelectTrigger size="sm" className="min-w-36">
               <SelectValue>{t(permissionModeKeys[config.permissionMode])}</SelectValue>
             </SelectTrigger>
             <SelectPopup>
@@ -152,7 +152,10 @@ export const ChatPanel = () => {
             onChange={(val) => setConfig("sendMessageWith", val as SendMessageWith)}
             options={[
               { value: "enter", label: "Enter" },
-              { value: "cmdEnter", label: "⌘+Enter" },
+              {
+                value: "cmdEnter",
+                label: /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? "⌘+Enter" : "Ctrl+Enter",
+              },
             ]}
           />
         </SettingsRow>

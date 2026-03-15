@@ -138,6 +138,9 @@
   "settings.providers.validation.apiKeyRequired": "API 密钥不能为空",
   "settings.providers.validation.modelRequired": "至少需要一个模型",
   "settings.providers.validation.modelMapInvalid": "模型映射 \"{{slot}}\" 引用了不存在的模型 \"{{modelId}}\"",
+  "settings.providers.saveFailed": "保存服务商失败",
+  "settings.providers.deleteFailed": "删除服务商失败",
+  "settings.providers.toggleFailed": "切换服务商失败",
 
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",

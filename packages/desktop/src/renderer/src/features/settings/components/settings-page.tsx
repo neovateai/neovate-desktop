@@ -52,7 +52,7 @@ export const SettingsPage = () => {
             WebkitAppRegion: "drag",
           }}
         />
-        <div className="px-8 pb-8">
+        <div className="mx-auto max-w-3xl px-8 pb-8">
           {activeMenu === "chat" && <ChatPanel />}
           {activeMenu === "rules" && <RulesPanel />}
           {activeMenu === "general" && <GeneralPanel />}
