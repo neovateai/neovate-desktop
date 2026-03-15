@@ -1,7 +1,10 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
+import debug from "debug";
 import { Columns2, AlignJustify, File, FilePlus, GitBranch, GitCommit } from "lucide-react";
 import { useTheme } from "next-themes";
 import { memo, useEffect, useState } from "react";
+
+const log = debug("neovate:git:diff");
 
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
@@ -45,6 +48,7 @@ export default memo(function GitDiffView() {
       const { relPath = "", isStaged = false } =
         (e as CustomEvent<{ relPath: string; isStaged: boolean }>)?.detail || {};
       if (relPath) {
+        log("handleOpenGitDiff", { relPath, isStaged });
         setCurrentFilePath(relPath);
         loadDiff(relPath, isStaged ? "staged" : "working");
       }
@@ -73,7 +77,7 @@ export default memo(function GitDiffView() {
 
   const loadDiff = async (relPath: string, type: "working" | "staged") => {
     if (!cwd) return;
-
+    log("loadDiff", { relPath, type });
     setLoading(true);
     setError(null);
 

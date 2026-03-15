@@ -1,6 +1,9 @@
 import type { ContractRouterClient } from "@orpc/contract";
 
+import debug from "debug";
 import { useState } from "react";
+
+const log = debug("neovate:git");
 
 import type { GitFile } from "../../../../../shared/plugins/git/contract";
 
@@ -22,8 +25,9 @@ export function useGit(cwd: string) {
   const [loading, setLoading] = useState(true);
 
   const refreshGitStatus = async (workingDir: string, withLoading = true) => {
+    log("refreshGitStatus", { workingDir, withLoading });
     if (withLoading) {
-      setLoading(true); // withLoading=false, 静默刷新
+      setLoading(true);
     }
     try {
       const res = await client.git.files({ cwd: workingDir });
@@ -44,10 +48,9 @@ export function useGit(cwd: string) {
 
   const clearStaged = async () => {
     if (!cwd || stagedFiles.length === 0) return;
-
+    log("clearStaged", { count: stagedFiles.length });
     setLoading(true);
     try {
-      console.log("Clearing staged files:", stagedFiles);
       const res = await client.git.reset({
         cwd,
         files: stagedFiles.map((f) => f.relPath),
@@ -67,7 +70,7 @@ export function useGit(cwd: string) {
 
   const revertAll = async () => {
     if (!cwd) return;
-
+    log("revertAll", { workingCount: workingFiles.length, stagedCount: stagedFiles.length });
     setLoading(true);
     try {
       const allFiles = [...workingFiles, ...stagedFiles];
@@ -110,7 +113,7 @@ export function useGit(cwd: string) {
 
   const revert = async (file: GitFile) => {
     if (!cwd) return;
-
+    log("revert", { relPath: file.relPath, status: file.status });
     try {
       // 对于已跟踪的文件，使用git checkout还原
       if (file.status !== "untracked") {
@@ -138,7 +141,7 @@ export function useGit(cwd: string) {
 
   const add2stage = async (file: GitFile) => {
     if (!cwd) return;
-
+    log("add2stage", { relPath: file.relPath });
     try {
       const res = await client.git.add({ cwd, files: [file.relPath] });
 
@@ -153,7 +156,7 @@ export function useGit(cwd: string) {
 
   const removeFromStage = async (file: GitFile) => {
     if (!cwd) return;
-
+    log("removeFromStage", { relPath: file.relPath });
     try {
       const res = await client.git.reset({ cwd, files: [file.relPath] });
 
@@ -169,7 +172,7 @@ export function useGit(cwd: string) {
 
   const stageAll = async () => {
     if (!cwd || workingFiles.length === 0) return;
-
+    log("stageAll", { count: workingFiles.length });
     setLoading(true);
     try {
       const res = await client.git.add({
