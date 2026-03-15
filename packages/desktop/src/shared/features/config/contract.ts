@@ -27,6 +27,17 @@ const sidebarSortByValueSchema = z.enum(["created", "updated"]);
 export const configContract = {
   get: oc.output(type<AppConfig>()),
 
+  getGlobalModelSelection: oc.output(type<{ providerId?: string; model?: string }>()),
+
+  setGlobalModelSelection: oc
+    .input(
+      z.object({
+        providerId: z.string().nullable(),
+        model: z.string().nullable(),
+      }),
+    )
+    .output(type<void>()),
+
   set: oc
     .input(
       z.union([
