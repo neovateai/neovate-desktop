@@ -1,69 +1,35 @@
-# neovate-desktop
+<div align="center">
+<img src="https://mdn.alipayobjects.com/huamei_9rin5s/afts/img/0uIJQaelzccAAAAAQCAAAAgADiB8AQFr/original" alt="Neovate Logo" width="60" />
+<br />
+<br />
+<img src="https://mdn.alipayobjects.com/huamei_9rin5s/afts/img/UdphTJIBImUAAAAAQKAAAAgADiB8AQFr/original" alt="Neovate Logo Text" width="160" />
 
-ACP protocol Electron client with chat-first experience. Claude Code first, more agents later.
+### Desktop
 
-Successor of [neovate-code-desktop](https://github.com/neovateai/neovate-code-desktop) — rebuilt from scratch with a new architecture.
+---
 
-macOS only.
+[![](https://github.com/neovateai/neovate-desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/neovateai/neovate-desktop/actions/workflows/ci.yml)
+[![](https://img.shields.io/github/license/neovateai/neovate-desktop)](https://github.com/neovateai/neovate-desktop/blob/master/LICENSE)
+[![](https://img.shields.io/badge/platform-macOS-blue)](https://github.com/neovateai/neovate-desktop)
 
-## What Changed
+**Neovate Desktop** is a native desktop app for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), with other code agents coming soon — a feature-rich environment for AI-assisted development with built-in editor, terminal, git, and code review.
 
-- **IPC**: custom IPC → [oRPC](https://orpc.unnoq.com/) (type-safe Main ↔ Renderer)
-- **Agent comm**: WebSocket → [ACP protocol](https://agentclientprotocol.com/) (one subprocess per session, stdio NDJSON)
+</div>
 
-## Architecture
+## Quick Start
 
+Prerequisites: macOS, [Bun](https://bun.sh/) >= 1.3.9
+
+```bash
+git clone https://github.com/neovateai/neovate-desktop.git
+cd neovate-desktop
+bun install
+bun dev
 ```
-Renderer (React 19 + zustand 5)
-    ↕ oRPC (type-safe IPC + ACP event forwarding)
-Main
-    ├── AcpManager → ACP subprocess × N (per session, stdio)
-    └── Store Persistence (local JSON)
-```
 
-## Tech Stack
+## Contributing
 
-| Layer    | Choice                                          |
-| -------- | ----------------------------------------------- |
-| Desktop  | Electron ~40, electron-vite 5, electron-builder |
-| Frontend | React 19, TypeScript 5, Vite 7                  |
-| IPC      | oRPC                                            |
-| Agent    | ACP (`@agentclientprotocol/sdk`)                |
-| State    | zustand 5 (multi-slice)                         |
-| Style    | Tailwind CSS 4, @base-ui/react                  |
-| Terminal | XTerm.js 6 + node-pty                           |
-| Lint     | Biome                                           |
-| Test     | Vitest + @testing-library/react                 |
-| Package  | pnpm                                            |
-
-## Modules
-
-- **Communication**: ACP connection management, oRPC IPC layer
-- **Session & Project**: session CRUD/resume/archive, project management, workspace (branch/worktree isolation)
-- **Chat**: message stream, input, permission approval, question panel, task messages, todo list, diff viewer
-- **Content Panel**: terminal, code editor (code-server), browser (webview), review, multi-tab
-- **Sidebar**: file tree, git panel, search
-- **Layout**: title bar, activity bar, status bar, window management
-- **Settings**: general, providers, MCP, skills, rules, keybindings
-- **Extensions**: plugin system (main + renderer), slash commands, VS Code integration
-- **Infra**: onboarding, auto-update, i18n, state persistence
-
-## Roadmap
-
-| Milestone | Scope                                           | Timeline |
-| --------- | ----------------------------------------------- | -------- |
-| **MVP**   | ACP round-trip, basic chat, permission approval | W1 early |
-| **M1**    | Layout framework, state persistence             | W1 late  |
-| **M2**    | Session/project management, all message types   | W2       |
-| **M3**    | Diff viewer, terminal, sidebar, settings, i18n  | W2-W3    |
-| **M4**    | Editor, browser, review, plugins, auto-update   | W3+      |
-
-## References
-
-- [ACP Protocol](https://agentclientprotocol.com/)
-- [zed-industries/claude-agent-acp](https://github.com/zed-industries/claude-agent-acp)
-- [ThinkInAIXYZ/deepchat](https://github.com/ThinkInAIXYZ/deepchat)
-- [multica-ai/multica](https://github.com/multica-ai/multica)
+Contributions are welcome! Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) file for guidelines on setting up the development environment, running tests, and submitting pull requests.
 
 ## License
 
