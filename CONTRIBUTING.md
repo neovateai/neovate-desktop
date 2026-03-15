@@ -33,23 +33,13 @@ Flags for `bun ready`:
 - `--build` — also run full build
 - `--e2e` — also run e2e tests
 
-## Tips
+## Logging
 
-Enable debug logs during development:
+All logs from both main and renderer processes are automatically written to a single file via `electron-log`:
 
-```sh
-DEBUG=neovate:* bun dev 2>&1 | tee /tmp/dev.log
-```
-
-This prints logs to the terminal and saves them to `/tmp/dev.log` for searching with `grep` or `less`.
-
-You can filter by namespace (e.g. `DEBUG=neovate:acp-router` for just the router).
-
-For renderer-side debug logs, set `localStorage.debug` in DevTools:
-
-```js
-localStorage.debug = "neovate:*";
-```
+- **Dev**: `/tmp/dev.log` (truncated on each app start)
+- Both `console.*` and `debug("neovate:*")` output is captured automatically — no setup needed
+- Search logs with `grep` or `less` against `/tmp/dev.log`
 
 ## UI Playground
 

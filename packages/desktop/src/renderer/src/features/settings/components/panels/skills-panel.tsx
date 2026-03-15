@@ -1,3 +1,4 @@
+import debug from "debug";
 import { ArrowUpCircle, Download, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,6 +27,8 @@ import { useProjectStore } from "../../../project/store";
 import { SkillAddModal } from "./skill-add-modal";
 import { SkillDetailModal } from "./skill-detail-modal";
 
+const log = debug("neovate:settings:skills");
+
 type ScopeFilter = "all" | "global" | string; // string = projectPath
 
 export const SkillsPanel = () => {
@@ -49,23 +52,27 @@ export const SkillsPanel = () => {
 
   const fetchData = useCallback(
     async (forceRefresh = false) => {
+      log("fetchData forceRefresh=%s", forceRefresh);
       setError(null);
       setRecommendedError(null);
       try {
         const installedResult = await client.skills.list({ scope: "all" });
         setInstalled(installedResult);
+        log("fetched installed skills: count=%d", installedResult.length);
       } catch (e: any) {
         setError(e.message || t("settings.skills.loadFailed"));
       }
       try {
         const recommendedResult = await client.skills.recommended({ forceRefresh });
         setRecommended(recommendedResult);
+        log("fetched recommended skills: count=%d", recommendedResult.length);
       } catch (e: any) {
         setRecommendedError(e.message || t("settings.skills.recommendedLoadFailed"));
       }
       try {
         const updatesResult = await client.skills.checkUpdates({ scope: "all" });
         setUpdates(updatesResult);
+        log("fetched skill updates: count=%d", updatesResult.length);
       } catch {
         // Non-critical — silently ignore
       }
@@ -118,6 +125,7 @@ export const SkillsPanel = () => {
 
   const handleToggleEnabled = async (skill: SkillMeta, e: React.MouseEvent) => {
     e.stopPropagation();
+    log("toggle skill: name=%s enabled=%s", skill.name, !skill.enabled);
     try {
       if (skill.enabled) {
         await client.skills.disable({
@@ -143,6 +151,7 @@ export const SkillsPanel = () => {
     scope: "global" | "project",
     projectPath?: string,
   ) => {
+    log("installing recommended skill: name=%s scope=%s", skill.name, scope);
     try {
       await client.skills.install({
         sourceRef: skill.sourceRef,

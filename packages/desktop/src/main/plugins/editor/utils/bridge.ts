@@ -1,8 +1,11 @@
 import type { WebContents } from "electron";
 
+import debug from "debug";
 import { EventEmitter } from "events";
 import net from "net";
 import { randomUUID } from "node:crypto";
+
+const log = debug("neovate:editor:bridge");
 
 interface IBridgeRequestParams {
   operationType: string;
@@ -40,7 +43,7 @@ export class ExtensionBridgeServer extends EventEmitter {
           socket.on("data", async (raw) => {
             try {
               const data = JSON.parse(raw.toString());
-              console.log("ExtensionBridgeServer Received", data);
+              log("received", data);
               const { operationType, params, cwd, result, requestId } = data || {};
 
               // 处理响应（包含requestId的是响应消息）
@@ -105,6 +108,7 @@ export class ExtensionBridgeServer extends EventEmitter {
           });
 
           socket.on("close", () => {
+            log("client disconnected", { cwd: currentCwd });
             if (currentCwd) {
               this.clients.delete(currentCwd);
             }
@@ -119,7 +123,7 @@ export class ExtensionBridgeServer extends EventEmitter {
 
         this.server.once("error", (err: NodeJS.ErrnoException) => {
           if (err.code === "EADDRINUSE" && attempt < maxRetries) {
-            console.warn(`Port ${currentPort} in use, trying ${currentPort + 1}...`);
+            log("port %d in use, trying %d", currentPort, currentPort + 1);
             this.server?.close();
             tryListen(currentPort + 1, attempt + 1);
           } else {
@@ -128,7 +132,7 @@ export class ExtensionBridgeServer extends EventEmitter {
         });
 
         this.server.listen(currentPort, () => {
-          console.log(`Extension Bridge server started on port ${currentPort}`, Date.now());
+          log("server started on port %d", currentPort);
           resolve(currentPort);
         });
       };
@@ -145,6 +149,7 @@ export class ExtensionBridgeServer extends EventEmitter {
     success: boolean;
     data: T;
   }> {
+    log("sending request", { operationType: request.operationType, cwd });
     return new Promise((resolve, reject) => {
       const requestId = randomUUID();
       const data = Buffer.from(
@@ -192,6 +197,7 @@ export class ExtensionBridgeServer extends EventEmitter {
   }
 
   stop() {
+    log("stopping bridge server");
     if (this.server) {
       this.server.close();
       this.clients.forEach((client) => {

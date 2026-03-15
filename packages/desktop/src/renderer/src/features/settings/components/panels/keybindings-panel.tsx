@@ -1,3 +1,4 @@
+import debug from "debug";
 import { Keyboard, Lock } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +14,8 @@ import {
 } from "../../../../lib/keybindings";
 import { cn } from "../../../../lib/utils";
 import { useConfigStore } from "../../../config/store";
+
+const log = debug("neovate:settings:keybindings");
 
 const KEYBINDING_ACTIONS: KeybindingAction[] = [
   "openSettings",
@@ -177,16 +180,24 @@ export const KeybindingsPanel = () => {
 
     const conflict = findConflict(newBinding, action);
     if (conflict) {
+      log(
+        "keybinding conflict: action=%s binding=%s conflicts with %s",
+        action,
+        newBinding,
+        conflict,
+      );
       setConflictInfo({ action, conflictWith: conflict });
       // Don't save, just show error
       return;
     }
 
+    log("keybinding set: action=%s binding=%s", action, newBinding);
     setConflictInfo(null);
     setKeybinding(action, newBinding);
   };
 
   const handleReset = () => {
+    log("resetting all keybindings to defaults");
     resetKeybindings();
     setConflictInfo(null);
   };

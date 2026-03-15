@@ -1,7 +1,10 @@
+import debug from "debug";
 import fs from "node:fs";
 import path from "node:path";
 
 import { getCodeServerBinaryPath } from "./constants";
+
+const log = debug("neovate:editor:injector");
 
 /** 通过修改产物的方式实现强制样式修改 */
 const OVERWRITE_CSS = `
@@ -38,6 +41,7 @@ const OVERWRITE_CSS = `
 `;
 
 export function injectStyle() {
+  log("injecting custom styles");
   try {
     const resource = getCodeServerBinaryPath();
     const workbenchDir = path.join(

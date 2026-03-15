@@ -1,7 +1,10 @@
+import debug from "debug";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
+
+const log = debug("neovate:skills");
 
 import type {
   InstallMeta,
@@ -53,6 +56,7 @@ export class SkillsService {
   }
 
   async list(scope: "all" | "global" | "project", projectPath?: string): Promise<SkillMeta[]> {
+    log("list", { scope, projectPath });
     const results: SkillMeta[] = [];
 
     if (scope === "all" || scope === "global") {
@@ -91,6 +95,7 @@ export class SkillsService {
   }
 
   async recommended(forceRefresh?: boolean): Promise<RecommendedSkill[]> {
+    log("recommended", { forceRefresh });
     if (forceRefresh) this.registryCache = null;
 
     const registry = await this.fetchRegistry();
@@ -104,6 +109,7 @@ export class SkillsService {
   }
 
   async preview(source: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
+    log("preview", { source });
     const installer = this.findInstaller(source);
     if (!installer) throw new Error(`No installer found for source: ${source}`);
     return installer.scan(source);
@@ -115,6 +121,7 @@ export class SkillsService {
     scope: "global" | "project",
     projectPath?: string,
   ): Promise<void> {
+    log("install", { sourceRef, skillName, scope, projectPath });
     const targetDir = this.resolveSkillsDir(scope, projectPath);
     await mkdir(targetDir, { recursive: true });
 
@@ -131,6 +138,7 @@ export class SkillsService {
     scope: "global" | "project",
     projectPath?: string,
   ): Promise<void> {
+    log("installFromPreview", { previewId, selectedSkills, scope, projectPath });
     const targetDir = this.resolveSkillsDir(scope, projectPath);
     await mkdir(targetDir, { recursive: true });
 
@@ -146,16 +154,19 @@ export class SkillsService {
   }
 
   async remove(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("remove", { name, scope, projectPath });
     const skillDir = this.resolveSkillDir(name, scope, projectPath);
     await rm(skillDir, { recursive: true, force: true });
   }
 
   async enable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("enable", { name, scope, projectPath });
     const skillDir = this.resolveSkillDir(name, scope, projectPath);
     await rename(path.join(skillDir, "SKILL.md.disabled"), path.join(skillDir, "SKILL.md"));
   }
 
   async disable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("disable", { name, scope, projectPath });
     const skillDir = this.resolveSkillDir(name, scope, projectPath);
     await rename(path.join(skillDir, "SKILL.md"), path.join(skillDir, "SKILL.md.disabled"));
   }
@@ -185,6 +196,7 @@ export class SkillsService {
     scope: "all" | "global" | "project",
     projectPath?: string,
   ): Promise<SkillUpdate[]> {
+    log("checkUpdates", { scope, projectPath });
     const installed = await this.list(scope, projectPath);
     const updates: SkillUpdate[] = [];
 
@@ -211,6 +223,7 @@ export class SkillsService {
   }
 
   async update(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("update", { name, scope, projectPath });
     const skillDir = this.resolveSkillDir(name, scope, projectPath);
 
     const metaPath = path.join(skillDir, INSTALL_META_FILE);
@@ -231,10 +244,12 @@ export class SkillsService {
 
   private async fetchRegistry(): Promise<Omit<RecommendedSkill, "installed">[]> {
     if (this.registryCache && Date.now() - this.registryCache.fetchedAt < CACHE_TTL_MS) {
+      log("fetchRegistry cache hit");
       return this.registryCache.data;
     }
 
     const urls = this.configStore.get("skillsRegistryUrls");
+    log("fetchRegistry fetching", { urlCount: urls?.length ?? 0 });
     if (!urls || urls.length === 0) return [];
 
     const results = await Promise.allSettled(urls.map((url) => this.fetchSingleRegistry(url)));
@@ -265,6 +280,7 @@ export class SkillsService {
   }
 
   private async fetchSingleRegistry(url: string): Promise<Omit<RecommendedSkill, "installed">[]> {
+    log("fetchSingleRegistry", { url });
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();

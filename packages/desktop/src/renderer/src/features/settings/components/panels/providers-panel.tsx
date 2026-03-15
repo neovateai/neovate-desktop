@@ -1,3 +1,4 @@
+import debug from "debug";
 import {
   AlertCircle,
   Check,
@@ -49,6 +50,8 @@ import { BenchmarkMetrics } from "../../../provider/benchmark-metrics";
 import { BenchmarkTooltipContent } from "../../../provider/benchmark-tooltip";
 import { useProviderStore } from "../../../provider/store";
 import { SettingsRow } from "../settings-row";
+
+const log = debug("neovate:settings:providers");
 
 type ProviderFormData = {
   name: string;
@@ -240,6 +243,7 @@ export const ProvidersPanel = () => {
       return;
     }
     setError(null);
+    log("saving provider: name=%s isCreating=%s editingId=%s", form.name, isCreating, editingId);
     try {
       if (isCreating) {
         await addProvider({
@@ -275,6 +279,7 @@ export const ProvidersPanel = () => {
 
   const handleConfirmDelete = useCallback(async () => {
     if (!providerToDelete) return;
+    log("deleting provider: id=%s", providerToDelete);
     try {
       await removeProvider(providerToDelete);
       if (editingId === providerToDelete) cancel();
@@ -287,6 +292,7 @@ export const ProvidersPanel = () => {
 
   const handleToggle = useCallback(
     async (p: Provider) => {
+      log("toggling provider: id=%s enabled=%s", p.id, !p.enabled);
       try {
         await updateProvider(p.id, { enabled: !p.enabled });
       } catch (e) {

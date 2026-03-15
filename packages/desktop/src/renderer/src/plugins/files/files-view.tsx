@@ -49,19 +49,22 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
   useEffect(() => {
     if (!cwd) {
+      log("no cwd, clearing tree");
       setTreeData([]);
       setExpandedKeys(new Set());
       setSelectedKey(null);
       return;
     }
+    log("starting file watch", { cwd });
     refresh(true);
-    // 本地开发调试时，由于严格模式问题，会额外产生一次 useEffect 挂载卸载，导致触发多余的监听和取消监听
-    // 而取消监听有异步现象，会导致后面的一次监听后才执行前一次的取消监听，导致监听器不生效
-    // 本地调试时需要关闭严格模式 StrictMode。生产环境无此问题。
+    // In dev mode, React StrictMode causes an extra mount/unmount cycle, which triggers
+    // redundant watch/unwatch calls. The async unwatch may cancel the subsequent watch.
+    // Disable StrictMode locally to work around this. Not an issue in production.
     const cancel = consumeEventIterator(client.files.watch({ cwd }), {
       onEvent: (e) => {
+        log("fs event", { type: e?.type, path: e?.path });
         if (e?.type !== "content") {
-          refresh(); // 文件系统结构变化，刷新文件树
+          refresh(); // file system structure changed, refresh file tree
         }
         window.dispatchEvent(new CustomEvent("neovate:fs-change", {}));
       },
@@ -74,6 +77,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
   const refresh = async (reset = false) => {
     if (!project) return;
+    log("refresh", { cwd: project.path, reset });
     if (reset) {
       setExpandedKeys(new Set());
       setLoading(true);
@@ -110,7 +114,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
           detail: { fullPath: item.fullPath },
         }),
       );
-      // @ts-ignore 避免 dispatchEvent 时未初始化完成
+      // @ts-ignore avoid accessing before initialization completes
       window.pendingEditorRequest = { fullPath: item.fullPath };
     }
   };
@@ -121,6 +125,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
+    log("confirm delete", { path: itemToDelete.fullPath });
     try {
       const result = await client.files.delete({ path: itemToDelete.fullPath });
       if (result.success) {
@@ -144,6 +149,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
   };
   const handleRename = async (oldPath: string, newPath: string) => {
+    log("rename", { oldPath, newPath });
     try {
       const result = await client.files.rename({ oldPath, newPath });
       if (result.success) {
@@ -158,17 +164,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
       alert(t("error.renameFailed", { error: String(error) }));
     }
   };
-  // TODO: 待实现
+  // TODO: not yet implemented
   const handleCreateFile = async (parentPath: string, name: string) => {
     try {
       alert("Coming soon");
-      console.log(parentPath, name);
+      log("create file", { parentPath, name });
       // const result = await client.files.createFile({
       //   path: parentPath,
       //   name,
       // });
       // if (result.success) {
-      //   // 刷新文件树
+      //   // refresh file tree
       //   await loadFileTree();
       // } else {
       //   alert(t("error.createFileFailed"));
@@ -178,17 +184,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
       alert(t("error.createFileFailed"));
     }
   };
-  // TODO: 待实现
+  // TODO: not yet implemented
   const handleCreateFolder = async (parentPath: string, name: string) => {
     try {
       alert("Coming soon");
-      console.log(parentPath, name);
+      log("create folder", { parentPath, name });
       // const result = await client.files.createFolder({
       //   path: parentPath,
       //   name,
       // });
       // if (result.success) {
-      //   // 刷新文件树
+      //   // refresh file tree
       //   await loadFileTree();
       // } else {
       //   alert(t("error.createFolderFailed"));
@@ -198,7 +204,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       alert(t("error.createFolderFailed"));
     }
   };
-  /** 添加文件到对话 */
+  /** Add file to conversation */
   const handleAddContext = (item: FileTreeItem) => {
     log("insert-chat dispatching mention=%s", item.relPath);
     window.dispatchEvent(

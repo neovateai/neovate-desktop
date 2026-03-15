@@ -1,5 +1,8 @@
+import debug from "debug";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+
+const log = debug("neovate:config");
 
 import type { AppConfig } from "../../../../shared/features/config/types";
 
@@ -51,7 +54,9 @@ export const useConfigStore = create<ConfigState>()(
     loaded: false,
 
     load: async () => {
+      log("loading config");
       const config = await client.config.get();
+      log("config loaded", config);
       set((state) => {
         Object.assign(state, config);
         state.loaded = true;
@@ -60,12 +65,14 @@ export const useConfigStore = create<ConfigState>()(
 
     // Generic setter - handles persistence automatically
     setConfig: (key, value) => {
+      log("setConfig: key=%s", key, value);
       client.config.set({ key, value } as any).catch(() => {});
       set({ [key]: value } as any);
     },
 
     // Specialized setter for keybindings (nested object)
     setKeybinding: (action, binding) => {
+      log("setKeybinding: action=%s binding=%s", action, binding);
       set((state) => {
         state.keybindings[action] = binding;
       });
@@ -73,6 +80,7 @@ export const useConfigStore = create<ConfigState>()(
     },
 
     resetKeybindings: () => {
+      log("resetKeybindings");
       const keybindings = { ...DEFAULT_KEYBINDINGS } as KeybindingsConfig;
       client.config.set({ key: "keybindings", value: keybindings }).catch(() => {});
       set({ keybindings });

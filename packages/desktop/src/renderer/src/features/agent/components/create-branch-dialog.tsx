@@ -1,3 +1,4 @@
+import debug from "debug";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,6 +14,8 @@ import {
 import { Input } from "../../../components/ui/input";
 import { Spinner } from "../../../components/ui/spinner";
 import { client } from "../../../orpc";
+
+const log = debug("neovate:create-branch-dialog");
 
 type TFn = (key: string) => string;
 
@@ -54,17 +57,20 @@ export function CreateBranchDialog({ open, onOpenChange, cwd, currentBranch, onC
 
   const handleCreate = useCallback(async () => {
     if (validationError) return;
+    log("create: name=%s cwd=%s", name, cwd);
     setLoading(true);
     setError(null);
     try {
       const result = await client.git.createBranch({ cwd, name });
       if (result.success) {
+        log("create: success name=%s", name);
         window.dispatchEvent(new CustomEvent("neovate:branch-changed"));
         onCreated(name);
         onOpenChange(false);
         setName("neovate/");
         setError(null);
       } else {
+        log("create: error %s", result.error);
         setError(result.error ?? t("branch.create.failed"));
       }
     } catch (err) {
@@ -76,6 +82,7 @@ export function CreateBranchDialog({ open, onOpenChange, cwd, currentBranch, onC
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
+      log("openChange: %s", nextOpen);
       onOpenChange(nextOpen);
       if (!nextOpen) {
         setName("neovate/");

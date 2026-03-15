@@ -1,5 +1,8 @@
+import debug from "debug";
 import { spawn } from "node:child_process";
 import os from "node:os";
+
+const log = debug("neovate:terminal:shell-env");
 
 /**
  * Options for shell environment extraction.
@@ -50,16 +53,20 @@ export class ShellEnvService {
 
     // Return cached result if available
     if (this.#cache.has(cacheKey)) {
+      log("returning cached environment", { shell });
       return this.#cache.get(cacheKey)!;
     }
 
     // Return pending promise if extraction is in progress
     if (this.#pending.has(cacheKey)) {
+      log("extraction already in progress, reusing pending promise", { shell });
       return this.#pending.get(cacheKey)!;
     }
 
+    log("extracting shell environment", { shell, timeout });
     // Extract and cache
     const promise = this.#extractEnvironment(shell, timeout).then((env) => {
+      log("shell environment extracted", { shell, keys: Object.keys(env).length });
       this.#cache.set(cacheKey, env);
       this.#pending.delete(cacheKey);
       return env;
@@ -94,7 +101,7 @@ export class ShellEnvService {
   #detectShell(): string {
     // macOS only (per design doc)
     if (this.#platform !== "darwin") {
-      console.warn(`[ShellEnv] Platform ${this.#platform} not fully supported, using fallback`);
+      log("platform %s not fully supported, using fallback shell", this.#platform);
       return process.env.SHELL || "/bin/sh";
     }
 
@@ -149,13 +156,13 @@ export class ShellEnvService {
           resolve(env);
         } else {
           // Fallback to process.env on failure
-          console.warn(`[ShellEnv] Extraction failed (exit ${code}): ${stderr.trim()}`);
+          log("extraction failed (exit %d): %s", code, stderr.trim());
           resolve(process.env as Record<string, string>);
         }
       });
 
       child.on("error", (error) => {
-        console.warn(`[ShellEnv] Extraction error: ${error.message}`);
+        log("extraction error: %s", error.message);
         resolve(process.env as Record<string, string>);
       });
     });

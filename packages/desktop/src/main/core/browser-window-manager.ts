@@ -9,6 +9,7 @@ import { join } from "path";
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 import icon from "../../../resources/icon.png?asset";
+import log from "./logger";
 
 type WindowStore = { bounds: Electron.Rectangle };
 
@@ -151,14 +152,14 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     }
   }
 
-  static #levels = ["verbose", "info", "warning", "error"] as const;
+  static #logFns = [log.verbose, log.info, log.warn, log.error] as const;
 
   #pipeConsole(win: BrowserWindow): void {
     win.webContents.on("console-message", (_e, level, message) => {
       const clean = stripColors(message);
       if (clean.includes("react-grab.com")) return;
-      const tag = BrowserWindowManager.#levels[level] ?? "log";
-      process.stderr.write(`[renderer:${tag}] ${clean}\n`);
+      const fn = BrowserWindowManager.#logFns[level] ?? log.info;
+      fn(`[renderer] ${clean}`);
     });
   }
 

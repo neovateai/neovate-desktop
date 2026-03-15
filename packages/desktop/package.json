@@ -54,6 +54,7 @@
     "chokidar": "^5.0.0",
     "date-fns": "^4.1.0",
     "debug": "^4.4.3",
+    "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",
     "embla-carousel-react": "^8.6.0",

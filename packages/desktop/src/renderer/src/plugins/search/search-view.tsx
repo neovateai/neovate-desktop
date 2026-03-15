@@ -1,5 +1,6 @@
 import type { ContractRouterClient } from "@orpc/contract";
 
+import debug from "debug";
 import { Search, FileText, Loader2, ChevronRight, CaseSensitive, WholeWord } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -29,6 +30,8 @@ function FileLangIcon({ path, size = 14 }: { path: string; size?: number }) {
 interface SearchViewProps {
   project: Project | null;
 }
+
+const log = debug("neovate:search");
 
 type UtilsClient = ContractRouterClient<{ utils: typeof utilsContract }>;
 
@@ -109,6 +112,12 @@ function SearchViewComponent({ project }: SearchViewProps) {
       return;
     }
 
+    log(
+      "search triggered: query=%s caseSensitive=%s exactMatch=%s",
+      query.trim(),
+      caseSensitive,
+      exactMatch,
+    );
     setLoading(true);
     setSearched(true);
 
@@ -121,6 +130,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
         maxResults: 100,
       });
       const searchResults = res?.results || [];
+      log("search complete: %d results", searchResults.length);
       setResults(searchResults);
 
       const allPaths = new Set<string>();
@@ -158,13 +168,14 @@ function SearchViewComponent({ project }: SearchViewProps) {
   };
 
   const handleMatchClick = (result: SearchResult, line: number) => {
+    log("open match: path=%s line=%d", result.fullPath, line);
     app.workbench.contentPanel.openView("editor");
     window.dispatchEvent(
       new CustomEvent("neovate:open-editor", {
         detail: { fullPath: result.fullPath, line },
       }),
     );
-    // @ts-ignore 避免 dispatchEvent 时未初始化完成
+    // @ts-ignore editor may not be initialized yet when dispatching
     window.pendingEditorRequest = { fullPath: result.fullPath, line };
   };
 

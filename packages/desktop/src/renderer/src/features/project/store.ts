@@ -1,5 +1,8 @@
+import debug from "debug";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+
+const log = debug("neovate:project");
 
 import type { Project } from "../../../../shared/features/project/types";
 
@@ -46,11 +49,13 @@ export const useProjectStore = create<ProjectState>()(
       if (activeProject?.path === projectPath) return;
       const project = projects.find((p) => p.path === projectPath);
       if (project) {
+        log("switch to project by path", { projectPath, id: project.id });
         client.project.setActive({ id: project.id }).catch(() => {});
         set({ activeProject: project });
       }
     },
     archiveSession: (projectPath, sessionId, isActive) => {
+      log("archive session", { projectPath, sessionId, isActive });
       client.project.archiveSession({ projectPath, sessionId }).catch(() => {});
       set((state) => {
         const list = state.archivedSessions[projectPath] ?? [];
@@ -72,11 +77,14 @@ export const useProjectStore = create<ProjectState>()(
       if (isActive) {
         const preWarmed = findPreWarmedSession(projectPath);
         if (preWarmed) {
+          log("replacing active session with pre-warmed session", { preWarmed });
           useAgentStore.getState().setActiveSession(preWarmed);
         } else {
+          log("no pre-warmed session, creating new session for project", { projectPath });
           claudeCodeChatManager
             .createSession(projectPath)
             .then(({ sessionId: newId, commands, models, currentModel, modelScope }) => {
+              log("new session created after archive", { newId });
               registerSessionInStore(
                 newId,
                 projectPath,
@@ -89,6 +97,7 @@ export const useProjectStore = create<ProjectState>()(
       }
     },
     togglePinSession: (projectPath, sessionId) => {
+      log("toggle pin session", { projectPath, sessionId });
       client.project.togglePinSession({ projectPath, sessionId }).catch(() => {});
       set((state) => {
         const list = state.pinnedSessions[projectPath] ?? [];
@@ -104,6 +113,7 @@ export const useProjectStore = create<ProjectState>()(
       set({ closedProjectAccordions: ids });
     },
     reorderProjects: (projectIds) => {
+      log("reorder projects", { projectIds });
       const { projects } = useProjectStore.getState();
       const map = new Map(projects.map((p) => [p.id, p]));
       const reordered = projectIds.flatMap((id) => {
@@ -114,11 +124,17 @@ export const useProjectStore = create<ProjectState>()(
       client.project.reorderProjects({ projectIds }).catch(() => {});
     },
     loadSessionPreferences: async (_projectPath) => {
+      log("loading session preferences");
       const [archived, pinned, closedAccordions] = await Promise.all([
         client.project.getArchivedSessions(),
         client.project.getPinnedSessions(),
         client.project.getClosedAccordions(),
       ]);
+      log("session preferences loaded", {
+        archivedCount: Object.keys(archived).length,
+        pinnedCount: Object.keys(pinned).length,
+        closedAccordionsCount: closedAccordions.length,
+      });
       set((state) => {
         state.archivedSessions = archived;
         state.pinnedSessions = pinned;

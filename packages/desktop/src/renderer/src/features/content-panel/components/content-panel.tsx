@@ -1,3 +1,4 @@
+import debug from "debug";
 import { useTheme } from "next-themes";
 import { Activity, lazy, Suspense, useEffect, useRef } from "react";
 import { useStore } from "zustand";
@@ -12,6 +13,8 @@ import { cn } from "../../../lib/utils";
 import { useProjectStore } from "../../project/store";
 import { TabBar } from "./tab-bar";
 import { ContentPanelViewContextProvider } from "./view-context";
+
+const log = debug("neovate:content-panel:renderer");
 
 function useLazyComponents(views: ContentPanelView[]) {
   const cache = useRef(new Map<string, React.LazyExoticComponent<React.ComponentType>>());
@@ -134,6 +137,7 @@ export function ContentPanelRenderer() {
   const projectPath = activeProject?.path ?? "";
   const { resolvedTheme } = useTheme();
   useEffect(() => {
+    log("active project changed", { projectPath });
     contentPanel.setProjectPath(projectPath);
   }, [contentPanel, projectPath]);
 

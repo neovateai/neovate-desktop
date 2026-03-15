@@ -1,8 +1,11 @@
 import AdmZip from "adm-zip";
+import debug from "debug";
 import fs from "node:fs";
 import path from "node:path";
 
 import { EXTENSIONS_DIR } from "./constants";
+
+const log = debug("neovate:editor:installer");
 import { ensureExtension } from "./extension-path";
 
 interface ExtensionManifest {
@@ -66,8 +69,8 @@ async function extractVsix(vsixPath: string, targetDir: string): Promise<void> {
       zip.extractAllTo(targetDir, true);
     }
   } catch (error) {
-    console.error("[extractVsix] 解压失败:", error);
-    throw new Error(`解压失败: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("[extractVsix] extraction failed:", error);
+    throw new Error(`Extraction failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -99,12 +102,9 @@ function readExtensionManifest(tempDir: string): ExtensionManifest {
   }
 
   if (!fs.existsSync(manifestPath)) {
-    console.error("[readExtensionManifest] 扩展清单文件不存在，目录内容:");
-    const files = fs.readdirSync(tempDir, { withFileTypes: true });
-    files.forEach((file) => {
-      console.error(`  ${file.isDirectory() ? "📁" : "📄"} ${file.name}`);
-    });
-    throw new Error(`扩展清单文件不存在。在以下位置查找失败: ${manifestPath}`);
+    const entries = fs.readdirSync(tempDir, { withFileTypes: true }).map((f) => f.name);
+    log("extension manifest not found at %s, dir contents: %o", manifestPath, entries);
+    throw new Error(`Extension manifest not found. Lookup failed at: ${manifestPath}`);
   }
 
   try {
@@ -113,30 +113,31 @@ function readExtensionManifest(tempDir: string): ExtensionManifest {
 
     // 验证必要的字段，但允许 publisher 为空（使用 undefined_publisher）
     if (!manifest.name || !manifest.version) {
-      console.error("[readExtensionManifest] 清单缺少必要字段:", {
+      log("manifest missing required fields", {
         publisher: manifest.publisher,
         name: manifest.name,
         version: manifest.version,
       });
-      throw new Error("扩展清单缺少必要字段 (name, version)");
+      throw new Error("Extension manifest missing required fields (name, version)");
     }
 
     // 如果 publisher 不存在，使用默认值
     if (!manifest.publisher) {
-      console.warn(
-        "[readExtensionManifest] 扩展清单缺少 publisher 字段，使用默认值: undefined_publisher",
-      );
+      log("manifest missing publisher field, using default: undefined_publisher");
       manifest.publisher = "undefined_publisher";
     }
 
     return manifest;
   } catch (error) {
-    console.error("[readExtensionManifest] 读取或解析清单文件失败:", error);
-    throw new Error(`读取扩展清单失败: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("[readExtensionManifest] failed to read or parse manifest:", error);
+    throw new Error(
+      `Failed to read extension manifest: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
 export async function installExtension(): Promise<void> {
+  log("installing extension");
   const vsixPath = await ensureExtension();
 
   if (!fs.existsSync(vsixPath)) {
@@ -210,7 +211,7 @@ export async function installExtension(): Promise<void> {
     extensions.push(extensionRegistration);
 
     fs.writeFileSync(extensionJSON, JSON.stringify(extensions, null, 2));
-    console.log(`[installExtension] installed ${extensionId}@${manifest.version}`);
+    log("installed %s@%s", extensionId, manifest.version);
   } catch (error) {
     console.error("[installExtension] failed:", error);
     if (fs.existsSync(tempDir)) {

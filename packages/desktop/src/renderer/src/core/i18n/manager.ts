@@ -1,3 +1,4 @@
+import debug from "debug";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
@@ -5,6 +6,8 @@ import { initReactI18next } from "react-i18next";
 import enUS from "../../locales/en-US.json";
 import zhCN from "../../locales/zh-CN.json";
 import { DEFAULT_LOCALE, normalizeLocale, type Locales } from "./locales";
+
+const log = debug("neovate:i18n");
 
 export type I18nStore = {
   getState: () => {
@@ -41,6 +44,7 @@ export class I18nManager {
 
     // Get locale from store or browser detection
     const savedLocale = store?.getState().locale;
+    log("init", { savedLocale });
 
     await i18n.init({
       resources: {
@@ -72,6 +76,7 @@ export class I18nManager {
     // If no preference was saved, save detected locale to store
     if (store && !savedLocale) {
       const detectedLocale = normalizeLocale(i18n.language);
+      log("detected locale from browser, saving", { detectedLocale });
       store.getState().setLocale(detectedLocale);
     }
   }
@@ -80,8 +85,10 @@ export class I18nManager {
     const normalized = normalizeLocale(
       locale ?? (typeof navigator !== "undefined" ? navigator.language : undefined),
     );
+    log("applyUILocale", { locale, normalized });
 
     if (normalized !== i18n.language) {
+      log("changing language", { from: i18n.language, to: normalized });
       await i18n.changeLanguage(normalized);
     }
 
@@ -94,6 +101,7 @@ export class I18nManager {
     namespace: string,
     resources: Partial<Record<Locales, I18nResourceBundle>>,
   ): void {
+    log("registerResources", { namespace, locales: Object.keys(resources) });
     Object.entries(resources).forEach(([lng, bundle]) => {
       if (!bundle) return;
       i18n.addResourceBundle(lng, namespace, bundle, true, true);
@@ -114,6 +122,7 @@ export class I18nManager {
    */
   setupLazyNamespaces(configs: LazyNamespaceConfig[]): void {
     if (!configs.length) return;
+    log("setupLazyNamespaces", { namespaces: configs.map((c) => c.namespace) });
 
     // Load current locale
     void this.loadLazyNamespaces(configs, normalizeLocale(i18n.language));
@@ -135,14 +144,9 @@ export class I18nManager {
           this.registerResources(config.namespace, { [locale]: bundle });
           loaded.add(locale);
           this.lazyNamespacesLoaded.set(config.namespace, loaded);
+          log("lazy namespace loaded", { namespace: config.namespace, locale });
         } catch (error) {
-          if (import.meta.env.DEV) {
-            console.warn("[i18n] Failed to load lazy namespace", {
-              namespace: config.namespace,
-              locale,
-              error,
-            });
-          }
+          log("failed to load lazy namespace", { namespace: config.namespace, locale, error });
         }
       }),
     );

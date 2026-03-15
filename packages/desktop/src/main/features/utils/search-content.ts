@@ -101,7 +101,7 @@ function searchContentWithMatches(
           relPath: relative(cwd, fullPath),
           fileName: basename(fullPath),
           extName: extname(fullPath),
-          matches: matches.slice(0, 10), // 限制每个文件的匹配数量
+          matches: matches.slice(0, 10), // limit matches per file
         });
       }
 

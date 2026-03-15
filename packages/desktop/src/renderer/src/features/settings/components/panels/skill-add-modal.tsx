@@ -1,3 +1,4 @@
+import debug from "debug";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -27,6 +28,8 @@ import { Spinner } from "../../../../components/ui/spinner";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
 
+const log = debug("neovate:settings:skills");
+
 type AddPhase =
   | { step: "input"; error?: string }
   | { step: "fetching"; source: string }
@@ -55,9 +58,11 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
     const source = sourceInput.trim();
     if (!source) return;
 
+    log("fetching skills from source: %s", source);
     setPhase({ step: "fetching", source });
     try {
       const result = await client.skills.preview({ source });
+      log("preview result: %d skills found", result.skills.length);
       if (result.skills.length === 0) {
         setPhase({ step: "input", error: t("settings.skills.noSkillsFound") });
         return;
@@ -96,6 +101,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
     const { previewId, selected } = phase;
     if (selected.size === 0) return;
 
+    log("installing %d skills scope=%s", selected.size, installScope);
     setPhase({ step: "installing" });
     try {
       const scope = installScope === "global" ? "global" : "project";

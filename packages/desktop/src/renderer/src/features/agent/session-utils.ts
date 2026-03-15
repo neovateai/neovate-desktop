@@ -1,3 +1,5 @@
+import debug from "debug";
+
 import type {
   SlashCommandInfo,
   ModelInfo,
@@ -7,6 +9,8 @@ import type {
 
 import { useConfigStore } from "../config/store";
 import { useAgentStore } from "./store";
+
+const log = debug("neovate:session-utils");
 
 /** Find any existing isNew session for the given project path. */
 export function findPreWarmedSession(projectPath: string): string | null {
@@ -33,6 +37,13 @@ export function registerSessionInStore(
   },
   activate: boolean,
 ) {
+  log(
+    "registerSessionInStore: sessionId=%s projectPath=%s activate=%s model=%s",
+    sessionId,
+    projectPath,
+    activate,
+    capabilities.currentModel,
+  );
   const store = useAgentStore.getState();
   if (activate) {
     store.createSession(sessionId, { cwd: projectPath, isNew: true });

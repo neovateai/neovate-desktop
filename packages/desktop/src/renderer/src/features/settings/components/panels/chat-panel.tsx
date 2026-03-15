@@ -1,3 +1,4 @@
+import debug from "debug";
 import { ChevronDown, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -160,6 +161,8 @@ export const ChatPanel = () => {
   );
 };
 
+const log = debug("neovate:settings:chat");
+
 function GlobalModelSelect() {
   const { t } = useTranslation();
 
@@ -200,6 +203,7 @@ function GlobalModelSelect() {
 
   const handleSelect = useCallback((value: unknown) => {
     const { providerId, model } = decodeValue(value as string);
+    log("global model selection: providerId=%s model=%s", providerId, model);
     setSelectedProviderId(providerId ?? undefined);
     setSelectedModel(model ?? undefined);
     client.config.setGlobalModelSelection({ providerId, model });

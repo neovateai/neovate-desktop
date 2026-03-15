@@ -2,10 +2,13 @@ import type { FSWatcher } from "chokidar";
 
 import { EventPublisher } from "@orpc/server";
 import chokidar from "chokidar";
+import debug from "debug";
 
 import type { FileWatchEvent } from "../../../shared/plugins/files/contract";
 
-// 防抖函数
+const log = debug("neovate:files:watch");
+
+// debounce utility
 function debounce<T extends (...args: any[]) => any>(
   func: T,
   delay: number,
@@ -22,7 +25,7 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// 为每个 cwd 创建独立的事件发布器和watcher
+// per-cwd event publisher and watcher instances
 const cwdPublishers = new Map<
   string,
   EventPublisher<{
@@ -45,11 +48,13 @@ export function watchWorkspace(
   const { onFsChange } = callbacks;
   const pre = cwdPublishers.get(dir);
   if (pre) {
+    log("reusing existing publisher", { dir });
     return pre;
   }
+  log("creating watcher", { dir });
   const watcher = chokidar.watch(dir, {
     ignored: [
-      /(^|[\\])\../, // 隐藏文件
+      /(^|[\\])\../, // hidden files
       /node_modules/,
       "**/package-lock.json",
       "**/yarn.lock",
@@ -60,7 +65,7 @@ export function watchWorkspace(
       "**/.DS_Store",
       "**/.cache/**",
       "**/coverage/**",
-      /.*\.(jpg|jpeg|png|gif|svg|mp4|mp3)$/i, // 媒体文件
+      /.*\.(jpg|jpeg|png|gif|svg|mp4|mp3)$/i, // media files
     ],
     depth: 5,
     // usePolling: true,
@@ -80,15 +85,27 @@ export function watchWorkspace(
 
   watcher
     .on("add", (e) => {
-      console.log("add", e);
+      log("file added", { path: e });
       _onFsChange("add");
     })
-    .on("unlink", () => _onFsChange("unlink"))
-    .on("addDir", () => _onFsChange("addDir"))
-    .on("unlinkDir", () => _onFsChange("unlinkDir"))
-    .on("change", (fullPath) => _onFsChange("content", { fullPath }))
+    .on("unlink", (e) => {
+      log("file removed", { path: e });
+      _onFsChange("unlink");
+    })
+    .on("addDir", (e) => {
+      log("dir added", { path: e });
+      _onFsChange("addDir");
+    })
+    .on("unlinkDir", (e) => {
+      log("dir removed", { path: e });
+      _onFsChange("unlinkDir");
+    })
+    .on("change", (fullPath) => {
+      log("file changed", { path: fullPath });
+      _onFsChange("content", { fullPath });
+    })
     .on("error", (e) => {
-      console.log("watcher error", e);
+      log("watcher error", { dir, error: e });
       unwatchWorkspace(dir);
     });
   return publisher;
@@ -96,6 +113,7 @@ export function watchWorkspace(
 
 export function getCwdPublisher(cwd: string) {
   if (!cwdPublishers.has(cwd)) {
+    log("creating publisher", { cwd });
     cwdPublishers.set(
       cwd,
       new EventPublisher<{
@@ -107,6 +125,7 @@ export function getCwdPublisher(cwd: string) {
 }
 
 export function unwatchWorkspace(dir: string) {
+  log("unwatching workspace", { dir });
   const watcher = cwdWatchers.get(dir);
   if (watcher) {
     watcher.close();

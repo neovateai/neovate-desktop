@@ -1,3 +1,4 @@
+import debug from "debug";
 import fs from "fs";
 import path from "path";
 
@@ -6,10 +7,13 @@ import type { PluginContext } from "../../core/plugin/types";
 import { getFileTree } from "./tree";
 import { unwatchWorkspace, watchWorkspace } from "./watch";
 
+const log = debug("neovate:files:router");
+
 export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
   return orpcServer.router({
     tree: orpcServer.handler(async ({ input }) => {
       const { cwd } = input as { cwd: string };
+      log("tree requested", { cwd });
       try {
         if (!cwd) {
           throw new Error("Invalid path");
@@ -25,6 +29,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     delete: orpcServer.handler(async ({ input }) => {
       const data = input as { path: string };
+      log("delete requested", { path: data?.path });
       try {
         const { path: filePath } = data || {};
         if (!filePath) {
@@ -39,6 +44,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
         } else {
           fs.unlinkSync(filePath);
         }
+        log("deleted", { path: filePath });
         return { success: true, data: {} };
       } catch (error) {
         return {
@@ -49,6 +55,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     rename: orpcServer.handler(async ({ input }) => {
       const data = input as { oldPath: string; newPath: string };
+      log("rename requested", { oldPath: data?.oldPath, newPath: data?.newPath });
       try {
         const { oldPath, newPath } = data || {};
         if (!oldPath || !newPath) {
@@ -68,6 +75,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
           fs.mkdirSync(newDir, { recursive: true });
         }
         fs.renameSync(oldPath, newPath);
+        log("renamed", { oldPath, newPath });
         return { success: true, data: {} };
       } catch (error) {
         return {
@@ -78,6 +86,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     watch: orpcServer.handler(async function* ({ input, signal }) {
       const { cwd } = input as { cwd: string };
+      log("watch requested", { cwd });
 
       const publisher = watchWorkspace(cwd, {
         onFsChange: (subType, file) => {
@@ -90,8 +99,8 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       });
       if (signal) {
         signal.addEventListener("abort", () => {
-          console.log("unwatch", cwd);
-          unwatchWorkspace(cwd); // 清理监听器watch 和 发布器pub
+          log("unwatch", { cwd });
+          unwatchWorkspace(cwd); // clean up watcher and publisher
         });
       }
       const events = publisher.subscribe("file-changed", { signal });

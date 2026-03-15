@@ -1,6 +1,9 @@
+import debug from "debug";
 import { useEffect, useLayoutEffect } from "react";
 
 import { client } from "../../orpc";
+
+const log = debug("neovate:layout");
 import { shrinkPanelsToFit, computeMinWindowWidth, setPanelWidth } from "./layout-coordinator";
 import { applyDelta } from "./layout-coordinator";
 import { useLayoutStore, layoutStore } from "./store";
@@ -15,6 +18,7 @@ function useSyncWindowMinWidth() {
         clearTimeout(timer);
         timer = setTimeout(() => {
           const required = computeMinWindowWidth(panels);
+          log("sync window min width", { required });
           void client.window.ensureWidth({ minWidth: required }).catch(() => {});
         }, 100);
       },
@@ -66,6 +70,7 @@ function useShrinkPanelsOnWindowResize() {
       // Shrink explicit-width panels if they overflow
       const newPanels = shrinkPanelsToFit(panels, windowWidth);
       if (newPanels !== panels) {
+        log("panels overflow, shrinking to fit", { windowWidth });
         layoutStore.setState({ panels: newPanels });
       }
 
@@ -103,6 +108,7 @@ function usePanelDrag() {
   useEffect(() => {
     if (!resizing) return;
     const { separatorIndex, initialX, initialPanels } = resizing;
+    log("drag start", { separatorIndex });
 
     const onPointerMove = (e: PointerEvent) => {
       if (e.defaultPrevented) return;
@@ -114,10 +120,14 @@ function usePanelDrag() {
 
     const onPointerUp = (e: PointerEvent) => {
       if (e.defaultPrevented) return;
+      log("drag stop");
       stopResize();
     };
 
-    const onCancel = () => stopResize();
+    const onCancel = () => {
+      log("drag cancelled");
+      stopResize();
+    };
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";

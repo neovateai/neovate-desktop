@@ -1,11 +1,15 @@
 import type { StoreApi } from "zustand/vanilla";
 
+import debug from "debug";
+
 import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { IWorkbenchLayoutService } from "../../core/workbench/layout";
 import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
 
 import { COLLAPSIBLE_WORKBENCH_PART } from "../../core/workbench/layout";
 import { createContentPanelStore } from "./store";
+
+const log = debug("neovate:content-panel");
 
 export interface ContentPanelOptions {
   views: ContentPanelView[];
@@ -32,8 +36,11 @@ export class ContentPanel {
   }
 
   async hydrate(): Promise<void> {
+    log("hydrating");
     const data = await this.options.load();
     if (data && typeof data === "object" && !Array.isArray(data)) {
+      const projectCount = Object.keys(data).length;
+      log("hydrated", { projectCount });
       this.store.setState({ projects: data });
     }
     this.observe();
@@ -57,12 +64,14 @@ export class ContentPanel {
     this.flushTimer = null;
     if (this.dirty) {
       this.dirty = false;
+      log("flushing state to storage");
       const { projects } = this.store.getState();
       Promise.resolve(this.options.save(projects)).catch(console.error);
     }
   }
 
   dispose(): void {
+    log("disposing");
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
@@ -72,10 +81,12 @@ export class ContentPanel {
   }
 
   setProjectPath(path: string): void {
+    log("set project path", { path });
     this.projectPath = path;
   }
 
   openView(viewType: string, options?: { name?: string; activate?: boolean }): string {
+    log("open view", { viewType, options });
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) throw new Error(`Unknown view: ${viewType}`);
 
@@ -88,6 +99,7 @@ export class ContentPanel {
     if (view.singleton !== false) {
       const existing = store.findTabByViewType(this.projectPath, viewType);
       if (existing) {
+        log("singleton view already open, activating", { viewType, tabId: existing.id });
         if (activate) this.activateView(existing.id);
         return existing.id;
       }
@@ -100,19 +112,23 @@ export class ContentPanel {
       state: {},
     };
 
+    log("opening new tab", { tabId: tab.id, viewType, activate });
     store.addTab(this.projectPath, tab, activate);
     return tab.id;
   }
 
   closeView(viewId: string): void {
+    log("close view", { viewId });
     this.store.getState().removeTab(this.projectPath, viewId);
   }
 
   activateView(viewId: string): void {
+    log("activate view", { viewId });
     this.store.getState().setActiveTab(this.projectPath, viewId);
   }
 
   updateView(viewId: string, patch: { name?: string }): void {
+    log("update view", { viewId, patch });
     this.store.getState().updateTab(this.projectPath, viewId, patch);
   }
 
@@ -121,6 +137,7 @@ export class ContentPanel {
   }
 
   updateViewState(viewId: string, patch: Record<string, unknown>): void {
+    log("update view state", { viewId });
     this.store.getState().updateTabState(this.projectPath, viewId, patch);
   }
 }

@@ -1,3 +1,4 @@
+import debug from "debug";
 import { randomUUID } from "node:crypto";
 import { cp } from "node:fs/promises";
 import path from "node:path";
@@ -6,6 +7,8 @@ import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
 import { scanSkillDirs } from "../skill-utils";
+
+const log = debug("neovate:skills:prebuilt");
 
 export class PrebuiltInstaller implements SkillInstaller {
   private resourcesDir: string;
@@ -19,6 +22,7 @@ export class PrebuiltInstaller implements SkillInstaller {
   }
 
   async scan(sourceRef: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
+    log("scan", { sourceRef });
     const skillName = sourceRef.replace("prebuilt:", "");
     const skillDir = path.join(this.resourcesDir, skillName);
     const skills = await scanSkillDirs(skillDir, skillName);
@@ -27,6 +31,7 @@ export class PrebuiltInstaller implements SkillInstaller {
   }
 
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
+    log("install", { sourceRef, skillName, targetDir });
     const name = sourceRef.replace("prebuilt:", "");
     const src = path.join(this.resourcesDir, name);
     const dest = path.join(targetDir, skillName);
@@ -38,6 +43,7 @@ export class PrebuiltInstaller implements SkillInstaller {
     skillNames: string[],
     targetDir: string,
   ): Promise<void> {
+    log("installFromPreview", { skillNames });
     for (const name of skillNames) {
       const src = path.join(this.resourcesDir, name);
       const dest = path.join(targetDir, name);

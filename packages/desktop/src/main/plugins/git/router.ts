@@ -1,9 +1,12 @@
+import debug from "debug";
 import fs from "node:fs";
 import path from "node:path";
 import git from "simple-git";
 
 import type { GitBranch, GitBranchFile } from "../../../shared/plugins/git/contract";
 import type { PluginContext } from "../../core/plugin/types";
+
+const log = debug("neovate:git");
 
 const GIT_TIMEOUT_MS = 10_000;
 
@@ -20,9 +23,10 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
   return orpcServer.router({
     files: orpcServer.handler(async ({ input }) => {
       const { cwd } = input as { cwd: string };
+      log("files: fetching working and staged files", { cwd });
       try {
         const [working, staged] = await Promise.all([getWorkingFiles(cwd), getStagedFiles(cwd)]);
-
+        log("files: done", { working: working.length, staged: staged.length });
         return { success: true, data: { working, staged } };
       } catch (error) {
         return {
@@ -31,9 +35,9 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         };
       }
     }),
-    // 添加文件到暂存区
     add: orpcServer.handler(async ({ input }) => {
       const { cwd, files } = input as { cwd: string; files: string[] };
+      log("add: staging files", { cwd, files });
       try {
         const gitClient = git(cwd);
         await gitClient.add(files);
@@ -45,9 +49,9 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         };
       }
     }),
-    // 取消暂存文件
     reset: orpcServer.handler(async ({ input }) => {
       const { cwd, files } = input as { cwd: string; files: string[] };
+      log("reset: unstaging files", { cwd, files });
       try {
         const gitClient = git(cwd);
         await gitClient.reset(["HEAD", ...files]);
@@ -62,6 +66,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     checkout: orpcServer.handler(async ({ input }) => {
       const { cwd, files } = input as { cwd: string; files: string[] };
+      log("checkout: restoring files", { cwd, files });
       try {
         const gitClient = git(cwd);
         await gitClient.checkout(files);
@@ -80,6 +85,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         file,
         type: diffType,
       } = input as { cwd: string; file: string; type: "working" | "staged" };
+      log("diff: loading", { cwd, file, diffType });
       try {
         const gitClient = git(cwd);
 
@@ -88,10 +94,8 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         let fileStatus = "";
 
         try {
-          // 获取文件状态信息
           const status = await gitClient.status();
 
-          // 确定文件状态
           if (status.not_added.includes(file)) {
             fileStatus = "untracked";
           } else if (status.created.includes(file)) {
@@ -101,46 +105,39 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
           } else if (status.deleted.includes(file)) {
             fileStatus = "deleted";
           }
+          log("diff: file status determined", { file, fileStatus });
 
           if (diffType === "staged") {
             try {
-              // 获取暂存区内容
               newContent = await gitClient.show([`:${file}`]);
             } catch {
-              // 暂存区不存在（可能是删除）
               newContent = "";
             }
 
-            // 获取 HEAD 版本
             try {
               oldContent = await gitClient.show([`HEAD:${file}`]);
             } catch {
-              // HEAD 版本不存在（新文件）
               oldContent = "";
             }
           } else {
-            // working: 比较 暂存区 vs 工作区
             const filePath = path.resolve(cwd, file);
 
-            // 获取工作区内容
             try {
               newContent = fs.readFileSync(filePath, "utf8");
             } catch {
-              // 文件不存在（可能是删除状态）
               newContent = "";
             }
 
-            // 获取对比基准：如果有暂存就用暂存区，否则用 HEAD
             try {
               const isStaged = status.staged.includes(file);
 
               if (isStaged) {
-                oldContent = await gitClient.show([`:${file}`]); // 文件已暂存，用暂存区作为对比基准
+                oldContent = await gitClient.show([`:${file}`]);
               } else {
-                oldContent = await gitClient.show([`HEAD:${file}`]); // 文件未暂存，用 HEAD 作为对比基准
+                oldContent = await gitClient.show([`HEAD:${file}`]);
               }
             } catch {
-              oldContent = ""; // 暂存区/HEAD 都不存在（全新文件）
+              oldContent = "";
             }
           }
         } catch (error) {
@@ -169,6 +166,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         search?: string;
         limit?: number;
       };
+      log("branches: listing", { cwd, search, limit });
       try {
         const result = await withTimeout(getBranches(cwd, search, limit), GIT_TIMEOUT_MS);
         return result;
@@ -181,8 +179,10 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     checkoutBranch: orpcServer.handler(async ({ input }) => {
       const { cwd, branch } = input as { cwd: string; branch: string };
+      log("checkoutBranch: switching", { cwd, branch });
       try {
         const result = await withTimeout(checkoutBranch(cwd, branch), GIT_TIMEOUT_MS);
+        log("checkoutBranch: done", { branch, stashed: result.data?.stashed });
         return result;
       } catch (error) {
         return {
@@ -193,6 +193,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     createBranch: orpcServer.handler(async ({ input }) => {
       const { cwd, name } = input as { cwd: string; name: string };
+      log("createBranch: creating", { cwd, name });
       try {
         const result = await withTimeout(createBranch(cwd, name), GIT_TIMEOUT_MS);
         return result;
@@ -205,6 +206,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     branchFiles: orpcServer.handler(async ({ input }) => {
       const { cwd } = input as { cwd: string };
+      log("branchFiles: fetching", { cwd });
       try {
         const result = await withTimeout(getBranchFiles(cwd), GIT_TIMEOUT_MS);
         return result;
@@ -217,6 +219,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     branchFileDiff: orpcServer.handler(async ({ input }) => {
       const { cwd, file } = input as { cwd: string; file: string };
+      log("branchFileDiff: fetching", { cwd, file });
       try {
         const result = await withTimeout(getBranchFileDiff(cwd, file), GIT_TIMEOUT_MS);
         return result;
@@ -234,7 +237,6 @@ async function getWorkingFiles(cwd: string) {
   const gitClient = git(cwd);
   const status = await gitClient.status();
 
-  // 获取未暂存的已修改文件
   const modifiedFiles = status.modified
     .filter((file) => !status.staged.includes(file))
     .map((file) => ({
@@ -242,7 +244,6 @@ async function getWorkingFiles(cwd: string) {
       status: "modified",
     }));
 
-  // 获取未暂存的已删除文件
   const deletedFiles = status.deleted
     .filter((file) => !status.staged.includes(file))
     .map((file) => ({
@@ -250,7 +251,6 @@ async function getWorkingFiles(cwd: string) {
       status: "deleted",
     }));
 
-  // 获取未跟踪的文件（未暂存）
   const untrackedFiles = status.not_added
     .filter((file) => !status.staged.includes(file))
     .map((file) => ({
@@ -387,6 +387,7 @@ async function checkoutBranch(cwd: string, branch: string) {
 
   let stashed = false;
   if (isDirty) {
+    log("checkoutBranch: working tree dirty, stashing changes", { branch });
     await gitClient.stash([
       "push",
       "-m",
@@ -403,6 +404,7 @@ async function checkoutBranch(cwd: string, branch: string) {
     try {
       await gitClient.stash(["pop"]);
     } catch {
+      log("checkoutBranch: stash pop failed after switching to %s", branch);
       stashPopFailed = true;
     }
   }

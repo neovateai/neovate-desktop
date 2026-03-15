@@ -1,9 +1,12 @@
 import type { AppUpdater } from "electron-updater";
 
 import { EventPublisher } from "@orpc/server";
+import debug from "debug";
 import { autoUpdater } from "electron-updater";
 
 import type { UpdaterState } from "../../../shared/features/updater/types";
+
+const log = debug("neovate:updater");
 
 export type FeedURLOptions = Parameters<AppUpdater["setFeedURL"]>[0];
 
@@ -37,9 +40,14 @@ export class UpdaterService {
   }
 
   check(manual = false) {
+    log("check", { manual });
     // If a download is already in progress or ready, re-surface to UI on manual check
     if (this.pendingUpdate) {
       if (manual) {
+        log("re-surface pending update", {
+          status: this.pendingUpdate.status,
+          version: this.pendingUpdate.version,
+        });
         this.surfaceUI = true;
         if (this.pendingUpdate.status === "ready") {
           this.setState({ status: "ready", version: this.pendingUpdate.version });
@@ -57,6 +65,7 @@ export class UpdaterService {
     // If a check is already in flight, let it surface to UI on manual check
     if (this.isChecking) {
       if (manual) {
+        log("re-surface in-flight check");
         this.surfaceUI = true;
         this.setState({ status: "checking" });
       }
@@ -64,6 +73,7 @@ export class UpdaterService {
     }
 
     // Start a fresh check
+    log("starting fresh check", { manual });
     this.isChecking = true;
     this.surfaceUI = manual;
     if (manual) {
@@ -73,6 +83,7 @@ export class UpdaterService {
   }
 
   install() {
+    log("install requested", { status: this.state.status });
     if (this.state.status !== "ready") {
       return;
     }
@@ -80,6 +91,7 @@ export class UpdaterService {
   }
 
   async init(options?: UpdaterOptions) {
+    log("init", { hasFeedURL: !!options?.feedURL });
     autoUpdater.autoDownload = false;
 
     if (options?.feedURL) {
@@ -87,6 +99,7 @@ export class UpdaterService {
         const resolved =
           typeof options.feedURL === "function" ? await options.feedURL() : options.feedURL;
         autoUpdater.setFeedURL(resolved);
+        log("feed URL set", { feedURL: resolved });
       } catch (err) {
         console.error(
           "[UpdaterService] Failed to resolve feedURL, using build-time config:",
@@ -96,6 +109,7 @@ export class UpdaterService {
     }
 
     autoUpdater.on("update-not-available", () => {
+      log("update not available", { surfaceUI: this.surfaceUI });
       this.isChecking = false;
       if (this.surfaceUI) {
         this.setState({ status: "up-to-date" });
@@ -103,6 +117,7 @@ export class UpdaterService {
     });
 
     autoUpdater.on("update-available", (info) => {
+      log("update available", { version: info.version, surfaceUI: this.surfaceUI });
       this.isChecking = false;
       this.pendingUpdate = { version: info.version, status: "downloading", percent: 0 };
       if (this.surfaceUI) {
@@ -125,6 +140,7 @@ export class UpdaterService {
     });
 
     autoUpdater.on("update-downloaded", (info) => {
+      log("update downloaded", { version: info.version });
       if (this.pendingUpdate) {
         this.pendingUpdate.status = "ready";
       }
@@ -133,6 +149,7 @@ export class UpdaterService {
     });
 
     autoUpdater.on("error", (err) => {
+      log("update error", { message: err.message });
       this.isChecking = false;
       this.pendingUpdate = null;
       if (this.surfaceUI) {
