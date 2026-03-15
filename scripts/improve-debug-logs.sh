@@ -116,7 +116,7 @@ PROMPT_EOF
   echo "$PROMPT" | claude -p \
     --dangerously-skip-permissions \
     --output-format=stream-json \
-    --model opus \
+    --model sonnet \
     --verbose
 
   echo ""

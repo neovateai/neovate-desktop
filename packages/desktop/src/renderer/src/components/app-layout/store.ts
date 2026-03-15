@@ -1,8 +1,11 @@
+import debug from "debug";
 import { useStore } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { createStore } from "zustand/vanilla";
 
 import type { PanelId, PanelMap, PanelState } from "./types";
+
+const log = debug("neovate:layout");
 
 import { client } from "../../orpc";
 import {
@@ -86,12 +89,14 @@ const layoutStore = createStore<LayoutStore>()(
           if (!panels[id]) return;
 
           if (!panels[id].collapsed) {
+            log("collapse panel", { id });
             set({ panels: collapsePanel(panels, id) });
             return;
           }
 
           // Expand window first, then open panel into the available space
           const minWidth = computeMinWindowWidthWithPanel(panels, id);
+          log("expand panel, ensure min width", { id, minWidth });
           await client.window.ensureWidth({ minWidth }).catch(() => {});
 
           // Re-check: panel may have been toggled again during await
@@ -105,6 +110,7 @@ const layoutStore = createStore<LayoutStore>()(
 
         startResize: (separatorIndex, clientX) =>
           set((state) => {
+            log("start resize", { separatorIndex, clientX });
             // Sync chatPanel width from DOM (it renders as flex-1, store value may drift)
             const el = document.querySelector('[data-slot="chat-panel"]');
             const chatWidth = el ? el.getBoundingClientRect().width : state.panels.chatPanel.width;
@@ -123,14 +129,17 @@ const layoutStore = createStore<LayoutStore>()(
 
           // Toggle off: same view already open → collapse
           if (sidebar.activeView === viewId && !sidebar.collapsed) {
+            log("collapse secondary sidebar (same view toggled)", { viewId });
             set({ panels: collapsePanel(panels, "secondarySidebar") });
             return;
           }
 
+          log("set secondary sidebar view", { viewId, wasCollapsed: sidebar.collapsed });
           const wasCollapsed = sidebar.collapsed;
           let windowWidth = window.innerWidth;
           if (wasCollapsed) {
             const minWidth = computeMinWindowWidthWithPanel(panels, "secondarySidebar");
+            log("secondary sidebar expanding, ensure min width", { minWidth });
             await client.window.ensureWidth({ minWidth }).catch(() => {});
             windowWidth = Math.max(window.innerWidth, minWidth);
           }
