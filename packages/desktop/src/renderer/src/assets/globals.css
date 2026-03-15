@@ -117,8 +117,8 @@
   --success-foreground: var(--color-emerald-400);
   --warning: var(--color-amber-500);
   --warning-foreground: var(--color-amber-400);
-  --color-chat: #f5f7fa;
-  --color-chat-foreground: var(--color-neutral-800);
+  --color-chat: color-mix(in srgb, var(--color-neutral-950) 95%, var(--color-white));
+  --color-chat-foreground: var(--color-neutral-100);
 }
 @layer base {
   * {

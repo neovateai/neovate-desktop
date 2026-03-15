@@ -138,6 +138,9 @@
   "settings.providers.validation.apiKeyRequired": "API key is required",
   "settings.providers.validation.modelRequired": "At least one model is required",
   "settings.providers.validation.modelMapInvalid": "Model map \"{{slot}}\" references \"{{modelId}}\" which is not in models",
+  "settings.providers.saveFailed": "Failed to save provider",
+  "settings.providers.deleteFailed": "Failed to delete provider",
+  "settings.providers.toggleFailed": "Failed to toggle provider",
 
   "settings.skills": "Skills",
   "settings.skills.addSkill": "Add Skill",

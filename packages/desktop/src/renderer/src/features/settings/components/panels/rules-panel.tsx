@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import type { ResolvedReference } from "../../../../../../shared/features/rules/contract";
 
 import { Button } from "../../../../components/ui/button";
+import { Spinner } from "../../../../components/ui/spinner";
 import { client } from "../../../../orpc";
 import { useSettingsStore } from "../../store";
 
@@ -215,7 +216,7 @@ export const RulesPanel = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <Spinner className="h-6 w-6" />
       </div>
     );
   }
@@ -279,6 +280,7 @@ export const RulesPanel = () => {
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={t("settings.rules.placeholder")}
+        aria-label={t("settings.rules.globalRules")}
         spellCheck={false}
       />
 
