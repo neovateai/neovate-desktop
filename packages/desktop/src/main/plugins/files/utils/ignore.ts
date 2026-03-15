@@ -1,16 +1,19 @@
+import debug from "debug";
 import { constants } from "fs";
 import { exec } from "node:child_process";
 import { readFile, access } from "node:fs/promises";
 import { promisify } from "node:util";
 import { join } from "path";
 
+const log = debug("neovate:files:ignore");
+
 const execAsync = promisify(exec);
 
-// 永久缓存：按根目录路径缓存Git忽略规则
+// permanent cache: git ignore rules by root path
 const gitignoreCache = new Map<string, string[]>();
 
 /**
- * 检查并添加指定目录下的.gitignore规则
+ * Check and add .gitignore rules from the specified directory
  */
 async function checkAndAddGitignore(dir: string, rules: string[]): Promise<void> {
   const gitignorePath = join(dir, ".gitignore");
@@ -27,23 +30,23 @@ async function checkAndAddGitignore(dir: string, rules: string[]): Promise<void>
       }
     }
   } catch {
-    // 文件不存在或读取失败，忽略错误
+    // file doesn't exist or read failed, ignore
   }
 }
 
 /**
- * 查找并收集所有.gitignore文件
- * @param rootPath 项目根目录
- * @returns gitignore规则数组
+ * Find and collect all .gitignore files
+ * @param rootPath project root directory
+ * @returns array of gitignore rules
  */
 async function collectGitignoreRules(rootPath: string): Promise<string[]> {
   const rules: string[] = [];
 
   try {
-    // 检查根目录的.gitignore
+    // check root directory .gitignore
     await checkAndAddGitignore(rootPath, rules);
 
-    // 使用git命令一次性获取所有.gitignore文件内容
+    // use git command to get all .gitignore file contents at once
     try {
       const { stdout: isGitRepo } = await execAsync("git rev-parse --git-dir", {
         cwd: rootPath,
@@ -51,7 +54,7 @@ async function collectGitignoreRules(rootPath: string): Promise<string[]> {
       });
 
       if (isGitRepo.trim()) {
-        // 使用git ls-files获取所有.gitignore文件
+        // use git ls-files to get all .gitignore files
         const { stdout: gitignoreFiles } = await execAsync("git ls-files **/.gitignore", {
           cwd: rootPath,
           encoding: "utf-8",
@@ -64,10 +67,10 @@ async function collectGitignoreRules(rootPath: string): Promise<string[]> {
         }
       }
     } catch {
-      // 不是git仓库，忽略错误
+      // not a git repo, ignore
     }
   } catch (error) {
-    console.warn("Failed to collect gitignore rules:", error);
+    log("failed to collect gitignore rules", { error });
   }
 
   return rules.filter((rule) => rule.trim() !== "");
@@ -85,7 +88,7 @@ const EXCLUDE_FILE_TYPE_PATTERN = [
 ];
 
 /**
- * 将gitignore规则转换为minimatch兼容的模式
+ * Convert gitignore rules to minimatch-compatible patterns
  */
 function convertGitignoreToMinimatch(gitignoreRule: string): string[] {
   if (!gitignoreRule || gitignoreRule.startsWith("#")) {
@@ -114,32 +117,34 @@ function convertGitignoreToMinimatch(gitignoreRule: string): string[] {
 }
 
 /**
- * 获取所有排除模式，包括gitignore规则
- * @param rootPath 项目根目录路径
- * @returns 排除模式数组
+ * Get all exclude patterns including gitignore rules
+ * @param rootPath project root directory path
+ * @returns array of exclude patterns
  */
 export async function getExcludePatterns(rootPath: string): Promise<string[]> {
-  // 检查缓存
+  // check cache
   const cacheKey = rootPath;
   const cached = gitignoreCache.get(cacheKey);
 
   if (cached) {
+    log("using cached exclude patterns", { rootPath });
     return cached;
   }
+  log("computing exclude patterns", { rootPath });
 
   const gitignorePatterns: string[] = [];
 
   try {
-    // 直接使用根目录收集Git ignore规则
+    // collect git ignore rules from root directory
     const gitRules = await collectGitignoreRules(rootPath);
 
-    // 转换gitignore规则
+    // convert gitignore rules
     for (const rule of gitRules) {
       const converted = convertGitignoreToMinimatch(rule);
       gitignorePatterns.push(...converted);
     }
   } catch (error) {
-    console.warn("Failed to process gitignore rules:", error);
+    log("failed to process gitignore rules", { error });
   }
 
   const allPatterns = [...EXCLUDE_FILE_TYPE_PATTERN, ...gitignorePatterns];

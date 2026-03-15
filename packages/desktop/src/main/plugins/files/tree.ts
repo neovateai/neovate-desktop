@@ -1,8 +1,11 @@
+import debug from "debug";
 import { minimatch } from "minimatch";
 import fs from "node:fs";
 import path from "node:path";
 
 import { getExcludePatterns } from "./utils/ignore";
+
+const log = debug("neovate:files:tree");
 
 export interface FileTreeNode {
   fileName: string;
@@ -16,6 +19,7 @@ export interface FileTreeNode {
 export async function getFileTree(parent: string, root?: string): Promise<FileTreeNode[]> {
   const includePatterns: string[] = [];
   const actualRoot = root || parent;
+  if (!root) log("building file tree", { root: actualRoot });
 
   const excludePatterns = await getExcludePatterns(actualRoot);
 
@@ -25,7 +29,7 @@ export async function getFileTree(parent: string, root?: string): Promise<FileTr
   try {
     const files = await fs.promises.readdir(dirFilePath);
 
-    // 使用 Promise.all 并行处理文件
+    // process files in parallel with Promise.all
     const filePromises = files.map(async (file) => {
       const filePath = path.join(dirFilePath, file);
 
@@ -63,24 +67,24 @@ export async function getFileTree(parent: string, root?: string): Promise<FileTr
 
         return node;
       } catch (error) {
-        // 处理单个文件的错误，避免整个树构建失败
-        console.warn(`Error processing file ${filePath}:`, error);
+        // handle individual file errors to avoid failing the entire tree build
+        log("error processing file", { path: filePath, error });
         return null;
       }
     });
     const results = await Promise.all(filePromises);
     tree.push(...(results.filter(Boolean) as FileTreeNode[]));
   } catch (error) {
-    console.warn(`Error reading directory ${dirFilePath}:`, error);
+    log("error reading directory", { path: dirFilePath, error });
     return [];
   }
 
   const compareNodes = (a: FileTreeNode, b: FileTreeNode): number => {
-    // 文件夹优先
+    // folders first
     if (a.isFolder && !b.isFolder) return -1;
     if (!a.isFolder && b.isFolder) return 1;
 
-    // 按文件名排序（忽略大小写）
+    // sort by file name (case-insensitive)
     return a.fileName.toLowerCase().localeCompare(b.fileName.toLowerCase());
   };
 
