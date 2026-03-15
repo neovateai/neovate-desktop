@@ -19,10 +19,7 @@ export const agentRouter = os.agent.router({
   }),
 
   listSessions: os.agent.listSessions.handler(async ({ input, context }) => {
-    agentLog("listSessions: cwd=%s", input.cwd);
-    const result = await context.sessionManager.listSessions(input.cwd);
-    agentLog("listSessions: returned %d sessions", result.length);
-    return result;
+    return context.sessionManager.listSessions(input.cwd);
   }),
 
   renameSession: os.agent.renameSession.handler(async ({ input, context }) => {

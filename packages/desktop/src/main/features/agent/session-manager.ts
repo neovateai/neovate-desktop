@@ -444,15 +444,9 @@ export class SessionManager {
 
   async listSessions(cwd?: string): Promise<SessionInfo[]> {
     const t0 = performance.now();
-    log("listSessions: START cwd=%s", cwd);
 
     const { listSessions: sdkListSessions } = await import("@anthropic-ai/claude-agent-sdk");
     const sessions: SDKSessionInfo[] = await sdkListSessions(cwd ? { dir: cwd } : undefined);
-    log(
-      "listSessions: sdk returned %d sessions in %dms",
-      sessions.length,
-      Math.round(performance.now() - t0),
-    );
 
     // Build sessionId -> file birthtime map for accurate createdAt
     const sessionFiles = listSessionFiles();
