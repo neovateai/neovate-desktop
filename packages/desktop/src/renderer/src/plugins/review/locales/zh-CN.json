@@ -33,5 +33,7 @@
   "review.menu.showFileTree": "显示文件树",
   "review.menu.hideFileTree": "隐藏文件树",
   "review.menu.expandAll": "全部展开",
-  "review.menu.collapseAll": "全部折叠"
+  "review.menu.collapseAll": "全部折叠",
+  "review.highFileCount": "{{count}} 个文件 — 大量差异可能导致卡顿。所有文件默认折叠。",
+  "review.expandAllConfirm": "即将展开 {{count}} 个文件，可能会比较慢。是否继续？"
 }

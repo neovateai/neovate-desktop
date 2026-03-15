@@ -33,5 +33,7 @@
   "review.menu.showFileTree": "Show File Tree",
   "review.menu.hideFileTree": "Hide File Tree",
   "review.menu.expandAll": "Expand All",
-  "review.menu.collapseAll": "Collapse All"
+  "review.menu.collapseAll": "Collapse All",
+  "review.highFileCount": "{{count}} files — large diff may be slow. All files collapsed by default.",
+  "review.expandAllConfirm": "This will expand {{count}} files. This may be slow. Continue?"
 }
