@@ -62,7 +62,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build and publish
         working-directory: packages/desktop
-        run: bun run build && electron-builder --mac --${{ matrix.arch }} --config configs/electron-builder.mjs --publish=always
+        run: bun run build && bunx electron-builder --mac --${{ matrix.arch }} --config configs/electron-builder.mjs --publish=always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.CSC_LINK }}

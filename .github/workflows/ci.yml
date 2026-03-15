@@ -67,7 +67,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build dev package
         working-directory: packages/desktop
-        run: bun run build && BUILD_ENV=dev electron-builder --mac --${{ matrix.arch }} --config configs/electron-builder.mjs --publish=never
+        run: bun run build && BUILD_ENV=dev bunx electron-builder --mac --${{ matrix.arch }} --config configs/electron-builder.mjs --publish=never
       - name: Calculate artifact sizes
         id: sizes
         working-directory: packages/desktop
