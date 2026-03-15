@@ -49,17 +49,20 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
   useEffect(() => {
     if (!cwd) {
+      log("no cwd, clearing tree");
       setTreeData([]);
       setExpandedKeys(new Set());
       setSelectedKey(null);
       return;
     }
+    log("starting file watch", { cwd });
     refresh(true);
     // In dev mode, React StrictMode causes an extra mount/unmount cycle, which triggers
     // redundant watch/unwatch calls. The async unwatch may cancel the subsequent watch.
     // Disable StrictMode locally to work around this. Not an issue in production.
     const cancel = consumeEventIterator(client.files.watch({ cwd }), {
       onEvent: (e) => {
+        log("fs event", { type: e?.type, path: e?.path });
         if (e?.type !== "content") {
           refresh(); // file system structure changed, refresh file tree
         }

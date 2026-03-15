@@ -44,6 +44,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
         } else {
           fs.unlinkSync(filePath);
         }
+        log("deleted", { path: filePath });
         return { success: true, data: {} };
       } catch (error) {
         return {
@@ -74,6 +75,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
           fs.mkdirSync(newDir, { recursive: true });
         }
         fs.renameSync(oldPath, newPath);
+        log("renamed", { oldPath, newPath });
         return { success: true, data: {} };
       } catch (error) {
         return {

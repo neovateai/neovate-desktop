@@ -88,10 +88,22 @@ export function watchWorkspace(
       log("file added", { path: e });
       _onFsChange("add");
     })
-    .on("unlink", () => _onFsChange("unlink"))
-    .on("addDir", () => _onFsChange("addDir"))
-    .on("unlinkDir", () => _onFsChange("unlinkDir"))
-    .on("change", (fullPath) => _onFsChange("content", { fullPath }))
+    .on("unlink", (e) => {
+      log("file removed", { path: e });
+      _onFsChange("unlink");
+    })
+    .on("addDir", (e) => {
+      log("dir added", { path: e });
+      _onFsChange("addDir");
+    })
+    .on("unlinkDir", (e) => {
+      log("dir removed", { path: e });
+      _onFsChange("unlinkDir");
+    })
+    .on("change", (fullPath) => {
+      log("file changed", { path: fullPath });
+      _onFsChange("content", { fullPath });
+    })
     .on("error", (e) => {
       log("watcher error", { dir, error: e });
       unwatchWorkspace(dir);
@@ -101,6 +113,7 @@ export function watchWorkspace(
 
 export function getCwdPublisher(cwd: string) {
   if (!cwdPublishers.has(cwd)) {
+    log("creating publisher", { cwd });
     cwdPublishers.set(
       cwd,
       new EventPublisher<{
