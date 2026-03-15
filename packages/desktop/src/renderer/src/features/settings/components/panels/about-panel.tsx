@@ -13,8 +13,10 @@ export const AboutPanel = () => {
   const state = useUpdaterState();
 
   const [appVersion, setAppVersion] = useState("");
+  const [sdkVersion, setSdkVersion] = useState("");
   useEffect(() => {
     client.updater.getVersion().then(setAppVersion);
+    client.updater.getClaudeCodeSDKVersion().then(setSdkVersion);
   }, []);
 
   const getUpdateStatusText = (): string => {
@@ -79,6 +81,14 @@ export const AboutPanel = () => {
             {isBusy ? <Spinner className="h-3.5 w-3.5" /> : <RefreshCw className="size-3.5" />}
             {t("settings.about.checkForUpdates")}
           </Button>
+        </SettingsRow>
+
+        {/* Claude Code SDK Version */}
+        <SettingsRow
+          title={t("settings.about.sdkVersion")}
+          description={t("settings.about.sdkVersion.description", { version: sdkVersion })}
+        >
+          <></>
         </SettingsRow>
 
         {/* Feedback */}

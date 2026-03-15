@@ -68,6 +68,8 @@
   "settings.about.sendFeedback": "Send Feedback",
   "settings.about.error": "Error",
   "settings.about.unableToCheck": "Unable to check updates",
+  "settings.about.sdkVersion": "Claude Code SDK",
+  "settings.about.sdkVersion.description": "Agent SDK version: {{version}}",
 
   "settings.keybindings": "Keybindings",
   "settings.keybindings.pressShortcut": "Press shortcut...",

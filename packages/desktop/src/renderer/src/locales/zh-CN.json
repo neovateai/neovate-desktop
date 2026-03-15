@@ -68,6 +68,8 @@
   "settings.about.sendFeedback": "发送反馈",
   "settings.about.error": "错误",
   "settings.about.unableToCheck": "无法检查更新",
+  "settings.about.sdkVersion": "Claude Code SDK",
+  "settings.about.sdkVersion.description": "Agent SDK 版本：{{version}}",
 
   "settings.keybindings": "快捷键",
   "settings.keybindings.pressShortcut": "按下快捷键...",

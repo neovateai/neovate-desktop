@@ -6,5 +6,6 @@ export const updaterContract = {
   check: oc.output(type<void>()),
   install: oc.output(type<void>()),
   getVersion: oc.output(type<string>()),
+  getClaudeCodeSDKVersion: oc.output(type<string>()),
   subscribe: oc.output(eventIterator(type<UpdaterState>())),
 };
