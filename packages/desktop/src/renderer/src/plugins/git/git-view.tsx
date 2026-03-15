@@ -375,7 +375,9 @@ export default memo(function GitView() {
               )}
             </>
           ) : (
-            <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noChanges")}</div>
+            <div className="p-4 text-sm text-center text-muted-foreground">
+              {t("git.noChanges")}
+            </div>
           )}
         </div>
       </div>

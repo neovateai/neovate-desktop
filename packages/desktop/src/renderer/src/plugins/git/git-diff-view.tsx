@@ -129,38 +129,35 @@ export default memo(function GitDiffView() {
 
   const countLines = (content: string): number => {
     if (!content || content.length === 0) return 0;
-    return content.split('\n').length || 0;
+    return content.split("\n").length || 0;
   };
 
   const truncateContent = (
     content: string,
-    linesLimit: number
+    linesLimit: number,
   ): { truncated: string; totalLines: number; isTruncated: boolean } => {
     if (!content || content.length === 0) {
-      return { truncated: '', totalLines: 0, isTruncated: false };
+      return { truncated: "", totalLines: 0, isTruncated: false };
     }
 
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const totalLines = lines.length;
 
     if (totalLines <= linesLimit) {
       return { truncated: content, totalLines, isTruncated: false };
     }
 
-    const truncatedText = lines.slice(0, linesLimit).join('\n');
+    const truncatedText = lines.slice(0, linesLimit).join("\n");
     return { truncated: truncatedText, totalLines, isTruncated: true };
   };
 
-  const createTruncatedDiffData = (
-    originalData: DiffData,
-    limit: number
-  ): TruncatedDiffData => {
+  const createTruncatedDiffData = (originalData: DiffData, limit: number): TruncatedDiffData => {
     const oldLineCount = originalData.oldContent ? countLines(originalData.oldContent) : 0;
     const newLineCount = originalData.newContent ? countLines(originalData.newContent) : 0;
     const maxLineCount = Math.max(oldLineCount, newLineCount);
 
-    const oldTruncated = truncateContent(originalData.oldContent || '', limit);
-    const newTruncated = truncateContent(originalData.newContent || '', limit);
+    const oldTruncated = truncateContent(originalData.oldContent || "", limit);
+    const newTruncated = truncateContent(originalData.newContent || "", limit);
 
     return {
       ...originalData,
@@ -168,7 +165,7 @@ export default memo(function GitDiffView() {
       newContent: newTruncated.truncated,
       isTruncated: oldTruncated.isTruncated || newTruncated.isTruncated,
       totalLineCount: maxLineCount,
-      visibleLineCount: Math.min(limit, maxLineCount)
+      visibleLineCount: Math.min(limit, maxLineCount),
     };
   };
 
@@ -179,7 +176,7 @@ export default memo(function GitDiffView() {
 
     // Use a small delay to allow UI to update
     setTimeout(() => {
-      setVisibleLineLimit(prev => prev + 500);
+      setVisibleLineLimit((prev) => prev + 500);
       setIsExpanding(false);
     }, 50);
   };
@@ -338,7 +335,12 @@ export default memo(function GitDiffView() {
                     onClick={handleShowMore}
                     className="px-3 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors"
                   >
-                    {t("git.diff.showMore", { count: Math.min(500, truncatedDiffData.totalLineCount - truncatedDiffData.visibleLineCount) })}
+                    {t("git.diff.showMore", {
+                      count: Math.min(
+                        500,
+                        truncatedDiffData.totalLineCount - truncatedDiffData.visibleLineCount,
+                      ),
+                    })}
                   </button>
 
                   {truncatedDiffData.totalLineCount - truncatedDiffData.visibleLineCount > 1000 && (
