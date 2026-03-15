@@ -1,5 +1,7 @@
 ---
+name: feature-request
 description: Create a feature request issue on GitHub
+disable-model-invocation: true
 ---
 
 Create a GitHub feature request issue for this project. Follow this process:

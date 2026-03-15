@@ -1,5 +1,7 @@
 ---
+name: bug-report
 description: Create a bug report issue on GitHub
+disable-model-invocation: true
 ---
 
 Create a GitHub bug report issue for this project. Follow this process:
