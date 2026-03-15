@@ -1,6 +1,9 @@
+import debug from "debug";
 import { execSync } from "node:child_process";
 
 import { ExtensionBridgeServer } from "./bridge";
+
+const log = debug("neovate:editor:manager");
 import { CODE_SERVER_PORT, DATA_DIR, EXTENSION_BRIDGE_PORT, EXTENSIONS_DIR } from "./constants";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
 import { injectStyle } from "./injector";
@@ -70,17 +73,17 @@ export class CodeServerManager {
     bridge: ExtensionBridgeServer,
     onProgress?: ProgressCallback,
   ): Promise<CodeServerInstance> {
-    // Return existing instance
     if (this.instance) {
+      log("returning existing instance", { url: this.instance.url });
       return this.instance;
     }
 
-    // Wait for in-progress start
     if (this.startPromise) {
+      log("waiting for in-progress start");
       return this.startPromise;
     }
 
-    // Start new instance
+    log("starting new code-server instance");
     this.startPromise = this.doStart(bridge, onProgress)
       .then((instance) => {
         this.instance = instance;
@@ -99,7 +102,7 @@ export class CodeServerManager {
     bridge: ExtensionBridgeServer,
     onProgress?: ProgressCallback,
   ): Promise<CodeServerInstance> {
-    // 1. Download if not installed
+    log("doStart: checking installation");
     const installed = await isCodeServerInstalled();
     if (!installed) {
       await downloadCodeServer(onProgress);
@@ -117,7 +120,7 @@ export class CodeServerManager {
       // overwrite vscode dist style
       injectStyle();
     } catch (e) {
-      console.warn(`Extension Service failed`, e);
+      log("extension service failed", e);
     }
 
     try {
@@ -129,6 +132,7 @@ export class CodeServerManager {
       });
 
       const url = `http://127.0.0.1:${CODE_SERVER_PORT}`;
+      log("code server ready", { url });
 
       return {
         url,
@@ -155,6 +159,7 @@ export class CodeServerManager {
    * Stop the server
    */
   stop(): void {
+    log("stopping code server");
     if (this.instance) {
       this.instance.stop();
       this.instance = null;

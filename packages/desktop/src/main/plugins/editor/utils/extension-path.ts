@@ -1,8 +1,11 @@
+import debug from "debug";
 import fs from "fs";
 import https from "https";
 import path from "path";
 
 import { EXTENSIONS_DIR } from "./constants";
+
+const log = debug("neovate:editor:extension");
 
 /**
  * neovate-code-extension: 配合 code-server 进行编辑器操作的插件，代码暂不在此仓库，和 code-server 一样通过 cdn 动态下发。
@@ -17,6 +20,7 @@ const RESOURCE_PATH =
 const VSIX_FILENAME = "neovate-code-extension-0.0.9.vsix";
 
 export function ensureExtension(): Promise<string> {
+  log("ensuring extension is available");
   return new Promise((resolve, reject) => {
     // 确保extensions目录存在
     if (!fs.existsSync(EXTENSIONS_DIR)) {
@@ -25,8 +29,8 @@ export function ensureExtension(): Promise<string> {
 
     const extensionPath = path.join(EXTENSIONS_DIR, VSIX_FILENAME);
 
-    // 如果文件已经存在，直接返回路径
     if (fs.existsSync(extensionPath)) {
+      log("extension already exists at %s", extensionPath);
       resolve(extensionPath);
       return;
     }
@@ -39,6 +43,7 @@ export function ensureExtension(): Promise<string> {
           response.pipe(file);
           file.on("finish", () => {
             file.close();
+            log("extension downloaded to %s", extensionPath);
             resolve(extensionPath);
           });
 

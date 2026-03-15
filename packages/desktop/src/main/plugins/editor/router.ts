@@ -1,6 +1,10 @@
+import debug from "debug";
+
 import type { PluginContext } from "../../core/plugin/types";
 
 import { CodeServerManager, ExtensionBridgeServer } from "./utils";
+
+const log = debug("neovate:editor:router");
 
 export function createEditorRouter(
   orpcServer: PluginContext["orpcServer"],
@@ -9,23 +13,32 @@ export function createEditorRouter(
 ) {
   return orpcServer.router({
     start: orpcServer.handler(async () => {
+      log("starting code server");
       const d1 = Date.now();
       const instance = await codeServer.start(extBridge, (p) => {
-        console.log("[Code server downloading]", p);
+        log("downloading", {
+          percent: p.percent,
+          downloadedBytes: p.downloadedBytes,
+          totalBytes: p.totalBytes,
+        });
         if (p.downloadedBytes === p.totalBytes) {
-          console.log("[Code server downloaded, cost]", Date.now() - d1);
+          log("download complete", { elapsed: Date.now() - d1 });
         }
       });
+      log("code server started", { url: instance.url });
       return { url: instance.url };
     }),
     connect: orpcServer.handler(() => {
+      log("waiting for extension bridge ping");
       return new Promise((resolve) => {
         extBridge.register("ping", async () => {
+          log("extension bridge connected");
           resolve({});
         });
       });
     }),
     open: orpcServer.handler(async ({ input }) => {
+      log("open file", input);
       const {
         cwd = "",
         filePath = "",
@@ -38,6 +51,7 @@ export function createEditorRouter(
       return res;
     }),
     setTheme: orpcServer.handler(async ({ input }) => {
+      log("set theme", input);
       const { cwd = "", theme = "" } = input as { cwd: string; theme: string };
       const res = await extBridge.send(
         { operationType: "editor.theme.set", params: { theme } },

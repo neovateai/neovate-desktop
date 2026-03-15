@@ -1,7 +1,10 @@
+import debug from "debug";
 import fs from "node:fs";
 import path from "node:path";
 
 import { DATA_DIR } from "./constants";
+
+const log = debug("neovate:editor:settings");
 
 const OVERRIDE_SETTINGS = {
   /** 隐藏右上角布局控制按钮 */
@@ -53,6 +56,7 @@ const OVERRIDE_SETTINGS = {
 };
 
 export async function overrideCodeServerSettings(): Promise<void> {
+  log("overriding code-server settings");
   const settingsDir = path.join(DATA_DIR, "User");
   const settingsPath = path.join(settingsDir, "settings.json");
 
@@ -68,7 +72,7 @@ export async function overrideCodeServerSettings(): Promise<void> {
       try {
         existingSettings = JSON.parse(fileContent);
       } catch (parseError) {
-        console.warn("Failed to parse existing settings.json, using empty object");
+        log("failed to parse existing settings.json, using empty object");
       }
     }
 
@@ -80,7 +84,7 @@ export async function overrideCodeServerSettings(): Promise<void> {
     // 写入合并后的设置
     fs.writeFileSync(settingsPath, JSON.stringify(mergedSettings, null, 2));
 
-    console.log("Code-server settings updated successfully");
+    log("code-server settings updated");
   } catch (error) {
     console.error("Failed to update code-server settings:", error);
   }

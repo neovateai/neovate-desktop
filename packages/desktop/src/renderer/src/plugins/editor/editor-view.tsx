@@ -1,6 +1,9 @@
 import { ContractRouterClient } from "@orpc/contract";
+import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
+
+const log = debug("neovate:editor:view");
 
 import { editorContract } from "../../../../shared/plugins/editor/contract";
 import { usePluginContext } from "../../core/app";
@@ -92,7 +95,7 @@ function EditorViewCore(props: { cwd: string }) {
     setError(null);
 
     try {
-      console.log("[EditorPane] Starting code-server...");
+      log("starting code-server");
       const { url } = await client.editor.start();
       if (!url) {
         throw new Error("Url is empty");
@@ -103,7 +106,7 @@ function EditorViewCore(props: { cwd: string }) {
       );
       // Construct URL with folder query param
       const editorUrl = `${url}/?folder=${encodeURIComponent(cwd)}`;
-      console.log("[EditorPane] Server ready at:", editorUrl);
+      log("server ready at %s", editorUrl);
 
       setServerUrl(editorUrl);
       // FIXME: 不延迟的话有概率初始化失败
@@ -112,7 +115,7 @@ function EditorViewCore(props: { cwd: string }) {
       }, 100);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to start editor";
-      console.log("[EditorPane] Start failed:", message);
+      log("start failed: %s", message);
       setError(message);
       setStatus("error");
     }

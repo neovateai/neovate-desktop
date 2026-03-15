@@ -1,12 +1,16 @@
+import debug from "debug";
 import path from "node:path";
 
 import { getCodeServerBinaryPath } from "./constants";
+
+const log = debug("neovate:editor:starter");
 
 /**
  * 基于code server 产物进行调用启动
  */
 export async function codeServerStarter(opts: { port: number; extDir: string; dataDir: string }) {
   const { port, extDir, dataDir } = opts;
+  log("starting code server", { port, extDir, dataDir });
   try {
     const resourcePath = getCodeServerBinaryPath();
     const wrapperJS = path.join(resourcePath, "out", "node", "wrapper.js");
@@ -28,7 +32,7 @@ export async function codeServerStarter(opts: { port: number; extDir: string; da
     await wrapper.start(mergedArgs);
     return await delay(1000); // FIXME: 插件关闭侧边栏有延迟，先这样处理，后面可能用魔改产物的方式强制屏蔽
   } catch (e) {
-    console.log(`Code Server Starter Failed: ${e}`);
+    log("code server starter failed: %s", e);
   }
 }
 

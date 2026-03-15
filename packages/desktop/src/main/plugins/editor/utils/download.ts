@@ -1,3 +1,4 @@
+import debug from "debug";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import https from "node:https";
@@ -7,6 +8,8 @@ import { createGunzip } from "node:zlib";
 import { extract } from "tar";
 
 import { CODE_SERVER_DIR, getArtifactUrl, getCodeServerBinaryPath } from "./constants";
+
+const log = debug("neovate:editor:download");
 
 export class CodeServerDownloadError extends Error {
   constructor(
@@ -33,8 +36,10 @@ export async function isCodeServerInstalled(): Promise<boolean> {
   const binaryPath = getCodeServerBinaryPath();
   try {
     await fsp.access(binaryPath);
+    log("code-server already installed at %s", binaryPath);
     return true;
   } catch {
+    log("code-server not installed at %s", binaryPath);
     return false;
   }
 }
@@ -43,6 +48,7 @@ export async function isCodeServerInstalled(): Promise<boolean> {
  * Download and extract code-server binary
  */
 export async function downloadCodeServer(onProgress?: ProgressCallback): Promise<void> {
+  log("starting code-server download");
   const url = getArtifactUrl();
   const binaryPath = getCodeServerBinaryPath();
   const tempDir = path.join(CODE_SERVER_DIR, ".tmp");
@@ -62,6 +68,7 @@ export async function downloadCodeServer(onProgress?: ProgressCallback): Promise
 
     // Cleanup temp file
     await fsp.rm(tempDir, { recursive: true, force: true });
+    log("code-server download complete");
   } catch (error) {
     // Cleanup on failure
     await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
