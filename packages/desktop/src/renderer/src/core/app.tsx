@@ -16,7 +16,7 @@ import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
 import debugPlugin from "../plugins/debug";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
-import demoWindowPlugin from "../plugins/demo-window";
+// import demoWindowPlugin from "../plugins/demo-window";
 import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
@@ -99,7 +99,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   providersPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
-  demoWindowPlugin,
+  // demoWindowPlugin,
 ];
 
 export interface RendererAppOptions {
