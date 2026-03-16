@@ -20,6 +20,7 @@ import type { Provider, ProviderModelMap } from "../../../../../../shared/featur
 
 import {
   resolveL10n,
+  type ProviderBadgeType,
   type ProviderTemplate,
 } from "../../../../../../shared/features/provider/built-in";
 import {
@@ -74,6 +75,27 @@ const emptyForm: ProviderFormData = {
   envOverrides: {},
   enabled: true,
 };
+
+const badgeVariantMap: Record<ProviderBadgeType, "success" | "info" | "default" | "warning"> = {
+  recommended: "success",
+  internal: "info",
+  new: "default",
+  deprecated: "warning",
+};
+
+const badgeSortPriority: Record<ProviderBadgeType, number> = {
+  internal: 1,
+  recommended: 2,
+  new: 3,
+  deprecated: 5,
+};
+
+const NO_BADGE_PRIORITY = 4;
+
+function getTemplateSortPriority(t: ProviderTemplate): number {
+  if (!t.badges || t.badges.length === 0) return NO_BADGE_PRIORITY;
+  return Math.min(...t.badges.map((b) => badgeSortPriority[b]));
+}
 
 function providerToForm(p: Provider): ProviderFormData {
   return {
@@ -152,6 +174,14 @@ export const ProvidersPanel = () => {
   const usedBuiltInIds = useMemo(
     () => new Set(providers.map((p) => p.builtInId).filter(Boolean)),
     [providers],
+  );
+
+  const sortedTemplates = useMemo(
+    () =>
+      [...providerTemplates].sort(
+        (a, b) => getTemplateSortPriority(a) - getTemplateSortPriority(b),
+      ),
+    [providerTemplates],
   );
 
   const canCheck = useMemo(() => {
@@ -388,9 +418,10 @@ export const ProvidersPanel = () => {
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("settings.providers.chooseTemplate")}</p>
           <div className="grid grid-cols-3 gap-3">
-            {providerTemplates.map((template) => {
+            {sortedTemplates.map((template) => {
               const hostname = new URL(template.baseURL).hostname;
               const isUsed = usedBuiltInIds.has(template.id);
+              const isDeprecated = template.badges?.includes("deprecated") ?? false;
               return (
                 <button
                   key={template.id}
@@ -399,12 +430,19 @@ export const ProvidersPanel = () => {
                     "flex flex-col items-start gap-1 rounded-lg border border-input p-3 text-left transition-colors",
                     isUsed
                       ? "opacity-40 cursor-not-allowed"
-                      : "hover:border-primary hover:bg-accent",
+                      : isDeprecated
+                        ? "opacity-60 hover:border-primary hover:bg-accent"
+                        : "hover:border-primary hover:bg-accent",
                   )}
                   onClick={() => !isUsed && selectTemplate(template)}
                 >
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium flex items-center gap-1.5 flex-wrap">
                     {resolveL10n(template.name, i18n.language, template.nameLocalized)}
+                    {template.badges?.slice(0, 2).map((badge) => (
+                      <Badge key={badge} variant={badgeVariantMap[badge]} size="sm">
+                        {t(`settings.providers.badge.${badge}`)}
+                      </Badge>
+                    ))}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {resolveL10n(template.description, i18n.language)}

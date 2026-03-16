@@ -2,6 +2,8 @@ import type { ProviderModelMap } from "./types";
 
 export type L10nText = Record<string, string>;
 
+export type ProviderBadgeType = "recommended" | "internal" | "new" | "deprecated";
+
 export type ProviderTemplate = {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ export type ProviderTemplate = {
   modelMap: ProviderModelMap;
   envOverrides: Record<string, string>;
   apiFormat?: "anthropic";
+  badges?: ProviderBadgeType[];
 };
 
 /** @deprecated Use `ProviderTemplate` instead */

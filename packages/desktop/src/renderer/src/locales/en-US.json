@@ -144,6 +144,10 @@
   "settings.providers.removeModel": "Remove model {{model}}",
   "settings.providers.removeEnvOverride": "Remove environment override {{key}}",
   "settings.providers.toggleFailed": "Failed to toggle provider",
+  "settings.providers.badge.recommended": "Recommended",
+  "settings.providers.badge.internal": "Internal",
+  "settings.providers.badge.new": "New",
+  "settings.providers.badge.deprecated": "Deprecated",
 
   "settings.skills": "Skills",
   "settings.skills.addSkill": "Add Skill",
