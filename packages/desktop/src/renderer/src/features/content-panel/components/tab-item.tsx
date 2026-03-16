@@ -1,15 +1,14 @@
 import type React from "react";
 
 import { X, TriangleAlert } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import type { Tab } from "../types";
 
 import { Button } from "../../../components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../../../components/ui/tooltip";
 import { useRendererApp } from "../../../core";
+import { useTranslationWithMarker } from "../../../core/i18n";
 import { cn } from "../../../lib/utils";
-type TabName = "Editor" | "Git Diff" | "Terminal" | "Review";
 function TabButton({
   tab,
   isActive,
@@ -22,9 +21,9 @@ function TabButton({
 } & React.ComponentPropsWithRef<"div">) {
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const { t } = useTranslation();
+  const tMarker = useTranslationWithMarker();
   const views = app.pluginManager.contributions.contentPanelViews;
-  const view = views.find((view) => view.name === tab.name);
+  const view = views.find((view) => view.viewType === tab.viewType);
   return (
     <div
       {...rest}
@@ -42,7 +41,7 @@ function TabButton({
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
       <view className="flex items-center">
         <span className="mr-1">{view?.icon && <view.icon className="size-3.5" />}</span>
-        <span className="truncate font-medium">{t(`tab.${tab.name as TabName}`)}</span>
+        <span className="truncate font-medium">{tMarker(tab.name)}</span>
       </view>
       <Button
         variant="ghost"
@@ -73,6 +72,7 @@ export function TabItem({
   isActive: boolean;
   isOrphan: boolean;
 }) {
+  const tMarker = useTranslationWithMarker();
   if (isOrphan) {
     return (
       <Tooltip>
@@ -81,7 +81,7 @@ export function TabItem({
           render={(props) => <TabButton {...props} tab={tab} isActive={isActive} isOrphan />}
         />
         <TooltipPopup side="bottom">
-          &quot;{tab.name}&quot; is unavailable. You can close this tab.
+          &quot;{tMarker(tab.name)}&quot; is unavailable. You can close this tab.
         </TooltipPopup>
       </Tooltip>
     );
