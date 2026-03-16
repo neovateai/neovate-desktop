@@ -16,11 +16,11 @@ import { useTheme } from "next-themes";
 import { type ReactNode, Suspense, lazy, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { TitlebarItem } from "../../core/plugin/contributions";
 import type { SeparatorId } from "./types";
 
 import { getChatPanelBgUrl } from "../../assets/images";
 import { useRendererApp } from "../../core/app";
+import { resolveNls, type TitlebarItem } from "../../core/plugin/contributions";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
 import { useAgentStore } from "../../features/agent/store";
@@ -32,6 +32,13 @@ import { useSettingsStore } from "../../features/settings";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
+import {
+  Tooltip,
+  TooltipCreateHandle,
+  TooltipPopup,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import {
   APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
   APP_LAYOUT_GRID,
@@ -208,6 +215,8 @@ export function AppLayoutPrimaryTitleBar() {
   );
 }
 
+const secondaryTitlebarTooltipHandle = TooltipCreateHandle<string>();
+
 export function AppLayoutSecondaryTitleBar() {
   const { t } = useTranslation();
   const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
@@ -226,14 +235,29 @@ export function AppLayoutSecondaryTitleBar() {
       <div className="flex-1" />
       <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-1.5">
         {activeProject && <OpenAppButton cwd={activeProject.path} />}
-        {items.map((item) => {
-          const Component = lazyComponents.get(item.id)!;
-          return (
-            <Suspense key={item.id}>
-              <Component />
-            </Suspense>
-          );
-        })}
+        <TooltipProvider delay={0}>
+          {items.map((item) => {
+            const Component = lazyComponents.get(item.id)!;
+            return (
+              <Suspense key={item.id}>
+                {item.tooltip ? (
+                  <TooltipTrigger
+                    handle={secondaryTitlebarTooltipHandle}
+                    payload={resolveNls(item.tooltip)}
+                    render={<span className="inline-flex" />}
+                  >
+                    <Component />
+                  </TooltipTrigger>
+                ) : (
+                  <Component />
+                )}
+              </Suspense>
+            );
+          })}
+          <Tooltip handle={secondaryTitlebarTooltipHandle}>
+            {({ payload }) => <TooltipPopup side="bottom">{payload}</TooltipPopup>}
+          </Tooltip>
+        </TooltipProvider>
         <Separator orientation="vertical" className="mx-2 my-1 w-[2px] rounded-xl" />
         <ContentPanelToggle />
         <Button

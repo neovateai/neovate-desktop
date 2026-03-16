@@ -10,7 +10,6 @@ export default function OpenDemoWindowButton() {
       variant="ghost"
       size="icon-sm"
       className="size-7"
-      title="Open Demo Window"
       onClick={() =>
         client.window.open({
           windowType: "demo",

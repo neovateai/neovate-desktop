@@ -15,6 +15,8 @@ import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
 import debugPlugin from "../plugins/debug";
+// import contentPanelDemoPlugin from "../plugins/content-panel-demo";
+import demoWindowPlugin from "../plugins/demo-window";
 import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
@@ -25,8 +27,6 @@ import terminalPlugin from "../plugins/terminal";
 import { DisposableStore } from "./disposable";
 import { I18nManager } from "./i18n";
 import { PluginManager } from "./plugin";
-// import contentPanelDemoPlugin from "../plugins/content-panel-demo";
-// import demoWindowPlugin from "../plugins/demo-window";
 import { WorkbenchLayoutService } from "./workbench/layout";
 
 // Preserve context identity across HMR to prevent provider/consumer mismatch
@@ -99,7 +99,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   providersPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
-  // demoWindowPlugin,
+  demoWindowPlugin,
 ];
 
 export interface RendererAppOptions {

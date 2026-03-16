@@ -1,6 +1,7 @@
 import type React from "react";
 
 import debug from "debug";
+import i18next from "i18next";
 
 import type { ProviderTemplate } from "../../../../shared/features/provider/built-in";
 
@@ -42,6 +43,7 @@ export interface ContentPanelView {
 
 export interface TitlebarItem {
   id: string;
+  tooltip?: string;
   order?: number;
   component: () => Promise<{ default: React.ComponentType }>;
 }
@@ -51,6 +53,16 @@ export interface WindowContribution {
   windowType: string;
   /** Root component rendered for this window type */
   component: () => Promise<{ default: React.ComponentType }>;
+}
+
+// ─── NLS ────────────────────────────────────────────────────────────
+
+const NLS_REGEX = /^%(.+)%$/;
+
+/** Resolve `%namespace:key%` markers to localized strings via i18next */
+export function resolveNls(value: string): string {
+  const match = NLS_REGEX.exec(value);
+  return match ? i18next.t(match[1]) : value;
 }
 
 // ─── Merge ──────────────────────────────────────────────────────────
