@@ -28,10 +28,11 @@ import {
   Wand2,
   FileIcon,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { isValidElement, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { CodeBlock } from "./code-block";
 
@@ -287,12 +288,36 @@ export const ToolHeader = ({
   );
 };
 
-export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
+export type ToolContentProps = ComponentProps<"div">;
 
-export const ToolContent = ({ className, ...props }: ToolContentProps) => (
-  <CollapsibleContent
-    className={cn("border-t border-border/50 space-y-3 p-3 text-popover-foreground", className)}
-    {...props}
+export const ToolContent = ({ className, children }: ToolContentProps) => (
+  <CollapsiblePanel
+    keepMounted
+    render={(_panelProps, state) => (
+      <AnimatePresence initial={false}>
+        {state.open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.15 },
+            }}
+            className="overflow-hidden"
+          >
+            <div
+              className={cn(
+                "border-t border-border/50 space-y-3 p-3 text-popover-foreground [--code-block-content-visibility:visible]",
+                className,
+              )}
+            >
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    )}
   />
 );
 
