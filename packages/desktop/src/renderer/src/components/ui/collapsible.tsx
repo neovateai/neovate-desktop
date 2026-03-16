@@ -1,14 +1,19 @@
 "use client";
 
+import type React from "react";
+
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
 
 import { cn } from "../../lib/utils";
 
-function Collapsible({ ...props }: CollapsiblePrimitive.Root.Props) {
+export function Collapsible({ ...props }: CollapsiblePrimitive.Root.Props): React.ReactElement {
   return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />;
 }
 
-function CollapsibleTrigger({ className, ...props }: CollapsiblePrimitive.Trigger.Props) {
+export function CollapsibleTrigger({
+  className,
+  ...props
+}: CollapsiblePrimitive.Trigger.Props): React.ReactElement {
   return (
     <CollapsiblePrimitive.Trigger
       className={cn("cursor-pointer", className)}
@@ -18,11 +23,10 @@ function CollapsibleTrigger({ className, ...props }: CollapsiblePrimitive.Trigge
   );
 }
 
-function CollapsiblePanel({
+export function CollapsiblePanel({
   className,
-  keepMounted = true,
   ...props
-}: CollapsiblePrimitive.Panel.Props) {
+}: CollapsiblePrimitive.Panel.Props): React.ReactElement {
   return (
     <CollapsiblePrimitive.Panel
       className={cn(
@@ -30,15 +34,9 @@ function CollapsiblePanel({
         className,
       )}
       data-slot="collapsible-panel"
-      keepMounted={keepMounted}
       {...props}
     />
   );
 }
 
-export {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsiblePanel,
-  CollapsiblePanel as CollapsibleContent,
-};
+export { CollapsiblePrimitive, CollapsiblePanel as CollapsibleContent };
