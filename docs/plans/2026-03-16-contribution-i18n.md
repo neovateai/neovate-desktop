@@ -4,7 +4,7 @@
 
 **Goal:** Make `ContentPanelView.name` translatable via `%namespace:key%` NLS markers, with reactive language switching.
 
-**Architecture:** Add `useTranslationWithMarker` hook to `core/i18n/`. Plugins write `%namespace:key%` in `name`. UI components call the hook to resolve markers. Delete old `resolveNls` and app-level `tab.*` translation keys.
+**Architecture:** Add `useTranslationWithMarker` hook to `core/i18n/hooks/`. Plugins write `%namespace:key%` in `name`. UI components call the hook to resolve markers. Delete old `resolveNls` and app-level `tab.*` translation keys.
 
 **Tech Stack:** i18next, react-i18next, vitest
 
@@ -14,12 +14,12 @@
 
 **Files:**
 
-- Create: `packages/desktop/src/renderer/src/core/i18n/nls.ts`
+- Create: `packages/desktop/src/renderer/src/core/i18n/hooks/use-translation-with-marker.ts`
 - Modify: `packages/desktop/src/renderer/src/core/i18n/index.ts`
 
 **Step 1: Write the test**
 
-Create `packages/desktop/src/renderer/src/core/i18n/__tests__/nls.test.ts`:
+Create `packages/desktop/src/renderer/src/core/i18n/hooks/__tests__/use-translation-with-marker.test.ts`:
 
 ```typescript
 import { renderHook } from "@testing-library/react";
@@ -27,7 +27,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { useTranslationWithMarker } from "../nls";
+import { useTranslationWithMarker } from "../use-translation-with-marker";
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
@@ -61,12 +61,12 @@ describe("useTranslationWithMarker", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `bun test:run src/renderer/src/core/i18n/__tests__/nls.test.ts`
-Expected: FAIL — module `../nls` not found
+Run: `bun test:run src/renderer/src/core/i18n/hooks/__tests__/use-translation-with-marker.test.ts`
+Expected: FAIL — module `../use-translation-with-marker` not found
 
 **Step 3: Write implementation**
 
-Create `packages/desktop/src/renderer/src/core/i18n/nls.ts`:
+Create `packages/desktop/src/renderer/src/core/i18n/hooks/use-translation-with-marker.ts`:
 
 ```typescript
 import { useTranslation } from "react-i18next";
@@ -92,19 +92,19 @@ export function useTranslationWithMarker() {
 In `packages/desktop/src/renderer/src/core/i18n/index.ts`, add:
 
 ```typescript
-export { useTranslationWithMarker } from "./nls";
+export { useTranslationWithMarker } from "./hooks/use-translation-with-marker";
 ```
 
 **Step 5: Run test to verify it passes**
 
-Run: `bun test:run src/renderer/src/core/i18n/__tests__/nls.test.ts`
+Run: `bun test:run src/renderer/src/core/i18n/hooks/__tests__/use-translation-with-marker.test.ts`
 Expected: PASS
 
 **Step 6: Commit**
 
 ```bash
-git add packages/desktop/src/renderer/src/core/i18n/nls.ts \
-       packages/desktop/src/renderer/src/core/i18n/__tests__/nls.test.ts \
+git add packages/desktop/src/renderer/src/core/i18n/hooks/use-translation-with-marker.ts \
+       packages/desktop/src/renderer/src/core/i18n/hooks/__tests__/use-translation-with-marker.test.ts \
        packages/desktop/src/renderer/src/core/i18n/index.ts
 git commit -m "feat: add useTranslationWithMarker hook for NLS marker resolution"
 ```

@@ -21,7 +21,7 @@ Plugin defines          Stored in tab           Rendered
 
 ### `useTranslationWithMarker` Hook
 
-A new React hook in `core/i18n/nls.ts` that resolves `%namespace:key%` markers reactively (language switch triggers re-render).
+A new React hook in `core/i18n/hooks/use-translation-with-marker.ts` that resolves `%namespace:key%` markers reactively (language switch triggers re-render).
 
 ```typescript
 const NLS_MARKER_RE = /^%([^%]+)%$/;
@@ -49,7 +49,7 @@ Currently plugins write the full `%namespace:key%`. In the future, the framework
 
 ## Changes
 
-### New: `core/i18n/nls.ts`
+### New: `core/i18n/hooks/use-translation-with-marker.ts`
 
 - `useTranslationWithMarker()` hook
 - Export from `core/i18n/index.ts`
