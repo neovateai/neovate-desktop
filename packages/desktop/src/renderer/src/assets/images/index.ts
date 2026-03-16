@@ -12,8 +12,8 @@ export const IMAGE_URLS = {
 
   // Logo
   logoDark:
-    "https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*jpbTRowbpecAAAAAQbAAAAgAenyRAQ/original",
-  logo: "https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*OWxgSqKL5BoAAAAAQIAAAAgAenyRAQ/original",
+    "https://mdn.alipayobjects.com/huamei_9rin5s/afts/img/RZJ_SZzf7AUAAAAAQGAAAAgADiB8AQFr/original",
+  logo: "https://mdn.alipayobjects.com/huamei_9rin5s/afts/img/qsRcT59q8rsAAAAAQGAAAAgADiB8AQFr/original",
 
   // 空状态图片
   empty1:
