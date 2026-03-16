@@ -225,7 +225,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
   if (!project) {
     return (
       <div className="flex h-full flex-col p-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center">
           <p className="text-xs text-muted-foreground">{t("noProject")}</p>
         </div>
@@ -236,7 +236,7 @@ function SearchViewComponent({ project }: SearchViewProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
       </div>
       <div className="relative mb-2">
         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />

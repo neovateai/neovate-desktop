@@ -284,9 +284,8 @@ export function MessageInput({
     },
     [addAttachments],
   );
-
   return (
-    <div className={cn("px-4 pt-4 pb-1", dockAttached ? "pb-1 pt-0" : "border-t border-border")}>
+    <div className={cn("px-4 pt-4 pb-1 max-w-3xl mx-auto w-full", dockAttached ? "pb-1 pt-0" : "")}>
       {activeSessionId && <QueryStatus sessionId={activeSessionId} />}
       <input
         ref={fileInputRef}
@@ -316,7 +315,7 @@ export function MessageInput({
             color: "var(--foreground)",
             transition: "all .2s",
             background:
-              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 50%, transparent) 0,transparent 80%,transparent)border-box",
+              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 30%, transparent) 0,transparent 80%,transparent)border-box",
           }}
         >
           <AnimatePresence>

@@ -41,7 +41,9 @@ function MultiProjectSessionList() {
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
   const loadSessionPreferences = useProjectStore((s) => s.loadSessionPreferences);
   const projects = useProjectStore((s) => s.projects);
-
+  const { createNewSession } = useNewSession();
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const { t } = useTranslation();
   log("multi-project: organize=%s projects=%d", sidebarOrganize, projects.length);
 
   useEffect(() => {
@@ -54,6 +56,17 @@ function MultiProjectSessionList() {
   return (
     <div className="flex flex-1 flex-col">
       <PinnedSessionList />
+      <div className="px-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
+          onClick={() => activeProject && createNewSession(activeProject.path)}
+        >
+          <SquarePen size={14} />
+          <span>{t("session.newChat")}</span>
+        </Button>
+      </div>
       <SidebarTitleBar />
       {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
     </div>
@@ -163,16 +176,17 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
 
   return (
     <div className="flex flex-1 flex-col gap-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
-        onClick={() => createNewSession(projectPath)}
-      >
-        <SquarePen size={14} />
-        <span>{t("session.newChat")}</span>
-      </Button>
-
+      <div className="px-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
+          onClick={() => createNewSession(projectPath)}
+        >
+          <SquarePen size={14} />
+          <span>{t("session.newChat")}</span>
+        </Button>
+      </div>
       {pinnedItems.length === 0 && regularItems.length === 0 ? (
         <EmptySessionState />
       ) : (

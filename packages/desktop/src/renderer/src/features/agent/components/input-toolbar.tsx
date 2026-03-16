@@ -96,13 +96,14 @@ export function InputToolbar({
       ) : (
         <Button
           type="button"
+          variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 bg-secondary hover:!bg-secondary/80"
           disabled={disabled}
           onClick={onSend}
           title={sendMessageWith === "cmdEnter" ? t("chat.sendCmdEnter") : t("chat.sendEnter")}
         >
-          <SendHorizonal className="h-4 w-4" />
+          <SendHorizonal className="h-4 w-4" style={{ color: "var(--secondary-foreground)" }} />
         </Button>
       )}
     </div>

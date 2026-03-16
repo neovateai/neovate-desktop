@@ -144,7 +144,7 @@ export function AgentChat() {
           cwd={cwd}
         />
         {cwd && (
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-2 max-w-3xl mx-auto w-full">
             <BranchSwitcher cwd={cwd} />
           </div>
         )}
@@ -215,7 +215,7 @@ function AgentChatSession({
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
-      <div className="shrink-0 w-full">
+      <div className="shrink-0 max-w-3xl mx-auto w-full">
         <TaskProgress tasks={tasks} />
         {error && (
           <div className="mx-4 mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">

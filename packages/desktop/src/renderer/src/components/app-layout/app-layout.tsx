@@ -121,7 +121,7 @@ export function AppLayoutTrafficLights() {
     <div
       data-slot="traffic-lights"
       className="[-webkit-app-region:no-drag] pointer-events-auto fixed z-[100] flex items-center gap-1"
-      style={{ top: 11, left: 82 }}
+      style={{ top: 9, left: 82 }}
     >
       <Button
         variant="ghost"
@@ -136,7 +136,7 @@ export function AppLayoutTrafficLights() {
           animate={{ opacity: isOpen ? 1 : 0 }}
           transition={springTransition}
         >
-          <HugeiconsIcon icon={ViewSidebarLeftIcon} size={18} strokeWidth={1.5} />
+          <HugeiconsIcon icon={ViewSidebarLeftIcon} size={18} strokeWidth={1.8} />
         </motion.span>
         <motion.span
           className="absolute inset-0 flex items-center justify-center"
@@ -144,7 +144,7 @@ export function AppLayoutTrafficLights() {
           animate={{ opacity: isOpen ? 0 : 1 }}
           transition={springTransition}
         >
-          <HugeiconsIcon icon={PanelLeftIcon} size={18} strokeWidth={1.5} />
+          <HugeiconsIcon icon={PanelLeftIcon} size={18} strokeWidth={1.8} />
         </motion.span>
       </Button>
       <motion.div
@@ -156,7 +156,7 @@ export function AppLayoutTrafficLights() {
         <Button
           variant="ghost"
           size="icon"
-          className="!size-6"
+          className="!size-6 !px-0"
           onClick={() => activeProject && createNewSession(activeProject.path)}
           disabled={!activeProject}
           title={t("sidebar.newChat")}
@@ -246,7 +246,7 @@ export function AppLayoutSecondaryTitleBar() {
           <HugeiconsIcon
             icon={secondaryCollapsed ? PanelRightIcon : ViewSidebarRightIcon}
             size={16}
-            strokeWidth={1.5}
+            strokeWidth={1.8}
           />
         </Button>
         <Button
@@ -256,7 +256,7 @@ export function AppLayoutSecondaryTitleBar() {
           title={t("sidebar.settings")}
           onClick={() => setShowSettings(true)}
         >
-          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.5} />
+          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.8} />
         </Button>
       </div>
     </div>
@@ -292,7 +292,7 @@ function ContentPanelToggle() {
       <HugeiconsIcon
         icon={collapsed ? SidebarRightIcon : SidebarRight01Icon}
         size={16}
-        strokeWidth={1.5}
+        strokeWidth={1.8}
       />
     </Button>
   );

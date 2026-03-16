@@ -61,7 +61,7 @@ export default function App() {
         <AppLayoutTrafficLights />
 
         <AppLayoutPrimarySidebar>
-          <div className="flex h-full flex-col p-3">
+          <div className="flex h-full flex-col">
             <SessionList />
           </div>
         </AppLayoutPrimarySidebar>

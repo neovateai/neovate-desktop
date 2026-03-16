@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import type { RendererPlugin } from "../../core/plugin";
 
 const FilesIcon = ({ className }: { className?: string }) => (
-  <HugeiconsIcon icon={FolderIcon} className={className} size={16} strokeWidth={1.5} />
+  <HugeiconsIcon icon={FolderIcon} className={className} size={16} strokeWidth={1.8} />
 );
 
 const plugin: RendererPlugin = {

@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import type { RendererPlugin } from "../../core/plugin";
 
 const GitIcon = ({ className }: { className?: string }) => (
-  <HugeiconsIcon icon={GitBranchIcon} className={className} size={16} strokeWidth={1.5} />
+  <HugeiconsIcon icon={GitBranchIcon} className={className} size={16} strokeWidth={1.8} />
 );
 
 const plugin: RendererPlugin = {

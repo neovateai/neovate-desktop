@@ -217,7 +217,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (!project) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center flex-col gap-2 ">
           <img
             src={getEmpty2Url(resolvedTheme as "dark" | "light" | undefined)}
@@ -235,7 +235,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   if (loading) {
     return (
       <div className="flex h-full flex-col p-3">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
         <div className="flex flex-1 items-center justify-center">
           <p className="text-xs text-muted-foreground">
             {t("common.loading", { ns: "translation" })}
@@ -248,7 +248,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   return (
     <div className="flex h-full flex-col p-3 overflow-hidden">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
       </div>
 
       <div className="flex-1 overflow-auto -mr-2.5">

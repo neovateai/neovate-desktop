@@ -316,7 +316,7 @@ export default memo(function GitView() {
   if (!activeProject) {
     return (
       <div className="flex h-full flex-col p-3 gap-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("git.title")}</h2>
         <div className="p-4 text-sm text-center text-muted-foreground">{t("git.noProject")}</div>
       </div>
     );
@@ -340,7 +340,7 @@ export default memo(function GitView() {
   return (
     <div className="flex h-full mb-2 flex-col overflow-hidden">
       <div className="flex items-center justify-between px-3 pt-3 pb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">{t("git.title")}</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("git.title")}</h2>
         <button
           onClick={() => cwd && refreshGitStatus(cwd)}
           className="p-px hover:bg-accent/50 rounded-sm cursor-pointer"

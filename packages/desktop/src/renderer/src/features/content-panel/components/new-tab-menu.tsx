@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import type { ContentPanelStoreState, Tab } from "../types";
@@ -9,6 +10,7 @@ import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/m
 import { useRendererApp } from "../../../core";
 import { useProjectStore } from "../../project/store";
 
+type TabName = "Editor" | "Git Diff" | "Terminal" | "Review";
 const EMPTY_TABS: Tab[] = [];
 
 export function NewTabMenu() {
@@ -22,7 +24,7 @@ export function NewTabMenu() {
     (s: ContentPanelStoreState) => s.projects[projectPath]?.tabs ?? EMPTY_TABS,
   );
   const openViewTypes = useMemo(() => new Set(tabs.map((t) => t.viewType)), [tabs]);
-
+  const { t } = useTranslation();
   return (
     <Menu>
       <MenuTrigger openOnHover delay={0} render={<Button variant="ghost" size="icon-sm" />}>
@@ -38,7 +40,7 @@ export function NewTabMenu() {
               onClick={() => contentPanel.openView(view.viewType)}
             >
               {view.icon && <view.icon className="size-3.5" />}
-              {view.name}
+              {t(`tab.${view.name as TabName}`)}
             </MenuItem>
           );
         })}

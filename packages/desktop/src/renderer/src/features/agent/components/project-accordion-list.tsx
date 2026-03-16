@@ -129,13 +129,13 @@ const SortableProjectItem = memo(function SortableProjectItem({
 
   return (
     <AccordionItem ref={setNodeRef} style={style} value={project.id} className="border-b-0">
-      <AccordionPrimitive.Header className="group flex items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+      <AccordionPrimitive.Header className="group flex justify-between items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
         <div
-          className="flex flex-1 cursor-grab items-center gap-2 px-3 py-1.5 active:cursor-grabbing"
+          className="flex flex-1 cursor-grab items-center gap-2 px-2 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
           {...attributes}
           {...listeners}
         >
-          <AccordionPrimitive.Trigger className="flex flex-1 cursor-pointer items-center gap-2 text-left">
+          <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2 text-left max-w-[calc(100%)]">
             <div className="flex-shrink-0 group-hover:hidden">
               <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
             </div>
@@ -146,27 +146,31 @@ const SortableProjectItem = memo(function SortableProjectItem({
                 <ChevronRight size={16} strokeWidth={1.5} />
               )}
             </div>
-            <span className="flex-1 truncate text-sm font-medium">{project.name}</span>
+            <span className="flex-1 truncate text-sm font-medium max-w-[calc(100%)]">
+              {project.name}
+            </span>
           </AccordionPrimitive.Trigger>
         </div>
-        <button
-          className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(project.id);
-          }}
-        >
-          <Trash2 size={14} strokeWidth={1.5} />
-        </button>
-        <button
-          className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateSession(project);
-          }}
-        >
-          <Plus size={14} strokeWidth={1.5} />
-        </button>
+        <view className="flex">
+          <button
+            className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(project.id);
+            }}
+          >
+            <Trash2 size={14} strokeWidth={1.5} />
+          </button>
+          <button
+            className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreateSession(project);
+            }}
+          >
+            <Plus size={14} strokeWidth={1.5} />
+          </button>
+        </view>
       </AccordionPrimitive.Header>
       <AccordionPanel className="pb-1 pt-0">
         <ProjectSessions project={project} />
