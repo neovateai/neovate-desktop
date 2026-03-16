@@ -41,7 +41,7 @@ function TabButton({
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
       <view className="flex items-center">
         <span className="mr-1">{view?.icon && <view.icon className="size-3.5" />}</span>
-        <span className="truncate font-medium">{tMarker(tab.name)}</span>
+        <span className="truncate font-medium">{tMarker(view?.name ?? tab.name)}</span>
       </view>
       <Button
         variant="ghost"
