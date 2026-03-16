@@ -88,7 +88,8 @@ export type ClaudeCodeUIEventRequest = PermissionRequest;
 
 export type ClaudeCodeUIEvent =
   | { kind: "event"; event: ClaudeCodeUIEventMessage }
-  | { kind: "request"; requestId: string; request: ClaudeCodeUIEventRequest };
+  | { kind: "request"; requestId: string; request: ClaudeCodeUIEventRequest }
+  | { kind: "request_settled"; requestId: string };
 
 // ─── Dispatch ────────────────────────────────────────────────────────────────
 

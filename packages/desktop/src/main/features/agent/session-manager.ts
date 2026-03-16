@@ -157,8 +157,10 @@ export class SessionManager {
         const { promise, resolve } =
           Promise.withResolvers<import("@anthropic-ai/claude-agent-sdk").PermissionResult>();
         let settled = false;
-        const settle = (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => {
-          if (settled) return;
+        const settle = (
+          result: import("@anthropic-ai/claude-agent-sdk").PermissionResult,
+        ): boolean => {
+          if (settled) return false;
           settled = true;
           clearTimeout(timer);
           signal.removeEventListener("abort", onAbort);
@@ -169,12 +171,18 @@ export class SessionManager {
               ? { ...result, updatedInput: result.updatedInput ?? input }
               : result,
           );
+          return true;
         };
-        const timer = setTimeout(
-          () => settle({ behavior: "deny", message: "Permission request timed out" }),
-          PERMISSION_TIMEOUT_MS,
-        );
-        const onAbort = () => settle({ behavior: "deny", message: "Permission request cancelled" });
+        const timer = setTimeout(() => {
+          if (settle({ behavior: "deny", message: "Permission request timed out" })) {
+            this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
+          }
+        }, PERMISSION_TIMEOUT_MS);
+        const onAbort = () => {
+          if (settle({ behavior: "deny", message: "Permission request cancelled" })) {
+            this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
+          }
+        };
         session.pendingRequests.set(requestId, { resolve: settle, timer });
         this.eventPublisher.publish(sessionId, {
           kind: "request",
@@ -500,9 +508,10 @@ export class SessionManager {
       return;
     }
     session.query.close();
-    for (const [, pending] of session.pendingRequests) {
+    for (const [requestId, pending] of session.pendingRequests) {
       clearTimeout(pending.timer);
       pending.resolve({ behavior: "deny", message: "Session closed" });
+      this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
     }
     this.sessions.delete(sessionId);
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);

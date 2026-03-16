@@ -85,6 +85,13 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   }
 
   #handleMessage(message: ClaudeCodeUIEvent) {
+    if (message.kind === "request_settled") {
+      this.store.setState((state) => ({
+        pendingRequests: state.pendingRequests.filter((r) => r.requestId !== message.requestId),
+      }));
+      return;
+    }
+
     if (message.kind === "request") {
       log(
         "permission request: sessionId=%s requestId=%s toolName=%s",
@@ -138,7 +145,7 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
         },
       });
 
-      if (result.kind === "respond" && result.ok) {
+      if (result.kind === "respond") {
         this.store.setState((state) => ({
           pendingRequests: state.pendingRequests.filter(
             (request) => request.requestId !== requestId,
