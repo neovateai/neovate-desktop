@@ -55,7 +55,6 @@ beforeEach(() => {
   panel.store.getState().addTab(PROJECT, {
     id: "tab-1",
     viewType: "terminal",
-    name: "Terminal",
     state: { cwd: "/home" },
   });
   panel.store.getState().setActiveTab(PROJECT, "tab-1");
@@ -87,7 +86,6 @@ describe("useContentPanelViewContext", () => {
     panel.store.getState().addTab(PROJECT, {
       id: "tab-2",
       viewType: "terminal",
-      name: "Terminal 2",
       state: {},
     });
     panel.store.getState().setActiveTab(PROJECT, "tab-2");

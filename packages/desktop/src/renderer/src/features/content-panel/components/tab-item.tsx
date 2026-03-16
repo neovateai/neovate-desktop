@@ -21,7 +21,7 @@ function TabButton({
 } & React.ComponentPropsWithRef<"div">) {
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const tMarker = useTranslationWithMarker();
+  const t = useTranslationWithMarker();
   const views = app.pluginManager.contributions.contentPanelViews;
   const view = views.find((view) => view.viewType === tab.viewType);
   return (
@@ -41,7 +41,7 @@ function TabButton({
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
       <view className="flex items-center">
         <span className="mr-1">{view?.icon && <view.icon className="size-3.5" />}</span>
-        <span className="truncate font-medium">{tMarker(view?.name ?? tab.name)}</span>
+        <span className="truncate font-medium">{view ? t(view.name) : tab.viewType}</span>
       </view>
       <Button
         variant="ghost"
@@ -72,7 +72,6 @@ export function TabItem({
   isActive: boolean;
   isOrphan: boolean;
 }) {
-  const tMarker = useTranslationWithMarker();
   if (isOrphan) {
     return (
       <Tooltip>
@@ -81,7 +80,7 @@ export function TabItem({
           render={(props) => <TabButton {...props} tab={tab} isActive={isActive} isOrphan />}
         />
         <TooltipPopup side="bottom">
-          &quot;{tMarker(tab.name)}&quot; is unavailable. You can close this tab.
+          &quot;{tab.viewType}&quot; is unavailable. You can close this tab.
         </TooltipPopup>
       </Tooltip>
     );

@@ -7,6 +7,7 @@ import type { ContentPanelView } from "../../core/plugin/contributions";
 import type { ContentPanelStoreState } from "../../features/content-panel/types";
 
 import { useRendererApp } from "../../core";
+import { useTranslationWithMarker } from "../../core/i18n";
 import { ContentPanelViewContextProvider } from "../../features/content-panel";
 import { useProjectStore } from "../../features/project/store";
 
@@ -22,6 +23,7 @@ function useLazyComponents(views: ContentPanelView[]) {
 
 export function ContentPanelTabs() {
   const { t } = useTranslation();
+  const tMarker = useTranslationWithMarker();
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
   const views = app.pluginManager.contributions.contentPanelViews;
@@ -72,7 +74,12 @@ export function ContentPanelTabs() {
             }`}
             onClick={() => contentPanel.activateView(tab.id)}
           >
-            <span className="truncate">{tab.name}</span>
+            <span className="truncate">
+              {(() => {
+                const view = views.find((v) => v.viewType === tab.viewType);
+                return view ? tMarker(view.name) : tab.viewType;
+              })()}
+            </span>
             <span
               role="button"
               tabIndex={0}
@@ -150,6 +157,7 @@ function NewTabMenu({
   onSelect: (viewType: string) => void;
 }) {
   const menuRef = useRef<HTMLDetailsElement>(null);
+  const tMarker = useTranslationWithMarker();
 
   return (
     <details ref={menuRef} className="relative">
@@ -168,7 +176,7 @@ function NewTabMenu({
             }}
           >
             {view.icon && <view.icon className="size-3.5" />}
-            <span>{view.name}</span>
+            <span>{tMarker(view.name)}</span>
           </button>
         ))}
       </div>

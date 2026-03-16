@@ -45,7 +45,7 @@ export default function DemoView() {
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
             <Kv label="Tab Count" value={tabCount} />
             <Kv label="Active Tab" value={activeTabId?.slice(0, 8) ?? "none"} />
-            <Kv label="This Tab" value={currentTab?.name ?? "?"} />
+            <Kv label="This Tab" value={currentTab?.viewType ?? "?"} />
             <Kv label="Is Active" value={String(activeTabId === viewId)} />
           </div>
           <p className="mt-2 text-[10px] text-muted-foreground">All tabs:</p>
@@ -63,7 +63,7 @@ export default function DemoView() {
                 <span className="text-muted-foreground">·</span>
                 <span>{t.viewType}</span>
                 <span className="text-muted-foreground">·</span>
-                <span className="truncate">{t.name}</span>
+                <span className="truncate">{t.viewType}</span>
               </div>
             )) ?? null}
           </div>
@@ -72,13 +72,7 @@ export default function DemoView() {
         {/* Tab API */}
         <Section title="Tab API">
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                contentPanel.openView("demo-multi", { name: `Multi #${Date.now().toString(36)}` })
-              }
-            >
+            <Button variant="outline" size="sm" onClick={() => contentPanel.openView("demo-multi")}>
               Open + Activate
             </Button>
             <Button
@@ -86,7 +80,6 @@ export default function DemoView() {
               size="sm"
               onClick={() =>
                 contentPanel.openView("demo-multi", {
-                  name: `BG #${Date.now().toString(36)}`,
                   activate: false,
                 })
               }
@@ -99,15 +92,6 @@ export default function DemoView() {
               onClick={() => contentPanel.openView("demo-singleton")}
             >
               Open Singleton
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                contentPanel.updateView(viewId, { name: `Renamed ${Date.now().toString(36)}` })
-              }
-            >
-              Rename This
             </Button>
             <Button
               variant="destructive-outline"

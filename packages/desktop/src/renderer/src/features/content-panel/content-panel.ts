@@ -85,7 +85,7 @@ export class ContentPanel {
     this.projectPath = path;
   }
 
-  openView(viewType: string, options?: { name?: string; activate?: boolean }): string {
+  openView(viewType: string, options?: { activate?: boolean }): string {
     log("open view", { viewType, options });
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) throw new Error(`Unknown view: ${viewType}`);
@@ -108,7 +108,6 @@ export class ContentPanel {
     const tab: Tab = {
       id: crypto.randomUUID(),
       viewType,
-      name: options?.name ?? view.name,
       state: {},
     };
 
@@ -125,11 +124,6 @@ export class ContentPanel {
   activateView(viewId: string): void {
     log("activate view", { viewId });
     this.store.getState().setActiveTab(this.projectPath, viewId);
-  }
-
-  updateView(viewId: string, patch: { name?: string }): void {
-    log("update view", { viewId, patch });
-    this.store.getState().updateTab(this.projectPath, viewId, patch);
   }
 
   getViewState(viewId: string): Record<string, unknown> {

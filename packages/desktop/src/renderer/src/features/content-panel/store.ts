@@ -39,14 +39,6 @@ export function createContentPanelStore() {
         });
       },
 
-      updateTab(projectPath, tabId, patch) {
-        set((s) => {
-          const tab = s.projects[projectPath]?.tabs.find((t) => t.id === tabId);
-          if (!tab) return;
-          if (patch.name !== undefined) tab.name = patch.name;
-        });
-      },
-
       updateTabState(projectPath, tabId, patch) {
         set((s) => {
           const tab = s.projects[projectPath]?.tabs.find((t) => t.id === tabId);

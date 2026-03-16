@@ -60,17 +60,6 @@ describe("openView", () => {
     expect(options.layout.expandPart).toHaveBeenCalledWith("contentPanel");
   });
 
-  it("uses view name as default tab name", () => {
-    panel.openView("terminal");
-    expect(panel.store.getState().getProjectState(PROJECT).tabs[0].name).toBe("Terminal");
-  });
-
-  it("accepts custom name", () => {
-    panel.openView("terminal", { name: "My Term" });
-    const tab = panel.store.getState().getProjectState(PROJECT).tabs[0];
-    expect(tab.name).toBe("My Term");
-  });
-
   it("enforces singleton — activates existing instead of creating new", () => {
     const id1 = panel.openView("editor");
     const id2 = panel.openView("editor");
@@ -161,15 +150,6 @@ describe("activateView", () => {
   });
 });
 
-describe("updateView", () => {
-  it("updates tab name via store", () => {
-    const id = panel.openView("terminal");
-    panel.updateView(id, { name: "Renamed" });
-    const tab = panel.store.getState().getTab(PROJECT, id);
-    expect(tab?.name).toBe("Renamed");
-  });
-});
-
 describe("getViewState / updateViewState", () => {
   it("reads and writes tab.state", () => {
     const id = panel.openView("terminal");
@@ -197,7 +177,7 @@ describe("hydrate", () => {
   it("restores projects state from persistence", async () => {
     const saved = {
       [PROJECT]: {
-        tabs: [{ id: "t1", viewType: "terminal", name: "Term", state: {} }],
+        tabs: [{ id: "t1", viewType: "terminal", state: {} }],
         activeTabId: "t1",
       },
     };
