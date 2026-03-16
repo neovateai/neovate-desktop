@@ -62,21 +62,36 @@ Delete `resolveNls` and `NLS_REGEX`. All call sites migrate to `useTranslationWi
 
 Replace `resolveNls(item.tooltip)` with `useTranslationWithMarker()`.
 
+### Remove: `Tab.name` field and `updateView` / `updateTab` API
+
+`Tab` 类型原先包含 `name` 字段，由 `openView` 时写入并持久化到 storage。这导致两个问题：
+
+1. **翻译失效** — 持久化的 `name` 是写入时的语言快照（如 `"Git Diff"`），切换语言后不会变为 `"代码变更"`
+2. **冗余数据** — Tab 的显示名称完全可以从 `viewType` 关联到 `ContentPanelView.name` 在渲染时动态获取，无需存储
+
+因此删除：
+
+- `Tab.name` 字段 — `Tab` 类型仅保留 `id`、`viewType`、`state`
+- `ContentPanel.updateView()` 方法 — 唯一用途是修改 `tab.name`，不再需要
+- `ContentPanelStoreState.updateTab()` — `updateView` 的底层 store 操作
+
+渲染时通过 `views.find(v => v.viewType === tab.viewType)` 查找对应 view，再用 `useTranslationWithMarker(view.name)` 解析显示名称。持久化数据中多余的 `name` 字段会被自动忽略，向后兼容。
+
 ### Migrate: `tab-item.tsx`
 
 | Before                                       | After                                                    |
 | -------------------------------------------- | -------------------------------------------------------- |
-| `t(`tab.${tab.name as TabName}`)`            | `tMarker(tab.name)`                                      |
+| `t(`tab.${tab.name as TabName}`)`            | `t(view.name)` via `useTranslationWithMarker`            |
 | `view.name === tab.name` (find view by name) | `view.viewType === tab.viewType` (find view by viewType) |
-| `"{tab.name}" is unavailable` tooltip        | `tMarker(tab.name)`                                      |
+| `"{tab.name}" is unavailable` tooltip        | `"{tab.viewType}" is unavailable`                        |
 | `type TabName = "Editor" \| ...`             | Delete                                                   |
 
 ### Migrate: `new-tab-menu.tsx`
 
-| Before                             | After                |
-| ---------------------------------- | -------------------- |
-| `t(`tab.${view.name as TabName}`)` | `tMarker(view.name)` |
-| `type TabName = "Editor" \| ...`   | Delete               |
+| Before                             | After                                         |
+| ---------------------------------- | --------------------------------------------- |
+| `t(`tab.${view.name as TabName}`)` | `t(view.name)` via `useTranslationWithMarker` |
+| `type TabName = "Editor" \| ...`   | Delete                                        |
 
 ### Plugin Changes
 
