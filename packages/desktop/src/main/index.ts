@@ -53,7 +53,7 @@ const appContext: AppContext = {
 };
 
 app.whenReady().then(async () => {
-  electronApp.setAppUserModelId("com.electron");
+  electronApp.setAppUserModelId("com.neovateai.desktop");
 
   await mainApp.start();
   void updaterService.init();

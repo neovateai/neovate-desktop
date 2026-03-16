@@ -144,6 +144,10 @@
   "settings.providers.removeModel": "移除模型 {{model}}",
   "settings.providers.removeEnvOverride": "移除环境变量 {{key}}",
   "settings.providers.toggleFailed": "切换服务商失败",
+  "settings.providers.badge.recommended": "推荐",
+  "settings.providers.badge.internal": "内部",
+  "settings.providers.badge.new": "新",
+  "settings.providers.badge.deprecated": "已弃用",
 
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",

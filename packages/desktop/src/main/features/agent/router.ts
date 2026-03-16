@@ -1,12 +1,12 @@
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
 import { mkdir, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import path from "node:path";
+import { join } from "node:path";
 
 import type { AppContext } from "../../router";
 
 import { agentContract } from "../../../shared/features/agent/contract";
+import { APP_DATA_DIR } from "../../core/app-paths";
 import { readModelSetting, writeModelSetting } from "./claude-settings";
 
 const agentLog = debug("neovate:agent-router");
@@ -86,9 +86,9 @@ export const agentRouter = os.agent.router({
           .slice(0, 50)
       : input.sessionId.slice(0, 8);
     const filename = `${new Date().toISOString().slice(0, 10)}-${slug}.md`;
-    const dir = path.join(homedir(), ".neovate-desktop", "plans");
+    const dir = join(APP_DATA_DIR, "plans");
     await mkdir(dir, { recursive: true });
-    const filePath = path.join(dir, filename);
+    const filePath = join(dir, filename);
     await writeFile(filePath, input.plan, "utf8");
     agentLog("savePlan: saved to %s", filePath);
     return { path: filePath };

@@ -1,10 +1,10 @@
 import debug from "debug";
 import Store from "electron-store";
-import os from "node:os";
-import path from "node:path";
 
 import type { AppConfig } from "../../../shared/features/config/types";
 import type { Provider } from "../../../shared/features/provider/types";
+
+import { APP_DATA_DIR } from "../../core/app-paths";
 
 const log = debug("neovate:config-store");
 
@@ -52,7 +52,7 @@ export class ConfigStore {
   constructor() {
     this.store = new Store<ConfigStoreSchema>({
       name: "config",
-      cwd: path.join(os.homedir(), ".neovate-desktop"),
+      cwd: APP_DATA_DIR,
       defaults: STORE_DEFAULTS,
       serialize: (value) => JSON.stringify(value, null, 2) + "\n",
     });

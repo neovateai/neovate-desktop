@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { APP_NAME } from "../../../../shared/constants";
 import { toastManager } from "../../components/ui/toast";
 import { client } from "../../orpc";
 import { useUpdaterState } from "./hooks";
@@ -62,7 +63,7 @@ export function UpdaterToast() {
       const readyToast = {
         type: "success",
         title: `Update ${state.version} ready to install`,
-        description: "Neovate will quit and reopen to finish updating.",
+        description: `${APP_NAME} will quit and reopen to finish updating.`,
         actionProps: {
           children: "Restart",
           onClick: () => client.updater.install(),

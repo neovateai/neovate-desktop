@@ -1,6 +1,7 @@
 import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 
+import { APP_NAME } from "../../../../../shared/constants";
 import { getLogoUrl } from "../../../assets/images";
 import { ProjectSelector } from "../../project/components/project-selector";
 
@@ -13,7 +14,7 @@ export function WelcomePanel() {
       <img
         src={getLogoUrl(resolvedTheme as "dark" | "light" | undefined)}
         className="w-[120px]"
-        alt="Neovate Logo"
+        alt={`${APP_NAME} Logo`}
       />
       <p className="text-lg text-center font-bold text-foreground">{t("chat.guideMessage")}</p>
       <div className="mt-2">

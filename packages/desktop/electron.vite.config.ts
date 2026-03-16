@@ -1,8 +1,15 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "electron-vite";
+
+const appDefine = {
+  __APP_NAME__: JSON.stringify("Neovate"),
+  __APP_ID__: JSON.stringify("neovate-desktop"),
+};
+
 export default defineConfig({
   main: {
+    define: appDefine,
     build: {
       outDir: "dist/main",
       // TODO: fix this
@@ -20,6 +27,7 @@ export default defineConfig({
     },
   },
   renderer: {
+    define: appDefine,
     plugins: [react(), tailwindcss()],
     build: {
       outDir: "dist/renderer",
