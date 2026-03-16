@@ -9,7 +9,6 @@ import { Button } from "../../../components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../../../components/ui/tooltip";
 import { useRendererApp } from "../../../core";
 import { cn } from "../../../lib/utils";
-type TabName = "Editor" | "Git Diff" | "Terminal" | "Review";
 function TabButton({
   tab,
   isActive,
@@ -42,7 +41,7 @@ function TabButton({
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
       <view className="flex items-center">
         <span className="mr-1">{view?.icon && <view.icon className="size-3.5" />}</span>
-        <span className="truncate font-medium">{t(`tab.${tab.name as TabName}`)}</span>
+        <span className="truncate font-medium">{t(`tab.${tab.name}`, tab.name)}</span>
       </view>
       <Button
         variant="ghost"
