@@ -10,7 +10,6 @@ import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/m
 import { useRendererApp } from "../../../core";
 import { useProjectStore } from "../../project/store";
 
-type TabName = "Editor" | "Git Diff" | "Terminal" | "Review";
 const EMPTY_TABS: Tab[] = [];
 
 export function NewTabMenu() {
@@ -40,7 +39,7 @@ export function NewTabMenu() {
               onClick={() => contentPanel.openView(view.viewType)}
             >
               {view.icon && <view.icon className="size-3.5" />}
-              {t(`tab.${view.name as TabName}`)}
+              {t(`tab.${view.name}`, view.name)}
             </MenuItem>
           );
         })}
