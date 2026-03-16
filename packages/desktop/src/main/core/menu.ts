@@ -1,5 +1,7 @@
 import { Menu, BrowserWindow, MenuItemConstructorOptions, app } from "electron";
 
+import { APP_NAME } from "../../shared/constants";
+
 const isDev = !app.isPackaged;
 
 export function setupApplicationMenu(mainWindow: BrowserWindow | null): void {
@@ -14,7 +16,7 @@ export function setupApplicationMenu(mainWindow: BrowserWindow | null): void {
     ...(isMac
       ? [
           {
-            label: "Neovate",
+            label: APP_NAME,
             submenu: [
               { role: "about" as const },
               { type: "separator" as const },

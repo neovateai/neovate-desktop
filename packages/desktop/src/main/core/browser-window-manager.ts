@@ -2,13 +2,12 @@ import { is } from "@electron-toolkit/utils";
 import { shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
-import os from "node:os";
-import path from "node:path";
 import { join } from "path";
 
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 import icon from "../../../resources/icon.png?asset";
+import { APP_DATA_DIR } from "./app-paths";
 import log from "./logger";
 
 type WindowStore = { bounds: Electron.Rectangle };
@@ -26,7 +25,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
   #store = new Store<WindowStore>({
     name: "window-state",
-    cwd: path.join(os.homedir(), ".neovate-desktop"),
+    cwd: APP_DATA_DIR,
     serialize: (value) => JSON.stringify(value, null, 2) + "\n",
   });
 

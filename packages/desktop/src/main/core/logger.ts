@@ -2,10 +2,11 @@ import { is } from "@electron-toolkit/utils";
 import debug from "debug";
 import log from "electron-log/main";
 import { readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 
-const LOGS_DIR = join(homedir(), ".neovate-desktop", "logs");
+import { APP_DATA_DIR } from "./app-paths";
+
+const LOGS_DIR = join(APP_DATA_DIR, "logs");
 const DEV_LOG = "/tmp/dev.log";
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const RETENTION_DAYS = 7;

@@ -8,9 +8,11 @@ import type { Provider } from "../../../shared/features/provider/types";
 import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 
+import { APP_DATA_DIR } from "../../core/app-paths";
+
 const log = debug("neovate:claude-settings");
 
-const SESSIONS_DIR = join(homedir(), ".neovate-desktop", "sessions");
+const SESSIONS_DIR = join(APP_DATA_DIR, "sessions");
 
 function sessionConfigPath(sessionId: string): string {
   return join(SESSIONS_DIR, `${sessionId}.json`);

@@ -1,9 +1,5 @@
 import debug from "debug";
 import Store from "electron-store";
-import os from "node:os";
-import path from "node:path";
-
-const log = debug("neovate:project:store");
 
 import type {
   Project,
@@ -11,13 +7,17 @@ import type {
 } from "../../../shared/features/project/types";
 import type { ProjectProviderConfig } from "../../../shared/features/provider/types";
 
+import { APP_DATA_DIR } from "../../core/app-paths";
+
+const log = debug("neovate:project:store");
+
 export class ProjectStore {
   private store: Store<ProjectStoreSchema>;
 
   constructor() {
     this.store = new Store<ProjectStoreSchema>({
       name: "projects",
-      cwd: path.join(os.homedir(), ".neovate-desktop"),
+      cwd: APP_DATA_DIR,
       defaults: {
         projects: [],
         activeProjectId: null,

@@ -1,8 +1,7 @@
 import Store from "electron-store";
-import os from "node:os";
 import path from "node:path";
 
-const DEFAULT_BASE_DIR = path.join(os.homedir(), ".neovate-desktop");
+import { APP_DATA_DIR } from "./app-paths";
 
 // TODO: support generic type parameter for dot-notation type safety — scoped<T>(namespace) → Store<T>
 export interface IStorageService {
@@ -15,7 +14,7 @@ export class StorageService implements IStorageService {
   private instances = new Map<string, Store>();
 
   constructor(options: { baseDir?: string } = {}) {
-    this.baseDir = options.baseDir ?? DEFAULT_BASE_DIR;
+    this.baseDir = options.baseDir ?? APP_DATA_DIR;
   }
 
   scoped(namespace: string): Store {
