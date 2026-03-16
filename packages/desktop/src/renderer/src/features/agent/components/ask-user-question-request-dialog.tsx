@@ -99,7 +99,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
   const isLastQuestion = activeQuestionIndex === input.questions.length - 1;
 
   return (
-    <div className="relative rounded-xl border border-border/80 bg-white px-4 py-2">
+    <div className="relative rounded-xl border border-border/80 bg-background px-4 py-2">
       {activeQuestion && (
         <div className="space-y-6">
           <div className="space-y-4">
@@ -145,7 +145,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="max-h-[40vh] space-y-1 overflow-y-auto">
             {activeQuestion.multiSelect ? (
               <div className="space-y-1">
                 {activeQuestion.options.map((option) => {
