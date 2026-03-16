@@ -35,5 +35,6 @@
   "review.menu.expandAll": "全部展开",
   "review.menu.collapseAll": "全部折叠",
   "review.highFileCount": "{{count}} 个文件 — 大量差异可能导致卡顿。所有文件默认折叠。",
-  "review.expandAllConfirm": "即将展开 {{count}} 个文件，可能会比较慢。是否继续？"
+  "review.expandAllConfirm": "即将展开 {{count}} 个文件，可能会比较慢。是否继续？",
+  "view.review": "评审"
 }

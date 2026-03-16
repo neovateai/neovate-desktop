@@ -45,7 +45,7 @@ const plugin: RendererPlugin = {
       contentPanelViews: [
         {
           viewType: "git-diff",
-          name: "Git Diff",
+          name: "%plugin-git:view.gitDiff%",
           singleton: true,
           deactivation: "offscreen",
           icon: GitIcon,
