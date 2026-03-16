@@ -309,7 +309,7 @@
   "tab.Terminal": "终端",
   "tab.Review": "评审",
 
-  "chat.guideMessage": "嗨，我是 NeoSwift。让我们一起创造点什么吧！",
+  "chat.guideMessage": "嗨，我是 {{APP_NAME}}。让我们一起创造点什么吧！",
   "chat.placeholder": "输入消息...",
   "chat.attachImage": "附加图片",
   "chat.attachImages": "附加图片",

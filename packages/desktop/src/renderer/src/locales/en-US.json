@@ -307,7 +307,7 @@
   "tab.Terminal": "Terminal",
   "tab.Review": "Review",
 
-  "chat.guideMessage": "Hi, I am NeoSwift. Let's create something together!",
+  "chat.guideMessage": "Hi, I am {{APP_NAME}}. Let's create something together!",
   "chat.placeholder": "Type a message...",
   "chat.attachImage": "Attach image",
   "chat.attachImages": "Attach images",

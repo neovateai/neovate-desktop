@@ -16,7 +16,9 @@ export function WelcomePanel() {
         className="w-[120px]"
         alt={`${APP_NAME} Logo`}
       />
-      <p className="text-lg text-center font-bold text-foreground">{t("chat.guideMessage")}</p>
+      <p className="text-lg text-center font-bold text-foreground">
+        {t("chat.guideMessage", { APP_NAME })}
+      </p>
       <div className="mt-2">
         <ProjectSelector variant="select" />
       </div>
