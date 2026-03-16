@@ -10,12 +10,25 @@ const TerminalIcon = ({ className }: { className?: string }) => (
 const plugin: RendererPlugin = {
   name: "builtin:terminal",
 
+  configI18n() {
+    return {
+      namespace: "plugin-terminal",
+      loader: async (locale) => {
+        try {
+          return (await import(`./locales/${locale}.json`)).default;
+        } catch {
+          return (await import("./locales/en-US.json")).default;
+        }
+      },
+    };
+  },
+
   configContributions() {
     return {
       contentPanelViews: [
         {
           viewType: "terminal",
-          name: "Terminal",
+          name: "%plugin-terminal:view.terminal%",
           singleton: false,
           deactivation: "offscreen",
           icon: TerminalIcon,

@@ -15,6 +15,20 @@ const EditorIcon = ({ className }: { className?: string }) => (
 
 const plugin: RendererPlugin = {
   name: "builtin:editor",
+
+  configI18n() {
+    return {
+      namespace: "plugin-editor",
+      loader: async (locale) => {
+        try {
+          return (await import(`./locales/${locale}.json`)).default;
+        } catch {
+          return (await import("./locales/en-US.json")).default;
+        }
+      },
+    };
+  },
+
   activate(ctx) {
     log("activating editor plugin");
     const client = ctx.orpcClient as ContractRouterClient<{
@@ -27,7 +41,7 @@ const plugin: RendererPlugin = {
       contentPanelViews: [
         {
           viewType: "editor",
-          name: "Editor",
+          name: "%plugin-editor:view.editor%",
           singleton: true,
           deactivation: "offscreen",
           icon: EditorIcon,
