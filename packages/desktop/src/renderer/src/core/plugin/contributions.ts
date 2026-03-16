@@ -62,7 +62,7 @@ const NLS_REGEX = /^%(.+)%$/;
 /** Resolve `%namespace:key%` markers to localized strings via i18next */
 export function resolveNls(value: string): string {
   const match = NLS_REGEX.exec(value);
-  return match ? i18next.t(match[1]) : value;
+  return match ? i18next.t(match[1] as never) : value;
 }
 
 // ─── Merge ──────────────────────────────────────────────────────────
