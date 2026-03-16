@@ -1,57 +1,103 @@
-import { implement } from "@orpc/server";
+import { ORPCError, implement } from "@orpc/server";
+import debug from "debug";
 import { shell } from "electron";
 
 import type { AppContext } from "../../router";
 
 import { skillsContract } from "../../../shared/features/skills/contract";
 
+const log = debug("neovate:skills:router");
+
 const os = implement({ skills: skillsContract }).$context<AppContext>();
 
+/** Wrap service errors as ORPCError so messages survive oRPC serialization in production. */
+function wrapError(e: unknown, fallback: string): never {
+  const message = e instanceof Error ? e.message : fallback;
+  log("handler error: %s", message);
+  throw new ORPCError("BAD_GATEWAY", { defined: true, message });
+}
+
 export const skillsRouter = os.skills.router({
-  list: os.skills.list.handler(({ input, context }) => {
-    return context.skillsService.list(input.scope, input.projectPath);
+  list: os.skills.list.handler(async ({ input, context }) => {
+    try {
+      return await context.skillsService.list(input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to list skills");
+    }
   }),
 
-  getContent: os.skills.getContent.handler(({ input, context }) => {
-    return context.skillsService.getContent(input.name, input.scope, input.projectPath);
+  getContent: os.skills.getContent.handler(async ({ input, context }) => {
+    try {
+      return await context.skillsService.getContent(input.name, input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to read skill content");
+    }
   }),
 
-  recommended: os.skills.recommended.handler(({ input, context }) => {
-    return context.skillsService.recommended(input.forceRefresh);
+  recommended: os.skills.recommended.handler(async ({ input, context }) => {
+    try {
+      return await context.skillsService.recommended(input.forceRefresh);
+    } catch (e) {
+      wrapError(e, "Failed to fetch recommended skills");
+    }
   }),
 
-  preview: os.skills.preview.handler(({ input, context }) => {
-    return context.skillsService.preview(input.source);
+  preview: os.skills.preview.handler(async ({ input, context }) => {
+    try {
+      return await context.skillsService.preview(input.source);
+    } catch (e) {
+      wrapError(e, "Failed to preview skill source");
+    }
   }),
 
-  install: os.skills.install.handler(({ input, context }) => {
-    return context.skillsService.install(
-      input.sourceRef,
-      input.skillName,
-      input.scope,
-      input.projectPath,
-    );
+  install: os.skills.install.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.install(
+        input.sourceRef,
+        input.skillName,
+        input.scope,
+        input.projectPath,
+      );
+    } catch (e) {
+      wrapError(e, "Failed to install skill");
+    }
   }),
 
-  installFromPreview: os.skills.installFromPreview.handler(({ input, context }) => {
-    return context.skillsService.installFromPreview(
-      input.previewId,
-      input.selectedSkills,
-      input.scope,
-      input.projectPath,
-    );
+  installFromPreview: os.skills.installFromPreview.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.installFromPreview(
+        input.previewId,
+        input.selectedSkills,
+        input.scope,
+        input.projectPath,
+      );
+    } catch (e) {
+      wrapError(e, "Failed to install skills from preview");
+    }
   }),
 
-  remove: os.skills.remove.handler(({ input, context }) => {
-    return context.skillsService.remove(input.name, input.scope, input.projectPath);
+  remove: os.skills.remove.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.remove(input.name, input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to remove skill");
+    }
   }),
 
-  enable: os.skills.enable.handler(({ input, context }) => {
-    return context.skillsService.enable(input.name, input.scope, input.projectPath);
+  enable: os.skills.enable.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.enable(input.name, input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to enable skill");
+    }
   }),
 
-  disable: os.skills.disable.handler(({ input, context }) => {
-    return context.skillsService.disable(input.name, input.scope, input.projectPath);
+  disable: os.skills.disable.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.disable(input.name, input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to disable skill");
+    }
   }),
 
   openFolder: os.skills.openFolder.handler(async ({ input, context }) => {
@@ -63,19 +109,35 @@ export const skillsRouter = os.skills.router({
     }
   }),
 
-  exists: os.skills.exists.handler(({ input, context }) => {
-    return context.skillsService.exists(input.name, input.scope, input.projectPath);
+  exists: os.skills.exists.handler(async ({ input, context }) => {
+    try {
+      return await context.skillsService.exists(input.name, input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to check skill existence");
+    }
   }),
 
-  cancelPreview: os.skills.cancelPreview.handler(({ input, context }) => {
-    return context.skillsService.cancelPreview(input.previewId);
+  cancelPreview: os.skills.cancelPreview.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.cancelPreview(input.previewId);
+    } catch (e) {
+      wrapError(e, "Failed to cancel preview");
+    }
   }),
 
-  checkUpdates: os.skills.checkUpdates.handler(({ input, context }) => {
-    return context.skillsService.checkUpdates(input.scope, input.projectPath);
+  checkUpdates: os.skills.checkUpdates.handler(async ({ input, context }) => {
+    try {
+      return await context.skillsService.checkUpdates(input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to check for skill updates");
+    }
   }),
 
-  update: os.skills.update.handler(({ input, context }) => {
-    return context.skillsService.update(input.name, input.scope, input.projectPath);
+  update: os.skills.update.handler(async ({ input, context }) => {
+    try {
+      await context.skillsService.update(input.name, input.scope, input.projectPath);
+    } catch (e) {
+      wrapError(e, "Failed to update skill");
+    }
   }),
 });

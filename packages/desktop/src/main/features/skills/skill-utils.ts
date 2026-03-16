@@ -148,7 +148,9 @@ export async function scanInstalledSkills(
   let entries: string[];
   try {
     entries = await readdir(skillsDir);
-  } catch {
+    log("scanInstalledSkills entries", { skillsDir, count: entries.length, entries });
+  } catch (e) {
+    log("scanInstalledSkills readdir failed", { skillsDir, error: (e as Error).message });
     return skills;
   }
 
@@ -171,7 +173,10 @@ export async function scanInstalledSkills(
         enabled = false;
       }
 
-      if (!content) continue;
+      if (!content) {
+        log("scanInstalledSkills skip (no SKILL.md)", { entry });
+        continue;
+      }
 
       const { frontmatter, description } = parseFrontmatter(content);
 

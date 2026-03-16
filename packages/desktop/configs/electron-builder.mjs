@@ -69,7 +69,7 @@ const config = {
     "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
   ],
 
-  compression: isDev ? "store" : "maximum",
+  compression: isDev ? "normal" : "maximum",
 
   mac: {
     icon: isDev ? "build/icons/dev/icon.icns" : "build/icons/prod/icon.icns",

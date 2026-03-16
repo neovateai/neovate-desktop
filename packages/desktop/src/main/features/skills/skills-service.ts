@@ -254,13 +254,15 @@ export class SkillsService {
 
     const results = await Promise.allSettled(urls.map((url) => this.fetchSingleRegistry(url)));
 
-    // If ALL fetches failed, propagate error
+    // If ALL fetches failed, propagate error with details
     const allFailed = results.every((r) => r.status === "rejected");
     if (allFailed) {
-      const firstError = results[0] as PromiseRejectedResult;
-      throw new Error(
-        `Failed to fetch skills registry: ${firstError.reason?.message ?? "unknown error"}`,
-      );
+      const errors = results.map((r, i) => {
+        const reason = (r as PromiseRejectedResult).reason;
+        return `${urls[i]}: ${reason?.message ?? "unknown"}`;
+      });
+      log("fetchRegistry all failed", { errors });
+      throw new Error(`Failed to fetch skills registry: ${errors.join("; ")}`);
     }
 
     // Merge successful results, dedupe by skillName

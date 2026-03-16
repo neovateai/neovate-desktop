@@ -1,6 +1,6 @@
 import debug from "debug";
 import { ArrowUpCircle, Download, Plus, RefreshCw, Search, Wand2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -50,35 +50,42 @@ export const SkillsPanel = () => {
   const [selectedRecommended, setSelectedRecommended] = useState<RecommendedSkill | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const fetchData = useCallback(
-    async (forceRefresh = false) => {
-      log("fetchData forceRefresh=%s", forceRefresh);
-      setError(null);
-      setRecommendedError(null);
-      try {
-        const installedResult = await client.skills.list({ scope: "all" });
-        setInstalled(installedResult);
-        log("fetched installed skills: count=%d", installedResult.length);
-      } catch (e: any) {
-        setError(e.message || t("settings.skills.loadFailed"));
-      }
-      try {
-        const recommendedResult = await client.skills.recommended({ forceRefresh });
-        setRecommended(recommendedResult);
-        log("fetched recommended skills: count=%d", recommendedResult.length);
-      } catch (e: any) {
-        setRecommendedError(e.message || t("settings.skills.recommendedLoadFailed"));
-      }
-      try {
-        const updatesResult = await client.skills.checkUpdates({ scope: "all" });
-        setUpdates(updatesResult);
-        log("fetched skill updates: count=%d", updatesResult.length);
-      } catch {
-        // Non-critical — silently ignore
-      }
-    },
-    [t],
-  );
+  const fetchingRef = useRef(false);
+
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    if (fetchingRef.current) {
+      log("fetchData skipped (already fetching)");
+      return;
+    }
+    fetchingRef.current = true;
+    log("fetchData forceRefresh=%s", forceRefresh);
+    setError(null);
+    setRecommendedError(null);
+    try {
+      const installedResult = await client.skills.list({ scope: "all" });
+      setInstalled(installedResult);
+      log("fetched installed skills: count=%d", installedResult.length);
+    } catch (e: any) {
+      log("fetchData list error: %s", e.message);
+      setError(e.message || t("settings.skills.loadFailed"));
+    }
+    try {
+      const recommendedResult = await client.skills.recommended({ forceRefresh });
+      setRecommended(recommendedResult);
+      log("fetched recommended skills: count=%d", recommendedResult.length);
+    } catch (e: any) {
+      log("fetchData recommended error: %s", e.message);
+      setRecommendedError(e.message || t("settings.skills.recommendedLoadFailed"));
+    }
+    try {
+      const updatesResult = await client.skills.checkUpdates({ scope: "all" });
+      setUpdates(updatesResult);
+      log("fetched skill updates: count=%d", updatesResult.length);
+    } catch {
+      // Non-critical — silently ignore
+    }
+    fetchingRef.current = false;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- t is stable enough, avoid re-fetch loops
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
