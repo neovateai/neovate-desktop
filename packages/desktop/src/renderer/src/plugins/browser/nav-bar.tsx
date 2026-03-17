@@ -58,32 +58,32 @@ export function NavBar({
     <form onSubmit={handleSubmit} className="flex items-center gap-0.5 border-b px-1 py-1">
       <Button
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         disabled={!canGoBack || isLoading}
         onClick={onGoBack}
         aria-label={t("nav.back")}
       >
-        <ArrowLeft className="size-3.5" />
+        <ArrowLeft className="size-4" />
       </Button>
 
       <Button
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         disabled={!canGoForward || isLoading}
         onClick={onGoForward}
         aria-label={t("nav.forward")}
       >
-        <ArrowRight className="size-3.5" />
+        <ArrowRight className="size-4" />
       </Button>
 
       <Button
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         disabled={isLoading}
         onClick={onReload}
         aria-label={t("nav.refresh")}
       >
-        <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
+        <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
       </Button>
 
       <Input
@@ -101,11 +101,11 @@ export function NavBar({
 
       <Button
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         onClick={onOpenDevTools}
         aria-label={t("nav.devtools")}
       >
-        <PanelBottom className="size-3.5" />
+        <PanelBottom className="size-4" />
       </Button>
     </form>
   );
