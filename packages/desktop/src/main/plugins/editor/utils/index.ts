@@ -77,8 +77,7 @@ export class CodeServerManager {
     // 2. Override settings for minimal UI
     await overrideCodeServerSettings();
     // 3. Find available ports for code-server and extension bridge
-    const port = await getPort();
-    const bridgePort = await getPort();
+    const [port, bridgePort] = await Promise.all([getPort(), getPort()]);
     log("allocated ports: code-server=%d bridge=%d", port, bridgePort);
     try {
       // code server extension bridge server
