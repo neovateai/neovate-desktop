@@ -156,11 +156,11 @@ function resolveShellEnv(): Promise<Record<string, string>> {
   });
 }
 
-export interface IShellEnvironmentService {
+export interface IShellService {
   getEnv(): Promise<Record<string, string>>;
 }
 
-class ShellEnvironmentService implements IShellEnvironmentService {
+class ShellEnvironmentService implements IShellService {
   #cachedPromise: Promise<Record<string, string>> | null = null;
 
   getEnv(): Promise<Record<string, string>> {
