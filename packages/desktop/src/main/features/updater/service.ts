@@ -15,11 +15,13 @@ export interface UpdaterOptions {
 }
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const CHECK_TIMEOUT_MS = 30_000;
 
 export class UpdaterService {
   private state: UpdaterState = { status: "idle" };
   readonly publisher = new EventPublisher<{ state: UpdaterState }>();
   private checkInterval: ReturnType<typeof setInterval> | null = null;
+  private checkTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Internal concurrency-control state (not directly exposed to UI)
   private isChecking = false;
@@ -37,6 +39,13 @@ export class UpdaterService {
   private setState(newState: UpdaterState) {
     this.state = newState;
     this.publisher.publish("state", newState);
+  }
+
+  private clearCheckTimeout() {
+    if (this.checkTimeout) {
+      clearTimeout(this.checkTimeout);
+      this.checkTimeout = null;
+    }
   }
 
   check(manual = false) {
@@ -80,6 +89,14 @@ export class UpdaterService {
       this.setState({ status: "checking" });
     }
     autoUpdater.checkForUpdates().catch(() => {});
+    this.checkTimeout = setTimeout(() => {
+      log("check timed out");
+      this.checkTimeout = null;
+      this.isChecking = false;
+      if (this.surfaceUI) {
+        this.setState({ status: "error", message: "TIMEOUT" });
+      }
+    }, CHECK_TIMEOUT_MS);
   }
 
   install() {
@@ -110,17 +127,19 @@ export class UpdaterService {
 
     autoUpdater.on("update-not-available", () => {
       log("update not available", { surfaceUI: this.surfaceUI });
+      this.clearCheckTimeout();
       this.isChecking = false;
-      if (this.surfaceUI) {
+      if (this.surfaceUI || this.state.status === "error") {
         this.setState({ status: "up-to-date" });
       }
     });
 
     autoUpdater.on("update-available", (info) => {
       log("update available", { version: info.version, surfaceUI: this.surfaceUI });
+      this.clearCheckTimeout();
       this.isChecking = false;
       this.pendingUpdate = { version: info.version, status: "downloading", percent: 0 };
-      if (this.surfaceUI) {
+      if (this.surfaceUI || this.state.status === "error") {
         this.setState({ status: "downloading", version: info.version, percent: 0 });
       }
       autoUpdater.downloadUpdate().catch(() => {});
@@ -150,6 +169,7 @@ export class UpdaterService {
 
     autoUpdater.on("error", (err) => {
       log("update error", { message: err.message });
+      this.clearCheckTimeout();
       this.isChecking = false;
       this.pendingUpdate = null;
       if (this.surfaceUI) {
@@ -163,6 +183,7 @@ export class UpdaterService {
 
   dispose() {
     if (this.checkInterval) clearInterval(this.checkInterval);
+    this.clearCheckTimeout();
     autoUpdater.removeAllListeners();
   }
 }

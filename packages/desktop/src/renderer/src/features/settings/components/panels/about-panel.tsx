@@ -14,10 +14,25 @@ export const AboutPanel = () => {
 
   const [appVersion, setAppVersion] = useState("");
   const [sdkVersion, setSdkVersion] = useState("");
+  const [checkError, setCheckError] = useState<string | null>(null);
+
   useEffect(() => {
-    client.updater.getVersion().then(setAppVersion);
-    client.updater.getClaudeCodeSDKVersion().then(setSdkVersion);
-  }, []);
+    client.updater
+      .getVersion()
+      .then(setAppVersion)
+      .catch(() => setAppVersion(t("settings.about.unknownVersion")));
+    client.updater
+      .getClaudeCodeSDKVersion()
+      .then(setSdkVersion)
+      .catch(() => setSdkVersion(t("settings.about.unknownVersion")));
+  }, [t]);
+
+  // Auto-clear local IPC error when subscription recovers
+  useEffect(() => {
+    if (checkError && state.status !== "idle") {
+      setCheckError(null);
+    }
+  }, [state]);
 
   const getUpdateStatusText = (): string => {
     switch (state.status) {
@@ -32,6 +47,7 @@ export const AboutPanel = () => {
       case "downloading":
         return t("settings.about.downloading", { version: state.version });
       case "error":
+        if (state.message === "TIMEOUT") return t("settings.about.checkTimeout");
         return state.message ?? t("settings.about.error");
       case "idle":
       default:
@@ -42,7 +58,10 @@ export const AboutPanel = () => {
   const isBusy = state.status === "checking" || state.status === "downloading";
 
   const handleCheckForUpdates = () => {
-    client.updater.check();
+    setCheckError(null);
+    client.updater.check().catch(() => {
+      setCheckError(t("settings.about.unableToCheck"));
+    });
   };
 
   const handleSendFeedback = () => {
@@ -62,7 +81,9 @@ export const AboutPanel = () => {
           title={t("settings.about.checkForUpdates")}
           description={
             state.status === "error" ? (
-              <span className="text-destructive">{state.message ?? t("settings.about.error")}</span>
+              <span className="text-destructive">{getUpdateStatusText()}</span>
+            ) : checkError ? (
+              <span className="text-destructive">{checkError}</span>
             ) : (
               t("settings.about.currentVersion", {
                 version: appVersion,
