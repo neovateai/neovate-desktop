@@ -26,6 +26,7 @@ const APP_COMMANDS: Record<App, { cmd: string; args: (cwd: string) => string[] }
   iterm: { cmd: "open", args: (cwd) => ["-a", "iTerm", cwd] },
   warp: { cmd: "open", args: (cwd) => ["-a", "Warp", cwd] },
   terminal: { cmd: "open", args: (cwd) => ["-a", "Terminal", cwd] },
+  ghostty: { cmd: "open", args: (cwd) => ["-a", "Ghostty", cwd] },
   finder: { cmd: "open", args: (cwd) => [cwd] },
   sourcetree: { cmd: "open", args: (cwd) => ["-a", "SourceTree", cwd] },
   fork: { cmd: "open", args: (cwd) => ["-a", "Fork", cwd] },
@@ -44,6 +45,7 @@ const MAC_APPS: Partial<Record<App, string>> = {
   iterm: "/Applications/iTerm.app",
   warp: "/Applications/Warp.app",
   terminal: "/System/Applications/Utilities/Terminal.app",
+  ghostty: "/Applications/Ghostty.app",
   sourcetree: "/Applications/Sourcetree.app",
   fork: "/Applications/Fork.app",
 };
@@ -58,6 +60,7 @@ const ALL_APPS: App[] = [
   "iterm",
   "warp",
   "terminal",
+  "ghostty",
   "finder",
   "sourcetree",
   "fork",

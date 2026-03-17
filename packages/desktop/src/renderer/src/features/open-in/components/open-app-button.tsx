@@ -7,6 +7,7 @@ import type { App } from "../../../../../shared/features/utils/types";
 import antigravityIcon from "../../../assets/icons/antigravity.png";
 import cursorIcon from "../../../assets/icons/cursor.png";
 import finderIcon from "../../../assets/icons/finder.png";
+import ghosttyIcon from "../../../assets/icons/ghostty.png";
 import itermIcon from "../../../assets/icons/iterm.png";
 import sourcetreeIcon from "../../../assets/icons/sourcetree.png";
 import terminalIcon from "../../../assets/icons/terminal.png";
@@ -36,6 +37,7 @@ const APP_NAMES: Record<App, string> = {
   iterm: "iTerm",
   warp: "Warp",
   terminal: "Terminal",
+  ghostty: "Ghostty",
   antigravity: "Antigravity",
   finder: "Finder",
   sourcetree: "Sourcetree",
@@ -51,6 +53,7 @@ const APP_ICON_SRC: Partial<Record<App, string>> = {
   iterm: itermIcon,
   warp: warpIcon,
   terminal: terminalIcon,
+  ghostty: ghosttyIcon,
   finder: finderIcon,
   sourcetree: sourcetreeIcon,
   antigravity: antigravityIcon,

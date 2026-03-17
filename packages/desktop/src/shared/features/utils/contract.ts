@@ -12,6 +12,7 @@ const appSchema = z.enum([
   "iterm",
   "warp",
   "terminal",
+  "ghostty",
   "antigravity",
   "finder",
   "sourcetree",

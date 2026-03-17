@@ -8,6 +8,7 @@ export type App =
   | "warp"
   | "terminal"
   | "antigravity"
+  | "ghostty"
   | "finder"
   | "sourcetree"
   | "fork";
