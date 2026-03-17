@@ -7,12 +7,14 @@ const SearchIcon = ({ className }: { className?: string }) => (
   <HugeiconsIcon icon={Search01Icon} className={className} size={16} strokeWidth={1.8} />
 );
 
+const NAME = "plugin-search";
+
 const plugin: RendererPlugin = {
-  name: "plugin-search",
+  name: NAME,
 
   configI18n() {
     return {
-      namespace: "plugin-search",
+      namespace: NAME,
       loader: async (locale) => {
         try {
           return (await import(`./locales/${locale}.json`)).default;

@@ -11,12 +11,14 @@ const ReviewIcon = ({ className }: { className?: string }) => (
 
 let cleanupListener: (() => void) | null = null;
 
+const NAME = "plugin-review";
+
 const plugin: RendererPlugin = {
-  name: "plugin-review",
+  name: NAME,
 
   configI18n() {
     return {
-      namespace: "plugin-review",
+      namespace: NAME,
       loader: async (locale) => {
         try {
           return (await import(`./locales/${locale}.json`)).default;

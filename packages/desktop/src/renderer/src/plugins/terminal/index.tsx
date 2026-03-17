@@ -7,12 +7,14 @@ const TerminalIcon = ({ className }: { className?: string }) => (
   <HugeiconsIcon icon={ComputerTerminal01Icon} className={className} size={16} strokeWidth={1.5} />
 );
 
+const NAME = "plugin-terminal";
+
 const plugin: RendererPlugin = {
-  name: "builtin:terminal",
+  name: NAME,
 
   configI18n() {
     return {
-      namespace: "plugin-terminal",
+      namespace: NAME,
       loader: async (locale) => {
         try {
           return (await import(`./locales/${locale}.json`)).default;

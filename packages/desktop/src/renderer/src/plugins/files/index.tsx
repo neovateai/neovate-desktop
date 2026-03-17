@@ -7,12 +7,14 @@ const FilesIcon = ({ className }: { className?: string }) => (
   <HugeiconsIcon icon={FolderIcon} className={className} size={16} strokeWidth={1.8} />
 );
 
+const NAME = "plugin-files";
+
 const plugin: RendererPlugin = {
-  name: "plugin-files",
+  name: NAME,
 
   configI18n() {
     return {
-      namespace: "plugin-files",
+      namespace: NAME,
       loader: async (locale) => {
         try {
           return (await import(`./locales/${locale}.json`)).default;

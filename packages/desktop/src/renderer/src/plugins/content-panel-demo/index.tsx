@@ -12,7 +12,7 @@ const MultiIcon = ({ className }: { className?: string }) => (
 );
 
 const plugin: RendererPlugin = {
-  name: "builtin:content-panel-demo",
+  name: "plugin-content-panel-demo",
 
   configContributions() {
     return {

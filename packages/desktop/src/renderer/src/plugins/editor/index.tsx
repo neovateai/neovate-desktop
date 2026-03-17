@@ -13,12 +13,14 @@ const EditorIcon = ({ className }: { className?: string }) => (
   <HugeiconsIcon icon={FileEditIcon} className={className} size={16} strokeWidth={1.5} />
 );
 
+const NAME = "plugin-editor";
+
 const plugin: RendererPlugin = {
-  name: "builtin:editor",
+  name: NAME,
 
   configI18n() {
     return {
-      namespace: "plugin-editor",
+      namespace: NAME,
       loader: async (locale) => {
         try {
           return (await import(`./locales/${locale}.json`)).default;

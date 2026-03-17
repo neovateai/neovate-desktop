@@ -7,12 +7,14 @@ const GitIcon = ({ className }: { className?: string }) => (
   <HugeiconsIcon icon={GitBranchIcon} className={className} size={16} strokeWidth={1.8} />
 );
 
+const NAME = "plugin-git";
+
 const plugin: RendererPlugin = {
-  name: "plugin-git",
+  name: NAME,
 
   configI18n() {
     return {
-      namespace: "plugin-git",
+      namespace: NAME,
       loader: async (locale) => {
         try {
           return (await import(`./locales/${locale}.json`)).default;
