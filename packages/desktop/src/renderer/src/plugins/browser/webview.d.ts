@@ -12,7 +12,7 @@ interface WebviewElement extends HTMLElement {
   goBack(): void;
   goForward(): void;
   reload(): void;
-  openDevTools(): void;
+  openDevTools(options?: { mode?: "right" | "bottom" | "undocked" | "detach" }): void;
 }
 
 declare namespace JSX {

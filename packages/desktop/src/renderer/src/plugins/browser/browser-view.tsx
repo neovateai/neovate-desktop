@@ -69,7 +69,7 @@ export default function BrowserView() {
   const goBack = useCallback(() => webviewRef.current?.goBack(), []);
   const goForward = useCallback(() => webviewRef.current?.goForward(), []);
   const reload = useCallback(() => webviewRef.current?.reload(), []);
-  const openDevTools = useCallback(() => webviewRef.current?.openDevTools(), []);
+  const openDevTools = useCallback(() => webviewRef.current?.openDevTools({ mode: "bottom" }), []);
 
   return (
     <div className="flex h-full flex-col">
