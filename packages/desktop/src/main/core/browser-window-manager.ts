@@ -49,6 +49,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       webPreferences: {
         preload: join(__dirname, "../preload/index.js"),
         sandbox: false,
+        webviewTag: true,
       },
     });
 
@@ -104,6 +105,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       webPreferences: {
         preload: join(__dirname, "../preload/index.js"),
         sandbox: false,
+        webviewTag: true,
       },
     });
 
