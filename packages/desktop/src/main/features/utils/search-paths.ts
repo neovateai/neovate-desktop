@@ -6,6 +6,8 @@ import { readdir } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { basename, dirname, join, relative, sep } from "node:path";
 
+import { shellEnvService } from "../../core/shell-service";
+
 const log = debug("neovate:search-paths");
 const require = createRequire(import.meta.url);
 
@@ -70,15 +72,21 @@ export function invalidateFileCache(): void {
 // File collection
 // ---------------------------------------------------------------------------
 
-function execGit(args: string[], cwd: string): Promise<string[] | null> {
+async function execGit(args: string[], cwd: string): Promise<string[] | null> {
+  const env = await shellEnvService.getEnv();
   return new Promise((resolve) => {
-    execFile("git", args, { cwd, timeout: 5000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout) => {
-      if (err) {
-        resolve(null);
-        return;
-      }
-      resolve(stdout.trim().split("\n").filter(Boolean));
-    });
+    execFile(
+      "git",
+      args,
+      { cwd, timeout: 5000, maxBuffer: 10 * 1024 * 1024, env },
+      (err, stdout) => {
+        if (err) {
+          resolve(null);
+          return;
+        }
+        resolve(stdout.trim().split("\n").filter(Boolean));
+      },
+    );
   });
 }
 

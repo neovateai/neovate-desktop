@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
+import { shellEnvService } from "../../../core/shell-service";
 import { scanSkillDirs } from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
@@ -28,12 +29,14 @@ export class GitInstaller implements SkillInstaller {
 
   async scan(sourceRef: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
     log("scan", { sourceRef });
+    const env = await shellEnvService.getEnv();
     const url = this.normalizeUrl(sourceRef);
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
 
     await execFileAsync("git", ["clone", "--depth", "1", url, tmpDir], {
       timeout: 60_000,
+      env,
     });
 
     this.previewDirs.set(previewId, tmpDir);
@@ -43,6 +46,7 @@ export class GitInstaller implements SkillInstaller {
 
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
     log("install", { sourceRef, skillName, targetDir });
+    const env = await shellEnvService.getEnv();
     const url = this.normalizeUrl(sourceRef);
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
@@ -50,6 +54,7 @@ export class GitInstaller implements SkillInstaller {
     try {
       await execFileAsync("git", ["clone", "--depth", "1", url, tmpDir], {
         timeout: 60_000,
+        env,
       });
       const src = path.join(tmpDir, skillName);
       const dest = path.join(targetDir, skillName);
@@ -88,9 +93,11 @@ export class GitInstaller implements SkillInstaller {
   async getLatestVersion(sourceRef: string): Promise<string | undefined> {
     log("getLatestVersion", { sourceRef });
     try {
+      const env = await shellEnvService.getEnv();
       const url = this.normalizeUrl(sourceRef);
       const { stdout } = await execFileAsync("git", ["ls-remote", url, "HEAD"], {
         timeout: 15_000,
+        env,
       });
       const sha = stdout.split("\t")[0];
       return sha ? sha.slice(0, 7) : undefined;

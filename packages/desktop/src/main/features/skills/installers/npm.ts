@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
+import { shellEnvService } from "../../../core/shell-service";
 import { scanSkillDirs } from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
@@ -89,10 +90,12 @@ export class NpmInstaller implements SkillInstaller {
     const pkg = rawPkg.replace(/@[\d.]+$/, "");
     log("getLatestVersion", { pkg, registry: registry ?? "default" });
     try {
+      const env = await shellEnvService.getEnv();
       const args = ["view", pkg, "version"];
       if (registry) args.push("--registry", registry);
       const { stdout } = await execFileAsync("npm", args, {
         timeout: 15_000,
+        env,
       });
       return stdout.trim() || undefined;
     } catch {
@@ -111,20 +114,22 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   private async fetchAndExtract(pkg: string, destDir: string, registry?: string): Promise<void> {
+    const env = await shellEnvService.getEnv();
     // npm pack downloads tarball to cwd
     const args = ["pack", pkg, "--pack-destination", destDir];
     if (registry) args.push("--registry", registry);
     await execFileAsync("npm", args, {
       timeout: 60_000,
       cwd: destDir,
+      env,
     });
 
     // Find the tarball
-    const { stdout } = await execFileAsync("ls", [destDir]);
+    const { stdout } = await execFileAsync("ls", [destDir], { env });
     const tarball = stdout.split("\n").find((f) => f.endsWith(".tgz"));
     if (!tarball) throw new Error("Failed to download npm package");
 
     // Extract
-    await execFileAsync("tar", ["xzf", path.join(destDir, tarball), "-C", destDir]);
+    await execFileAsync("tar", ["xzf", path.join(destDir, tarball), "-C", destDir], { env });
   }
 }
