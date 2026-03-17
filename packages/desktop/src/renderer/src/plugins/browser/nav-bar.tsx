@@ -14,8 +14,7 @@ interface NavBarProps {
   onGoBack: () => void;
   onGoForward: () => void;
   onReload: () => void;
-  devToolsOpen: boolean;
-  onToggleDevTools: () => void;
+  onOpenDevTools: () => void;
 }
 
 function normalizeUrl(input: string): string {
@@ -37,8 +36,7 @@ export function NavBar({
   onGoBack,
   onGoForward,
   onReload,
-  devToolsOpen,
-  onToggleDevTools,
+  onOpenDevTools,
 }: NavBarProps) {
   const { t } = useTranslation("plugin-browser");
   const [inputValue, setInputValue] = useState(url);
@@ -107,10 +105,8 @@ export function NavBar({
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={onToggleDevTools}
+        onClick={onOpenDevTools}
         aria-label={t("nav.devtools")}
-        data-active={devToolsOpen || undefined}
-        className={devToolsOpen ? "bg-muted" : ""}
       >
         <PanelBottom className="size-4" />
       </Button>

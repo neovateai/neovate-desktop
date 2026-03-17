@@ -15,7 +15,6 @@ import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
-import browserPlugin from "./plugins/browser";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
 import gitPlugin from "./plugins/git";
@@ -55,7 +54,7 @@ process.on("unhandledRejection", (reason) => {
 const sessionManager = new SessionManager(configStore, projectStore);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
-  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, reviewPlugin, browserPlugin],
+  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, reviewPlugin],
 });
 const updaterService = new UpdaterService();
 

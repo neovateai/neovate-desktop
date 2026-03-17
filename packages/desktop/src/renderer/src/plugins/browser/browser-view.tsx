@@ -1,25 +1,16 @@
-import type { ContractRouterClient } from "@orpc/contract";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { browserContract } from "../../../../shared/plugins/browser/contract";
-
-import { usePluginContext, useRendererApp } from "../../core/app";
+import { useRendererApp } from "../../core/app";
 import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { BlankPage } from "./blank-page";
 import { NavBar } from "./nav-bar";
-
-type BrowserClient = ContractRouterClient<{ browser: typeof browserContract }>;
 
 export default function BrowserView() {
   const { viewId, viewState } = useContentPanelViewContext();
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const { orpcClient } = usePluginContext();
-  const client = orpcClient as BrowserClient;
 
   const webviewRef = useRef<WebviewElement>(null);
-  const devToolsRef = useRef<WebviewElement>(null);
 
   const persistedUrl = (viewState.url as string) ?? "";
 
@@ -28,7 +19,6 @@ export default function BrowserView() {
   const [isLoading, setIsLoading] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
-  const [devToolsOpen, setDevToolsOpen] = useState(false);
 
   const navigate = useCallback(
     (url: string) => {
@@ -39,7 +29,6 @@ export default function BrowserView() {
     [viewId, contentPanel],
   );
 
-  // Webview event handlers
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
@@ -77,27 +66,7 @@ export default function BrowserView() {
   const goBack = useCallback(() => webviewRef.current?.goBack(), []);
   const goForward = useCallback(() => webviewRef.current?.goForward(), []);
   const reload = useCallback(() => webviewRef.current?.reload(), []);
-
-  const toggleDevTools = useCallback(async () => {
-    const webview = webviewRef.current;
-    const devToolsWebview = devToolsRef.current;
-    if (!webview) return;
-
-    if (devToolsOpen) {
-      await client.browser.closeDevTools({ pageWebContentsId: webview.getWebContentsId() });
-      setDevToolsOpen(false);
-    } else {
-      if (!devToolsWebview) return;
-      setDevToolsOpen(true);
-      // Wait a tick for the devtools webview to mount and get a webContentsId
-      requestAnimationFrame(async () => {
-        await client.browser.openDevTools({
-          pageWebContentsId: webview.getWebContentsId(),
-          devToolsWebContentsId: devToolsWebview.getWebContentsId(),
-        });
-      });
-    }
-  }, [devToolsOpen, client]);
+  const openDevTools = useCallback(() => webviewRef.current?.openDevTools(), []);
 
   return (
     <div className="flex h-full flex-col">
@@ -106,33 +75,19 @@ export default function BrowserView() {
         isLoading={isLoading}
         canGoBack={canGoBack}
         canGoForward={canGoForward}
-        devToolsOpen={devToolsOpen}
         onNavigate={navigate}
         onGoBack={goBack}
         onGoForward={goForward}
         onReload={reload}
-        onToggleDevTools={toggleDevTools}
+        onOpenDevTools={openDevTools}
       />
-      {currentUrl ? (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className={devToolsOpen ? "h-1/2" : "flex-1"}>
-            <webview ref={webviewRef} src={currentUrl} style={{ width: "100%", height: "100%" }} />
-          </div>
-          {devToolsOpen && (
-            <div className="h-1/2 border-t">
-              <webview
-                ref={devToolsRef}
-                src="about:blank"
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
+        {currentUrl ? (
+          <webview ref={webviewRef} src={currentUrl} style={{ width: "100%", height: "100%" }} />
+        ) : (
           <BlankPage />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
