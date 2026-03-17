@@ -82,6 +82,8 @@
   "settings.about.sendFeedback": "发送反馈",
   "settings.about.error": "错误",
   "settings.about.unableToCheck": "无法检查更新",
+  "settings.about.checkTimeout": "更新检查超时",
+  "settings.about.unknownVersion": "未知",
   "settings.about.sdkVersion": "Claude Code SDK",
   "settings.about.sdkVersion.description": "Agent SDK 版本：{{version}}",
 
