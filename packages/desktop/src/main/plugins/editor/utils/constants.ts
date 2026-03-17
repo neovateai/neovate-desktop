@@ -4,10 +4,6 @@ import path from "node:path";
 // Version pinning (matches Ami's artifacts)
 export const CODE_SERVER_VERSION = "e104b68";
 
-// Port configuration
-export const CODE_SERVER_PORT = 6767;
-export const EXTENSION_BRIDGE_PORT = 45000;
-
 // Storage paths
 export const CODE_SERVER_DIR = path.join(os.homedir(), ".neovate", "code-server");
 export const EXTENSIONS_DIR = path.join(

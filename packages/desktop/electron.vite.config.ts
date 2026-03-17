@@ -14,7 +14,7 @@ export default defineConfig({
       outDir: "dist/main",
       // TODO: fix this
       externalizeDeps: {
-        exclude: ["acpx", "electron-store"],
+        exclude: ["acpx", "electron-store", "get-port"],
       },
     },
   },

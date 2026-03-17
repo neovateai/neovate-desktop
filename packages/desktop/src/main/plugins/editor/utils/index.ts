@@ -1,10 +1,10 @@
 import debug from "debug";
-import { execSync } from "node:child_process";
+import getPort from "get-port";
 
 import { ExtensionBridgeServer } from "./bridge";
 
 const log = debug("neovate:editor:manager");
-import { CODE_SERVER_PORT, DATA_DIR, EXTENSION_BRIDGE_PORT, EXTENSIONS_DIR } from "./constants";
+import { DATA_DIR, EXTENSIONS_DIR } from "./constants";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
 import { injectStyle } from "./injector";
 import { installExtension } from "./installer";
@@ -24,39 +24,6 @@ export class CodeServerStartError extends Error {
 export interface CodeServerInstance {
   url: string;
   stop: () => void;
-}
-
-/**
- * Kill any process running on the specified port
- */
-function killProcessOnPort(port: number): void {
-  try {
-    if (process.platform === "win32") {
-      // Windows
-      const result = execSync(`netstat -ano | findstr :${port}`, {
-        encoding: "utf-8",
-      });
-      const lines = result.trim().split("\n");
-      for (const line of lines) {
-        const parts = line.trim().split(/\s+/);
-        const pid = parts[parts.length - 1];
-        if (pid && !Number.isNaN(Number(pid))) {
-          try {
-            execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" });
-          } catch {
-            // Process may have already exited
-          }
-        }
-      }
-    } else {
-      // macOS / Linux
-      execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null || true`, {
-        stdio: "ignore",
-      });
-    }
-  } catch {
-    // No process on port, or kill failed - that's fine
-  }
 }
 
 /**
@@ -109,11 +76,13 @@ export class CodeServerManager {
     }
     // 2. Override settings for minimal UI
     await overrideCodeServerSettings();
-    // 3. Kill any existing process on the port
-    killProcessOnPort(CODE_SERVER_PORT);
+    // 3. Find available ports for code-server and extension bridge
+    const port = await getPort();
+    const bridgePort = await getPort();
+    log("allocated ports: code-server=%d bridge=%d", port, bridgePort);
     try {
       // code server extension bridge server
-      const bridgePort = await bridge.start(EXTENSION_BRIDGE_PORT);
+      await bridge.start(bridgePort);
       process.env.NEOVATE_BRIDGE_PORT = String(bridgePort);
       // preset extension
       await installExtension();
@@ -126,18 +95,18 @@ export class CodeServerManager {
     try {
       // start code server
       await codeServerStarter({
-        port: CODE_SERVER_PORT,
+        port,
         extDir: EXTENSIONS_DIR,
         dataDir: DATA_DIR,
       });
 
-      const url = `http://127.0.0.1:${CODE_SERVER_PORT}`;
+      const url = `http://127.0.0.1:${port}`;
       log("code server ready", { url });
 
       return {
         url,
         stop: () => {
-          killProcessOnPort(CODE_SERVER_PORT);
+          bridge.stop();
         },
       };
     } catch (error) {
