@@ -8,6 +8,7 @@ import type { IBrowserWindowManager, IMainApp } from "./core/types";
 import { BrowserWindowManager } from "./core";
 import { DisposableStore } from "./core/disposable";
 import { PluginManager } from "./core/plugin/plugin-manager";
+import { shellEnvService } from "./core/shell-service";
 import { StorageService } from "./core/storage-service";
 import { buildRouter } from "./router";
 
@@ -38,7 +39,7 @@ export class MainApp implements IMainApp {
   }
 
   async start(): Promise<void> {
-    const ctx = { app: this, orpcServer: os };
+    const ctx = { app: this, orpcServer: os, shell: shellEnvService };
     await this.pluginManager.configContributions(ctx);
     await this.pluginManager.activate(ctx);
     this.#router = buildRouter(this.pluginManager.contributions.routers);
