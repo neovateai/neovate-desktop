@@ -10,6 +10,7 @@ import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/m
 import { useRendererApp } from "../../../core";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
+
 const EMPTY_TABS: Tab[] = [];
 
 export function NewTabMenu() {

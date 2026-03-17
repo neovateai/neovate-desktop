@@ -49,7 +49,7 @@ export function ResizeHandle({ id, style }: { id: SeparatorId; style?: CSSProper
       onPointerMove={onPointerMove}
     >
       {/* Expanded hit area */}
-      <div className="absolute inset-y-0 -inset-x-1" />
+      <div className="absolute inset-y-0 left-0 -right-1" />
       {/* Gradient indicator — CSS vars --y and --intensity are set by JS */}
       <div
         ref={ref}

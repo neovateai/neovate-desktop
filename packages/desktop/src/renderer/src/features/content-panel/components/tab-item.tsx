@@ -10,6 +10,7 @@ import { Tooltip, TooltipTrigger, TooltipPopup } from "../../../components/ui/to
 import { useRendererApp } from "../../../core";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
+
 function TabButton({
   tab,
   isActive,

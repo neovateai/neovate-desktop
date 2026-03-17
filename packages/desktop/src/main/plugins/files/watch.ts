@@ -8,6 +8,34 @@ import type { FileWatchEvent } from "../../../shared/plugins/files/contract";
 
 const log = debug("neovate:files:watch");
 
+const MAX_WATCHED_DIRS = 100;
+
+const IGNORED_PATTERNS = [
+  /(^|[\\])\../, // hidden files
+  /node_modules/,
+  "**/package-lock.json",
+  "**/yarn.lock",
+  "**/dist/**",
+  "**/build/**",
+  "**/out/**",
+  /(^|[/\\])\.git([/\\]|$)/,
+  "**/.DS_Store",
+  "**/.cache/**",
+  "**/coverage/**",
+  /.*\.(jpg|jpeg|png|gif|svg|mp4|mp3)$/i, // media files
+  /\.node\//, // .node directories (native bindings)
+];
+
+// per-directory watcher and publisher instances
+const dirPublishers = new Map<
+  string,
+  EventPublisher<{
+    "file-changed": FileWatchEvent;
+  }>
+>();
+
+const dirWatchers = new Map<string, FSWatcher>();
+
 // debounce utility
 function debounce<T extends (...args: any[]) => any>(
   func: T,
@@ -25,20 +53,9 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// per-cwd event publisher and watcher instances
-const cwdPublishers = new Map<
-  string,
-  EventPublisher<{
-    "file-changed": FileWatchEvent;
-  }>
->();
-
-const cwdWatchers = new Map<string, FSWatcher>();
-
-export function watchWorkspace(
+export function watchDirectory(
   dir: string,
   callbacks: {
-    // includes file system change, add, removed etc, and content change with type 'content'
     onFsChange: (
       subType: "add" | "unlink" | "addDir" | "unlinkDir" | "content",
       file?: { fullPath: string },
@@ -46,40 +63,38 @@ export function watchWorkspace(
   },
 ) {
   const { onFsChange } = callbacks;
-  const pre = cwdPublishers.get(dir);
-  if (pre) {
+  const existing = dirPublishers.get(dir);
+  if (existing) {
     log("reusing existing publisher", { dir });
-    return pre;
+    return existing;
   }
-  log("creating watcher", { dir });
+
+  if (dirWatchers.size >= MAX_WATCHED_DIRS) {
+    log("MAX_WATCHED_DIRS reached, refusing new watch", { dir, current: dirWatchers.size });
+    const publisher = new EventPublisher<{ "file-changed": FileWatchEvent }>();
+    // Yield truncation sentinel so the renderer knows to stop
+    publisher.publish("file-changed", {
+      timestamp: Date.now(),
+      path: dir,
+      type: "add", // will be filtered by renderer via a separate mechanism
+    });
+    return publisher;
+  }
+
+  log("creating watcher", { dir, depth: 0 });
   const watcher = chokidar.watch(dir, {
-    ignored: [
-      /(^|[\\])\../, // hidden files
-      /node_modules/,
-      "**/package-lock.json",
-      "**/yarn.lock",
-      "**/dist/**",
-      "**/build/**",
-      "**/out/**",
-      /(^|[/\\])\.git([/\\]|$)/,
-      "**/.DS_Store",
-      "**/.cache/**",
-      "**/coverage/**",
-      /.*\.(jpg|jpeg|png|gif|svg|mp4|mp3)$/i, // media files
-    ],
-    depth: 5,
-    // usePolling: true,
-    // interval: 2000,
+    ignored: IGNORED_PATTERNS,
+    depth: 0,
     followSymlinks: false,
     alwaysStat: false,
     persistent: true,
-    ignoreInitial: true, // otherwise will trigger huge amount of events when init
+    ignoreInitial: true,
   });
   const publisher = new EventPublisher<{
     "file-changed": FileWatchEvent;
   }>();
-  cwdPublishers.set(dir, publisher);
-  cwdWatchers.set(dir, watcher);
+  dirPublishers.set(dir, publisher);
+  dirWatchers.set(dir, watcher);
 
   const _onFsChange = debounce(onFsChange, 300);
 
@@ -106,34 +121,41 @@ export function watchWorkspace(
     })
     .on("error", (e) => {
       log("watcher error", { dir, error: e });
-      unwatchWorkspace(dir);
+      unwatchDirectory(dir);
     });
   return publisher;
 }
 
 export function getCwdPublisher(cwd: string) {
-  if (!cwdPublishers.has(cwd)) {
+  if (!dirPublishers.has(cwd)) {
     log("creating publisher", { cwd });
-    cwdPublishers.set(
+    dirPublishers.set(
       cwd,
       new EventPublisher<{
         "file-changed": FileWatchEvent;
       }>(),
     );
   }
-  return cwdPublishers.get(cwd)!;
+  return dirPublishers.get(cwd)!;
 }
 
-export function unwatchWorkspace(dir: string) {
-  log("unwatching workspace", { dir });
-  const watcher = cwdWatchers.get(dir);
+export function unwatchDirectory(dir: string) {
+  log("unwatching directory", { dir });
+  const watcher = dirWatchers.get(dir);
   if (watcher) {
     watcher.close();
-    cwdWatchers.delete(dir);
+    dirWatchers.delete(dir);
   }
 
-  const publisher = cwdPublishers.get(dir);
+  const publisher = dirPublishers.get(dir);
   if (publisher) {
-    cwdPublishers.delete(dir);
+    dirPublishers.delete(dir);
+  }
+}
+
+export function unwatchAll() {
+  log("unwatching all directories", { count: dirWatchers.size });
+  for (const dir of [...dirWatchers.keys()]) {
+    unwatchDirectory(dir);
   }
 }

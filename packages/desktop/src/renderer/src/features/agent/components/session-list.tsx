@@ -176,17 +176,15 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
 
   return (
     <div className="flex flex-1 flex-col gap-1">
-      <div className="px-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
-          onClick={() => createNewSession(projectPath)}
-        >
-          <SquarePen size={14} />
-          <span>{t("session.newChat")}</span>
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
+        onClick={() => createNewSession(projectPath)}
+      >
+        <SquarePen size={14} />
+        <span>{t("session.newChat")}</span>
+      </Button>
       {pinnedItems.length === 0 && regularItems.length === 0 ? (
         <EmptySessionState />
       ) : (

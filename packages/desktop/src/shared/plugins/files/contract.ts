@@ -20,7 +20,7 @@ export interface FileWatchEvent {
 }
 
 export const filesContract = {
-  tree: oc.input(type<{ cwd: string }>()).output(type<{ tree: FileTreeItem[] }>()),
+  tree: oc.input(type<{ cwd: string; root?: string }>()).output(type<{ tree: FileTreeItem[] }>()),
   delete: oc.input(type<{ path: string }>()).output(type<{ success: boolean; error?: string }>()),
   rename: oc
     .input(type<{ oldPath: string; newPath: string }>())

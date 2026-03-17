@@ -1,6 +1,6 @@
 import { implement } from "@orpc/server";
 import debug from "debug";
-import { dialog } from "electron";
+import { BrowserWindow, dialog } from "electron";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 
@@ -77,9 +77,11 @@ export const projectRouter = os.project.router({
 
   pickDirectory: os.project.pickDirectory.handler(async () => {
     log("opening directory picker");
-    const result = await dialog.showOpenDialog({
-      properties: ["openDirectory"],
-    });
+    const win = BrowserWindow.getFocusedWindow();
+    const options: Electron.OpenDialogOptions = { properties: ["openDirectory"] };
+    const result = win
+      ? await dialog.showOpenDialog(win, options)
+      : await dialog.showOpenDialog(options);
     if (result.canceled || result.filePaths.length === 0) {
       log("directory picker canceled");
       return null;

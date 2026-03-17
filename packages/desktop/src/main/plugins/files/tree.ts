@@ -1,5 +1,4 @@
 import debug from "debug";
-import { minimatch } from "minimatch";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -16,88 +15,70 @@ export interface FileTreeNode {
   languageId?: string;
 }
 
-export async function getFileTree(parent: string, root?: string): Promise<FileTreeNode[]> {
-  const includePatterns: string[] = [];
-  const actualRoot = root || parent;
-  if (!root) log("building file tree", { root: actualRoot });
+/**
+ * List immediate children of a directory (single-level, no recursion).
+ * Use `projectRoot` to share cached exclude patterns across calls.
+ */
+export async function listDirectory(dir: string, projectRoot?: string): Promise<FileTreeNode[]> {
+  const root = projectRoot || dir;
+  log("listing directory", { dir, root });
 
-  const excludePatterns = await getExcludePatterns(actualRoot);
-
-  const dirFilePath = parent;
-  const tree: FileTreeNode[] = [];
+  const excludePatterns = await getExcludePatterns(root);
 
   try {
-    const files = await fs.promises.readdir(dirFilePath);
+    const entries = await fs.promises.readdir(dir);
+    const nodes: FileTreeNode[] = [];
 
-    // process files in parallel with Promise.all
-    const filePromises = files.map(async (file) => {
-      const filePath = path.join(dirFilePath, file);
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry);
+      const relativePath = path.relative(root, fullPath).replace(/\\/g, "/");
+
+      const isExcluded = excludePatterns.some((pattern) => {
+        // simple glob matching for common patterns
+        if (pattern.startsWith("**/")) {
+          const suffix = pattern.slice(3);
+          if (relativePath === suffix || relativePath.endsWith(`/${suffix}`)) return true;
+          if (suffix.endsWith("/**")) {
+            const prefix = suffix.slice(0, -3);
+            if (relativePath === prefix || relativePath.startsWith(`${prefix}/`)) return true;
+          }
+        }
+        if (pattern === relativePath) return true;
+        return false;
+      });
+
+      if (isExcluded) continue;
 
       try {
-        const stats = await fs.promises.stat(filePath);
-        const relativePath = path.relative(actualRoot, filePath).replace(/\\/g, "/");
-
-        const isExcluded = excludePatterns.some((pattern) => minimatch(relativePath, pattern));
-
-        if (isExcluded) {
-          return null;
-        }
-
+        const stats = await fs.promises.stat(fullPath);
         const isFolder = stats.isDirectory();
         const node: FileTreeNode = {
-          fileName: file,
-          fullPath: filePath,
+          fileName: entry,
+          fullPath,
           relPath: relativePath,
           isFolder,
+          children: isFolder ? [] : undefined,
         };
 
         if (!isFolder) {
-          const isIncluded =
-            includePatterns.length === 0 ||
-            includePatterns.some((pattern) => minimatch(relativePath, pattern));
-          if (!isIncluded) return null;
-          node.languageId = file.split(".").pop();
-        } else {
-          node.children = await getFileTree(filePath, actualRoot);
+          node.languageId = entry.split(".").pop();
         }
 
-        if (node.isFolder && (!node.children || node.children.length === 0)) {
-          return null;
-        }
-
-        return node;
+        nodes.push(node);
       } catch (error) {
-        // handle individual file errors to avoid failing the entire tree build
-        log("error processing file", { path: filePath, error });
-        return null;
+        log("error processing entry", { path: fullPath, error });
       }
-    });
-    const results = await Promise.all(filePromises);
-    tree.push(...(results.filter(Boolean) as FileTreeNode[]));
-  } catch (error) {
-    log("error reading directory", { path: dirFilePath, error });
-    return [];
-  }
-
-  const compareNodes = (a: FileTreeNode, b: FileTreeNode): number => {
-    // folders first
-    if (a.isFolder && !b.isFolder) return -1;
-    if (!a.isFolder && b.isFolder) return 1;
-
-    // sort by file name (case-insensitive)
-    return a.fileName.toLowerCase().localeCompare(b.fileName.toLowerCase());
-  };
-
-  const sortFileTree = (nodes: FileTreeNode[]): FileTreeNode[] => {
-    if (!nodes || !Array.isArray(nodes)) {
-      return [];
     }
 
-    return nodes.sort(compareNodes).map((node) => ({
-      ...node,
-      children: node.children && node.children.length > 0 ? sortFileTree(node.children) : [],
-    }));
-  };
+    return nodes.sort(compareNodes);
+  } catch (error) {
+    log("error reading directory", { path: dir, error });
+    return [];
+  }
+}
 
-  return sortFileTree(tree);
+function compareNodes(a: FileTreeNode, b: FileTreeNode): number {
+  if (a.isFolder && !b.isFolder) return -1;
+  if (!a.isFolder && b.isFolder) return 1;
+  return a.fileName.toLowerCase().localeCompare(b.fileName.toLowerCase());
 }

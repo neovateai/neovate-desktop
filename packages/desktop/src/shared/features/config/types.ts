@@ -26,6 +26,7 @@ export type AppConfig = {
   agentLanguage: AgentLanguage;
   permissionMode: ConfigPermissionMode;
   notificationSound: NotificationSound;
+  tokenOptimization: boolean;
 
   // Keybindings
   keybindings: Record<string, string>;

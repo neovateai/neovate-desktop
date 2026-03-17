@@ -18,4 +18,8 @@ export type ProjectStore = {
   closedProjectAccordions: string[];
   /** projectPath → provider/model selection */
   providerSelections: Record<string, ProjectProviderConfig>;
+  /** Consecutive crash count for crash-loop detection */
+  crashCount: number;
+  /** Timestamp of last crash (ms since epoch) */
+  lastCrashTs: number;
 };

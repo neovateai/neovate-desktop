@@ -11,20 +11,29 @@ async function beforePack(context) {
   const path = await import("node:path");
 
   const projectDir = context.packager.projectDir;
-  const bunBin = path.join(projectDir, "vendor", "bun", "bun");
-
-  if (existsSync(bunBin)) return;
 
   // electron-builder Arch enum: 0=ia32, 1=x64, 2=armv7l, 3=arm64, 4=universal
   const archMap = { 1: "x64", 3: "arm64" };
   const arch = archMap[context.arch];
   if (!arch) throw new Error(`Unsupported arch: ${context.arch}`);
 
-  console.log(`  • downloading bun for ${context.packager.platform.name}/${arch}...`);
-  execSync(`bun scripts/download-bun.ts --platform darwin --arch ${arch}`, {
-    cwd: projectDir,
-    stdio: "inherit",
-  });
+  const bunBin = path.join(projectDir, "vendor", "bun", "bun");
+  if (!existsSync(bunBin)) {
+    console.log(`  • downloading bun for ${context.packager.platform.name}/${arch}...`);
+    execSync(`bun scripts/download-bun.ts --platform darwin --arch ${arch}`, {
+      cwd: projectDir,
+      stdio: "inherit",
+    });
+  }
+
+  const rtkBin = path.join(projectDir, "vendor", "rtk", "rtk");
+  if (!existsSync(rtkBin)) {
+    console.log(`  • downloading rtk for ${context.packager.platform.name}/${arch}...`);
+    execSync(`bun scripts/download-rtk.ts --platform darwin --arch ${arch}`, {
+      cwd: projectDir,
+      stdio: "inherit",
+    });
+  }
 }
 
 const config = {
@@ -56,7 +65,10 @@ const config = {
 
   beforePack,
 
-  extraResources: [{ from: "vendor/bun", to: "bun", filter: ["bun"] }],
+  extraResources: [
+    { from: "vendor/bun", to: "bun", filter: ["bun"] },
+    { from: "vendor/rtk", to: "rtk", filter: ["rtk"] },
+  ],
 
   files: [
     "dist/**/*",
