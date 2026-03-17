@@ -1,0 +1,9 @@
+{
+  "blank.title": "Browser",
+  "blank.hint": "Enter a URL to preview",
+  "nav.back": "Back",
+  "nav.forward": "Forward",
+  "nav.refresh": "Refresh",
+  "nav.devtools": "Open DevTools",
+  "nav.addressPlaceholder": "Enter URL..."
+}

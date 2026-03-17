@@ -14,6 +14,7 @@ import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
+import browserPlugin from "../plugins/browser";
 import debugPlugin from "../plugins/debug";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 // import demoWindowPlugin from "../plugins/demo-window";
@@ -94,6 +95,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   filesPlugin,
   gitPlugin,
   terminalPlugin,
+  browserPlugin,
   searchPlugin,
   editorPlugin,
   reviewPlugin,
