@@ -39,16 +39,12 @@ Reference: VS Code's `src/vs/platform/shell/node/shellEnv.ts` ([source](https://
 #### Class
 
 ```typescript
-export class ShellEnvironmentService {
-  /**
-   * Resolve the user's shell environment. First call spawns a login
-   * shell and caches the result. Subsequent calls return the cached promise.
-   * Never rejects — returns process.env on failure.
-   *
-   * Same name as VS Code's IShellEnvironmentService.getEnv().
-   */
+export interface IShellEnvironmentService {
   getEnv(): Promise<Record<string, string>>;
+}
 
+class ShellEnvironmentService implements IShellEnvironmentService {
+  getEnv(): Promise<Record<string, string>>;
   /** For testing only. */
   _resetForTesting(): void;
 }
@@ -116,15 +112,15 @@ neovate:shell-env  falling back to process.env
 
 ### Plugin context: `ctx.shell`
 
-Third-party plugins can't import `core/shell-service.ts`. They receive the singleton `ShellEnvironmentService` instance as `ctx.shell`:
+Third-party plugins can't import `core/shell-service.ts`. They receive the singleton via the minimal `IShellEnvironmentService` interface on `ctx.shell`:
 
 ```typescript
 // core/plugin/types.ts
-import type { ShellEnvironmentService } from "../shell-service"
+import type { IShellEnvironmentService } from "../shell-service"
 
 interface PluginContext {
   orpcServer: ...
-  shell: ShellEnvironmentService
+  shell: IShellEnvironmentService
 }
 ```
 
@@ -197,18 +193,18 @@ await execFileAsync("git", ["clone", ...], { env })
 
 ### Modify
 
-| File                                         | Change                                                                                                         |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `src/main/core/plugin/types.ts`              | Add `shell: ShellEnvironmentService` to `PluginContext`                                                        |
-| `src/main/index.ts`                          | Replace `getShellEnvironment()` with `shellEnvService.getEnv()` (fire-and-forget warm-up)                      |
-| `src/main/app.ts`                            | Wire `shellEnvService` into `PluginContext` as `ctx.shell`                                                     |
-| `src/main/features/agent/session-manager.ts` | Import `shellEnvService`. Simplify env construction: use `getEnv()`, only prepend bundled bun/rtk dirs to PATH |
-| `src/main/plugins/terminal/pty-manager.ts`   | Remove `ShellEnvService` dependency. Use `shellEnvService` directly. Shell path from `env.SHELL`               |
-| `src/main/plugins/terminal/index.ts`         | Remove `ShellEnvService` creation and pre-warm. Simplify PtyManager construction                               |
-| `src/main/features/utils/router.ts`          | Import `shellEnvService`. Replace `getShellEnvironment()` calls                                                |
-| `src/main/features/skills/installers/git.ts` | Add `{ env: await shellEnvService.getEnv() }` to execFile calls                                                |
-| `src/main/features/skills/installers/npm.ts` | Add `{ env: await shellEnvService.getEnv() }` to execFile calls                                                |
-| `src/main/features/utils/search-paths.ts`    | Add `{ env: await shellEnvService.getEnv() }` to execFile("git") call                                          |
+| File                                         | Change                                                                                                          |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/main/core/plugin/types.ts`              | Add `shell: IShellEnvironmentService` to `PluginContext`                                                        |
+| `src/main/index.ts`                          | Replace `getShellEnvironment()` with `shellEnvService.getEnv()` (fire-and-forget warm-up)                       |
+| `src/main/app.ts`                            | Wire `shellEnvService` into `PluginContext` as `ctx.shell`                                                      |
+| `src/main/features/agent/session-manager.ts` | Import `shellEnvService`. Simplify env construction: use `getEnv()`, only prepend bundled bun/rtk dirs to PATH  |
+| `src/main/plugins/terminal/pty-manager.ts`   | Remove `ShellEnvService` dependency. Receive `IShellEnvironmentService` via constructor. Shell from `env.SHELL` |
+| `src/main/plugins/terminal/index.ts`         | Remove `ShellEnvService` creation and pre-warm. Create PtyManager with `ctx.shell` in `configContributions`     |
+| `src/main/features/utils/router.ts`          | Import `shellEnvService`. Replace `getShellEnvironment()` calls                                                 |
+| `src/main/features/skills/installers/git.ts` | Add `{ env: await shellEnvService.getEnv() }` to execFile calls                                                 |
+| `src/main/features/skills/installers/npm.ts` | Add `{ env: await shellEnvService.getEnv() }` to execFile calls                                                 |
+| `src/main/features/utils/search-paths.ts`    | Add `{ env: await shellEnvService.getEnv() }` to execFile("git") call                                           |
 
 ## Session Manager Detail
 
@@ -271,19 +267,32 @@ const term = pty.spawn(shell, [], { env: shellEnv, ... });
 
 ```typescript
 // index.ts
-const ptyManager = new PtyManager();
+let ptyManager: PtyManager | null = null;
+
+export default {
+  configContributions(ctx) {
+    ptyManager = new PtyManager(ctx.shell);
+    return { router: createTerminalRouter(ctx.orpcServer, ptyManager) };
+  },
+  deactivate: () => ptyManager?.killAll(),
+} satisfies MainPlugin;
 
 // pty-manager.ts
-import { shellEnvService } from "../../core/shell-service"
+import type { PluginContext } from "../../core/plugin/types"
 
-async spawn(opts) {
-  const env = await shellEnvService.getEnv()
-  const shell = env.SHELL ?? "/bin/bash"
-  const term = pty.spawn(shell, [], { env, ... })
+class PtyManager {
+  readonly #shell: PluginContext["shell"];
+  constructor(shell: PluginContext["shell"]) { this.#shell = shell; }
+
+  async spawn(opts) {
+    const env = await this.#shell.getEnv()
+    const shell = env.SHELL ?? "/bin/bash"
+    const term = pty.spawn(shell, [], { env, ... })
+  }
 }
 ```
 
-No separate service, no pre-warming, no sync/async split. PtyManager uses the singleton directly. Shell path comes from the resolved `env.SHELL` (which the user's shell config sets), with `/bin/bash` as last resort.
+No separate service, no pre-warming, no sync/async split. PtyManager receives the shell service via `ctx.shell` (DI through `PluginContext`), no direct import from core. Shell path comes from the resolved `env.SHELL` (which the user's shell config sets), with `/bin/bash` as last resort.
 
 ## Edge Cases
 
