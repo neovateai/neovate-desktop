@@ -34,7 +34,7 @@ export interface SecondarySidebarView {
 
 export interface ContentPanelView {
   viewType: string;
-  name: LocalizedString;
+  name: string | LocalizedString;
   icon?: React.ComponentType<{ className?: string }>;
   singleton?: boolean; // default true; per-project scope
   deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
@@ -43,7 +43,7 @@ export interface ContentPanelView {
 
 export interface TitlebarItem {
   id: string;
-  tooltip?: LocalizedString;
+  tooltip?: string | LocalizedString;
   order?: number;
   component: () => Promise<{ default: React.ComponentType }>;
 }
