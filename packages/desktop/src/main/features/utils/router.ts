@@ -8,7 +8,7 @@ import type { App } from "../../../shared/features/utils/types";
 import type { AppContext } from "../../router";
 
 import { utilsContract } from "../../../shared/features/utils/contract";
-import { getShellEnvironment } from "../agent/shell-env";
+import { shellEnvService } from "../../core/shell-service";
 import { searchWithContent } from "./search-content";
 import { searchPaths } from "./search-paths";
 
@@ -75,7 +75,7 @@ function checkApp(app: App, env: Record<string, string>): boolean {
     try {
       execSync(`which ${cli}`, {
         stdio: "ignore",
-        env: { ...process.env, ...env },
+        env,
       });
       return true;
     } catch {
@@ -93,19 +93,19 @@ export const utilsRouter = os.utils.router({
   openIn: os.utils.openIn.handler(async ({ input }) => {
     const { cwd, app } = input;
     const config = APP_COMMANDS[app];
-    const shellEnv = await getShellEnvironment();
+    const env = await shellEnvService.getEnv();
     const child = spawn(config.cmd, config.args(cwd), {
       detached: true,
       stdio: "ignore",
-      env: { ...process.env, ...shellEnv },
+      env,
     });
     child.unref();
     return { success: true };
   }),
 
   detectApps: os.utils.detectApps.handler(async () => {
-    const shellEnv = await getShellEnvironment();
-    const apps = ALL_APPS.filter((app) => checkApp(app, shellEnv));
+    const env = await shellEnvService.getEnv();
+    const apps = ALL_APPS.filter((app) => checkApp(app, env));
     return { apps };
   }),
 
