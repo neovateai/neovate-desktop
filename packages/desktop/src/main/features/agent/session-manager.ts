@@ -36,6 +36,7 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { RequestTracker } from "./request-tracker";
 
+import { shellEnvService } from "../../core/shell-service";
 import {
   resolveBunPath,
   resolveInterceptorPath,
@@ -46,7 +47,6 @@ import {
 import { readModelSetting, readProviderSetting, readProviderModelSetting } from "./claude-settings";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
-import { getShellEnvironment } from "./shell-env";
 import { sessionMessagesToUIMessages } from "./utils/session-messages-to-ui-messages";
 
 const log = debug("neovate:session-manager");
@@ -376,16 +376,15 @@ export class SessionManager {
       }
     >();
 
-    const shellEnv = await getShellEnvironment();
+    const shellEnv = await shellEnvService.getEnv();
     const bunPath = resolveBunPath();
     const bunDir = bunPath !== "bun" ? path.dirname(bunPath) : undefined;
     const rtkPath = resolveRtkPath();
     const rtkDir = rtkPath !== "rtk" ? path.dirname(rtkPath) : undefined;
-    const mergedPath = [rtkDir, bunDir, shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
+    const mergedPath = [rtkDir, bunDir, shellEnv.PATH].filter(Boolean).join(":");
     const env: Record<string, string | undefined> = {
-      ...process.env,
       ...shellEnv,
-      ...(mergedPath ? { PATH: mergedPath } : {}),
+      PATH: mergedPath,
     };
 
     const provider = opts?.provider;
