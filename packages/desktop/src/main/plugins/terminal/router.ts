@@ -19,7 +19,7 @@ export function createTerminalRouter(
         rows: number;
       };
       log("spawn", { cwd, cols, rows });
-      const sessionId = ptyManager.spawn({ cwd, cols, rows });
+      const sessionId = await ptyManager.spawn({ cwd, cols, rows });
       log("spawn complete", { sessionId });
       return { sessionId };
     }),
