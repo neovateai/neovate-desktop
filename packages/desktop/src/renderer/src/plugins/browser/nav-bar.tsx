@@ -92,7 +92,10 @@ export function NavBar({
         size="sm"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        onFocus={() => setIsEditing(true)}
+        onFocus={(e) => {
+          setIsEditing(true);
+          (e.target as HTMLInputElement).select();
+        }}
         onBlur={() => {
           setIsEditing(false);
           setInputValue(url);
