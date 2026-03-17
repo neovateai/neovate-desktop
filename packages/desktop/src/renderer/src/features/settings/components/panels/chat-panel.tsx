@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "../../../../components/ui/select";
 import { Spinner } from "../../../../components/ui/spinner";
+import { Switch } from "../../../../components/ui/switch";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
 import { client } from "../../../../orpc";
 import { claudeCodeChatManager } from "../../../agent/chat-manager";
@@ -140,6 +141,17 @@ export const ChatPanel = () => {
               </SelectItem>
             </SelectPopup>
           </Select>
+        </SettingsRow>
+
+        {/* Token Optimization */}
+        <SettingsRow
+          title={t("settings.chat.tokenOptimization")}
+          description={t("settings.chat.tokenOptimization.description")}
+        >
+          <Switch
+            checked={config.tokenOptimization}
+            onCheckedChange={(v) => setConfig("tokenOptimization", v)}
+          />
         </SettingsRow>
 
         {/* Send Message With */}

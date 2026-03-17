@@ -12,5 +12,6 @@ playwright-report/
 docs/plans
 .claude/settings.local.json
 packages/desktop/vendor/bun/
+packages/desktop/vendor/rtk/
 .worktrees/
 /tmp

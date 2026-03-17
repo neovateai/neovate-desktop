@@ -61,6 +61,8 @@
   "settings.chat.notification.ping": "Ping",
   "settings.chat.notification.pop": "Pop",
   "settings.chat.notification.funk": "Funk",
+  "settings.chat.tokenOptimization": "Token 优化",
+  "settings.chat.tokenOptimization.description": "通过过滤命令输出减少 Token 用量（基于 RTK）",
   "settings.chat.sendMessage": "发送消息",
   "settings.chat.sendMessage.description": "发送消息的键盘快捷键",
   "settings.chat.model.auto": "默认（自动）",

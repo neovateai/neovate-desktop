@@ -34,7 +34,12 @@ import type { Provider } from "../../../shared/features/provider/types";
 import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 
-import { resolveBunPath, resolveSDKCliPath } from "./claude-code-utils";
+import {
+  resolveBunPath,
+  resolveRtkPath,
+  resolveSDKCliPath,
+  detectRtkHookInSettings,
+} from "./claude-code-utils";
 import { readModelSetting, readProviderSetting, readProviderModelSetting } from "./claude-settings";
 import { Pushable } from "./pushable";
 import { SDKMessageTransformer, toUIEvent } from "./sdk-message-transformer";
@@ -42,6 +47,7 @@ import { getShellEnvironment } from "./shell-env";
 import { sessionMessagesToUIMessages } from "./utils/session-messages-to-ui-messages";
 
 const log = debug("neovate:session-manager");
+const rtkLog = debug("neovate:rtk");
 
 /** List .jsonl files one level deep under `~/.claude/projects/` */
 function listSessionFiles(filter?: string): string[] {
@@ -369,7 +375,9 @@ export class SessionManager {
     const shellEnv = await getShellEnvironment();
     const bunPath = resolveBunPath();
     const bunDir = bunPath !== "bun" ? path.dirname(bunPath) : undefined;
-    const mergedPath = [bunDir, shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
+    const rtkPath = resolveRtkPath();
+    const rtkDir = rtkPath !== "rtk" ? path.dirname(rtkPath) : undefined;
+    const mergedPath = [rtkDir, bunDir, shellEnv.PATH, process.env.PATH].filter(Boolean).join(":");
     const env: Record<string, string | undefined> = {
       ...process.env,
       ...shellEnv,
@@ -423,6 +431,61 @@ export class SessionManager {
 
     const agentLanguage = this.configStore.get("agentLanguage");
 
+    // RTK token optimization hook
+    const tokenOptimization = this.configStore.get("tokenOptimization") !== false;
+    const hasFileBasedRtkHook = detectRtkHookInSettings();
+    const registerRtkHook = tokenOptimization && !hasFileBasedRtkHook;
+
+    if (!tokenOptimization) {
+      rtkLog("hook skipped (disabled)");
+    } else if (hasFileBasedRtkHook) {
+      rtkLog("hook skipped (file-based hook detected in ~/.claude/settings.json)");
+    } else {
+      rtkLog("hook registered rtkPath=%s", rtkPath);
+    }
+
+    type HookCallback = import("@anthropic-ai/claude-agent-sdk").HookCallback;
+    const rtkHook: HookCallback = async (input) => {
+      if (input.hook_event_name !== "PreToolUse") return { continue: true };
+      const cmd = (input.tool_input as Record<string, unknown>)?.command;
+      if (typeof cmd !== "string" || !cmd) return { continue: true };
+
+      // Fast skip: commands RTK never rewrites
+      if (cmd.startsWith("rtk ") || cmd.includes("<<")) {
+        return { continue: true };
+      }
+
+      try {
+        const { stdout } = await execFileAsync(rtkPath, ["rewrite", cmd], {
+          timeout: 5000,
+          env: env as Record<string, string>,
+        });
+        const rewritten = stdout.trim();
+
+        if (!rewritten || rewritten === cmd) {
+          rtkLog("no rewrite: %s", cmd);
+          return { continue: true };
+        }
+
+        rtkLog("rewrite: %s -> %s", cmd, rewritten);
+        return {
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse" as const,
+            permissionDecision: "allow" as const,
+            updatedInput: { command: rewritten },
+          },
+        };
+      } catch (err: any) {
+        if (err?.code === 1 || err?.status === 1) {
+          // Normal: rtk rewrite exits 1 when no rewrite applies
+          rtkLog("no rewrite: %s", cmd);
+        } else {
+          rtkLog("fallback (error): %s — %s", cmd, err?.message ?? err);
+        }
+        return { continue: true };
+      }
+    };
+
     const queryOpts = this.queryOptions({
       sessionId,
       cwd,
@@ -435,6 +498,9 @@ export class SessionManager {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
+      ...(registerRtkHook
+        ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
+        : {}),
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
     };
 
