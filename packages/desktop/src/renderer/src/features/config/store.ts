@@ -40,6 +40,7 @@ const DEFAULT_CONFIG: AppConfig = {
   agentLanguage: "English",
   permissionMode: "default",
   notificationSound: "default",
+  tokenOptimization: true,
 
   // Keybindings
   keybindings: {},

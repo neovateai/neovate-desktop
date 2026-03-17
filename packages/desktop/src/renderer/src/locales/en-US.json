@@ -61,6 +61,8 @@
   "settings.chat.notification.ping": "Ping",
   "settings.chat.notification.pop": "Pop",
   "settings.chat.notification.funk": "Funk",
+  "settings.chat.tokenOptimization": "Token Optimization",
+  "settings.chat.tokenOptimization.description": "Reduce token usage by filtering command output (via RTK)",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
   "settings.chat.model.auto": "Default (auto)",

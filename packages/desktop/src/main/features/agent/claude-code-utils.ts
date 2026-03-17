@@ -1,5 +1,7 @@
 import { is } from "@electron-toolkit/utils";
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { homedir } from "node:os";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -29,4 +31,35 @@ export function resolveSDKCliPath(): string {
 export function resolveBunPath(): string {
   if (is.dev) return "bun";
   return path.join(process.resourcesPath, "bun", "bun");
+}
+
+/**
+ * Resolve the path to the bundled RTK binary.
+ *
+ * In dev mode, uses the system rtk from PATH (silent no-op if not installed).
+ * In production, uses the rtk binary bundled via electron-builder extraResources.
+ */
+export function resolveRtkPath(): string {
+  if (is.dev) return "rtk";
+  return path.join(process.resourcesPath, "rtk", "rtk");
+}
+
+/**
+ * Check if a file-based RTK PreToolUse hook already exists in ~/.claude/settings.json.
+ * Returns true if found, so the programmatic hook can be skipped to avoid double-rewriting.
+ */
+export function detectRtkHookInSettings(): boolean {
+  try {
+    const settingsPath = path.join(homedir(), ".claude", "settings.json");
+    const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
+    const preToolUse = settings?.hooks?.PreToolUse;
+    if (!Array.isArray(preToolUse)) return false;
+    return preToolUse.some(
+      (matcher: any) =>
+        Array.isArray(matcher?.hooks) &&
+        matcher.hooks.some((h: any) => typeof h?.command === "string" && h.command.includes("rtk")),
+    );
+  } catch {
+    return false;
+  }
 }
