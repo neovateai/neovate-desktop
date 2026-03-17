@@ -8,9 +8,9 @@ import type { AppContext } from "./router";
 
 import { MainApp } from "./app";
 import { ApplicationMenu } from "./core/menu";
+import { shellEnvService } from "./core/shell-service";
 import { RequestTracker } from "./features/agent/request-tracker";
 import { SessionManager } from "./features/agent/session-manager";
-import { getShellEnvironment } from "./features/agent/shell-env";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
@@ -29,7 +29,7 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
 }
 
 // Eagerly warm the shell environment cache so it's ready before first session
-getShellEnvironment();
+shellEnvService.getEnv();
 
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
