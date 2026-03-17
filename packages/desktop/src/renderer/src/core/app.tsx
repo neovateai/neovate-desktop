@@ -1,5 +1,5 @@
 import { ThemeProvider, useTheme } from "next-themes";
-import { StrictMode, Suspense, createContext, useContext, useEffect, lazy } from "react";
+import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
 import ReactDOM from "react-dom/client";
 
 import type { ProjectTabState } from "../features/content-panel";
@@ -52,14 +52,16 @@ export function usePluginContext(): PluginContext {
   return ctx;
 }
 
-/** Syncs persisted config theme → next-themes on load */
+/** Syncs persisted config theme → next-themes on initial load only */
 function ThemeSync() {
   const configTheme = useConfigStore((s) => s.theme);
   const loaded = useConfigStore((s) => s.loaded);
   const { setTheme } = useTheme();
+  const synced = useRef(false);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && !synced.current) {
+      synced.current = true;
       setTheme(configTheme);
     }
   }, [configTheme, loaded, setTheme]);
@@ -241,7 +243,12 @@ export class RendererApp implements IRendererApp {
         <StrictMode>
           <RendererAppContext.Provider value={this}>
             <PluginContextReact.Provider value={ctx}>
-              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
                 <ToastProvider>
                   <ThemeSync />
                   <MenuCommandHandler />
@@ -271,7 +278,12 @@ export class RendererApp implements IRendererApp {
       <StrictMode>
         <RendererAppContext.Provider value={this}>
           <PluginContextReact.Provider value={ctx}>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
               <ToastProvider>
                 <Suspense
                   fallback={

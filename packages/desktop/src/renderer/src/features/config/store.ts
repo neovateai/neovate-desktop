@@ -90,10 +90,4 @@ export const useConfigStore = create<ConfigState>()(
 );
 
 // Convenience hooks for common config fields
-// These provide a clean API while using the generic setter internally
-export const useTheme = () => useConfigStore((s) => s.theme);
 export const useLocale = () => useConfigStore((s) => s.locale);
-export const useSetTheme = () => (value: AppConfig["theme"]) =>
-  useConfigStore.getState().setConfig("theme", value);
-export const useSetLocale = () => (value: AppConfig["locale"]) =>
-  useConfigStore.getState().setConfig("locale", value);

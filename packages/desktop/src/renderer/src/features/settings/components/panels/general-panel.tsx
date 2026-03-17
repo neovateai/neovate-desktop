@@ -1,7 +1,9 @@
 import createDebug from "debug";
 import { Settings } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import { Input } from "../../../../components/ui/input";
 import { Spinner } from "../../../../components/ui/spinner";
@@ -18,14 +20,33 @@ const log = createDebug("neovate:settings");
 export const GeneralPanel = () => {
   const { t } = useTranslation();
   const app = useRendererApp();
+  const { setTheme } = useTheme();
 
-  // Get all config values and the generic setter
-  const config = useConfigStore();
+  const {
+    theme,
+    locale,
+    runOnStartup,
+    multiProjectSupport,
+    terminalFontSize,
+    terminalFont,
+    developerMode,
+  } = useConfigStore(
+    useShallow((s) => ({
+      theme: s.theme,
+      locale: s.locale,
+      runOnStartup: s.runOnStartup,
+      multiProjectSupport: s.multiProjectSupport,
+      terminalFontSize: s.terminalFontSize,
+      terminalFont: s.terminalFont,
+      developerMode: s.developerMode,
+    })),
+  );
   const setConfig = useConfigStore((s) => s.setConfig);
   const loaded = useConfigStore((s) => s.loaded);
 
   const handleThemeChange = (newTheme: string) => {
-    if (newTheme === config.theme) return;
+    if (newTheme === theme) return;
+    setTheme(newTheme);
     setConfig("theme", newTheme as any);
   };
 
@@ -35,15 +56,15 @@ export const GeneralPanel = () => {
   };
 
   // Debounced terminal font input
-  const [localTerminalFont, setLocalTerminalFont] = useState(config.terminalFont);
+  const [localTerminalFont, setLocalTerminalFont] = useState(terminalFont);
   const terminalFontTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
-    setLocalTerminalFont(config.terminalFont);
-  }, [config.terminalFont]);
+    setLocalTerminalFont(terminalFont);
+  }, [terminalFont]);
 
   useEffect(() => {
-    if (localTerminalFont === config.terminalFont) return;
+    if (localTerminalFont === terminalFont) return;
     terminalFontTimerRef.current = setTimeout(() => {
       setConfig("terminalFont", localTerminalFont);
     }, 500);
@@ -82,17 +103,13 @@ export const GeneralPanel = () => {
           title={t("settings.general.language")}
           description={t("settings.general.language.description")}
         >
-          <ToggleOptions
-            value={config.locale}
-            onChange={handleLocaleChange}
-            options={localeOptions}
-          />
+          <ToggleOptions value={locale} onChange={handleLocaleChange} options={localeOptions} />
         </SettingsRow>
 
         {/* Theme */}
         <SettingsRow title={t("settings.theme")} description={t("settings.theme.description")}>
           <ToggleOptions
-            value={config.theme}
+            value={theme}
             onChange={handleThemeChange}
             options={[
               { value: "light", label: t("settings.theme.light") },
@@ -107,7 +124,7 @@ export const GeneralPanel = () => {
           title={t("settings.general.runOnStartup")}
           description={t("settings.general.runOnStartup.description")}
         >
-          <Switch checked={config.runOnStartup} onCheckedChange={handleRunOnStartupChange} />
+          <Switch checked={runOnStartup} onCheckedChange={handleRunOnStartupChange} />
         </SettingsRow>
 
         {/* Multi-Project Support */}
@@ -116,7 +133,7 @@ export const GeneralPanel = () => {
           description={t("settings.general.multiProjectSupport.description")}
         >
           <Switch
-            checked={config.multiProjectSupport}
+            checked={multiProjectSupport}
             onCheckedChange={(v) => setConfig("multiProjectSupport", v)}
           />
         </SettingsRow>
@@ -130,7 +147,7 @@ export const GeneralPanel = () => {
             type="number"
             min={8}
             max={32}
-            value={config.terminalFontSize}
+            value={terminalFontSize}
             onChange={(e) => setConfig("terminalFontSize", Number(e.target.value))}
             className="w-24"
           />
@@ -155,10 +172,7 @@ export const GeneralPanel = () => {
           title={t("settings.general.developerMode")}
           description={t("settings.general.developerMode.description")}
         >
-          <Switch
-            checked={config.developerMode}
-            onCheckedChange={(v) => setConfig("developerMode", v)}
-          />
+          <Switch checked={developerMode} onCheckedChange={(v) => setConfig("developerMode", v)} />
         </SettingsRow>
       </div>
     </div>
