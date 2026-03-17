@@ -2,14 +2,14 @@ import type { AnyRouter } from "@orpc/server";
 
 import { os } from "@orpc/server";
 
-import type { ShellEnvironmentService } from "../shell-service";
+import type { IShellEnvironmentService } from "../shell-service";
 import type { IMainApp } from "../types";
 
 export interface PluginContext {
   app: IMainApp;
   /** Host's oRPC builder — use this instead of importing @orpc/server directly to avoid version mismatch */
   orpcServer: typeof os;
-  shell: ShellEnvironmentService;
+  shell: IShellEnvironmentService;
 }
 
 export interface PluginContributions {
