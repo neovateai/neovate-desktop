@@ -28,7 +28,7 @@ const plugin: RendererPlugin = {
       contentPanelViews: [
         {
           viewType: "terminal",
-          name: "%plugin-terminal:view.terminal%",
+          name: { "en-US": "Terminal", "zh-CN": "终端" },
           singleton: false,
           deactivation: "offscreen",
           icon: TerminalIcon,

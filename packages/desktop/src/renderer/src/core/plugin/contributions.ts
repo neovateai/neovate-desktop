@@ -3,6 +3,7 @@ import type React from "react";
 import debug from "debug";
 
 import type { ProviderTemplate } from "../../../../shared/features/provider/built-in";
+import type { LocalizedString } from "../../../../shared/i18n";
 
 const log = debug("neovate:plugin");
 
@@ -33,7 +34,7 @@ export interface SecondarySidebarView {
 
 export interface ContentPanelView {
   viewType: string;
-  name: string;
+  name: LocalizedString;
   icon?: React.ComponentType<{ className?: string }>;
   singleton?: boolean; // default true; per-project scope
   deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
@@ -42,7 +43,7 @@ export interface ContentPanelView {
 
 export interface TitlebarItem {
   id: string;
-  tooltip?: string;
+  tooltip?: LocalizedString;
   order?: number;
   component: () => Promise<{ default: React.ComponentType }>;
 }

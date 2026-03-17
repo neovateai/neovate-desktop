@@ -18,9 +18,9 @@ import { useTranslation } from "react-i18next";
 
 import type { SeparatorId } from "./types";
 
+import { resolveLocalizedString } from "../../../../shared/i18n";
 import { getChatPanelBgUrl } from "../../assets/images";
 import { useRendererApp } from "../../core/app";
-import { useTranslationWithMarker } from "../../core/i18n";
 import { type TitlebarItem } from "../../core/plugin/contributions";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
@@ -224,7 +224,7 @@ export function AppLayoutSecondaryTitleBar() {
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
   const setShowSettings = useSettingsStore((s) => s.setShowSettings);
-  const tMarker = useTranslationWithMarker();
+  const locale = useConfigStore((s) => s.locale);
   const app = useRendererApp();
   const items = app.pluginManager.contributions.secondaryTitlebarItems;
   const lazyComponents = useLazyComponents(items);
@@ -245,7 +245,7 @@ export function AppLayoutSecondaryTitleBar() {
                 {item.tooltip ? (
                   <TooltipTrigger
                     handle={secondaryTitlebarTooltipHandle}
-                    payload={tMarker(item.tooltip)}
+                    payload={resolveLocalizedString(item.tooltip, locale)}
                     render={<span className="inline-flex" />}
                   >
                     <Component />

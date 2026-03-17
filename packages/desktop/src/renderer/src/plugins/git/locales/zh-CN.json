@@ -41,6 +41,5 @@
   "git.diff.showingLines": "正在显示 {{current}}/{{total}} 行",
   "git.diff.showMore": "显示更多{{count}}行",
   "git.diff.showAll": "显示全部",
-  "git.diff.loadingMore": "正在加载更多内容...",
-  "view.gitDiff": "代码变更"
+  "git.diff.loadingMore": "正在加载更多内容..."
 }

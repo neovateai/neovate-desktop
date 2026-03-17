@@ -4,11 +4,12 @@ import { X, TriangleAlert } from "lucide-react";
 
 import type { Tab } from "../types";
 
+import { resolveLocalizedString } from "../../../../../shared/i18n";
 import { Button } from "../../../components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../../../components/ui/tooltip";
 import { useRendererApp } from "../../../core";
-import { useTranslationWithMarker } from "../../../core/i18n";
 import { cn } from "../../../lib/utils";
+import { useConfigStore } from "../../config/store";
 function TabButton({
   tab,
   isActive,
@@ -21,7 +22,7 @@ function TabButton({
 } & React.ComponentPropsWithRef<"div">) {
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const t = useTranslationWithMarker();
+  const locale = useConfigStore((s) => s.locale);
   const views = app.pluginManager.contributions.contentPanelViews;
   const view = views.find((view) => view.viewType === tab.viewType);
   return (
@@ -41,7 +42,9 @@ function TabButton({
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
       <view className="flex items-center">
         <span className="mr-1">{view?.icon && <view.icon className="size-3.5" />}</span>
-        <span className="truncate font-medium">{view ? t(view.name) : tab.viewType}</span>
+        <span className="truncate font-medium">
+          {view ? resolveLocalizedString(view.name, locale) : tab.viewType}
+        </span>
       </view>
       <Button
         variant="ghost"

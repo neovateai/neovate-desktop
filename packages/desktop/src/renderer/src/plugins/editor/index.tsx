@@ -41,7 +41,7 @@ const plugin: RendererPlugin = {
       contentPanelViews: [
         {
           viewType: "editor",
-          name: "%plugin-editor:view.editor%",
+          name: { "en-US": "Editor", "zh-CN": "编辑器" },
           singleton: true,
           deactivation: "offscreen",
           icon: EditorIcon,

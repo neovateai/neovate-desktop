@@ -41,6 +41,5 @@
   "git.diff.showingLines": "Showing {{current}}/{{total}} lines",
   "git.diff.showMore": "Show {{count}} more lines",
   "git.diff.showAll": "Show all",
-  "git.diff.loadingMore": "Loading more content...",
-  "view.gitDiff": "Git Diff"
+  "git.diff.loadingMore": "Loading more content..."
 }

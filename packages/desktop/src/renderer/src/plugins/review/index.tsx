@@ -32,7 +32,7 @@ const plugin: RendererPlugin = {
       contentPanelViews: [
         {
           viewType: "review",
-          name: "%plugin-review:view.review%",
+          name: { "en-US": "Review", "zh-CN": "评审" },
           singleton: true,
           deactivation: "offscreen",
           icon: ReviewIcon,

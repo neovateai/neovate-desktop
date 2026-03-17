@@ -2,120 +2,143 @@
 
 ## Problem
 
-`ContentPanelView.name` is a hardcoded English string. The framework renders it in tab titles and new-tab menus, so plugins cannot control the translation timing themselves. Currently, the renderer works around this with `t(`tab.${name}`)` and hardcoded keys in app-level locale files (`"tab.Git Diff": "代码变更"`), which:
+`ContentPanelView.name` is a hardcoded English string. The framework renders it in tab titles and new-tab menus, so plugins cannot control the translation timing themselves. The current `%namespace:key%` NLS marker pattern works but has issues:
 
-1. Couples plugin display strings to app-level locale files
-2. Requires a manually maintained `TabName` union type
-3. Breaks plugin encapsulation — adding a plugin means editing app locale files
+1. **Magic string syntax** — `%namespace:key%` is a custom convention with no type safety; typos are silent failures
+2. **Regex-based resolution** — `useTranslationWithMarker` parses markers with regex at render time
+3. **Indirection** — plugin writes a string marker, framework regex-parses it, then calls i18next; unnecessary layer
+4. **Scattered translations** — `view.*` keys live in plugin locale JSON files, adding indirection between the contribution definition and the display string
 
 ## Design
 
-### NLS Marker Pattern
+### Inline Locale Map
 
-Adopt VS Code's `%key%` marker convention. Plugins write `%namespace:key%` in contribution fields; the framework resolves them at render time via i18next.
+Replace `%namespace:key%` markers with inline locale maps directly in contribution definitions. The `name` field becomes `string | Record<Locales, string>`.
 
 ```
-Plugin defines          Stored in tab           Rendered
-"%plugin-git:view.gitDiff%"  →  (stored as-is)  →  "代码变更"
+Plugin defines                                          Rendered (zh-CN)
+{ "en-US": "Git Diff", "zh-CN": "代码变更" }    →     "代码变更"
 ```
 
-### `useTranslationWithMarker` Hook
+### Why Inline Map Over Markers
 
-A new React hook in `core/i18n/hooks/use-translation-with-marker.ts` that resolves `%namespace:key%` markers reactively (language switch triggers re-render).
+| Aspect             | `%namespace:key%` markers                   | Inline `Record<Locales, string>`       |
+| ------------------ | ------------------------------------------- | -------------------------------------- |
+| Type safety        | None — typos are silent                     | Full — missing locale is a TS error    |
+| Resolution         | Regex parse + i18next lookup                | Simple property access                 |
+| Data locality      | Split across contribution def + locale JSON | Co-located in contribution def         |
+| i18next dependency | Required for contribution names             | None — just reads a config store value |
+| Complexity         | Hook + regex + namespace routing            | One utility function                   |
+
+### `resolveLocalizedString` Utility
 
 ```typescript
-const NLS_MARKER_RE = /^%([^%]+)%$/;
+import type { Locales } from "../core/i18n";
 
-export function useTranslationWithMarker() {
-  const { t } = useTranslation();
-  return (value: string) => {
-    const match = NLS_MARKER_RE.exec(value);
-    return match ? t(match[1]) : value;
-  };
+export type LocalizedString = string | Record<Locales, string>;
+
+export function resolveLocalizedString(value: LocalizedString, locale: Locales): string {
+  if (typeof value === "string") return value;
+  return value[locale] ?? value["en-US"];
 }
 ```
 
-- Marker detected: strips `%`, passes `namespace:key` to `t()` (i18next native colon syntax)
-- Non-marker: returns the original string as-is
-- Reactive: backed by `useTranslation`, re-renders on language change
+- Plain `string`: returned as-is (backward compatible, useful for demos/prototypes)
+- `Record<Locales, string>`: looks up by current locale, falls back to `en-US`
+- Reactive: rendering components subscribe to locale changes via `useConfigStore(s => s.locale)`
 
-### Why Not a Pure Function
+### Plugin Usage
 
-The existing `resolveNls()` in `contributions.ts` calls `i18next.t()` directly. This is not reactive — language changes don't trigger React re-renders. A hook is required.
+```typescript
+const plugin: RendererPlugin = {
+  name: "plugin-git",
 
-### Future: Auto Namespace Injection
+  configContributions() {
+    return {
+      contentPanelViews: [
+        {
+          viewType: "git-diff",
+          name: { "en-US": "Git Diff", "zh-CN": "代码变更" },
+          icon: GitIcon,
+          component: () => import("./git-diff-view"),
+        },
+      ],
+    };
+  },
+};
+```
 
-Currently plugins write the full `%namespace:key%`. In the future, the framework can auto-inject the namespace during contribution collection (since `plugin.name` equals the i18n namespace), letting plugins write just `%key%`. This requires refactoring `configContributions()` to preserve plugin origin info, deferred for now.
+### Rendering
+
+```tsx
+const locale = useConfigStore((s) => s.locale);
+const displayName = resolveLocalizedString(view.name, locale);
+```
+
+Components rendering contribution names subscribe to `useConfigStore(s => s.locale)` for reactivity. No i18next hooks needed for this path.
+
+### Future: `() => string` Lazy Functions
+
+The inline map covers the common case. If plugins later need dynamic names (e.g., interpolation, context-dependent text), the type can be extended to `string | Record<Locales, string> | (() => string)`. The inline map is forward-compatible with this extension.
 
 ## Changes
 
-### New: `core/i18n/hooks/use-translation-with-marker.ts`
+### New: `LocalizedString` type and `resolveLocalizedString` utility
 
-- `useTranslationWithMarker()` hook
-- Export from `core/i18n/index.ts`
+- Type: `string | Record<Locales, string>`
+- Location: `src/renderer/src/lib/i18n.ts`
 
-### Remove: `resolveNls` from `core/plugin/contributions.ts`
+### Modify: `ContentPanelView.name` type
 
-Delete `resolveNls` and `NLS_REGEX`. All call sites migrate to `useTranslationWithMarker`.
+```typescript
+// Before
+name: string;
 
-### Migrate: `app-layout.tsx` (titlebar tooltip)
+// After
+name: LocalizedString;
+```
 
-Replace `resolveNls(item.tooltip)` with `useTranslationWithMarker()`.
+### Delete: `useTranslationWithMarker` hook
 
-### Remove: `Tab.name` field and `updateView` / `updateTab` API
+- `core/i18n/hooks/use-translation-with-marker.ts`
+- `core/i18n/hooks/__tests__/use-translation-with-marker.test.ts`
+- Remove export from `core/i18n/index.ts`
 
-`Tab` 类型原先包含 `name` 字段，由 `openView` 时写入并持久化到 storage。这导致两个问题：
+### Migrate: Rendering Components
 
-1. **翻译失效** — 持久化的 `name` 是写入时的语言快照（如 `"Git Diff"`），切换语言后不会变为 `"代码变更"`
-2. **冗余数据** — Tab 的显示名称完全可以从 `viewType` 关联到 `ContentPanelView.name` 在渲染时动态获取，无需存储
-
-因此删除：
-
-- `Tab.name` 字段 — `Tab` 类型仅保留 `id`、`viewType`、`state`
-- `ContentPanel.updateView()` 方法 — 唯一用途是修改 `tab.name`，不再需要
-- `ContentPanelStoreState.updateTab()` — `updateView` 的底层 store 操作
-
-渲染时通过 `views.find(v => v.viewType === tab.viewType)` 查找对应 view，再用 `useTranslationWithMarker(view.name)` 解析显示名称。持久化数据中多余的 `name` 字段会被自动忽略，向后兼容。
-
-### Migrate: `tab-item.tsx`
-
-| Before                                       | After                                                    |
-| -------------------------------------------- | -------------------------------------------------------- |
-| `t(`tab.${tab.name as TabName}`)`            | `t(view.name)` via `useTranslationWithMarker`            |
-| `view.name === tab.name` (find view by name) | `view.viewType === tab.viewType` (find view by viewType) |
-| `"{tab.name}" is unavailable` tooltip        | `"{tab.viewType}" is unavailable`                        |
-| `type TabName = "Editor" \| ...`             | Delete                                                   |
-
-### Migrate: `new-tab-menu.tsx`
-
-| Before                             | After                                         |
-| ---------------------------------- | --------------------------------------------- |
-| `t(`tab.${view.name as TabName}`)` | `t(view.name)` via `useTranslationWithMarker` |
-| `type TabName = "Editor" \| ...`   | Delete                                        |
+| File                                                 | Before                                                 | After                                                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `features/content-panel/components/tab-item.tsx`     | `useTranslationWithMarker()` → `t(view.name)`          | `useConfigStore(s => s.locale)` → `resolveLocalizedString(view.name, locale)`              |
+| `features/content-panel/components/new-tab-menu.tsx` | `useTranslationWithMarker()` → `t(view.name)`          | `useConfigStore(s => s.locale)` → `resolveLocalizedString(view.name, locale)`              |
+| `components/app-layout/content-panel-tabs.tsx`       | `useTranslationWithMarker()` → `tMarker(view.name)`    | `useConfigStore(s => s.locale)` → `resolveLocalizedString(view.name, locale)`              |
+| `components/app-layout/app-layout.tsx`               | `useTranslationWithMarker()` → `tMarker(item.tooltip)` | Remove `tMarker`, use `item.tooltip` directly (no active plugins use markers for tooltips) |
 
 ### Plugin Changes
 
-Each plugin with `contentPanelViews` updates `name` to NLS marker and adds translation keys to its own locale files.
+Each plugin with `contentPanelViews` replaces `%namespace:key%` markers with inline locale maps.
 
-| Plugin             | `name` before        | `name` after                                       | en-US key                                  | zh-CN value                           |
-| ------------------ | -------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------- |
-| editor             | `"Editor"`           | `"%plugin-editor:view.editor%"`                    | `"view.editor": "Editor"`                  | `"view.editor": "编辑器"`             |
-| git                | `"Git Diff"`         | `"%plugin-git:view.gitDiff%"`                      | `"view.gitDiff": "Git Diff"`               | `"view.gitDiff": "代码变更"`          |
-| terminal           | `"Terminal"`         | `"%plugin-terminal:view.terminal%"`                | `"view.terminal": "Terminal"`              | `"view.terminal": "终端"`             |
-| review             | `"Review"`           | `"%plugin-review:view.review%"`                    | `"view.review": "Review"`                  | `"view.review": "评审"`               |
-| content-panel-demo | `"Demo (Singleton)"` | `"%plugin-content-panel-demo:view.demoSingleton%"` | `"view.demoSingleton": "Demo (Singleton)"` | `"view.demoSingleton": "演示 (单例)"` |
+| Plugin   | `name` before                       | `name` after                                   |
+| -------- | ----------------------------------- | ---------------------------------------------- |
+| editor   | `"%plugin-editor:view.editor%"`     | `{ "en-US": "Editor", "zh-CN": "编辑器" }`     |
+| git      | `"%plugin-git:view.gitDiff%"`       | `{ "en-US": "Git Diff", "zh-CN": "代码变更" }` |
+| terminal | `"%plugin-terminal:view.terminal%"` | `{ "en-US": "Terminal", "zh-CN": "终端" }`     |
+| review   | `"%plugin-review:view.review%"`     | `{ "en-US": "Review", "zh-CN": "评审" }`       |
 
-### Cleanup: App-Level Locale Files
+### Cleanup: Plugin Locale Files
 
-Delete from `locales/en-US.json` and `locales/zh-CN.json`:
+Delete `view.*` keys from plugin locale JSON files (now inlined into contributions):
 
-```json
-"tab.Editor": "...",
-"tab.Git Diff": "...",
-"tab.Terminal": "...",
-"tab.Review": "..."
-```
+| Plugin                                | Key to delete     |
+| ------------------------------------- | ----------------- |
+| `plugins/editor/locales/en-US.json`   | `"view.editor"`   |
+| `plugins/editor/locales/zh-CN.json`   | `"view.editor"`   |
+| `plugins/git/locales/en-US.json`      | `"view.gitDiff"`  |
+| `plugins/git/locales/zh-CN.json`      | `"view.gitDiff"`  |
+| `plugins/terminal/locales/en-US.json` | `"view.terminal"` |
+| `plugins/terminal/locales/zh-CN.json` | `"view.terminal"` |
+| `plugins/review/locales/en-US.json`   | `"view.review"`   |
+| `plugins/review/locales/zh-CN.json`   | `"view.review"`   |
 
 ## Scope
 
-This design covers `contentPanelView.name` only. Other contribution fields (`activityBarItem.tooltip`, `secondarySidebarView.title`) can adopt the same marker pattern later but are not in scope — plugins can handle those with `useTranslation` in their own components.
+This design covers `contentPanelView.name` only. Other contribution fields (`activityBarItem.tooltip`, `secondarySidebarView.title`, `titlebarItem.tooltip`) can adopt the same `LocalizedString` pattern later but are not in scope.
