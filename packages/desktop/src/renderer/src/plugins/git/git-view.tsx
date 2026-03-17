@@ -11,6 +11,7 @@ import {
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
+import { useLayoutStore } from "../../components/app-layout/store";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -97,20 +98,21 @@ export default memo(function GitView() {
     window.pendingEditorRequest = { fullPath: file.fullPath };
   };
 
+  const isGitPanelVisible = useLayoutStore(
+    (s) => !s.panels.secondarySidebar?.collapsed && s.panels.secondarySidebar?.activeView === "git",
+  );
+
+  // Poll git status when the git panel is visible
   useEffect(() => {
-    if (!cwd) return;
+    if (!cwd || !isGitPanelVisible) return;
     refreshGitStatus(cwd);
 
-    const onFsChange = () => {
+    const interval = setInterval(() => {
       refreshGitStatus(cwd, false);
-    };
+    }, 5000);
 
-    window.addEventListener("neovate:fs-change", onFsChange);
-
-    return () => {
-      window.addEventListener("neovate:fs-change", onFsChange);
-    };
-  }, [cwd]);
+    return () => clearInterval(interval);
+  }, [cwd, isGitPanelVisible]);
 
   const getFileIcon = (filePath: string) => {
     const filename = filePath.split("/").pop() || filePath;

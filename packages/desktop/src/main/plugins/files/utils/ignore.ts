@@ -1,5 +1,5 @@
 import debug from "debug";
-import { constants } from "fs";
+import fs, { constants } from "fs";
 import { exec } from "node:child_process";
 import { readFile, access } from "node:fs/promises";
 import { promisify } from "node:util";
@@ -48,6 +48,10 @@ async function collectGitignoreRules(rootPath: string): Promise<string[]> {
 
     // use git command to get all .gitignore file contents at once
     try {
+      // Skip git commands if no .git directory exists (avoids spawning processes for non-git dirs)
+      if (!fs.existsSync(join(rootPath, ".git"))) {
+        return rules.filter((rule) => rule.trim() !== "");
+      }
       const { stdout: isGitRepo } = await execAsync("git rev-parse --git-dir", {
         cwd: rootPath,
         encoding: "utf-8",

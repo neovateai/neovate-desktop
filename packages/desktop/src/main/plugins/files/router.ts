@@ -4,21 +4,21 @@ import path from "path";
 
 import type { PluginContext } from "../../core/plugin/types";
 
-import { getFileTree } from "./tree";
-import { unwatchWorkspace, watchWorkspace } from "./watch";
+import { listDirectory } from "./tree";
+import { unwatchDirectory, watchDirectory } from "./watch";
 
 const log = debug("neovate:files:router");
 
 export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
   return orpcServer.router({
     tree: orpcServer.handler(async ({ input }) => {
-      const { cwd } = input as { cwd: string };
-      log("tree requested", { cwd });
+      const { cwd, root } = input as { cwd: string; root?: string };
+      log("tree requested", { cwd, root });
       try {
         if (!cwd) {
           throw new Error("Invalid path");
         }
-        const tree = await getFileTree(cwd);
+        const tree = await listDirectory(cwd, root);
         return { tree };
       } catch (error) {
         return {
@@ -88,7 +88,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       const { cwd } = input as { cwd: string };
       log("watch requested", { cwd });
 
-      const publisher = watchWorkspace(cwd, {
+      const publisher = watchDirectory(cwd, {
         onFsChange: (subType, file) => {
           publisher.publish("file-changed", {
             timestamp: Date.now(),
@@ -100,7 +100,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       if (signal) {
         signal.addEventListener("abort", () => {
           log("unwatch", { cwd });
-          unwatchWorkspace(cwd); // clean up watcher and publisher
+          unwatchDirectory(cwd);
         });
       }
       const events = publisher.subscribe("file-changed", { signal });

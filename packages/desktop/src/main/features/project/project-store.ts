@@ -25,6 +25,8 @@ export class ProjectStore {
         pinnedSessions: {},
         closedProjectAccordions: [],
         providerSelections: {},
+        crashCount: 0,
+        lastCrashTs: 0,
       },
       serialize: (value) => JSON.stringify(value, null, 2) + "\n",
     });
@@ -148,6 +150,22 @@ export class ProjectStore {
       return p ? [p] : [];
     });
     this.store.set("projects", reordered);
+  }
+
+  recordCrash(): void {
+    this.store.set("crashCount", (this.store.get("crashCount") ?? 0) + 1);
+    this.store.set("lastCrashTs", Date.now());
+  }
+
+  checkCrashLoop(): boolean {
+    const count = this.store.get("crashCount") ?? 0;
+    const ts = this.store.get("lastCrashTs") ?? 0;
+    return count >= 3 && Date.now() - ts < 60_000;
+  }
+
+  clearCrashCounter(): void {
+    this.store.set("crashCount", 0);
+    this.store.set("lastCrashTs", 0);
   }
 
   setProjectSelection(cwd: string, provider?: string | null, model?: string | null): void {

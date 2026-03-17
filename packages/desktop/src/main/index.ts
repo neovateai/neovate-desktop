@@ -32,6 +32,25 @@ getShellEnvironment();
 
 const configStore = new ConfigStore();
 const projectStore = new ProjectStore();
+
+// --- Crash loop detection (Section 1) ---
+if (projectStore.checkCrashLoop()) {
+  log("crash loop detected — clearing activeProjectId to break the loop");
+  projectStore.setActive(null);
+  projectStore.clearCrashCounter();
+}
+
+process.on("uncaughtException", (error) => {
+  log("uncaughtException: %O", error);
+  projectStore.recordCrash();
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  log("unhandledRejection: %O", reason);
+  projectStore.recordCrash();
+  process.exit(1);
+});
 const sessionManager = new SessionManager(configStore, projectStore);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
@@ -51,6 +70,9 @@ const appContext: AppContext = {
   mainApp,
   storage: mainApp.getStorage(),
 };
+
+// Reset crash counter after 30s of stable uptime
+setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.neovateai.desktop");

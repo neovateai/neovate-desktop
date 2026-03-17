@@ -3,13 +3,14 @@ import type { ContractRouterClient } from "@orpc/contract";
 import { consumeEventIterator } from "@orpc/client";
 import debug from "debug";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Project } from "../../../../shared/features/project/types";
 
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
 import { getEmpty2Url } from "../../assets/images";
+import { useLayoutStore } from "../../components/app-layout/store";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -47,62 +48,168 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const { resolvedTheme } = useTheme();
   const cwd = project?.path || "";
 
+  // Panel-aware visibility (Section 2a)
+  const isVisible = useLayoutStore(
+    (s) =>
+      !s.panels.secondarySidebar?.collapsed && s.panels.secondarySidebar?.activeView === "files",
+  );
+
+  // Track active watcher cancel functions per directory
+  const watchersRef = useRef<Map<string, () => void>>(new Map());
+  // Debounce timers for per-directory refresh
+  const refreshTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // --- Lazy tree loading (Section 3) ---
+
+  const fetchChildren = useCallback(
+    async (dir: string) => {
+      if (!cwd) return [];
+      try {
+        const { tree } = await client.files.tree({ cwd: dir, root: cwd });
+        return tree;
+      } catch (error) {
+        log("failed to fetch children", { dir, error });
+        return [];
+      }
+    },
+    [cwd, client],
+  );
+
+  // Insert children into the tree at the given path
+  const updateChildrenInTree = useCallback(
+    (parentPath: string, children: FileTreeItem[]) => {
+      setTreeData((prev) => {
+        // If this is the root, replace top-level
+        if (parentPath === cwd) return children;
+
+        // Recursively find and update the parent node
+        function updateNode(nodes: FileTreeItem[]): FileTreeItem[] {
+          return nodes.map((node) => {
+            if (node.fullPath === parentPath) {
+              return { ...node, children };
+            }
+            if (node.children && node.children.length > 0) {
+              return { ...node, children: updateNode(node.children) };
+            }
+            return node;
+          });
+        }
+        return updateNode(prev);
+      });
+    },
+    [cwd],
+  );
+
+  // --- Watcher management (Section 2b) ---
+
+  const startWatcher = useCallback(
+    (dir: string) => {
+      if (watchersRef.current.has(dir)) return;
+      log("starting watcher", { dir });
+
+      const cancel = consumeEventIterator(client.files.watch({ cwd: dir }), {
+        onEvent: () => {
+          // Debounce refresh per directory (Section 3d)
+          const existing = refreshTimersRef.current.get(dir);
+          if (existing) clearTimeout(existing);
+          refreshTimersRef.current.set(
+            dir,
+            setTimeout(async () => {
+              refreshTimersRef.current.delete(dir);
+              const children = await fetchChildren(dir);
+              updateChildrenInTree(dir, children);
+            }, 500),
+          );
+        },
+      });
+      watchersRef.current.set(dir, cancel);
+    },
+    [client, fetchChildren, updateChildrenInTree],
+  );
+
+  const stopWatcher = useCallback((dir: string) => {
+    const cancel = watchersRef.current.get(dir);
+    if (cancel) {
+      log("stopping watcher", { dir });
+      cancel();
+      watchersRef.current.delete(dir);
+    }
+    const timer = refreshTimersRef.current.get(dir);
+    if (timer) {
+      clearTimeout(timer);
+      refreshTimersRef.current.delete(dir);
+    }
+  }, []);
+
+  const stopAllWatchers = useCallback(() => {
+    log("stopping all watchers", { count: watchersRef.current.size });
+    for (const cancel of watchersRef.current.values()) {
+      cancel();
+    }
+    watchersRef.current.clear();
+    for (const timer of refreshTimersRef.current.values()) {
+      clearTimeout(timer);
+    }
+    refreshTimersRef.current.clear();
+  }, []);
+
+  // --- Lifecycle: start/stop watching based on visibility + cwd ---
+
   useEffect(() => {
-    if (!cwd) {
-      log("no cwd, clearing tree");
-      setTreeData([]);
-      setExpandedKeys(new Set());
-      setSelectedKey(null);
+    if (!cwd || !isVisible) {
+      stopAllWatchers();
+      if (!cwd) {
+        setTreeData([]);
+        setExpandedKeys(new Set());
+        setSelectedKey(null);
+      }
       return;
     }
-    log("starting file watch", { cwd });
-    refresh(true);
-    // In dev mode, React StrictMode causes an extra mount/unmount cycle, which triggers
-    // redundant watch/unwatch calls. The async unwatch may cancel the subsequent watch.
-    // Disable StrictMode locally to work around this. Not an issue in production.
-    const cancel = consumeEventIterator(client.files.watch({ cwd }), {
-      onEvent: (e) => {
-        log("fs event", { type: e?.type, path: e?.path });
-        if (e?.type !== "content") {
-          refresh(); // file system structure changed, refresh file tree
-        }
-        window.dispatchEvent(new CustomEvent("neovate:fs-change", {}));
-      },
+
+    // Panel became visible or cwd changed: load root and start root watcher
+    log("panel visible, loading root", { cwd });
+    setLoading(true);
+    fetchChildren(cwd).then((children) => {
+      setTreeData(children);
+      setLoading(false);
     });
+    startWatcher(cwd);
+
+    // Also restart watchers for already-expanded directories
+    for (const key of expandedKeys) {
+      startWatcher(key);
+    }
 
     return () => {
-      cancel();
+      stopAllWatchers();
     };
-  }, [cwd]);
+  }, [cwd, isVisible]);
 
-  const refresh = async (reset = false) => {
-    if (!project) return;
-    log("refresh", { cwd: project.path, reset });
-    if (reset) {
-      setExpandedKeys(new Set());
-      setLoading(true);
-    }
-    try {
-      const { tree } = await client.files.tree({ cwd: project.path });
-      setTreeData(tree);
-    } catch (error) {
-      console.error("Failed to load file tree:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --- Expand/collapse with lazy loading + lazy watching ---
 
-  const handleToggleExpand = (key: string) => {
-    setExpandedKeys((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
+  const handleToggleExpand = useCallback(
+    async (key: string) => {
+      setExpandedKeys((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(key)) {
+          newSet.delete(key);
+          stopWatcher(key);
+        } else {
+          newSet.add(key);
+          // Lazy load children on first expand
+          fetchChildren(key).then((children) => {
+            updateChildrenInTree(key, children);
+          });
+          if (isVisible) {
+            startWatcher(key);
+          }
+        }
+        return newSet;
+      });
+    },
+    [fetchChildren, updateChildrenInTree, startWatcher, stopWatcher, isVisible],
+  );
+
   const handleSelect = (item: FileTreeItem) => {
     setSelectedKey(item.fullPath);
 
@@ -169,16 +276,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       alert("Coming soon");
       log("create file", { parentPath, name });
-      // const result = await client.files.createFile({
-      //   path: parentPath,
-      //   name,
-      // });
-      // if (result.success) {
-      //   // refresh file tree
-      //   await loadFileTree();
-      // } else {
-      //   alert(t("error.createFileFailed"));
-      // }
     } catch (error) {
       console.error("Error creating file:", error);
       alert(t("error.createFileFailed"));
@@ -189,16 +286,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       alert("Coming soon");
       log("create folder", { parentPath, name });
-      // const result = await client.files.createFolder({
-      //   path: parentPath,
-      //   name,
-      // });
-      // if (result.success) {
-      //   // refresh file tree
-      //   await loadFileTree();
-      // } else {
-      //   alert(t("error.createFolderFailed"));
-      // }
     } catch (error) {
       console.error("Error creating folder:", error);
       alert(t("error.createFolderFailed"));

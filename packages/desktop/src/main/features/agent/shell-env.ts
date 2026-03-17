@@ -17,6 +17,8 @@ const RELEVANT_VARS = new Set([
 ]);
 
 let cached: Record<string, string> | null = null;
+let lastFailureTs = 0;
+const RETRY_COOLDOWN_MS = 10_000;
 
 /**
  * Extract environment variables from the user's interactive shell.
@@ -25,7 +27,8 @@ let cached: Record<string, string> | null = null;
  * `npx`, `node`, `bun` etc. may not be on PATH. This spawns the user's
  * shell to source its config and extracts the relevant variables.
  *
- * Results are cached for the lifetime of the app.
+ * Results are cached on success. Failures are NOT cached — the next call
+ * retries after a cooldown period to recover from transient FD exhaustion.
  */
 export async function getShellEnvironment(): Promise<Record<string, string>> {
   if (cached) {
@@ -33,12 +36,22 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
     return cached;
   }
 
+  // Don't retry too frequently after a failure
+  if (lastFailureTs && Date.now() - lastFailureTs < RETRY_COOLDOWN_MS) {
+    shellEnvLog("skipping retry (cooldown)");
+    return {};
+  }
+
   const t0 = performance.now();
   try {
     const raw = await extractEnvFromShell();
     cached = filterRelevantVars(raw);
+    lastFailureTs = 0;
   } catch {
-    cached = {};
+    lastFailureTs = Date.now();
+    const elapsed = Math.round(performance.now() - t0);
+    shellEnvLog("shell environment extraction failed in %dms, will retry later", elapsed);
+    return {};
   }
 
   const elapsed = Math.round(performance.now() - t0);
