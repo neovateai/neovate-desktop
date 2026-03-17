@@ -59,6 +59,8 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       return { action: "deny" };
     });
 
+    this.#fixDevToolsFonts(win);
+
     win.on("close", () => {
       this.#store.set("bounds", win.getNormalBounds());
     });
@@ -118,6 +120,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     });
 
     this.#pipeConsole(win);
+    this.#fixDevToolsFonts(win);
     this.#windows.set(windowId, { win, windowType });
   }
 
@@ -149,6 +152,16 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     if (currentWidth < capped) {
       mainWindow.setSize(capped, currentHeight);
     }
+  }
+
+  #fixDevToolsFonts(win: BrowserWindow): void {
+    win.webContents.on("devtools-opened", () => {
+      win.webContents.devToolsWebContents?.executeJavaScript(`
+        const s = document.createElement('style');
+        s.textContent = 'body, * { font-family: system-ui, -apple-system, sans-serif !important; } .monospace, .source-code, .CodeMirror pre { font-family: Menlo, Consolas, monospace !important; }';
+        document.head.appendChild(s);
+      `);
+    });
   }
 
   static #logFns = [log.verbose, log.info, log.warn, log.error] as const;
