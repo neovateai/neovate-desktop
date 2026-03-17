@@ -1,8 +1,9 @@
 import type { FileUIPart } from "ai";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 
+import { ArrowDown01Icon, ArrowUp01Icon, Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, CopyIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
@@ -28,6 +29,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "../../../components/ai-elements/conversation";
+import { Button } from "../../../components/ui/button";
 import { cn } from "../../../lib/utils";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
@@ -57,22 +59,21 @@ function ChatError({ message }: { message: string }) {
       <div className="flex items-start gap-2">
         <span className="min-w-0 flex-1 break-words">{firstLine}</span>
         <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="rounded p-0.5 hover:bg-red-500/10"
-            title="Copy error"
-          >
-            {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
-          </button>
+          <Button variant="ghost" size="icon-xs" onClick={handleCopy} title="Copy error">
+            {copied ? (
+              <HugeiconsIcon icon={Tick01Icon} size={14} strokeWidth={1.5} />
+            ) : (
+              <HugeiconsIcon icon={Copy01Icon} size={14} strokeWidth={1.5} />
+            )}
+          </Button>
           {hasDetails && (
-            <button
-              type="button"
-              onClick={() => setExpanded(!expanded)}
-              className="rounded p-0.5 hover:bg-red-500/10"
-            >
-              {expanded ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
-            </button>
+            <Button variant="ghost" size="icon-xs" onClick={() => setExpanded(!expanded)}>
+              {expanded ? (
+                <HugeiconsIcon icon={ArrowUp01Icon} size={14} strokeWidth={1.5} />
+              ) : (
+                <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.5} />
+              )}
+            </Button>
           )}
         </div>
       </div>
