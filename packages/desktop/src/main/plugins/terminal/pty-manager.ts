@@ -4,7 +4,7 @@ import { EventPublisher } from "@orpc/server";
 import debug from "debug";
 import * as pty from "node-pty";
 
-import { shellEnvService } from "../../core/shell-service";
+import type { PluginContext } from "../../core/plugin/types";
 
 const log = debug("neovate:terminal:pty");
 
@@ -17,11 +17,16 @@ export interface PtySession {
 
 export class PtyManager {
   readonly #sessions = new Map<string, PtySession>();
+  readonly #shell: PluginContext["shell"];
+
+  constructor(shell: PluginContext["shell"]) {
+    this.#shell = shell;
+  }
 
   async spawn(opts: { cwd?: string; cols: number; rows: number }): Promise<string> {
     const cols = Math.max(1, opts.cols);
     const rows = Math.max(1, opts.rows);
-    const env = await shellEnvService.getEnv();
+    const env = await this.#shell.getEnv();
     const shell = env.SHELL ?? "/bin/bash";
 
     const publisher = new EventPublisher<{ data: string }>();
