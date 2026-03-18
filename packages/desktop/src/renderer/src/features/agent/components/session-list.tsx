@@ -51,10 +51,10 @@ function MultiProjectSessionList() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <PinnedSessionList />
       <div className="px-2">
         <NewChatButton projectPath={activeProject?.path} />
       </div>
+      <PinnedSessionList />
       <SidebarTitleBar />
       {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
     </div>
