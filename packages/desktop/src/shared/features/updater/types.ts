@@ -6,3 +6,10 @@ export type UpdaterState =
   | { status: "downloading"; version: string; percent: number }
   | { status: "ready"; version: string }
   | { status: "error"; message: string };
+
+export interface IUpdateService {
+  readonly state: UpdaterState;
+  onStateChange(cb: (state: UpdaterState) => void): () => void;
+  check(manual?: boolean): void;
+  install(): void;
+}

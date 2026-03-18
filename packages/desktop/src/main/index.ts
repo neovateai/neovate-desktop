@@ -7,7 +7,7 @@ import { app, ipcMain } from "electron";
 import type { AppContext } from "./router";
 
 import { MainApp } from "./app";
-import { setupApplicationMenu } from "./core/menu";
+import { ApplicationMenu } from "./core/menu";
 import { RequestTracker } from "./features/agent/request-tracker";
 import { SessionManager } from "./features/agent/session-manager";
 import { getShellEnvironment } from "./features/agent/shell-env";
@@ -77,6 +77,8 @@ const appContext: AppContext = {
 // Reset crash counter after 30s of stable uptime
 setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
+let menu: ApplicationMenu | null = null;
+
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.neovateai.desktop");
 
@@ -84,7 +86,7 @@ app.whenReady().then(async () => {
   void updaterService.init();
 
   // Setup application menu (for menu items, shortcuts handled in renderer)
-  setupApplicationMenu(mainApp.windowManager.mainWindow);
+  menu = new ApplicationMenu(updaterService);
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
   const handler = new RPCHandler(mainApp.router);
@@ -110,6 +112,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  menu?.dispose();
   updaterService.dispose();
   void sessionManager.closeAll();
   void mainApp.stop();
