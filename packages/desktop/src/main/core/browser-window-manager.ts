@@ -10,7 +10,11 @@ import icon from "../../../resources/icon.png?asset";
 import { APP_DATA_DIR } from "./app-paths";
 import log from "./logger";
 
-type WindowStore = { bounds: Electron.Rectangle };
+type WindowStore = {
+  bounds: Electron.Rectangle;
+  isMaximized: boolean;
+  isFullScreen: boolean;
+};
 
 function stripColors(msg: string): string {
   return msg
@@ -35,7 +39,10 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
   createMainWindow(): BrowserWindow {
     const saved = this.#store.get("bounds");
-    const bounds = saved ?? { width: 1200, height: 800 };
+    const bounds =
+      saved && this.#isVisibleOnAnyDisplay(saved) ? saved : { width: 1200, height: 800 };
+    const wasMaximized = this.#store.get("isMaximized") ?? false;
+    const wasFullScreen = this.#store.get("isFullScreen") ?? false;
 
     const win = new BrowserWindow({
       ...bounds,
@@ -53,7 +60,14 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       },
     });
 
-    win.on("ready-to-show", () => win.show());
+    win.on("ready-to-show", () => {
+      if (wasFullScreen) {
+        win.setFullScreen(true);
+      } else if (wasMaximized) {
+        win.maximize();
+      }
+      win.show();
+    });
 
     win.webContents.setWindowOpenHandler((details) => {
       shell.openExternal(details.url);
@@ -62,8 +76,27 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
     this.#fixDevToolsFonts(win);
 
-    win.on("close", () => {
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    const saveState = () => {
       this.#store.set("bounds", win.getNormalBounds());
+      this.#store.set("isMaximized", win.isMaximized());
+      this.#store.set("isFullScreen", win.isFullScreen());
+    };
+    const debouncedSave = () => {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveState, 500);
+    };
+
+    win.on("resize", debouncedSave);
+    win.on("move", debouncedSave);
+    win.on("maximize", debouncedSave);
+    win.on("unmaximize", debouncedSave);
+    win.on("enter-full-screen", debouncedSave);
+    win.on("leave-full-screen", debouncedSave);
+
+    win.on("close", () => {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveState();
     });
 
     win.on("closed", () => {
@@ -154,6 +187,18 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     if (currentWidth < capped) {
       mainWindow.setSize(capped, currentHeight);
     }
+  }
+
+  /** Check that saved bounds overlap at least partially with a connected display. */
+  #isVisibleOnAnyDisplay(bounds: Electron.Rectangle): boolean {
+    const displays = screen.getAllDisplays();
+    const minOverlap = 100; // px — enough to grab the titlebar
+    return displays.some((display) => {
+      const { x, y, width, height } = display.workArea;
+      const overlapX = Math.min(bounds.x + bounds.width, x + width) - Math.max(bounds.x, x);
+      const overlapY = Math.min(bounds.y + bounds.height, y + height) - Math.max(bounds.y, y);
+      return overlapX >= minOverlap && overlapY >= 40;
+    });
   }
 
   #fixDevToolsFonts(win: BrowserWindow): void {
