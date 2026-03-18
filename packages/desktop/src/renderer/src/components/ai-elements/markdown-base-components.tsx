@@ -115,7 +115,10 @@ function MarkdownPre({ className, children }: MarkdownPreProps) {
 function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquoteProps) {
   return (
     <blockquote
-      className={cn("my-4 pl-4 text-sm italic text-muted-foreground first:mt-0 last:mb-0", className)}
+      className={cn(
+        "my-4 pl-4 text-sm italic text-muted-foreground first:mt-0 last:mb-0",
+        className,
+      )}
       {...props}
     >
       {children}
