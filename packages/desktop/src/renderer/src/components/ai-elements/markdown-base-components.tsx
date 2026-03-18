@@ -44,10 +44,7 @@ const extractCodeContent = (children: ReactNode): string => {
 function MarkdownLink({ className, children, ...props }: MarkdownAnchorProps) {
   return (
     <a
-      className={cn(
-        "text-primary underline-offset-2 transition-colors hover:underline",
-        className,
-      )}
+      className={cn("text-primary transition-colors underline-offset-2 hover:underline", className)}
       {...props}
     >
       {children}
@@ -63,7 +60,7 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
     return (
       <code
         className={cn(
-          "inline-block align-middle rounded-md bg-muted/50 px-1.5 py-0.5 text-xs",
+          "inline-block rounded-md bg-muted/50 px-1.5 py-0.5 text-xs align-middle",
           className,
         )}
         {...props}
@@ -79,7 +76,7 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   return (
     <CodeBlock
       className={cn(
-        "inline-block align-middle rounded-md bg-muted/50 px-1.5 py-0.5 text-xs",
+        "inline-block rounded-md bg-muted/50 px-1.5 py-0.5 text-xs align-middle",
         className,
       )}
       code={codeContent}
@@ -111,9 +108,7 @@ function MarkdownPre({ className, children }: MarkdownPreProps) {
 
   // Fallback for non-code pre elements
   return (
-    <pre className={cn("my-4 overflow-x-auto first:mt-0 last:mb-0", className)}>
-      {children}
-    </pre>
+    <pre className={cn("my-4 overflow-x-auto first:mt-0 last:mb-0", className)}>{children}</pre>
   );
 }
 
@@ -133,10 +128,7 @@ function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquot
 
 function MarkdownTable({ className, children, ...props }: MarkdownTableProps) {
   return (
-    <div
-      className="my-4 overflow-x-auto first:mt-0 last:mb-0"
-      data-markdown-table-wrapper="true"
-    >
+    <div className="my-4 overflow-x-auto first:mt-0 last:mb-0" data-markdown-table-wrapper="true">
       <table className={cn("w-full border-collapse text-sm", className)} {...props}>
         {children}
       </table>
@@ -148,10 +140,7 @@ function MarkdownImage({ className, alt, ...props }: MarkdownImageProps) {
   return (
     <img
       alt={alt}
-      className={cn(
-        "my-4 max-w-full rounded-md first:mt-0 last:mb-0",
-        className,
-      )}
+      className={cn("my-4 max-w-full rounded-md first:mt-0 last:mb-0", className)}
       loading="lazy"
       {...props}
     />
@@ -177,10 +166,7 @@ function MarkdownInput({ className, type, ...props }: MarkdownInputProps) {
 
 export const markdownBaseComponents: Components = {
   p: ({ className, children, ...props }) => (
-    <p
-      className={cn("my-4 text-sm leading-relaxed first:mt-0 last:mb-0", className)}
-      {...props}
-    >
+    <p className={cn("my-4 text-sm leading-relaxed first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </p>
   ),
@@ -242,8 +228,7 @@ export const markdownBaseComponents: Components = {
   h6: ({ className, children, ...props }) => (
     <h6
       className={cn(
-        "mt-3 mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground",
-        "first:mt-0",
+        "mt-3 mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground first:mt-0",
         className,
       )}
       {...props}
@@ -252,10 +237,7 @@ export const markdownBaseComponents: Components = {
     </h6>
   ),
   ul: ({ className, children, ...props }) => (
-    <ul
-      className={cn("my-4 list-disc space-y-1 pl-5 first:mt-0 last:mb-0", className)}
-      {...props}
-    >
+    <ul className={cn("my-4 list-disc space-y-1 pl-5 first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </ul>
   ),
