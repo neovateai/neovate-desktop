@@ -70,17 +70,11 @@ export class UpdaterService implements IUpdateService {
 
   private logSnapshot(reason: string) {
     const updater = autoUpdater as AppUpdater & {
-      autoInstallOnAppQuit?: boolean;
-      autoRunAppAfterInstall?: boolean;
       quitAndInstallCalled?: boolean;
       squirrelDownloadedUpdate?: boolean;
-      server?: { listening?: boolean };
       downloadedUpdateHelper?: {
         file?: string | null;
         packageFile?: string | null;
-        cacheDir?: string;
-        cacheDirForPendingUpdate?: string;
-        downloadedFileInfo?: unknown;
       } | null;
       nativeUpdater?: { getFeedURL?: () => string | null };
     };
@@ -92,16 +86,10 @@ export class UpdaterService implements IUpdateService {
       installRequested: this.installRequested,
       pendingUpdate: this.pendingUpdate,
       autoDownload: updater.autoDownload,
-      autoInstallOnAppQuit: updater.autoInstallOnAppQuit,
-      autoRunAppAfterInstall: updater.autoRunAppAfterInstall,
       quitAndInstallCalled: updater.quitAndInstallCalled,
       squirrelDownloadedUpdate: updater.squirrelDownloadedUpdate,
-      serverListening: updater.server?.listening ?? false,
       downloadedFile: updater.downloadedUpdateHelper?.file ?? null,
       downloadedPackageFile: updater.downloadedUpdateHelper?.packageFile ?? null,
-      cacheDir: updater.downloadedUpdateHelper?.cacheDir ?? null,
-      pendingCacheDir: updater.downloadedUpdateHelper?.cacheDirForPendingUpdate ?? null,
-      downloadedFileInfo: updater.downloadedUpdateHelper?.downloadedFileInfo ?? null,
       nativeFeedURL: updater.nativeUpdater?.getFeedURL?.() ?? null,
     });
   }
@@ -172,7 +160,6 @@ export class UpdaterService implements IUpdateService {
           });
         }
       }
-      this.logSnapshot("check-pending-update");
       return;
     }
 
@@ -183,7 +170,6 @@ export class UpdaterService implements IUpdateService {
         this.surfaceUI = true;
         this.setState({ status: "checking" });
       }
-      this.logSnapshot("check-in-flight");
       return;
     }
 
@@ -191,7 +177,6 @@ export class UpdaterService implements IUpdateService {
     log("starting fresh check", { manual });
     this.isChecking = true;
     this.surfaceUI = manual;
-    this.logSnapshot("check-start");
     if (manual) {
       this.setState({ status: "checking" });
     }
@@ -200,7 +185,6 @@ export class UpdaterService implements IUpdateService {
       log("check timed out");
       this.checkTimeout = null;
       this.isChecking = false;
-      this.logSnapshot("check-timeout");
       if (this.surfaceUI) {
         this.setState({ status: "error", message: "TIMEOUT" });
       }
