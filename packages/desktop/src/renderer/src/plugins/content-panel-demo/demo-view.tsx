@@ -5,7 +5,7 @@ import type { ContentPanelStoreState } from "../../features/content-panel";
 
 import { Button } from "../../components/ui/button";
 import { ScrollArea } from "../../components/ui/scroll-area";
-import { useRendererApp } from "../../core/app";
+import { usePluginContext, useRendererApp } from "../../core/app";
 import { useContentPanelViewContext } from "../../features/content-panel";
 
 export default function DemoView() {
@@ -137,6 +137,11 @@ export default function DemoView() {
           </div>
         </Section>
 
+        {/* Electron API */}
+        <Section title="Electron API">
+          <FolderPicker />
+        </Section>
+
         {/* Local State */}
         <Section title="Local State (resets on remount)">
           <div className="flex items-center gap-2">
@@ -151,6 +156,34 @@ export default function DemoView() {
         </Section>
       </div>
     </ScrollArea>
+  );
+}
+
+function FolderPicker() {
+  const { orpcClient } = usePluginContext();
+  const client = orpcClient as any;
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+
+  const pickFolder = async () => {
+    const result = await client.electron.dialog.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      setSelectedPath(result.filePaths[0]);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={pickFolder}>
+          Pick Folder
+        </Button>
+        {selectedPath && (
+          <span className="truncate text-xs font-mono text-muted-foreground">{selectedPath}</span>
+        )}
+      </div>
+    </div>
   );
 }
 

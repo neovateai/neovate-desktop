@@ -14,6 +14,7 @@ import type { UpdaterService } from "./features/updater/service";
 import { contract } from "../shared/contract";
 import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
+import { electronRouter } from "./features/electron/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
 import { rulesRouter } from "./features/rules/router";
@@ -42,6 +43,7 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
     ping: os.ping.handler(() => "pong" as const),
     agent: agentRouter,
     config: configRouter,
+    electron: electronRouter,
     project: projectRouter,
     provider: providerRouter,
     rules: rulesRouter,

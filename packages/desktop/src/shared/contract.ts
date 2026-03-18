@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { agentContract } from "./features/agent/contract";
 import { configContract } from "./features/config/contract";
+import { electronContract } from "./features/electron/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
 import { rulesContract } from "./features/rules/contract";
@@ -17,6 +18,7 @@ export const contract = {
   ping: oc.output(type<"pong">()),
   agent: agentContract,
   config: configContract,
+  electron: electronContract,
   project: projectContract,
   provider: providerContract,
   rules: rulesContract,
