@@ -29,7 +29,7 @@ function getSystemShell(): string {
 }
 
 function resolveShellEnv(): Promise<Record<string, string>> {
-  if (process.env["NEOVATE_RESOLVING_ENVIRONMENT"]) {
+  if (process.env["__RESOLVING_SHELL_ENVIRONMENT"]) {
     log("already inside a resolving shell — returning process.env");
     return Promise.resolve(process.env as Record<string, string>);
   }
@@ -46,7 +46,7 @@ function resolveShellEnv(): Promise<Record<string, string>> {
       ...process.env,
       ELECTRON_RUN_AS_NODE: "1",
       ELECTRON_NO_ATTACH_CONSOLE: "1",
-      NEOVATE_RESOLVING_ENVIRONMENT: "1",
+      __RESOLVING_SHELL_ENVIRONMENT: "1",
       DISABLE_AUTO_UPDATE: "true",
       ZSH_TMUX_AUTOSTARTED: "true",
     };
@@ -145,7 +145,7 @@ function resolveShellEnv(): Promise<Record<string, string>> {
           delete resolved["ELECTRON_NO_ATTACH_CONSOLE"];
         }
 
-        delete resolved["NEOVATE_RESOLVING_ENVIRONMENT"];
+        delete resolved["__RESOLVING_SHELL_ENVIRONMENT"];
         delete resolved["XDG_RUNTIME_DIR"];
 
         const elapsed = Date.now() - startTime;
