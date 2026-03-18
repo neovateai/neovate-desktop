@@ -43,10 +43,8 @@ function MultiProjectSessionList() {
   log("multi-project: organize=%s projects=%d", sidebarOrganize, projects.length);
 
   useEffect(() => {
-    log("multi-project: loading session preferences for %d projects", projects.length);
-    for (const project of projects) {
-      loadSessionPreferences(project.path);
-    }
+    log("multi-project: loading session preferences");
+    loadSessionPreferences();
   }, [projects, loadSessionPreferences]);
 
   return (
@@ -83,7 +81,7 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
 
   useEffect(() => {
     if (projectPath) {
-      loadSessionPreferences(projectPath);
+      loadSessionPreferences();
     }
   }, [projectPath, loadSessionPreferences]);
 

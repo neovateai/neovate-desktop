@@ -23,6 +23,10 @@ import reviewPlugin from "./plugins/review";
 import terminalPlugin from "./plugins/terminal";
 
 const log = debug("neovate:orpc");
+const startupLog = debug("neovate:startup");
+const t0 = performance.now();
+const elapsed = () => `${Math.round(performance.now() - t0)}ms`;
+startupLog("main process module loaded %s", elapsed());
 
 if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
@@ -79,10 +83,13 @@ setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
 let menu: ApplicationMenu | null = null;
 
+startupLog("app.whenReady waiting %s", elapsed());
 app.whenReady().then(async () => {
+  startupLog("app.whenReady fired %s", elapsed());
   electronApp.setAppUserModelId("com.neovateai.desktop");
 
   await mainApp.start();
+  startupLog("mainApp.start done %s", elapsed());
   void updaterService.init();
 
   // Setup application menu (for menu items, shortcuts handled in renderer)

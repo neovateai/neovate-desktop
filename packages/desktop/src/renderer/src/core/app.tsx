@@ -1,3 +1,4 @@
+import debug from "debug";
 import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
 import ReactDOM from "react-dom/client";
@@ -5,6 +6,8 @@ import ReactDOM from "react-dom/client";
 import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
+
+const startupLog = debug("neovate:startup");
 
 import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
 import { layoutStore } from "../components/app-layout/store";
@@ -204,27 +207,37 @@ export class RendererApp implements IRendererApp {
   }
 
   async start(): Promise<void> {
+    const t0 = performance.now();
+    const el = () => `${Math.round(performance.now() - t0)}ms`;
     const ctx: PluginContext = { app: this, orpcClient: client };
 
     // Infrastructure — all windows
     await useConfigStore.getState().load();
+    startupLog("renderer config loaded %s", el());
     await this.i18nManager.init({ store: useConfigStore as any });
     const i18nConfigs = await this.pluginManager.configI18n();
     this.i18nManager.setupLazyNamespaces(i18nConfigs);
+    startupLog("renderer i18n done %s", el());
     await this.project.refresh();
+    startupLog("renderer project.refresh done %s", el());
 
     // Collect window contributions — all windows (needed for lookup)
     await this.pluginManager.configWindowContributions();
+    startupLog("renderer windowContributions done %s", el());
 
     if (this.#windowType === "main") {
       // Main window — full plugin UI
       await this.pluginManager.configContributions();
+      startupLog("renderer pluginContributions done %s", el());
       this.initWorkbench();
       await this.workbench.contentPanel.hydrate();
+      startupLog("renderer contentPanel hydrated %s", el());
     }
 
     await this.pluginManager.activate(ctx);
+    startupLog("renderer plugins activated %s", el());
     this.render(ctx);
+    startupLog("renderer React.render called %s", el());
   }
 
   async stop(): Promise<void> {

@@ -29,7 +29,7 @@ type ProjectState = {
   togglePinSession: (projectPath: string, sessionId: string) => void;
   setClosedProjectAccordions: (ids: string[]) => void;
   reorderProjects: (projectIds: string[]) => void;
-  loadSessionPreferences: (projectPath: string) => Promise<void>;
+  loadSessionPreferences: () => Promise<void>;
 };
 
 export const useProjectStore = create<ProjectState>()(
@@ -123,7 +123,7 @@ export const useProjectStore = create<ProjectState>()(
       set({ projects: reordered });
       client.project.reorderProjects({ projectIds }).catch(() => {});
     },
-    loadSessionPreferences: async (_projectPath) => {
+    loadSessionPreferences: async () => {
       log("loading session preferences");
       const [archived, pinned, closedAccordions] = await Promise.all([
         client.project.getArchivedSessions(),
