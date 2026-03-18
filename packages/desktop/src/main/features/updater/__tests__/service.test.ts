@@ -67,7 +67,9 @@ describe("UpdaterService", () => {
   it("does not call quitAndInstall when the ready state is stale", () => {
     const service = new UpdaterService();
 
-    (service as never as { _state: { status: "ready"; version: string }; pendingUpdate: null })._state = {
+    (
+      service as never as { _state: { status: "ready"; version: string }; pendingUpdate: null }
+    )._state = {
       status: "ready",
       version: "0.1.1",
     };

@@ -44,8 +44,7 @@ vi.mock("react-i18next", () => ({
         "updater.genericError": "Update failed",
         "updater.downloading": `Downloading update ${params?.version ?? ""}…`,
         "updater.readyToInstall": `Update ${params?.version ?? ""} ready to install`,
-        "updater.readyDescription":
-          `${params?.appName ?? "App"} will quit and reopen to finish updating.`,
+        "updater.readyDescription": `${params?.appName ?? "App"} will quit and reopen to finish updating.`,
         "updater.restart": "Restart",
       };
       return translations[key] ?? key;

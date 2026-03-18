@@ -100,12 +100,14 @@ export class UpdaterService implements IUpdateService {
 
     this.logSnapshot("attach-diagnostics");
 
-    const nativeUpdater = (autoUpdater as AppUpdater & {
-      nativeUpdater?: {
-        on?: (event: string, listener: (...args: unknown[]) => void) => void;
-        removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
-      };
-    }).nativeUpdater;
+    const nativeUpdater = (
+      autoUpdater as AppUpdater & {
+        nativeUpdater?: {
+          on?: (event: string, listener: (...args: unknown[]) => void) => void;
+          removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+        };
+      }
+    ).nativeUpdater;
 
     if (!nativeUpdater?.on) {
       log("native updater diagnostics unavailable");
@@ -123,8 +125,7 @@ export class UpdaterService implements IUpdateService {
 
     for (const event of nativeEvents) {
       const handler = (...args: unknown[]) => {
-        const details =
-          event === "error" ? args.map((arg) => this.formatError(arg)) : args;
+        const details = event === "error" ? args.map((arg) => this.formatError(arg)) : args;
         log("nativeUpdater event:%s %O", event, details);
         this.logSnapshot(`native:${event}`);
       };
@@ -136,7 +137,10 @@ export class UpdaterService implements IUpdateService {
 
   private shouldSurfaceError(): boolean {
     return (
-      this.surfaceUI || this._state.status === "error" || this._state.status === "downloading" || this._state.status === "ready"
+      this.surfaceUI ||
+      this._state.status === "error" ||
+      this._state.status === "downloading" ||
+      this._state.status === "ready"
     );
   }
 
