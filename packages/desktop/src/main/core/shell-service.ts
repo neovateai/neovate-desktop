@@ -82,7 +82,9 @@ function resolveShellEnv(): Promise<Record<string, string>> {
     const child = spawn(systemShell, [...shellArgs, command], {
       stdio: ["ignore", "pipe", "pipe"],
       env,
+      detached: true,
     });
+    child.unref();
 
     const timeout = setTimeout(() => {
       child.kill();
