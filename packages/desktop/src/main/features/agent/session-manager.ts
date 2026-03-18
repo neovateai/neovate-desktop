@@ -8,12 +8,13 @@ import type {
 
 import { EventPublisher } from "@orpc/server";
 import debug from "debug";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 
 import type {
@@ -33,9 +34,11 @@ const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
 import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
+import type { RequestTracker } from "./request-tracker";
 
 import {
   resolveBunPath,
+  resolveInterceptorPath,
   resolveRtkPath,
   resolveSDKCliPath,
   detectRtkHookInSettings,
@@ -117,6 +120,7 @@ export class SessionManager {
   constructor(
     private configStore: ConfigStore,
     private projectStore: ProjectStore,
+    private requestTracker: RequestTracker,
   ) {}
 
   /** Return all in-memory (active) sessions. */
@@ -486,6 +490,12 @@ export class SessionManager {
       }
     };
 
+    // Network inspector: conditionally inject fetch interceptor via --preload
+    const networkInspector = this.configStore.get("networkInspector") === true;
+    if (networkInspector) {
+      this.requestTracker.markInspectorEnabled(sessionId);
+    }
+
     const queryOpts = this.queryOptions({
       sessionId,
       cwd,
@@ -502,6 +512,74 @@ export class SessionManager {
         ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
         : {}),
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
+      ...(networkInspector
+        ? {
+            spawnClaudeCodeProcess: (
+              spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions,
+            ) => {
+              const interceptorPath = resolveInterceptorPath();
+              log(
+                "spawnClaudeCodeProcess: interceptor=%s sessionId=%s",
+                interceptorPath,
+                sessionId,
+              );
+
+              const child = spawn(
+                spawnOpts.command,
+                ["--preload", interceptorPath, ...spawnOpts.args],
+                {
+                  cwd: spawnOpts.cwd,
+                  env: {
+                    ...spawnOpts.env,
+                    NV_SESSION_ID: sessionId,
+                    ...(settingsEnv?.ANTHROPIC_BASE_URL
+                      ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
+                      : {}),
+                  },
+                  signal: spawnOpts.signal,
+                  stdio: ["pipe", "pipe", "pipe", "pipe"],
+                },
+              );
+
+              // Read interceptor data from fd 3 (dedicated IPC pipe)
+              let interceptorReady = false;
+              const ipcStream = child.stdio[3];
+              if (ipcStream && "on" in ipcStream) {
+                const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
+                rl.on("line", (line: string) => {
+                  if (line === "__NV_READY") {
+                    interceptorReady = true;
+                    log("interceptor ready: sessionId=%s", sessionId);
+                    return;
+                  }
+                  if (!line.startsWith("__NV_REQ:")) {
+                    log("interceptor fd3 unknown line: %s", line.slice(0, 100));
+                    return;
+                  }
+                  try {
+                    const msg = JSON.parse(line.slice("__NV_REQ:".length));
+                    this.requestTracker.onMessage(sessionId, msg);
+                  } catch (err) {
+                    log(
+                      "interceptor fd3 parse error: %s line=%s",
+                      err instanceof Error ? err.message : err,
+                      line.slice(0, 200),
+                    );
+                  }
+                });
+              }
+
+              setTimeout(() => {
+                if (!interceptorReady) {
+                  log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
+                  this.requestTracker.markInspectorFailed(sessionId);
+                }
+              }, 5000);
+
+              return child;
+            },
+          }
+        : {}),
     };
 
     const { query } = await import("@anthropic-ai/claude-agent-sdk");
@@ -580,6 +658,7 @@ export class SessionManager {
       this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
     }
     this.sessions.delete(sessionId);
+    this.requestTracker.clearSession(sessionId);
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);
   }
 
@@ -721,6 +800,7 @@ export class SessionManager {
     const userMessageId = randomUUID();
     session.lastUserMessageId = userMessageId;
 
+    this.requestTracker.startTurn(sessionId);
     session.input.push({
       type: "user",
       message: { role: "user", content },

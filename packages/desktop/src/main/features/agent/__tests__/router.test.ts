@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import type { AppContext } from "../../../router";
 import type { SessionManager } from "../session-manager";
 
+import { RequestTracker } from "../request-tracker";
 import { agentRouter } from "../router";
 
 function makeContext(overrides?: Partial<AppContext>): AppContext {
@@ -14,6 +15,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
       closeSession: vi.fn(),
       closeAll: vi.fn(),
     } as unknown as SessionManager,
+    requestTracker: new RequestTracker(),
     configStore: {} as any,
     projectStore: {} as any,
     mainApp: { windowManager: { mainWindow: null } } as any,

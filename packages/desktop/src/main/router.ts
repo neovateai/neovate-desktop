@@ -4,6 +4,7 @@ import { implement } from "@orpc/server";
 
 import type { StorageService } from "./core/storage-service";
 import type { IMainApp } from "./core/types";
+import type { RequestTracker } from "./features/agent/request-tracker";
 import type { SessionManager } from "./features/agent/session-manager";
 import type { ConfigStore } from "./features/config/config-store";
 import type { ProjectStore } from "./features/project/project-store";
@@ -24,6 +25,7 @@ import { utilsRouter } from "./features/utils/router";
 
 export type AppContext = {
   sessionManager: SessionManager;
+  requestTracker: RequestTracker;
   configStore: ConfigStore;
   projectStore: ProjectStore;
   skillsService: SkillsService;

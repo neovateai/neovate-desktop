@@ -68,6 +68,7 @@ const config = {
   extraResources: [
     { from: "vendor/bun", to: "bun", filter: ["bun"] },
     { from: "vendor/rtk", to: "rtk", filter: ["rtk"] },
+    { from: "resources/fetch-interceptor.js", to: "fetch-interceptor.js" },
   ],
 
   files: [

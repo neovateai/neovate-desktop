@@ -1,5 +1,5 @@
 {
-  "ignorePatterns": [".claude/**"],
+  "ignorePatterns": [".claude/**", "packages/desktop/resources/**"],
   "sortImports": {
     "groups": [
       "type-import",

@@ -8,6 +8,7 @@ import type { AppContext } from "./router";
 
 import { MainApp } from "./app";
 import { setupApplicationMenu } from "./core/menu";
+import { RequestTracker } from "./features/agent/request-tracker";
 import { SessionManager } from "./features/agent/session-manager";
 import { getShellEnvironment } from "./features/agent/shell-env";
 import { ConfigStore } from "./features/config/config-store";
@@ -51,7 +52,8 @@ process.on("unhandledRejection", (reason) => {
   projectStore.recordCrash();
   process.exit(1);
 });
-const sessionManager = new SessionManager(configStore, projectStore);
+const requestTracker = new RequestTracker();
+const sessionManager = new SessionManager(configStore, projectStore, requestTracker);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, reviewPlugin],
@@ -62,6 +64,7 @@ const skillsService = new SkillsService(projectStore, configStore, process.resou
 
 const appContext: AppContext = {
   sessionManager,
+  requestTracker,
   configStore,
   projectStore,
   skillsService,

@@ -78,6 +78,32 @@ export const agentRouter = os.agent.router({
     }),
   }),
 
+  network: os.agent.network.router({
+    listRequests: os.agent.network.listRequests.handler(({ input, context }) => {
+      return context.requestTracker.getRequests(input.sessionId);
+    }),
+
+    getRequestDetail: os.agent.network.getRequestDetail.handler(({ input, context }) => {
+      return context.requestTracker.getRequestDetail(input.sessionId, input.requestId);
+    }),
+
+    getInspectorState: os.agent.network.getInspectorState.handler(({ input, context }) => {
+      return context.requestTracker.getInspectorState(input.sessionId);
+    }),
+
+    clearRequests: os.agent.network.clearRequests.handler(({ input, context }) => {
+      context.requestTracker.clearRequests(input.sessionId);
+    }),
+
+    subscribe: os.agent.network.subscribe.handler(async function* ({ input, context, signal }) {
+      for await (const summary of context.requestTracker.eventPublisher.subscribe(input.sessionId, {
+        signal,
+      })) {
+        yield summary;
+      }
+    }),
+  }),
+
   savePlan: os.agent.savePlan.handler(async ({ input }) => {
     const slug = input.title
       ? input.title

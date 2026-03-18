@@ -45,6 +45,19 @@ export function resolveRtkPath(): string {
 }
 
 /**
+ * Resolve the path to the bundled fetch interceptor script.
+ *
+ * In dev mode, uses the build output in the project resources directory.
+ * In production, uses the file bundled via electron-builder extraResources.
+ */
+export function resolveInterceptorPath(): string {
+  if (is.dev) {
+    return path.join(path.dirname(path.dirname(__dirname)), "resources", "fetch-interceptor.js");
+  }
+  return path.join(process.resourcesPath, "fetch-interceptor.js");
+}
+
+/**
  * Check if a file-based RTK PreToolUse hook already exists in ~/.claude/settings.json.
  * Returns true if found, so the programmatic hook can be skipped to avoid double-rewriting.
  */

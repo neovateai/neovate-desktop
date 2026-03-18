@@ -154,6 +154,17 @@ export const ChatPanel = () => {
           />
         </SettingsRow>
 
+        {/* Network Inspector */}
+        <SettingsRow
+          title={t("settings.chat.networkInspector")}
+          description={t("settings.chat.networkInspector.description")}
+        >
+          <Switch
+            checked={config.networkInspector}
+            onCheckedChange={(v) => setConfig("networkInspector", v)}
+          />
+        </SettingsRow>
+
         {/* Send Message With */}
         <SettingsRow
           title={t("settings.chat.sendMessage")}

@@ -27,6 +27,7 @@ export type AppConfig = {
   permissionMode: ConfigPermissionMode;
   notificationSound: NotificationSound;
   tokenOptimization: boolean;
+  networkInspector: boolean;
 
   // Keybindings
   keybindings: Record<string, string>;

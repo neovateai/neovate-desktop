@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { AppContext } from "../../../router";
 
 import { StorageService } from "../../../core/storage-service";
+import { RequestTracker } from "../../agent/request-tracker";
 import { storageRouter } from "../router";
 
 /**
@@ -25,6 +26,7 @@ beforeEach(() => {
   context = {
     storage,
     sessionManager: {} as any,
+    requestTracker: new RequestTracker(),
     configStore: {} as any,
     projectStore: {} as any,
     skillsService: {} as any,

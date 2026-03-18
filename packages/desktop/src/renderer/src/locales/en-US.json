@@ -63,6 +63,8 @@
   "settings.chat.notification.funk": "Funk",
   "settings.chat.tokenOptimization": "Token Optimization",
   "settings.chat.tokenOptimization.description": "Reduce token usage by filtering command output (via RTK)",
+  "settings.chat.networkInspector": "Network Inspector",
+  "settings.chat.networkInspector.description": "Show API requests in the Network panel. Takes effect on new sessions.",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
   "settings.chat.model.auto": "Default (auto)",

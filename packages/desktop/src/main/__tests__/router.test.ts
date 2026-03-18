@@ -1,6 +1,7 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { RequestTracker } from "../features/agent/request-tracker";
 import { buildRouter, type AppDependencies } from "../router";
 
 const router = buildRouter(new Map());
@@ -9,6 +10,7 @@ describe("main router context wiring", () => {
   it("ping returns pong", async () => {
     const context = {
       sessionManager: {} as unknown as AppDependencies["sessionManager"],
+      requestTracker: new RequestTracker(),
       configStore: {} as unknown as AppDependencies["configStore"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
       skillsService: {} as unknown as AppDependencies["skillsService"],

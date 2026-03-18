@@ -12,9 +12,10 @@
   },
   "main": "./dist/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev",
+    "build:interceptor": "bun scripts/build-interceptor.ts",
+    "dev": "bun run build:interceptor && electron-vite dev",
     "start": "electron-vite preview",
-    "build": "electron-vite build",
+    "build": "bun run build:interceptor && electron-vite build",
     "typecheck": "tsgo --noEmit -p tsconfig.node.json && tsgo --noEmit -p tsconfig.web.json",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "bun run build && electron-builder --dir --config configs/electron-builder.mjs",

@@ -41,6 +41,7 @@ const DEFAULT_CONFIG: AppConfig = {
   permissionMode: "default",
   notificationSound: "default",
   tokenOptimization: true,
+  networkInspector: false,
 
   // Keybindings
   keybindings: {},

@@ -10,6 +10,7 @@ import type {
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../claude-code/types";
+import type { InspectorState, RequestDetail, RequestSummary } from "./request-types";
 import type { ActiveSessionInfo, ModelScope, SessionInfo } from "./types";
 
 export const agentContract = {
@@ -65,6 +66,22 @@ export const agentContract = {
         providerId?: string;
       }>(),
     ),
+  },
+
+  network: {
+    listRequests: oc.input(z.object({ sessionId: z.string() })).output(type<RequestSummary[]>()),
+
+    getRequestDetail: oc
+      .input(z.object({ sessionId: z.string(), requestId: z.string() }))
+      .output(type<RequestDetail | null>()),
+
+    getInspectorState: oc.input(z.object({ sessionId: z.string() })).output(type<InspectorState>()),
+
+    clearRequests: oc.input(z.object({ sessionId: z.string() })).output(type<void>()),
+
+    subscribe: oc
+      .input(type<{ sessionId: string }>())
+      .output(eventIterator(type<RequestSummary>())),
   },
 
   savePlan: oc

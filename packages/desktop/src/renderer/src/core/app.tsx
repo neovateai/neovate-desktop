@@ -20,6 +20,7 @@ import debugPlugin from "../plugins/debug";
 import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
+import networkPlugin from "../plugins/network";
 import { providersPlugin } from "../plugins/providers";
 import reviewPlugin from "../plugins/review";
 import searchPlugin from "../plugins/search";
@@ -95,6 +96,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   searchPlugin,
   editorPlugin,
   reviewPlugin,
+  networkPlugin,
   debugPlugin,
   providersPlugin,
   // TODO: Remove in the future

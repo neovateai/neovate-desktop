@@ -8,6 +8,7 @@ import type { ConfigStore } from "../../config/config-store";
 import type { ProjectStore } from "../../project/project-store";
 
 import { Pushable } from "../pushable";
+import { RequestTracker } from "../request-tracker";
 import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
 
 const makeStreamEventMsg = (event: any) => ({
@@ -70,6 +71,7 @@ describe("SessionManager", () => {
     manager = new SessionManager(
       { get: vi.fn(() => undefined) } as unknown as ConfigStore,
       {} as ProjectStore,
+      new RequestTracker(),
     );
   });
 
