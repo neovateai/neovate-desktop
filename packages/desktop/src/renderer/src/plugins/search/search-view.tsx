@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import type { Project } from "../../../../shared/features/project/types";
 
 import { utilsContract } from "../../../../shared/features/utils/contract";
+import { useLayoutStore } from "../../components/app-layout/store";
 import { Input } from "../../components/ui/input";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
@@ -58,11 +59,18 @@ function SearchViewComponent({ project }: SearchViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  const isVisible = useLayoutStore(
+    (s) =>
+      !s.panels.secondarySidebar?.collapsed && s.panels.secondarySidebar?.activeView === "search",
+  );
+
   const cwd = project?.path || "";
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (isVisible) {
+      inputRef.current?.focus();
+    }
+  }, [isVisible]);
 
   useEffect(() => {
     setQuery("");
