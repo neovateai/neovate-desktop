@@ -38,7 +38,7 @@ function searchContentWithMatches(
       "--glob",
       "!node_modules/**",
       "--glob",
-      "!.git/**",
+      "!.git/",
       "--glob",
       "!dist/**",
       "--glob",
