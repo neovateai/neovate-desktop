@@ -4,6 +4,7 @@
   "nav.back": "Back",
   "nav.forward": "Forward",
   "nav.refresh": "Refresh",
+  "nav.inspect": "Inspect Element",
   "nav.devtools": "Open DevTools",
   "nav.addressPlaceholder": "Enter URL..."
 }

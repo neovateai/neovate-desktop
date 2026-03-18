@@ -13,6 +13,7 @@ interface WebviewElement extends HTMLElement {
   goForward(): void;
   reload(): void;
   openDevTools(): void;
+  executeJavaScript(code: string, userGesture?: boolean): Promise<unknown>;
 }
 
 declare namespace JSX {

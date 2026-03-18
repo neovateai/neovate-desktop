@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, RefreshCw, PanelBottom } from "lucide-react";
+import { ArrowLeft, ArrowRight, MousePointerClick, PanelBottom, RefreshCw } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,11 +10,13 @@ interface NavBarProps {
   isLoading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  isInspecting: boolean;
   onNavigate: (url: string) => void;
   onGoBack: () => void;
   onGoForward: () => void;
   onReload: () => void;
   onOpenDevTools: () => void;
+  onToggleInspector: () => void;
 }
 
 function normalizeUrl(input: string): string {
@@ -32,11 +34,13 @@ export function NavBar({
   isLoading,
   canGoBack,
   canGoForward,
+  isInspecting,
   onNavigate,
   onGoBack,
   onGoForward,
   onReload,
   onOpenDevTools,
+  onToggleInspector,
 }: NavBarProps) {
   const { t } = useTranslation("plugin-browser");
   const [inputValue, setInputValue] = useState(url);
@@ -101,6 +105,16 @@ export function NavBar({
         placeholder={t("nav.addressPlaceholder")}
         className="mx-1 flex-1 bg-muted/30 focus-within:bg-transparent"
       />
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onToggleInspector}
+        aria-label={t("nav.inspect")}
+        className={isInspecting ? "bg-muted" : ""}
+      >
+        <MousePointerClick className="size-4" />
+      </Button>
 
       <Button
         variant="ghost"
