@@ -29,6 +29,11 @@ function getSystemShell(): string {
 }
 
 function resolveShellEnv(): Promise<Record<string, string>> {
+  if (process.env["NEOVATE_RESOLVING_ENVIRONMENT"]) {
+    log("already inside a resolving shell — returning process.env");
+    return Promise.resolve(process.env as Record<string, string>);
+  }
+
   return new Promise((resolve) => {
     const startTime = Date.now();
     const runAsNode = process.env["ELECTRON_RUN_AS_NODE"];
@@ -61,7 +66,7 @@ function resolveShellEnv(): Promise<Record<string, string>> {
       command = `^'${process.execPath}' ${extraArgs} -p '"${mark}" + JSON.stringify(process.env) + "${mark}"'`;
       shellArgs = ["-i", "-l", "-c"];
     } else if (name === "xonsh") {
-      command = `import os, json; print("${mark}", json.dumps(dict(os.environ)), "${mark}")`;
+      command = `import os, json; print("${mark}" + json.dumps(dict(os.environ)) + "${mark}")`;
       shellArgs = ["-i", "-l", "-c"];
     } else {
       command = `'${process.execPath}' ${extraArgs} -p '"${mark}" + JSON.stringify(process.env) + "${mark}"'`;
@@ -75,7 +80,6 @@ function resolveShellEnv(): Promise<Record<string, string>> {
     log("spawning: %s %s '%s'", systemShell, shellArgs.join(" "), command);
 
     const child = spawn(systemShell, [...shellArgs, command], {
-      detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       env,
     });
@@ -118,7 +122,13 @@ function resolveShellEnv(): Promise<Record<string, string>> {
       }
 
       const match = regex.exec(raw);
-      const rawStripped = match ? match[1] : "{}";
+      if (!match) {
+        log("ERROR: could not find env markers in shell output");
+        log("falling back to process.env");
+        resolve(process.env as Record<string, string>);
+        return;
+      }
+      const rawStripped = match[1];
 
       try {
         const resolved = JSON.parse(rawStripped);
