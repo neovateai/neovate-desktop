@@ -6,21 +6,26 @@ import { toastManager } from "../../components/ui/toast";
 import { client } from "../../orpc";
 import { useUpdaterState } from "./hooks";
 
-function getErrorTitle(message: string | undefined, t: (key: string) => string) {
+type UpdaterErrorTitleKey =
+  | "updater.installFailed"
+  | "updater.checkTimedOut"
+  | "updater.genericError";
+
+function getErrorTitleKey(message: string | undefined): UpdaterErrorTitleKey {
   const normalized = message?.toLowerCase() ?? "";
 
   if (
     normalized.includes("bad file descriptor") ||
     normalized.includes("could not locate update bundle")
   ) {
-    return t("updater.installFailed");
+    return "updater.installFailed";
   }
 
   if (normalized === "timeout") {
-    return t("updater.checkTimedOut");
+    return "updater.checkTimedOut";
   }
 
-  return t("updater.genericError");
+  return "updater.genericError";
 }
 
 export function UpdaterToast() {
@@ -60,7 +65,7 @@ export function UpdaterToast() {
       close();
       toastIdRef.current = toastManager.add({
         type: "error",
-        title: getErrorTitle(state.message, t),
+        title: t(getErrorTitleKey(state.message)),
         timeout: 5000,
         onClose,
       });
