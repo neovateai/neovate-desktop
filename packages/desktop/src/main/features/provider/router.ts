@@ -91,6 +91,23 @@ async function runBenchmark(
     };
   } catch (err) {
     log("benchmark failed: provider=%s model=%s error=%s", provider.id, modelId, err);
+
+    let error: string;
+    if (err instanceof Anthropic.APIError) {
+      const parts = [`${err.status}`];
+      // Extract error type from the JSON body if available
+      const body = err.error as Record<string, unknown> | undefined;
+      const inner = body?.error as Record<string, unknown> | undefined;
+      if (inner?.type) parts.push(String(inner.type));
+      if (inner?.message) parts.push(String(inner.message));
+      else if (err.message) parts.push(err.message);
+      error = parts.join(" — ");
+    } else if (err instanceof Error) {
+      error = err.message;
+    } else {
+      error = String(err);
+    }
+
     return {
       ttftMs: 0,
       tpot: 0,
@@ -98,7 +115,7 @@ async function runBenchmark(
       totalTimeMs: 0,
       tokensGenerated: 0,
       success: false,
-      error: String(err),
+      error,
     };
   } finally {
     clearTimeout(timeout);

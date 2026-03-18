@@ -682,50 +682,51 @@ export const ProvidersPanel = () => {
                 const benchKey = `${form.baseURL}:${key}`;
                 const result = benchmarkResults[benchKey];
                 const isRunning = benchmarkingModels[benchKey] ?? false;
+                const failed = result && !isRunning && !result.success;
 
                 return (
-                  <div key={key} className="flex items-center gap-2 text-sm">
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{key}</code>
-                    {entry.displayName && (
-                      <span className="text-muted-foreground">{entry.displayName}</span>
-                    )}
-                    <div className="ml-auto flex items-center gap-1.5">
-                      {isRunning && <Spinner className="h-3 w-3" />}
-                      {result && !isRunning && result.success && (
-                        <Tooltip>
-                          <TooltipTrigger className="cursor-default">
-                            <BenchmarkMetrics
-                              ttftMs={result.ttftMs}
-                              tpot={result.tpot}
-                              tps={result.tps}
-                            />
-                          </TooltipTrigger>
-                          <TooltipPopup>
-                            <BenchmarkTooltipContent result={result} />
-                          </TooltipPopup>
-                        </Tooltip>
+                  <div key={key}>
+                    <div className="flex items-center gap-2 text-sm">
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{key}</code>
+                      {entry.displayName && (
+                        <span className="text-muted-foreground">{entry.displayName}</span>
                       )}
-                      {result && !isRunning && !result.success && (
-                        <Tooltip>
-                          <TooltipTrigger className="cursor-default">
-                            <Badge variant="error" size="sm">
-                              <AlertCircle className="h-3 w-3" />
-                              {t("settings.providers.benchmark.failed")}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipPopup>
-                            <BenchmarkTooltipContent result={result} />
-                          </TooltipPopup>
-                        </Tooltip>
-                      )}
-                      <button
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => removeModel(key)}
-                        aria-label={t("settings.providers.removeModel", { model: key })}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        {isRunning && <Spinner className="h-3 w-3" />}
+                        {result && !isRunning && result.success && (
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-default">
+                              <BenchmarkMetrics
+                                ttftMs={result.ttftMs}
+                                tpot={result.tpot}
+                                tps={result.tps}
+                              />
+                            </TooltipTrigger>
+                            <TooltipPopup>
+                              <BenchmarkTooltipContent result={result} />
+                            </TooltipPopup>
+                          </Tooltip>
+                        )}
+                        {failed && (
+                          <Badge variant="error" size="sm">
+                            <AlertCircle className="h-3 w-3" />
+                            {t("settings.providers.benchmark.failed")}
+                          </Badge>
+                        )}
+                        <button
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => removeModel(key)}
+                          aria-label={t("settings.providers.removeModel", { model: key })}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
+                    {failed && result.error && (
+                      <p className="text-xs text-destructive mt-0.5 ml-1 break-all">
+                        {result.error}
+                      </p>
+                    )}
                   </div>
                 );
               })}
