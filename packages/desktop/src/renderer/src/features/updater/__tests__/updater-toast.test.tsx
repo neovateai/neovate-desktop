@@ -34,6 +34,25 @@ vi.mock("../hooks", () => ({
   useUpdaterState: () => mocks.state,
 }));
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string>) => {
+      const translations: Record<string, string> = {
+        "updater.upToDate": "You're up to date",
+        "updater.installFailed": "Update install failed",
+        "updater.checkTimedOut": "Update check timed out",
+        "updater.genericError": "Update failed",
+        "updater.downloading": `Downloading update ${params?.version ?? ""}…`,
+        "updater.readyToInstall": `Update ${params?.version ?? ""} ready to install`,
+        "updater.readyDescription":
+          `${params?.appName ?? "App"} will quit and reopen to finish updating.`,
+        "updater.restart": "Restart",
+      };
+      return translations[key] ?? key;
+    },
+  }),
+}));
+
 import { UpdaterToast } from "../updater-toast";
 
 describe("UpdaterToast", () => {
@@ -59,5 +78,18 @@ describe("UpdaterToast", () => {
     rerender(<UpdaterToast />);
 
     expect(mocks.close).toHaveBeenCalledWith("toast-1");
+  });
+
+  it("shows a short translated install error for install failures", () => {
+    mocks.state = {
+      status: "error",
+      message: "The operation couldn’t be completed. Bad file descriptor",
+    };
+
+    render(<UpdaterToast />);
+
+    expect(mocks.add).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error", title: "Update install failed" }),
+    );
   });
 });
