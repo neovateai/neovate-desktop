@@ -12,18 +12,12 @@ import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
 import { useLayoutStore } from "../../components/app-layout/store";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogPopup,
-  AlertDialogTitle,
-} from "../../components/ui/alert-dialog";
 import { Button } from "../../components/ui/button";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../../components/ui/menu";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { CommitConfirmDialog } from "./components/commit-confirm-dialog";
+import { RevertConfirmDialog } from "./components/revert-confirm-dialog";
 import { useGit } from "./hooks/useGit";
 import { useGitTranslation } from "./i18n";
 
@@ -40,6 +34,8 @@ export default memo(function GitView() {
   const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
   const [revertTarget, setRevertTarget] = useState<"all" | "single" | null>(null);
   const [fileToRevert, setFileToRevert] = useState<GitFile | null>(null);
+  const [commitNoStagedConfirmOpen, setCommitNoStagedConfirmOpen] = useState(false);
+  const [commitToPush, setCommitToPush] = useState(false);
 
   const {
     loading,
@@ -140,6 +136,29 @@ export default memo(function GitView() {
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("neovate:open-review", { detail: { category: type } }));
     }, DISPATCH_DELAY);
+  };
+
+  const handleCommit = async (withPush = false) => {
+    if (stagedFiles.length === 0) {
+      setCommitToPush(withPush);
+      setCommitNoStagedConfirmOpen(true);
+      return;
+    }
+
+    console.log(`[GitCommit] Triggered commit action - ${withPush ? "with push" : "commit only"}`);
+    // This action will be processed by the agent
+  };
+
+  const handleConfirmCommit = async () => {
+    if (workingFiles.length > 0) {
+      await stageAll();
+    }
+
+    console.log(
+      `[GitCommit] Triggered commit action after staging - ${commitToPush ? "with push" : "commit only"}`,
+    );
+    setCommitNoStagedConfirmOpen(false);
+    setCommitToPush(false);
   };
 
   const renderFileList = (
@@ -356,56 +375,88 @@ export default memo(function GitView() {
       </div>
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto">
-          {hasChanges ? (
-            <>
-              {renderFileList(
-                stagedFiles,
-                stagedCollapsed,
-                () => setStagedCollapsed(!stagedCollapsed),
-                t("git.stagedChanges"),
-                true,
-              )}
-              {stagedFiles.length > 0 && workingFiles.length > 0 && (
-                <div className="border-t border-border/50"></div>
-              )}
-              {renderFileList(
-                workingFiles,
-                workingCollapsed,
-                () => setWorkingCollapsed(!workingCollapsed),
-                t("git.workingChanges"),
-                false,
-              )}
-            </>
-          ) : (
-            <div className="p-4 text-sm text-center text-muted-foreground">
-              {t("git.noChanges")}
+          <div className="px-3 pb-2">
+            <div className="flex w-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 h-9 bg-secondary text-secondary-foreground hover:!bg-secondary/80 rounded-r-none"
+                disabled={loading || (workingFiles.length === 0 && stagedFiles.length === 0)}
+                onClick={() => handleCommit(false)}
+              >
+                <span>{t("git.commit")}</span>
+              </Button>
+              <Menu>
+                <MenuTrigger>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 bg-secondary text-secondary-foreground hover:!bg-secondary/80 rounded-l-none border-l border-border/50 px-2"
+                    disabled={loading || (workingFiles.length === 0 && stagedFiles.length === 0)}
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </MenuTrigger>
+                <MenuPopup>
+                  <MenuItem
+                    onClick={() => handleCommit(false)}
+                    disabled={loading || (workingFiles.length === 0 && stagedFiles.length === 0)}
+                  >
+                    {t("git.commitChanges")}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => handleCommit(true)}
+                    disabled={loading || (workingFiles.length === 0 && stagedFiles.length === 0)}
+                  >
+                    {t("git.commitAndPush")}
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
             </div>
-          )}
+          </div>
+          <div>
+            {hasChanges ? (
+              <>
+                {renderFileList(
+                  stagedFiles,
+                  stagedCollapsed,
+                  () => setStagedCollapsed(!stagedCollapsed),
+                  t("git.stagedChanges"),
+                  true,
+                )}
+                {stagedFiles.length > 0 && workingFiles.length > 0 && (
+                  <div className="border-t border-border/50"></div>
+                )}
+                {renderFileList(
+                  workingFiles,
+                  workingCollapsed,
+                  () => setWorkingCollapsed(!workingCollapsed),
+                  t("git.workingChanges"),
+                  false,
+                )}
+              </>
+            ) : (
+              <div className="p-4 text-sm text-center text-muted-foreground">
+                {t("git.noChanges")}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <AlertDialog open={revertConfirmOpen} onOpenChange={setRevertConfirmOpen}>
-        <AlertDialogPopup>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {revertTarget === "all" ? t("git.revertAll.title") : t("git.revert.title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {revertTarget === "all"
-                ? t("git.revertAll.description")
-                : t("git.revert.description", { name: fileToRevert?.fileName })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>
-              {t("common.cancel", { ns: "translation" })}
-            </AlertDialogClose>
-            <Button variant="destructive" onClick={handleConfirmRevert}>
-              {t("git.revert.confirm")}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogPopup>
-      </AlertDialog>
+      <RevertConfirmDialog
+        open={revertConfirmOpen}
+        onOpenChange={setRevertConfirmOpen}
+        target={revertTarget}
+        fileName={fileToRevert?.fileName}
+        onConfirm={handleConfirmRevert}
+      />
+
+      <CommitConfirmDialog
+        open={commitNoStagedConfirmOpen}
+        onOpenChange={setCommitNoStagedConfirmOpen}
+        onConfirm={handleConfirmCommit}
+      />
     </div>
   );
 });

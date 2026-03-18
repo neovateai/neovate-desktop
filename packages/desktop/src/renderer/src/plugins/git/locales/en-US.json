@@ -41,5 +41,10 @@
   "git.diff.showingLines": "Showing {{current}}/{{total}} lines",
   "git.diff.showMore": "Show {{count}} more lines",
   "git.diff.showAll": "Show all",
-  "git.diff.loadingMore": "Loading more content..."
+  "git.diff.loadingMore": "Loading more content...",
+  "git.commit": "Commit",
+  "git.commitChanges": "Commit changes",
+  "git.commitAndPush": "Commit & push changes",
+  "git.commitNoStaged.title": "No Staged Changes",
+  "git.commitNoStaged.description": "There are no staged changes to commit. Would you like to stage all your changes and commit them directly?"
 }

@@ -41,5 +41,10 @@
   "git.diff.showingLines": "正在显示 {{current}}/{{total}} 行",
   "git.diff.showMore": "显示更多{{count}}行",
   "git.diff.showAll": "显示全部",
-  "git.diff.loadingMore": "正在加载更多内容..."
+  "git.diff.loadingMore": "正在加载更多内容...",
+  "git.commit": "提交",
+  "git.commitChanges": "提交更改",
+  "git.commitAndPush": "提交并推送更改",
+  "git.commitNoStaged.title": "没有暂存的更改",
+  "git.commitNoStaged.description": "没有暂存的更改可提交。是否直接暂存所有更改并提交？"
 }
