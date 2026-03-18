@@ -19,6 +19,8 @@ export const ChronologicalList = memo(function ChronologicalList() {
   const [restoring, setRestoring] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
+  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
+
   const items = useFilteredSessions({ filter: "unpinned" });
 
   log("render: totalItems=%d", items.length);
@@ -50,7 +52,7 @@ export const ChronologicalList = memo(function ChronologicalList() {
   );
 
   if (items.length === 0) {
-    return <EmptySessionState />;
+    return sessionsLoaded ? <EmptySessionState /> : null;
   }
 
   return (

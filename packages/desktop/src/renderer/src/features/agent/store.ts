@@ -73,6 +73,7 @@ type AgentState = {
   sessions: Map<string, ChatSession>;
   activeSessionId: string | null;
   agentSessions: SessionInfo[];
+  sessionsLoaded: boolean;
   unseenTurnResults: Map<string, TurnResult>;
   _nextMessageId: number;
 
@@ -104,6 +105,7 @@ export const useAgentStore = create<AgentState>()(
     sessions: new Map(),
     activeSessionId: null,
     agentSessions: [],
+    sessionsLoaded: false,
     unseenTurnResults: new Map(),
     _nextMessageId: 0,
 
@@ -131,7 +133,7 @@ export const useAgentStore = create<AgentState>()(
 
     setAgentSessions: (agentSessions) => {
       storeLog("setAgentSessions: count=%d", agentSessions.length);
-      set({ agentSessions });
+      set({ agentSessions, sessionsLoaded: true });
     },
 
     createSession: (sessionId, meta) => {

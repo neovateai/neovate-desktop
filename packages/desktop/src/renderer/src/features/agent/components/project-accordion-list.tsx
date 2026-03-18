@@ -38,6 +38,7 @@ const DEFAULT_SESSION_LIMIT = 5;
 const ProjectSessions = memo(function ProjectSessions({ project }: { project: Project }) {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
+  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
   const loadSession = useLoadSession(project.path);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -71,7 +72,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   ) as (sessionId: string, projectPath?: string) => Promise<void>;
 
   if (items.length === 0) {
-    return <EmptySessionState variant="compact" />;
+    return sessionsLoaded ? <EmptySessionState variant="compact" /> : null;
   }
 
   return (

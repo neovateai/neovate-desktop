@@ -69,6 +69,7 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const agentSessions = useAgentStore((s) => s.agentSessions);
+  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
 
   const activeProject = useProjectStore((s) => s.activeProject);
   const archivedSessions = useProjectStore((s) => s.archivedSessions);
@@ -165,7 +166,9 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
     <div className="flex flex-1 flex-col gap-1">
       <NewChatButton projectPath={projectPath} />
       {pinnedItems.length === 0 && regularItems.length === 0 ? (
-        <EmptySessionState />
+        sessionsLoaded ? (
+          <EmptySessionState />
+        ) : null
       ) : (
         <ul className="flex flex-col">
           {pinnedItems.length > 0 && (
