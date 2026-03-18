@@ -156,7 +156,7 @@ export function ContentPanelRenderer() {
   const { tabs, activeTabId } = projectState;
 
   return (
-    <div className="flex h-full flex-col px-1.5">
+    <div className="flex h-full flex-col">
       <TabBar
         tabs={tabs}
         activeTabId={activeTabId}

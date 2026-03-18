@@ -123,6 +123,7 @@ export class ContentPanel {
 
   activateView(viewId: string): void {
     log("activate view", { viewId });
+    void this.options.layout.expandPart(COLLAPSIBLE_WORKBENCH_PART.contentPanel);
     this.store.getState().setActiveTab(this.projectPath, viewId);
   }
 

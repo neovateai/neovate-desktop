@@ -148,6 +148,15 @@ describe("activateView", () => {
 
     expect(panel.store.getState().getProjectState(PROJECT).activeTabId).toBe(id1);
   });
+
+  it("expands contentPanel when activating a view", () => {
+    const id1 = panel.openView("terminal");
+    vi.mocked(options.layout.expandPart).mockClear();
+
+    panel.activateView(id1);
+
+    expect(options.layout.expandPart).toHaveBeenCalledWith("contentPanel");
+  });
 });
 
 describe("getViewState / updateViewState", () => {
