@@ -132,7 +132,7 @@ export type QueueItemImageProps = ComponentProps<"img">;
 export const QueueItemImage = ({ className, ...props }: QueueItemImageProps) => (
   <img
     alt=""
-    className={cn("h-8 w-8 rounded border object-cover", className)}
+    className={cn("h-8 w-8 rounded bg-muted/50 object-cover", className)}
     height={32}
     width={32}
     {...props}
@@ -143,7 +143,10 @@ export type QueueItemFileProps = ComponentProps<"span">;
 
 export const QueueItemFile = ({ children, className, ...props }: QueueItemFileProps) => (
   <span
-    className={cn("flex items-center gap-1 rounded border bg-muted px-2 py-1 text-xs", className)}
+    className={cn(
+      "flex items-center gap-1 rounded bg-muted/50 px-2 py-1 text-muted-foreground text-xs",
+      className,
+    )}
     {...props}
   >
     <PaperclipIcon size={12} />
@@ -222,10 +225,7 @@ export type QueueProps = ComponentProps<"div">;
 
 export const Queue = ({ className, ...props }: QueueProps) => (
   <div
-    className={cn(
-      "flex flex-col gap-2 rounded-xl border border-border bg-background px-3 pt-2 pb-2 shadow-xs",
-      className,
-    )}
+    className={cn("flex flex-col gap-2 rounded-xl bg-muted/30 px-3 pb-2 pt-2", className)}
     {...props}
   />
 );

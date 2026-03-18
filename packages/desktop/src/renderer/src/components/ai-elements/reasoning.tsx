@@ -127,7 +127,7 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn("not-prose overflow-hidden rounded-md border border-border", className)}
+          className={cn("not-prose overflow-hidden rounded-md", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -199,7 +199,7 @@ export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & 
 export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
   <CollapsibleContent
     className={cn(
-      "border-t border-border/50 py-2.5 px-3 text-sm",
+      "pl-7 py-2.5 pr-3 text-sm",
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
       className,
     )}

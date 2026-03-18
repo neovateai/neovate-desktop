@@ -60,7 +60,7 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
     return (
       <code
         className={cn(
-          "inline-block rounded-md border bg-background px-2 py-0.5 text-xs align-middle",
+          "inline-block align-middle rounded-md bg-muted/50 px-1.5 py-0.5 text-xs",
           className,
         )}
         {...props}
@@ -76,7 +76,7 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   return (
     <CodeBlock
       className={cn(
-        "inline-block rounded-md border bg-background px-2 py-0.5 text-xs align-middle",
+        "inline-block align-middle rounded-md bg-muted/50 px-1.5 py-0.5 text-xs",
         className,
       )}
       code={codeContent}
@@ -115,10 +115,7 @@ function MarkdownPre({ className, children }: MarkdownPreProps) {
 function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquoteProps) {
   return (
     <blockquote
-      className={cn(
-        "my-4 border-l-2 border-muted-foreground/30 py-1 pl-4 text-sm italic text-muted-foreground first:mt-0 last:mb-0",
-        className,
-      )}
+      className={cn("my-4 pl-4 text-sm italic text-muted-foreground first:mt-0 last:mb-0", className)}
       {...props}
     >
       {children}
@@ -141,7 +138,7 @@ function MarkdownImage({ className, alt, ...props }: MarkdownImageProps) {
     <img
       alt={alt}
       className={cn(
-        "my-4 max-w-full rounded-md border border-border/50 first:mt-0 last:mb-0",
+        "my-4 max-w-full rounded-md first:mt-0 last:mb-0",
         className,
       )}
       loading="lazy"

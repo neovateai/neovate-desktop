@@ -40,7 +40,7 @@ export type PlanProps = ComponentProps<typeof Collapsible> & {
 export const Plan = ({ className, isStreaming = false, children, ...props }: PlanProps) => (
   <PlanContext.Provider value={{ isStreaming }}>
     <Collapsible
-      render={<Card className={cn("shadow-none", className)} />}
+      render={<Card className={cn("shadow-none border-none bg-muted/30", className)} />}
       data-slot="plan"
       {...props}
     >

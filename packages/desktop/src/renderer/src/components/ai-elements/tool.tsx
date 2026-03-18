@@ -36,47 +36,47 @@ import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collaps
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { CodeBlock } from "./code-block";
 
-// Tool type to icon and color mapping (following design spec)
+// Tool type to icon mapping (unified muted color for cleaner visual)
 const toolIconMap: Record<string, { icon: React.FC<LucideProps>; color: string }> = {
   // File operations
-  Read: { icon: FileText, color: "text-blue-500" },
-  Write: { icon: FilePlus, color: "text-green-500" },
-  Edit: { icon: FileEdit, color: "text-amber-500" },
-  MultiEdit: { icon: Files, color: "text-orange-500" },
+  Read: { icon: FileText, color: "text-muted-foreground" },
+  Write: { icon: FilePlus, color: "text-muted-foreground" },
+  Edit: { icon: FileEdit, color: "text-muted-foreground" },
+  MultiEdit: { icon: Files, color: "text-muted-foreground" },
 
   // Notebook & Code
-  NotebookEdit: { icon: BookOpen, color: "text-purple-500" },
+  NotebookEdit: { icon: BookOpen, color: "text-muted-foreground" },
 
   // System & Shell
-  Bash: { icon: Terminal, color: "text-slate-500" },
+  Bash: { icon: Terminal, color: "text-muted-foreground" },
 
   // Search
-  Glob: { icon: Search, color: "text-cyan-500" },
-  Grep: { icon: Regex, color: "text-indigo-500" },
+  Glob: { icon: Search, color: "text-muted-foreground" },
+  Grep: { icon: Regex, color: "text-muted-foreground" },
 
   // Web
-  WebSearch: { icon: Globe, color: "text-sky-500" },
-  WebFetch: { icon: Download, color: "text-teal-500" },
+  WebSearch: { icon: Globe, color: "text-muted-foreground" },
+  WebFetch: { icon: Download, color: "text-muted-foreground" },
 
   // User interaction
-  AskUserQuestion: { icon: HelpCircle, color: "text-violet-500" },
+  AskUserQuestion: { icon: HelpCircle, color: "text-muted-foreground" },
 
   // Task management
-  TodoWrite: { icon: CheckSquare, color: "text-emerald-500" },
-  Task: { icon: ListTodo, color: "text-pink-500" },
-  TaskOutput: { icon: ClipboardList, color: "text-rose-500" },
-  TaskStop: { icon: Square, color: "text-red-500" },
+  TodoWrite: { icon: CheckSquare, color: "text-muted-foreground" },
+  Task: { icon: ListTodo, color: "text-muted-foreground" },
+  TaskOutput: { icon: ClipboardList, color: "text-muted-foreground" },
+  TaskStop: { icon: Square, color: "text-muted-foreground" },
 
   // Agent & Skills
-  Agent: { icon: Bot, color: "text-primary" },
-  Skill: { icon: Wand2, color: "text-fuchsia-500" },
+  Agent: { icon: Bot, color: "text-muted-foreground" },
+  Skill: { icon: Wand2, color: "text-muted-foreground" },
 
   // Plan mode
-  EnterPlanMode: { icon: Map, color: "text-blue-400" },
-  ExitPlanMode: { icon: LogOut, color: "text-gray-400" },
+  EnterPlanMode: { icon: Map, color: "text-muted-foreground" },
+  ExitPlanMode: { icon: LogOut, color: "text-muted-foreground" },
 
   // Worktree
-  EnterWorktree: { icon: GitBranch, color: "text-orange-400" },
+  EnterWorktree: { icon: GitBranch, color: "text-muted-foreground" },
 };
 
 // Get tool icon info by name
@@ -153,10 +153,7 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
   <Collapsible
-    className={cn(
-      "group/tool not-prose w-full overflow-hidden rounded-md border border-border",
-      className,
-    )}
+    className={cn("group/tool not-prose w-full overflow-hidden rounded-md", className)}
     {...props}
   />
 );
@@ -191,10 +188,10 @@ const StatusDot = ({
 
   const statusStyles = {
     "approval-requested": "bg-yellow-500",
-    "approval-responded": "bg-blue-500",
+    "approval-responded": "bg-muted-foreground/50",
     "input-available": "bg-primary",
     "input-streaming": "bg-primary",
-    "output-available": "bg-green-500",
+    "output-available": "bg-muted-foreground/50",
     "output-denied": "bg-orange-500",
     "output-error": "bg-red-500",
   };
@@ -268,7 +265,9 @@ export const ToolHeader = ({
                 render={
                   <span className="cursor-default">
                     {extra ? "" : " "}
-                    <span className="text-muted-foreground">{displayName}</span>
+                    <span className="text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                      {displayName}
+                    </span>
                   </span>
                 }
               />
@@ -308,7 +307,7 @@ export const ToolContent = ({ className, children }: ToolContentProps) => (
           >
             <div
               className={cn(
-                "border-t border-border/50 space-y-3 p-3 text-popover-foreground [--code-block-content-visibility:visible]",
+                "pl-7 space-y-3 py-2 pr-3 text-popover-foreground [--code-block-content-visibility:visible]",
                 className,
               )}
             >
@@ -328,7 +327,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-1.5", className)} {...props}>
     <span className="text-xs font-medium text-muted-foreground">Input</span>
-    <div className="rounded-md border border-border/50 bg-muted/30 overflow-hidden">
+    <div className="rounded-md bg-muted/30 overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -359,8 +358,8 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
       </span>
       <div
         className={cn(
-          "rounded-md border border-border/50 overflow-hidden",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-background",
+          "rounded-md overflow-hidden",
+          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/30",
         )}
       >
         {errorText && <div className="p-3 text-sm">{errorText}</div>}

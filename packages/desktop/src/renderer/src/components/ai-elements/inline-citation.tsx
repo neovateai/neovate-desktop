@@ -106,7 +106,7 @@ export const InlineCitationCarouselHeader = ({
 }: InlineCitationCarouselHeaderProps) => (
   <div
     className={cn(
-      "flex items-center justify-between gap-2 rounded-t-md bg-secondary p-2",
+      "flex items-center justify-between gap-2 rounded-t-md bg-muted/50 p-2",
       className,
     )}
     {...props}
@@ -241,10 +241,7 @@ export const InlineCitationQuote = ({
   className,
   ...props
 }: InlineCitationQuoteProps) => (
-  <blockquote
-    className={cn("border-muted border-l-2 pl-3 text-muted-foreground text-sm italic", className)}
-    {...props}
-  >
+  <blockquote className={cn("pl-3 text-sm italic text-muted-foreground", className)} {...props}>
     {children}
   </blockquote>
 );
