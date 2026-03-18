@@ -323,5 +323,6 @@
   "chat.setGlobalDefault": "Set as global default",
   "chat.clearSessionOverride": "Clear session override",
   "chat.providerSwitchHint": "Provider switch requires a new session",
-  "chat.messageActions": "Message actions"
+  "chat.messageActions": "Message actions",
+  "chat.sessionInitializing": "Starting session..."
 }

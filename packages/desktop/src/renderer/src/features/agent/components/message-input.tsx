@@ -34,6 +34,7 @@ type Props = {
   onCancel: () => void;
   streaming: boolean;
   disabled?: boolean;
+  sessionInitializing?: boolean;
   cwd: string;
   dockAttached?: boolean;
 };
@@ -45,6 +46,7 @@ export function MessageInput({
   onCancel,
   streaming,
   disabled,
+  sessionInitializing,
   cwd,
   dockAttached = false,
 }: Props) {
@@ -344,6 +346,7 @@ export function MessageInput({
           <InputToolbar
             streaming={streaming}
             disabled={disabled}
+            sessionInitializing={sessionInitializing}
             onSend={send}
             onCancel={onCancel}
             onAttach={() => fileInputRef.current?.click()}

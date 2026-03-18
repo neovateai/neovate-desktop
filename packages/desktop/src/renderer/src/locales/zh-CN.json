@@ -325,5 +325,6 @@
   "chat.setGlobalDefault": "设为全局默认",
   "chat.clearSessionOverride": "清除会话覆盖",
   "chat.providerSwitchHint": "切换服务商需要新建会话",
-  "chat.messageActions": "消息操作"
+  "chat.messageActions": "消息操作",
+  "chat.sessionInitializing": "正在启动会话..."
 }

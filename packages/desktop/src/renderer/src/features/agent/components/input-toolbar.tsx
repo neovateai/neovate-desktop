@@ -33,6 +33,7 @@ import {
   MenuRadioGroup,
   MenuRadioItem,
 } from "../../../components/ui/menu";
+import { Spinner } from "../../../components/ui/spinner";
 import { client } from "../../../orpc";
 import { useConfigStore } from "../../config/store";
 import { useProviderStore } from "../../provider/store";
@@ -46,6 +47,7 @@ const log = debug("neovate:input-toolbar");
 type Props = {
   streaming: boolean;
   disabled?: boolean;
+  sessionInitializing?: boolean;
   onSend: () => void;
   onCancel: () => void;
   onAttach: () => void;
@@ -55,6 +57,7 @@ type Props = {
 export function InputToolbar({
   streaming,
   disabled,
+  sessionInitializing,
   onSend,
   onCancel,
   onAttach,
@@ -77,11 +80,17 @@ export function InputToolbar({
         className="h-7 w-7"
         title={t("chat.attachImage")}
         onClick={onAttach}
+        disabled={sessionInitializing}
       >
         <Paperclip className="h-4 w-4" />
       </Button>
       <ModelSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
       <PermissionModeSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
+      {sessionInitializing && (
+        <span className="text-xs text-muted-foreground animate-pulse">
+          {t("chat.sessionInitializing")}
+        </span>
+      )}
       <div className="flex-1" />
       {streaming ? (
         <Button
@@ -93,6 +102,10 @@ export function InputToolbar({
         >
           <Square className="h-3.5 w-3.5" />
         </Button>
+      ) : sessionInitializing ? (
+        <div className="flex h-7 w-7 items-center justify-center">
+          <Spinner className="h-4 w-4 text-muted-foreground" />
+        </div>
       ) : (
         <Button
           type="button"

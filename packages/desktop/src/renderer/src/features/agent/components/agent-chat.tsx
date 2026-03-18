@@ -178,6 +178,8 @@ export function AgentChat() {
     });
   };
 
+  const sessionInitializing = !!activeProjectPath && !activeSessionId;
+
   // State 1: No session yet (or new empty session) — show welcome panel with input
   if (!activeSession || activeSession.isNew) {
     return (
@@ -188,6 +190,7 @@ export function AgentChat() {
           onCancel={() => {}}
           streaming={false}
           disabled={!activeProjectPath}
+          sessionInitializing={sessionInitializing}
           cwd={cwd}
         />
         {cwd && (
