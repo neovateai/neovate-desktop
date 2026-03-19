@@ -85,11 +85,11 @@ export class SkillsService {
   }
 
   async getContent(
-    name: string,
+    dirName: string,
     scope: "global" | "project",
     projectPath?: string,
   ): Promise<string> {
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     try {
       return await readFile(path.join(skillDir, "SKILL.md"), "utf-8");
     } catch {
@@ -104,11 +104,11 @@ export class SkillsService {
     const registry = await this.fetchRegistry();
     log("recommended: registry returned %d items", registry.length);
     const installed = await this.list("all");
-    const installedNames = new Set(installed.map((s) => s.name));
+    const installedDirNames = new Set(installed.map((s) => s.dirName));
 
     const result = registry.map((skill) => ({
       ...skill,
-      installed: installedNames.has(skill.skillName),
+      installed: installedDirNames.has(skill.skillName),
     }));
     log("recommended: returning %d items", result.length);
     return result;
@@ -174,15 +174,15 @@ export class SkillsService {
     throw new Error("Preview not found or expired");
   }
 
-  async remove(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("remove", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async remove(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("remove", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     await rm(skillDir, { recursive: true, force: true });
   }
 
-  async enable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("enable", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async enable(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("enable", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     const enabledPath = path.join(skillDir, "SKILL.md");
     const disabledPath = path.join(skillDir, "SKILL.md.disabled");
     try {
@@ -193,9 +193,9 @@ export class SkillsService {
     }
   }
 
-  async disable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("disable", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async disable(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("disable", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     const enabledPath = path.join(skillDir, "SKILL.md");
     const disabledPath = path.join(skillDir, "SKILL.md.disabled");
     try {
@@ -206,8 +206,12 @@ export class SkillsService {
     }
   }
 
-  async exists(name: string, scope: "global" | "project", projectPath?: string): Promise<boolean> {
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async exists(
+    dirName: string,
+    scope: "global" | "project",
+    projectPath?: string,
+  ): Promise<boolean> {
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     try {
       await readFile(path.join(skillDir, "SKILL.md"), "utf-8");
       return true;
@@ -246,6 +250,7 @@ export class SkillsService {
       if (latest && latest !== skill.version) {
         updates.push({
           name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
           currentVersion: skill.version,
@@ -258,9 +263,9 @@ export class SkillsService {
     return updates;
   }
 
-  async update(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("update", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async update(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("update", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
 
     const metaPath = path.join(skillDir, INSTALL_META_FILE);
     const metaContent = await readFile(metaPath, "utf-8");
@@ -272,8 +277,8 @@ export class SkillsService {
     const installer = this.findInstaller(meta.installedFrom);
     if (!installer) throw new Error(`No installer found for source: ${meta.installedFrom}`);
 
-    await installer.install(meta.installedFrom, name, targetDir);
-    await this.writeInstallMeta(path.join(targetDir, name), meta.installedFrom);
+    await installer.install(meta.installedFrom, dirName, targetDir);
+    await this.writeInstallMeta(path.join(targetDir, dirName), meta.installedFrom);
   }
 
   // --- Registry fetching ---

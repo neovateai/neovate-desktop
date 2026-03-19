@@ -73,7 +73,7 @@ export const SkillDetailModal = ({
     if (!skill) return;
     setLoadingContent(true);
     client.skills
-      .getContent({ name: skill.name, scope: skill.scope, projectPath: skill.projectPath })
+      .getContent({ dirName: skill.dirName, scope: skill.scope, projectPath: skill.projectPath })
       .then(setContent)
       .catch(() => setContent(null))
       .finally(() => setLoadingContent(false));
@@ -85,13 +85,13 @@ export const SkillDetailModal = ({
     try {
       if (skill.enabled) {
         await client.skills.disable({
-          name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
         });
       } else {
         await client.skills.enable({
-          name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
         });
@@ -106,11 +106,11 @@ export const SkillDetailModal = ({
 
   const handleRemove = async () => {
     if (!skill) return;
-    log("removing skill: name=%s scope=%s", skill.name, skill.scope);
+    log("removing skill: dirName=%s scope=%s", skill.dirName, skill.scope);
     setRemoving(true);
     try {
       await client.skills.remove({
-        name: skill.name,
+        dirName: skill.dirName,
         scope: skill.scope,
         projectPath: skill.projectPath,
       });
@@ -124,7 +124,7 @@ export const SkillDetailModal = ({
   const handleOpenFolder = () => {
     if (!skill) return;
     client.skills.openFolder({
-      name: skill.name,
+      dirName: skill.dirName,
       scope: skill.scope,
       projectPath: skill.projectPath,
     });
@@ -132,11 +132,11 @@ export const SkillDetailModal = ({
 
   const handleUpdate = async () => {
     if (!skill) return;
-    log("updating skill: name=%s scope=%s", skill.name, skill.scope);
+    log("updating skill: dirName=%s scope=%s", skill.dirName, skill.scope);
     setUpdating(true);
     try {
       await client.skills.update({
-        name: skill.name,
+        dirName: skill.dirName,
         scope: skill.scope,
         projectPath: skill.projectPath,
       });

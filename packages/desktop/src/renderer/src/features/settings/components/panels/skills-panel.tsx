@@ -132,20 +132,20 @@ export const SkillsPanel = () => {
 
   const [togglingSkill, setTogglingSkill] = useState<string | null>(null);
   const handleToggleEnabled = async (skill: SkillMeta) => {
-    const key = `${skill.scope}-${skill.projectPath ?? ""}-${skill.name}`;
+    const key = `${skill.scope}-${skill.projectPath ?? ""}-${skill.dirName}`;
     if (togglingSkill) return;
     setTogglingSkill(key);
-    log("toggle skill: name=%s enabled=%s", skill.name, !skill.enabled);
+    log("toggle skill: dirName=%s enabled=%s", skill.dirName, !skill.enabled);
     try {
       if (skill.enabled) {
         await client.skills.disable({
-          name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
         });
       } else {
         await client.skills.enable({
-          name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
         });
@@ -181,7 +181,9 @@ export const SkillsPanel = () => {
     (skill: SkillMeta) =>
       updates.find(
         (u) =>
-          u.name === skill.name && u.scope === skill.scope && u.projectPath === skill.projectPath,
+          u.dirName === skill.dirName &&
+          u.scope === skill.scope &&
+          u.projectPath === skill.projectPath,
       ),
     [updates],
   );
@@ -278,7 +280,7 @@ export const SkillsPanel = () => {
           <div className="space-y-1">
             {filteredInstalled.map((skill) => (
               <div
-                key={`${skill.scope}-${skill.projectPath ?? ""}-${skill.name}`}
+                key={`${skill.scope}-${skill.projectPath ?? ""}-${skill.dirName}`}
                 className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => setSelectedSkill(skill)}
               >
@@ -351,7 +353,7 @@ export const SkillsPanel = () => {
                 className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => {
                   if (skill.installed) {
-                    const match = installed.find((s) => s.name === skill.skillName);
+                    const match = installed.find((s) => s.dirName === skill.skillName);
                     if (match) setSelectedSkill(match);
                   } else {
                     setSelectedRecommended(skill);
@@ -403,7 +405,7 @@ export const SkillsPanel = () => {
           skill={
             installed.find(
               (s) =>
-                s.name === selectedSkill.name &&
+                s.dirName === selectedSkill.dirName &&
                 s.scope === selectedSkill.scope &&
                 s.projectPath === selectedSkill.projectPath,
             ) ?? selectedSkill

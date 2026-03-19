@@ -312,6 +312,7 @@ export async function scanInstalledSkills(
 
       skills.push({
         name,
+        dirName: entry,
         description,
         dirPath: entryPath,
         scope,
