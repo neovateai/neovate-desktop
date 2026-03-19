@@ -1,5 +1,4 @@
 import debug from "debug";
-import getPort from "get-port";
 
 import { ExtensionBridgeServer } from "./bridge";
 
@@ -77,6 +76,7 @@ export class CodeServerManager {
     // 2. Override settings for minimal UI
     await overrideCodeServerSettings();
     // 3. Find available ports for code-server and extension bridge
+    const { default: getPort } = await import("get-port");
     const [port, bridgePort] = await Promise.all([getPort(), getPort()]);
     log("allocated ports: code-server=%d bridge=%d", port, bridgePort);
     try {
