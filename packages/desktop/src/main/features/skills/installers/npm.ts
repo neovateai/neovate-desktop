@@ -10,13 +10,13 @@ import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
 import { shellEnvService } from "../../../core/shell-service";
-import { scanSkillDirs } from "../skill-utils";
+import { deriveInstallName, resolveSkillSource, scanSkillDirs } from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
 const log = debug("neovate:skills:npm");
 
 export class NpmInstaller implements SkillInstaller {
-  private previewDirs = new Map<string, string>();
+  private previewDirs = new Map<string, { tmpDir: string; sourceRef: string }>();
 
   detect(sourceRef: string): boolean {
     if (sourceRef.startsWith("npm:")) return true;
@@ -33,7 +33,7 @@ export class NpmInstaller implements SkillInstaller {
 
     await this.fetchAndExtract(pkg, tmpDir, registry);
 
-    this.previewDirs.set(previewId, tmpDir);
+    this.previewDirs.set(previewId, { tmpDir, sourceRef });
     // npm pack extracts to a "package" subdirectory
     const extractedDir = path.join(tmpDir, "package");
     const skills = await scanSkillDirs(extractedDir);
@@ -43,15 +43,16 @@ export class NpmInstaller implements SkillInstaller {
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
     const { pkg, registry } = this.parseSourceRef(sourceRef);
     log("install", { pkg, skillName, targetDir, registry: registry ?? "default" });
-    const previewId = randomUUID();
-    const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
+    const tmpId = randomUUID();
+    const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${tmpId}`);
     await mkdir(tmpDir, { recursive: true });
 
     try {
       await this.fetchAndExtract(pkg, tmpDir, registry);
       const extractedDir = path.join(tmpDir, "package");
-      const src = path.join(extractedDir, skillName);
-      const dest = path.join(targetDir, skillName);
+      const src = resolveSkillSource(extractedDir, skillName);
+      const destName = deriveInstallName(skillName, sourceRef);
+      const dest = path.join(targetDir, destName);
       await cp(src, dest, { recursive: true });
     } finally {
       await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
@@ -60,27 +61,31 @@ export class NpmInstaller implements SkillInstaller {
 
   async installFromPreview(
     previewId: string,
-    skillNames: string[],
+    skillPaths: string[],
     targetDir: string,
-  ): Promise<void> {
-    log("installFromPreview", { previewId, skillNames });
-    const tmpDir = this.previewDirs.get(previewId);
-    if (!tmpDir) throw new Error("Preview not found or expired");
+  ): Promise<string[]> {
+    log("installFromPreview", { previewId, skillPaths });
+    const preview = this.previewDirs.get(previewId);
+    if (!preview) throw new Error("Preview not found or expired");
 
-    const extractedDir = path.join(tmpDir, "package");
-    for (const name of skillNames) {
-      const src = path.join(extractedDir, name);
-      const dest = path.join(targetDir, name);
+    const extractedDir = path.join(preview.tmpDir, "package");
+    const installed: string[] = [];
+    for (const sp of skillPaths) {
+      const destName = deriveInstallName(sp, preview.sourceRef);
+      const src = resolveSkillSource(extractedDir, sp);
+      const dest = path.join(targetDir, destName);
       await cp(src, dest, { recursive: true });
+      installed.push(destName);
     }
 
     await this.cleanup(previewId);
+    return installed;
   }
 
   async cleanup(previewId: string): Promise<void> {
-    const tmpDir = this.previewDirs.get(previewId);
-    if (tmpDir) {
-      await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+    const preview = this.previewDirs.get(previewId);
+    if (preview) {
+      await rm(preview.tmpDir, { recursive: true, force: true }).catch(() => {});
       this.previewDirs.delete(previewId);
     }
   }

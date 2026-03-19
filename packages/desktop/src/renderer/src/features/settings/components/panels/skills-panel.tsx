@@ -130,8 +130,11 @@ export const SkillsPanel = () => {
     });
   }, [recommended, searchQuery]);
 
-  const handleToggleEnabled = async (skill: SkillMeta, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const [togglingSkill, setTogglingSkill] = useState<string | null>(null);
+  const handleToggleEnabled = async (skill: SkillMeta) => {
+    const key = `${skill.scope}-${skill.projectPath ?? ""}-${skill.name}`;
+    if (togglingSkill) return;
+    setTogglingSkill(key);
     log("toggle skill: name=%s enabled=%s", skill.name, !skill.enabled);
     try {
       if (skill.enabled) {
@@ -150,6 +153,8 @@ export const SkillsPanel = () => {
       await fetchData();
     } catch {
       // Silently fail — user can retry
+    } finally {
+      setTogglingSkill(null);
     }
   };
 
@@ -308,8 +313,12 @@ export const SkillsPanel = () => {
                     </p>
                   )}
                 </div>
-                <div onClick={(e) => handleToggleEnabled(skill, e)}>
-                  <Switch checked={skill.enabled} />
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Switch
+                    checked={skill.enabled}
+                    disabled={togglingSkill !== null}
+                    onCheckedChange={() => handleToggleEnabled(skill)}
+                  />
                 </div>
               </div>
             ))}
@@ -391,7 +400,14 @@ export const SkillsPanel = () => {
       {/* Detail Modal */}
       {selectedSkill && (
         <SkillDetailModal
-          skill={selectedSkill}
+          skill={
+            installed.find(
+              (s) =>
+                s.name === selectedSkill.name &&
+                s.scope === selectedSkill.scope &&
+                s.projectPath === selectedSkill.projectPath,
+            ) ?? selectedSkill
+          }
           update={getUpdate(selectedSkill)}
           onClose={() => setSelectedSkill(null)}
           onRefresh={fetchData}

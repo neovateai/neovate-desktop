@@ -10,13 +10,13 @@ import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
 import { shellEnvService } from "../../../core/shell-service";
-import { scanSkillDirs } from "../skill-utils";
+import { deriveInstallName, resolveSkillSource, scanSkillDirs } from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
 const log = debug("neovate:skills:git");
 
 export class GitInstaller implements SkillInstaller {
-  private previewDirs = new Map<string, string>();
+  private previewDirs = new Map<string, { tmpDir: string; sourceRef: string }>();
 
   detect(sourceRef: string): boolean {
     if (sourceRef.startsWith("prebuilt:") || sourceRef.startsWith("npm:")) return false;
@@ -39,7 +39,7 @@ export class GitInstaller implements SkillInstaller {
       env,
     });
 
-    this.previewDirs.set(previewId, tmpDir);
+    this.previewDirs.set(previewId, { tmpDir, sourceRef });
     const skills = await scanSkillDirs(tmpDir);
     return { previewId, skills };
   }
@@ -48,17 +48,19 @@ export class GitInstaller implements SkillInstaller {
     log("install", { sourceRef, skillName, targetDir });
     const env = await shellEnvService.getEnv();
     const url = this.normalizeUrl(sourceRef);
-    const previewId = randomUUID();
-    const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
+    const tmpId = randomUUID();
+    const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${tmpId}`);
 
     try {
       await execFileAsync("git", ["clone", "--depth", "1", url, tmpDir], {
         timeout: 60_000,
         env,
       });
-      const src = path.join(tmpDir, skillName);
-      const dest = path.join(targetDir, skillName);
-      await cp(src, dest, { recursive: true });
+      const src = resolveSkillSource(tmpDir, skillName);
+      const destName = deriveInstallName(skillName, sourceRef);
+      const dest = path.join(targetDir, destName);
+      const filter = (s: string) => path.basename(s) !== ".git";
+      await cp(src, dest, { recursive: true, filter });
     } finally {
       await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
@@ -66,26 +68,31 @@ export class GitInstaller implements SkillInstaller {
 
   async installFromPreview(
     previewId: string,
-    skillNames: string[],
+    skillPaths: string[],
     targetDir: string,
-  ): Promise<void> {
-    log("installFromPreview", { previewId, skillNames });
-    const tmpDir = this.previewDirs.get(previewId);
-    if (!tmpDir) throw new Error("Preview not found or expired");
+  ): Promise<string[]> {
+    log("installFromPreview", { previewId, skillPaths });
+    const preview = this.previewDirs.get(previewId);
+    if (!preview) throw new Error("Preview not found or expired");
 
-    for (const name of skillNames) {
-      const src = path.join(tmpDir, name);
-      const dest = path.join(targetDir, name);
-      await cp(src, dest, { recursive: true });
+    const installed: string[] = [];
+    const filter = (s: string) => path.basename(s) !== ".git";
+    for (const sp of skillPaths) {
+      const destName = deriveInstallName(sp, preview.sourceRef);
+      const src = resolveSkillSource(preview.tmpDir, sp);
+      const dest = path.join(targetDir, destName);
+      await cp(src, dest, { recursive: true, filter });
+      installed.push(destName);
     }
 
     await this.cleanup(previewId);
+    return installed;
   }
 
   async cleanup(previewId: string): Promise<void> {
-    const tmpDir = this.previewDirs.get(previewId);
-    if (tmpDir) {
-      await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+    const preview = this.previewDirs.get(previewId);
+    if (preview) {
+      await rm(preview.tmpDir, { recursive: true, force: true }).catch(() => {});
       this.previewDirs.delete(previewId);
     }
   }
@@ -108,8 +115,8 @@ export class GitInstaller implements SkillInstaller {
 
   /** Clean up any stale preview directories */
   cleanupStale(): void {
-    for (const [id, dir] of this.previewDirs) {
-      rm(dir, { recursive: true, force: true })
+    for (const [id, { tmpDir }] of this.previewDirs) {
+      rm(tmpDir, { recursive: true, force: true })
         .then(() => this.previewDirs.delete(id))
         .catch(() => {});
     }

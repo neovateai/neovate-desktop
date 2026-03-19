@@ -44,6 +44,7 @@ export class SkillsService {
     data: Omit<RecommendedSkill, "installed">[];
     fetchedAt: number;
   } | null = null;
+  private previewSources = new Map<string, string>();
 
   constructor(projectStore: ProjectStore, configStore: ConfigStore, resourcesDir: string) {
     this.projectStore = projectStore;
@@ -115,7 +116,9 @@ export class SkillsService {
     log("preview", { source });
     const installer = this.findInstaller(source);
     if (!installer) throw new Error(`No installer found for source: ${source}`);
-    return installer.scan(source);
+    const result = await installer.scan(source);
+    this.previewSources.set(result.previewId, source);
+    return result;
   }
 
   async install(
@@ -145,14 +148,27 @@ export class SkillsService {
     const targetDir = this.resolveSkillsDir(scope, projectPath);
     await mkdir(targetDir, { recursive: true });
 
+    const sourceRef = this.previewSources.get(previewId);
+
     for (const installer of this.installers) {
       try {
-        await installer.installFromPreview(previewId, selectedSkills, targetDir);
+        const installedNames = await installer.installFromPreview(
+          previewId,
+          selectedSkills,
+          targetDir,
+        );
+        if (sourceRef) {
+          for (const name of installedNames) {
+            await this.writeInstallMeta(path.join(targetDir, name), sourceRef);
+          }
+        }
+        this.previewSources.delete(previewId);
         return;
       } catch {
         continue;
       }
     }
+    this.previewSources.delete(previewId);
     throw new Error("Preview not found or expired");
   }
 
@@ -165,13 +181,27 @@ export class SkillsService {
   async enable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
     log("enable", { name, scope, projectPath });
     const skillDir = this.resolveSkillDir(name, scope, projectPath);
-    await rename(path.join(skillDir, "SKILL.md.disabled"), path.join(skillDir, "SKILL.md"));
+    const enabledPath = path.join(skillDir, "SKILL.md");
+    const disabledPath = path.join(skillDir, "SKILL.md.disabled");
+    try {
+      await readFile(enabledPath, "utf-8");
+      return; // Already enabled
+    } catch {
+      await rename(disabledPath, enabledPath);
+    }
   }
 
   async disable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
     log("disable", { name, scope, projectPath });
     const skillDir = this.resolveSkillDir(name, scope, projectPath);
-    await rename(path.join(skillDir, "SKILL.md"), path.join(skillDir, "SKILL.md.disabled"));
+    const enabledPath = path.join(skillDir, "SKILL.md");
+    const disabledPath = path.join(skillDir, "SKILL.md.disabled");
+    try {
+      await readFile(disabledPath, "utf-8");
+      return; // Already disabled
+    } catch {
+      await rename(enabledPath, disabledPath);
+    }
   }
 
   async exists(name: string, scope: "global" | "project", projectPath?: string): Promise<boolean> {
@@ -193,6 +223,7 @@ export class SkillsService {
     for (const installer of this.installers) {
       await installer.cleanup(previewId);
     }
+    this.previewSources.delete(previewId);
   }
 
   async checkUpdates(

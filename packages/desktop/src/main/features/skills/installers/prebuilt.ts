@@ -40,15 +40,18 @@ export class PrebuiltInstaller implements SkillInstaller {
 
   async installFromPreview(
     _previewId: string,
-    skillNames: string[],
+    skillPaths: string[],
     targetDir: string,
-  ): Promise<void> {
-    log("installFromPreview", { skillNames });
-    for (const name of skillNames) {
+  ): Promise<string[]> {
+    log("installFromPreview", { skillPaths });
+    const installed: string[] = [];
+    for (const name of skillPaths) {
       const src = path.join(this.resourcesDir, name);
       const dest = path.join(targetDir, name);
       await cp(src, dest, { recursive: true });
+      installed.push(name);
     }
+    return installed;
   }
 
   async cleanup(_previewId: string): Promise<void> {

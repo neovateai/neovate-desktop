@@ -65,6 +65,7 @@ export const SkillDetailModal = ({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [installScope, setInstallScope] = useState<string>("global");
 
   // Fetch SKILL.md content for installed skills
@@ -79,7 +80,8 @@ export const SkillDetailModal = ({
   }, [skill]);
 
   const handleToggle = async () => {
-    if (!skill) return;
+    if (!skill || toggling) return;
+    setToggling(true);
     try {
       if (skill.enabled) {
         await client.skills.disable({
@@ -95,9 +97,10 @@ export const SkillDetailModal = ({
         });
       }
       await onRefresh();
-      onClose();
     } catch {
       // Silently fail
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -175,7 +178,7 @@ export const SkillDetailModal = ({
                   ? t("settings.skills.detail.enabled")
                   : t("settings.skills.detail.disabled")}
               </span>
-              <Switch checked={skill.enabled} onCheckedChange={handleToggle} />
+              <Switch checked={skill.enabled} disabled={toggling} onCheckedChange={handleToggle} />
             </div>
           )}
           {isInstalled && (
