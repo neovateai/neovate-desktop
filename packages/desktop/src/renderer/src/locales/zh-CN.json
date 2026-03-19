@@ -36,6 +36,9 @@
   "settings.general.terminalFont.default": "默认",
   "settings.general.developerMode": "开发者模式",
   "settings.general.developerMode.description": "在聊天输入等位置显示调试信息",
+  "settings.general.group.appearance": "外观",
+  "settings.general.group.terminal": "终端",
+  "settings.general.group.advanced": "高级",
 
   "settings.chat": "聊天",
   "settings.chat.model": "模型",
@@ -67,6 +70,8 @@
   "settings.chat.networkInspector.description": "在网络面板中显示 API 请求。在新会话中生效。",
   "settings.chat.sendMessage": "发送消息",
   "settings.chat.sendMessage.description": "发送消息的键盘快捷键",
+  "settings.chat.group.model": "模型",
+  "settings.chat.group.behavior": "行为",
   "settings.chat.model.auto": "默认（自动）",
   "settings.chat.model.sdkDefault": "SDK 默认",
   "settings.chat.selectPlaceholder": "请选择...",

@@ -35,6 +35,7 @@ import { useAgentStore } from "../../../agent/store";
 import { useConfigStore } from "../../../config/store";
 import { useProjectStore } from "../../../project/store";
 import { useProviderStore } from "../../../provider/store";
+import { SettingsGroup } from "../settings-group";
 import { SettingsRow } from "../settings-row";
 
 // Translation key mappings
@@ -89,99 +90,99 @@ export const ChatPanel = () => {
         {t("settings.chat")}
       </h1>
 
-      <div className="space-y-0">
+      <div className="space-y-4">
         {/* Model */}
-        <SettingsRow
-          title={t("settings.chat.model")}
-          description={t("settings.chat.model.description")}
-        >
-          <GlobalModelSelect />
-        </SettingsRow>
-
-        {/* Agent Language */}
-        <SettingsRow
-          title={t("settings.chat.agentLanguage")}
-          description={t("settings.chat.agentLanguage.description")}
-        >
-          <Select
-            value={config.agentLanguage}
-            onValueChange={(val) => setConfig("agentLanguage", val as AgentLanguage)}
+        <SettingsGroup title={t("settings.chat.group.model")}>
+          <SettingsRow
+            title={t("settings.chat.model")}
+            description={t("settings.chat.model.description")}
           >
-            <SelectTrigger size="sm" className="min-w-36">
-              <SelectValue placeholder={t("settings.chat.selectPlaceholder")}>
-                {t(agentLanguageKeys[config.agentLanguage])}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              <SelectItem value="English">{t("settings.chat.agentLanguage.english")}</SelectItem>
-              <SelectItem value="Chinese">{t("settings.chat.agentLanguage.chinese")}</SelectItem>
-            </SelectPopup>
-          </Select>
-        </SettingsRow>
+            <GlobalModelSelect />
+          </SettingsRow>
+        </SettingsGroup>
 
-        {/* Permission Mode */}
-        <SettingsRow
-          title={t("settings.chat.permissionMode")}
-          description={t("settings.chat.permissionMode.description")}
-        >
-          <Select
-            value={config.permissionMode}
-            onValueChange={(val) => setConfig("permissionMode", val as ConfigPermissionMode)}
+        {/* Behavior */}
+        <SettingsGroup title={t("settings.chat.group.behavior")}>
+          <SettingsRow
+            title={t("settings.chat.agentLanguage")}
+            description={t("settings.chat.agentLanguage.description")}
           >
-            <SelectTrigger size="sm" className="min-w-36">
-              <SelectValue>{t(permissionModeKeys[config.permissionMode])}</SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              <SelectItem value="default">{t("settings.chat.permissionMode.default")}</SelectItem>
-              <SelectItem value="acceptEdits">
-                {t("settings.chat.permissionMode.acceptEdits")}
-              </SelectItem>
-              <SelectItem value="bypassPermissions">
-                {t("settings.chat.permissionMode.bypassPermissions")}
-              </SelectItem>
-            </SelectPopup>
-          </Select>
-        </SettingsRow>
+            <Select
+              value={config.agentLanguage}
+              onValueChange={(val) => setConfig("agentLanguage", val as AgentLanguage)}
+            >
+              <SelectTrigger size="sm" className="min-w-36">
+                <SelectValue placeholder={t("settings.chat.selectPlaceholder")}>
+                  {t(agentLanguageKeys[config.agentLanguage])}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup>
+                <SelectItem value="English">{t("settings.chat.agentLanguage.english")}</SelectItem>
+                <SelectItem value="Chinese">{t("settings.chat.agentLanguage.chinese")}</SelectItem>
+              </SelectPopup>
+            </Select>
+          </SettingsRow>
 
-        {/* Token Optimization */}
-        <SettingsRow
-          title={t("settings.chat.tokenOptimization")}
-          description={t("settings.chat.tokenOptimization.description")}
-        >
-          <Switch
-            checked={config.tokenOptimization}
-            onCheckedChange={(v) => setConfig("tokenOptimization", v)}
-          />
-        </SettingsRow>
+          <SettingsRow
+            title={t("settings.chat.permissionMode")}
+            description={t("settings.chat.permissionMode.description")}
+          >
+            <Select
+              value={config.permissionMode}
+              onValueChange={(val) => setConfig("permissionMode", val as ConfigPermissionMode)}
+            >
+              <SelectTrigger size="sm" className="min-w-36">
+                <SelectValue>{t(permissionModeKeys[config.permissionMode])}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup>
+                <SelectItem value="default">{t("settings.chat.permissionMode.default")}</SelectItem>
+                <SelectItem value="acceptEdits">
+                  {t("settings.chat.permissionMode.acceptEdits")}
+                </SelectItem>
+                <SelectItem value="bypassPermissions">
+                  {t("settings.chat.permissionMode.bypassPermissions")}
+                </SelectItem>
+              </SelectPopup>
+            </Select>
+          </SettingsRow>
 
-        {/* Network Inspector */}
-        <SettingsRow
-          title={t("settings.chat.networkInspector")}
-          description={t("settings.chat.networkInspector.description")}
-        >
-          <Switch
-            checked={config.networkInspector}
-            onCheckedChange={(v) => setConfig("networkInspector", v)}
-          />
-        </SettingsRow>
+          <SettingsRow
+            title={t("settings.chat.tokenOptimization")}
+            description={t("settings.chat.tokenOptimization.description")}
+          >
+            <Switch
+              checked={config.tokenOptimization}
+              onCheckedChange={(v) => setConfig("tokenOptimization", v)}
+            />
+          </SettingsRow>
 
-        {/* Send Message With */}
-        <SettingsRow
-          title={t("settings.chat.sendMessage")}
-          description={t("settings.chat.sendMessage.description")}
-        >
-          <ToggleOptions
-            value={config.sendMessageWith}
-            onChange={(val) => setConfig("sendMessageWith", val as SendMessageWith)}
-            options={[
-              { value: "enter", label: "Enter" },
-              {
-                value: "cmdEnter",
-                label: /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? "⌘+Enter" : "Ctrl+Enter",
-              },
-            ]}
-          />
-        </SettingsRow>
+          <SettingsRow
+            title={t("settings.chat.networkInspector")}
+            description={t("settings.chat.networkInspector.description")}
+          >
+            <Switch
+              checked={config.networkInspector}
+              onCheckedChange={(v) => setConfig("networkInspector", v)}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.chat.sendMessage")}
+            description={t("settings.chat.sendMessage.description")}
+          >
+            <ToggleOptions
+              value={config.sendMessageWith}
+              onChange={(val) => setConfig("sendMessageWith", val as SendMessageWith)}
+              options={[
+                { value: "enter", label: "Enter" },
+                {
+                  value: "cmdEnter",
+                  label: /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? "⌘+Enter" : "Ctrl+Enter",
+                },
+              ]}
+            />
+          </SettingsRow>
+        </SettingsGroup>
       </div>
     </div>
   );

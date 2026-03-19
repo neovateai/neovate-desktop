@@ -36,6 +36,9 @@
   "settings.general.terminalFont.default": "Default",
   "settings.general.developerMode": "Developer Mode",
   "settings.general.developerMode.description": "Show debug info in chat input and other places",
+  "settings.general.group.appearance": "Appearance",
+  "settings.general.group.terminal": "Terminal",
+  "settings.general.group.advanced": "Advanced",
 
   "settings.chat": "Chat",
   "settings.chat.model": "Model",
@@ -67,6 +70,8 @@
   "settings.chat.networkInspector.description": "Show API requests in the Network panel. Takes effect on new sessions.",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
+  "settings.chat.group.model": "Model",
+  "settings.chat.group.behavior": "Behavior",
   "settings.chat.model.auto": "Default (auto)",
   "settings.chat.model.sdkDefault": "SDK Default",
   "settings.chat.selectPlaceholder": "Select...",

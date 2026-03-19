@@ -13,6 +13,7 @@ import { useRendererApp } from "../../../../core";
 import { localeOptions, type Locales } from "../../../../core/i18n";
 import { client } from "../../../../orpc";
 import { useConfigStore } from "../../../config/store";
+import { SettingsGroup } from "../settings-group";
 import { SettingsRow } from "../settings-row";
 
 const log = createDebug("neovate:settings");
@@ -97,83 +98,88 @@ export const GeneralPanel = () => {
         {t("settings.general")}
       </h1>
 
-      <div className="space-y-0">
-        {/* Language */}
-        <SettingsRow
-          title={t("settings.general.language")}
-          description={t("settings.general.language.description")}
-        >
-          <ToggleOptions value={locale} onChange={handleLocaleChange} options={localeOptions} />
-        </SettingsRow>
+      <div className="space-y-4">
+        {/* Appearance */}
+        <SettingsGroup title={t("settings.general.group.appearance")}>
+          <SettingsRow
+            title={t("settings.general.language")}
+            description={t("settings.general.language.description")}
+          >
+            <ToggleOptions value={locale} onChange={handleLocaleChange} options={localeOptions} />
+          </SettingsRow>
 
-        {/* Theme */}
-        <SettingsRow title={t("settings.theme")} description={t("settings.theme.description")}>
-          <ToggleOptions
-            value={theme}
-            onChange={handleThemeChange}
-            options={[
-              { value: "light", label: t("settings.theme.light") },
-              { value: "dark", label: t("settings.theme.dark") },
-              { value: "system", label: t("settings.theme.system") },
-            ]}
-          />
-        </SettingsRow>
+          <SettingsRow title={t("settings.theme")} description={t("settings.theme.description")}>
+            <ToggleOptions
+              value={theme}
+              onChange={handleThemeChange}
+              options={[
+                { value: "light", label: t("settings.theme.light") },
+                { value: "dark", label: t("settings.theme.dark") },
+                { value: "system", label: t("settings.theme.system") },
+              ]}
+            />
+          </SettingsRow>
+        </SettingsGroup>
 
-        {/* Run on Startup */}
-        <SettingsRow
-          title={t("settings.general.runOnStartup")}
-          description={t("settings.general.runOnStartup.description")}
-        >
-          <Switch checked={runOnStartup} onCheckedChange={handleRunOnStartupChange} />
-        </SettingsRow>
+        {/* Terminal */}
+        <SettingsGroup title={t("settings.general.group.terminal")}>
+          <SettingsRow
+            title={t("settings.general.terminalFontSize")}
+            description={t("settings.general.terminalFontSize.description")}
+          >
+            <Input
+              type="number"
+              min={8}
+              max={32}
+              value={terminalFontSize}
+              onChange={(e) => setConfig("terminalFontSize", Number(e.target.value))}
+              className="w-24"
+            />
+          </SettingsRow>
 
-        {/* Multi-Project Support */}
-        <SettingsRow
-          title={t("settings.general.multiProjectSupport")}
-          description={t("settings.general.multiProjectSupport.description")}
-        >
-          <Switch
-            checked={multiProjectSupport}
-            onCheckedChange={(v) => setConfig("multiProjectSupport", v)}
-          />
-        </SettingsRow>
+          <SettingsRow
+            title={t("settings.general.terminalFont")}
+            description={t("settings.general.terminalFont.description")}
+          >
+            <Input
+              type="text"
+              value={localTerminalFont}
+              onChange={(e) => setLocalTerminalFont(e.target.value)}
+              placeholder={t("settings.general.terminalFont.default")}
+              className="w-40"
+            />
+          </SettingsRow>
+        </SettingsGroup>
 
-        {/* Terminal Font Size */}
-        <SettingsRow
-          title={t("settings.general.terminalFontSize")}
-          description={t("settings.general.terminalFontSize.description")}
-        >
-          <Input
-            type="number"
-            min={8}
-            max={32}
-            value={terminalFontSize}
-            onChange={(e) => setConfig("terminalFontSize", Number(e.target.value))}
-            className="w-24"
-          />
-        </SettingsRow>
+        {/* Advanced */}
+        <SettingsGroup title={t("settings.general.group.advanced")}>
+          <SettingsRow
+            title={t("settings.general.runOnStartup")}
+            description={t("settings.general.runOnStartup.description")}
+          >
+            <Switch checked={runOnStartup} onCheckedChange={handleRunOnStartupChange} />
+          </SettingsRow>
 
-        {/* Terminal Font */}
-        <SettingsRow
-          title={t("settings.general.terminalFont")}
-          description={t("settings.general.terminalFont.description")}
-        >
-          <Input
-            type="text"
-            value={localTerminalFont}
-            onChange={(e) => setLocalTerminalFont(e.target.value)}
-            placeholder={t("settings.general.terminalFont.default")}
-            className="w-40"
-          />
-        </SettingsRow>
+          <SettingsRow
+            title={t("settings.general.multiProjectSupport")}
+            description={t("settings.general.multiProjectSupport.description")}
+          >
+            <Switch
+              checked={multiProjectSupport}
+              onCheckedChange={(v) => setConfig("multiProjectSupport", v)}
+            />
+          </SettingsRow>
 
-        {/* Developer Mode */}
-        <SettingsRow
-          title={t("settings.general.developerMode")}
-          description={t("settings.general.developerMode.description")}
-        >
-          <Switch checked={developerMode} onCheckedChange={(v) => setConfig("developerMode", v)} />
-        </SettingsRow>
+          <SettingsRow
+            title={t("settings.general.developerMode")}
+            description={t("settings.general.developerMode.description")}
+          >
+            <Switch
+              checked={developerMode}
+              onCheckedChange={(v) => setConfig("developerMode", v)}
+            />
+          </SettingsRow>
+        </SettingsGroup>
       </div>
     </div>
   );
