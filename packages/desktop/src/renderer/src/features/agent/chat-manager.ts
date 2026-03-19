@@ -6,6 +6,7 @@ import { agentContract } from "../../../../shared/features/agent/contract";
 import { client } from "../../orpc";
 import { ClaudeCodeChat } from "./chat";
 import { ClaudeCodeChatTransport } from "./chat-transport";
+import { scrollPositions } from "./scroll-positions";
 import { registerSessionInStore } from "./session-utils";
 import { useAgentStore } from "./store";
 
@@ -33,7 +34,11 @@ export class ClaudeCodeChatManager {
       }
 
       const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
-      if (activeSessionId !== id) markTurnCompleted(id, result);
+      if (activeSessionId !== id) {
+        markTurnCompleted(id, result);
+        log("onTurnComplete: clearing scroll position for non-active session=%s", id.slice(0, 8));
+        scrollPositions.delete(id);
+      }
     },
     onTurnStart: (id: string) => {
       useAgentStore.getState().clearTurnResult(id);
@@ -76,6 +81,8 @@ export class ClaudeCodeChatManager {
   }
 
   async removeSession(sessionId: string): Promise<void> {
+    log("removeSession: clearing scroll position for session=%s", sessionId.slice(0, 8));
+    scrollPositions.delete(sessionId);
     const chat = this.chats.get(sessionId);
     if (!chat) return;
 

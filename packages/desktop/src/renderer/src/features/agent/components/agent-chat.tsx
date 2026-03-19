@@ -34,6 +34,7 @@ import { cn } from "../../../lib/utils";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
+import { useScrollPosition } from "../hooks/use-scroll-position";
 import { BranchSwitcher } from "./branch-switcher";
 import { MessageInput } from "./message-input";
 import { MessageParts } from "./message-parts";
@@ -229,6 +230,8 @@ function AgentChatSession({
   // Ref to access scroll context for smooth scrolling on new message
   const conversationContextRef = useRef<StickToBottomContext | null>(null);
 
+  const { initialScrollBehavior } = useScrollPosition(sessionId, conversationContextRef);
+
   const handleSend = (text: string, attachments?: ImageAttachment[]) => {
     chatLog(
       "handleSend: sessionId=%s msgLen=%d attachments=%d",
@@ -253,7 +256,7 @@ function AgentChatSession({
 
   return (
     <div className="flex h-full flex-col">
-      <Conversation contextRef={conversationContextRef}>
+      <Conversation contextRef={conversationContextRef} initial={initialScrollBehavior}>
         <ConversationContent>
           {messages.map((message) => (
             <MessageParts
