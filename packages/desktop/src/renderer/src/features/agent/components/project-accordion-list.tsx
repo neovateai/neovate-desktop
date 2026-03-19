@@ -152,7 +152,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
             </span>
           </AccordionPrimitive.Trigger>
         </div>
-        <view className="flex">
+        <div className="flex">
           <button
             className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
             onClick={(e) => {
@@ -171,7 +171,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
           >
             <Plus size={14} strokeWidth={1.5} />
           </button>
-        </view>
+        </div>
       </AccordionPrimitive.Header>
       <AccordionPanel className="pb-1 pt-0">
         <ProjectSessions project={project} />

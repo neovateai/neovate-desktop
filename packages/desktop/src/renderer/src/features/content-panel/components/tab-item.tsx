@@ -41,12 +41,12 @@ function TabButton({
       onClick={() => !isOrphan && contentPanel.activateView(tab.id)}
     >
       {isOrphan && <TriangleAlert className="size-3 text-yellow-500" />}
-      <view className="flex items-center">
+      <div className="flex items-center">
         <span className="mr-1">{view?.icon && <view.icon className="size-3.5" />}</span>
         <span className="truncate font-medium">
           {view ? resolveLocalizedString(view.name, locale) : tab.viewType}
         </span>
-      </view>
+      </div>
       <Button
         variant="ghost"
         size="icon-xs"

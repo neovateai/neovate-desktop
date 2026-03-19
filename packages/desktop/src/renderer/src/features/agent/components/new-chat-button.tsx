@@ -12,7 +12,7 @@ export function NewChatButton({ projectPath }: { projectPath?: string }) {
     <Button
       variant="ghost"
       size="sm"
-      className="mb-2 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
+      className="mb-2 !h-8 w-full bg-secondary text-secondary-foreground hover:!bg-secondary/80"
       onClick={() => projectPath && createNewSession(projectPath)}
       disabled={!projectPath}
     >
