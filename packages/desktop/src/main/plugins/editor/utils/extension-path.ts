@@ -3,8 +3,6 @@ import fs from "fs";
 import https from "https";
 import path from "path";
 
-import { EXTENSIONS_DIR } from "./constants";
-
 const log = debug("neovate:editor:extension");
 
 /**
@@ -19,15 +17,15 @@ const RESOURCE_PATH =
   "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*0CnZR4rEnzoAAAAAQGAAAAgAegAAAQ"; // 0.0.9
 const VSIX_FILENAME = "neovate-code-extension-0.0.9.vsix";
 
-export function ensureExtension(): Promise<string> {
+export function ensureExtension(extDir: string): Promise<string> {
   log("ensuring extension is available");
   return new Promise((resolve, reject) => {
     // 确保extensions目录存在
-    if (!fs.existsSync(EXTENSIONS_DIR)) {
-      fs.mkdirSync(EXTENSIONS_DIR, { recursive: true });
+    if (!fs.existsSync(extDir)) {
+      fs.mkdirSync(extDir, { recursive: true });
     }
 
-    const extensionPath = path.join(EXTENSIONS_DIR, VSIX_FILENAME);
+    const extensionPath = path.join(extDir, VSIX_FILENAME);
 
     if (fs.existsSync(extensionPath)) {
       log("extension already exists at %s", extensionPath);

@@ -2,8 +2,6 @@ import debug from "debug";
 import fs from "node:fs";
 import path from "node:path";
 
-import { DATA_DIR } from "./constants";
-
 const log = debug("neovate:editor:settings");
 
 const OVERRIDE_SETTINGS = {
@@ -55,9 +53,9 @@ const OVERRIDE_SETTINGS = {
   // 'window.titleBarStyle': 'native',
 };
 
-export async function overrideCodeServerSettings(): Promise<void> {
+export async function overrideCodeServerSettings(dataDir: string): Promise<void> {
   log("overriding code-server settings");
-  const settingsDir = path.join(DATA_DIR, "User");
+  const settingsDir = path.join(dataDir, "User");
   const settingsPath = path.join(settingsDir, "settings.json");
 
   try {

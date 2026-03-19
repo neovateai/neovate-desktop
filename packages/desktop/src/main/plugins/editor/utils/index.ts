@@ -1,14 +1,14 @@
 import debug from "debug";
+import path from "path";
 
 import { ExtensionBridgeServer } from "./bridge";
-
-const log = debug("neovate:editor:manager");
-import { DATA_DIR, EXTENSIONS_DIR } from "./constants";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
 import { injectStyle } from "./injector";
 import { installExtension } from "./installer";
 import { overrideCodeServerSettings } from "./settings";
 import { codeServerStarter } from "./starter";
+
+const log = debug("neovate:editor:manager");
 
 export class CodeServerStartError extends Error {
   constructor(
@@ -31,6 +31,11 @@ export interface CodeServerInstance {
 export class CodeServerManager {
   private instance: CodeServerInstance | null = null;
   private startPromise: Promise<CodeServerInstance> | null = null;
+  private resourceDir: string;
+
+  constructor(resourceDir: string) {
+    this.resourceDir = path.join(resourceDir, "code-server");
+  }
 
   /**
    * Start or get existing code-server instance
@@ -73,8 +78,13 @@ export class CodeServerManager {
     if (!installed) {
       await downloadCodeServer(onProgress);
     }
+    // {data_dir}/user/setting.json
+    const dataDir = path.join(this.resourceDir, "code-user");
+    // bridge extension of code-server
+    const extDir = path.join(this.resourceDir, "extensions");
+
     // 2. Override settings for minimal UI
-    await overrideCodeServerSettings();
+    await overrideCodeServerSettings(dataDir);
     // 3. Find available ports for code-server and extension bridge
     const { default: getPort } = await import("get-port");
     const [port, bridgePort] = await Promise.all([getPort(), getPort()]);
@@ -84,7 +94,7 @@ export class CodeServerManager {
       await bridge.start(bridgePort);
       process.env.NEOVATE_BRIDGE_PORT = String(bridgePort);
       // preset extension
-      await installExtension();
+      await installExtension(extDir);
       // overwrite vscode dist style
       injectStyle();
     } catch (e) {
@@ -93,11 +103,7 @@ export class CodeServerManager {
 
     try {
       // start code server
-      await codeServerStarter({
-        port,
-        extDir: EXTENSIONS_DIR,
-        dataDir: DATA_DIR,
-      });
+      await codeServerStarter({ port, extDir, dataDir });
 
       const url = `http://127.0.0.1:${port}`;
       log("code server ready", { url });

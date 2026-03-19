@@ -3,8 +3,6 @@ import debug from "debug";
 import fs from "node:fs";
 import path from "node:path";
 
-import { EXTENSIONS_DIR } from "./constants";
-
 const log = debug("neovate:editor:installer");
 import { ensureExtension } from "./extension-path";
 
@@ -136,15 +134,14 @@ function readExtensionManifest(tempDir: string): ExtensionManifest {
   }
 }
 
-export async function installExtension(): Promise<void> {
+export async function installExtension(extensionPath: string): Promise<void> {
   log("installing extension");
-  const vsixPath = await ensureExtension();
+  const vsixPath = await ensureExtension(extensionPath);
 
   if (!fs.existsSync(vsixPath)) {
     throw new Error(`VSIX file not found: ${vsixPath}`);
   }
 
-  const extensionPath = EXTENSIONS_DIR;
   const extensionJSON = path.join(extensionPath, "extensions.json");
 
   if (!fs.existsSync(extensionPath)) {
