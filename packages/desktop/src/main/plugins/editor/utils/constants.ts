@@ -6,16 +6,12 @@ export const CODE_SERVER_VERSION = "e104b68";
 
 // Storage paths
 export const CODE_SERVER_DIR = path.join(os.homedir(), ".neovate", "code-server");
-export const EXTENSIONS_DIR = path.join(
-  os.homedir(),
-  ".local",
-  "share",
-  "neovate-code",
-  "extensions",
-);
 
+const RESOURCE_SHARE_DIR = path.join(os.homedir(), ".neo-desktop", "code-server");
+// bridge extension of code-server
+export const EXTENSIONS_DIR = path.join(RESOURCE_SHARE_DIR, "extensions");
 /** {data_dir}/user/setting.json */
-export const DATA_DIR = path.join(os.homedir(), ".local", "share", "neovate-code", "code-user");
+export const DATA_DIR = path.join(RESOURCE_SHARE_DIR, "code-user");
 
 // Platform mapping for download URL
 function getPlatformString() {

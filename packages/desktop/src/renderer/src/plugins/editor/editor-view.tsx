@@ -101,13 +101,15 @@ function EditorViewCore(props: { cwd: string }) {
 
     try {
       log("starting code-server");
-      const { url } = await client.editor.start();
+      const { url, error } = await client.editor.start();
       if (!url) {
-        throw new Error("Url is empty");
+        throw new Error(error || "Url is empty");
       }
       // TODO: refactor with 统一的埋点体系, replace raw CustomEvent dispatching
       window.dispatchEvent(
-        new CustomEvent("neovate:log-event", { detail: { key: "EDITOR_STARTED" } }),
+        new CustomEvent("neovate:log-event", {
+          detail: { key: "EDITOR_STARTED" },
+        }),
       );
       // Construct URL with folder query param
       const editorUrl = `${url}/?folder=${encodeURIComponent(cwd)}`;

@@ -15,18 +15,23 @@ export function createEditorRouter(
     start: orpcServer.handler(async () => {
       log("starting code server");
       const d1 = Date.now();
-      const instance = await codeServer.start(extBridge, (p) => {
-        log("downloading", {
-          percent: p.percent,
-          downloadedBytes: p.downloadedBytes,
-          totalBytes: p.totalBytes,
+      try {
+        const instance = await codeServer.start(extBridge, (p) => {
+          log("downloading", {
+            percent: p.percent,
+            downloadedBytes: p.downloadedBytes,
+            totalBytes: p.totalBytes,
+          });
+          if (p.downloadedBytes === p.totalBytes) {
+            log("download complete", { elapsed: Date.now() - d1 });
+          }
         });
-        if (p.downloadedBytes === p.totalBytes) {
-          log("download complete", { elapsed: Date.now() - d1 });
-        }
-      });
-      log("code server started", { url: instance.url });
-      return { url: instance.url };
+        log("code server started", { url: instance.url });
+        return { success: true, url: instance.url };
+      } catch (error) {
+        log("failed to start code server", { error });
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
     }),
     connect: orpcServer.handler(() => {
       log("waiting for extension bridge ping");
