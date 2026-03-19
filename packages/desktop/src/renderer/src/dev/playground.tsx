@@ -21,9 +21,7 @@ export default function Playground() {
     <div className="flex h-screen flex-col">
       {/* Draggable title bar */}
       <div className="[-webkit-app-region:drag] relative flex h-11 shrink-0 select-none items-center justify-center border-b">
-        <span className="[-webkit-app-region:no-drag] text-xs font-medium text-muted-foreground">
-          Playground
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">Playground</span>
       </div>
 
       {/* Body */}
