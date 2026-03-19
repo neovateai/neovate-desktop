@@ -18,6 +18,7 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { SkillInstaller } from "./installers/types";
 
+import { ClawhubInstaller } from "./installers/clawhub";
 import { GitInstaller } from "./installers/git";
 import { NpmInstaller } from "./installers/npm";
 import { PrebuiltInstaller } from "./installers/prebuilt";
@@ -30,7 +31,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const remoteSkillSchema = z.object({
   name: z.string(),
   description: z.string(),
-  source: z.enum(["prebuilt", "git", "npm"]),
+  source: z.enum(["prebuilt", "git", "npm", "clawhub"]),
   sourceRef: z.string(),
   skillName: z.string(),
   version: z.string().optional(),
@@ -52,6 +53,7 @@ export class SkillsService {
     this.installers = [
       new PrebuiltInstaller(path.join(resourcesDir, "skills")),
       new NpmInstaller(),
+      new ClawhubInstaller(),
       new GitInstaller(),
     ];
   }
@@ -354,14 +356,20 @@ export class SkillsService {
 
   private async writeInstallMeta(skillDir: string, sourceRef: string): Promise<void> {
     let source: SkillSource = "git";
+    let normalizedRef = sourceRef;
     if (sourceRef.startsWith("prebuilt:")) source = "prebuilt";
     else if (sourceRef.startsWith("npm:") || sourceRef.startsWith("@")) source = "npm";
+    else if (sourceRef.startsWith("clawhub:") || sourceRef.startsWith("https://clawhub.ai/")) {
+      source = "clawhub";
+      const installer = this.findInstaller(sourceRef) as ClawhubInstaller;
+      normalizedRef = installer.normalize(sourceRef);
+    }
 
-    const installer = this.findInstaller(sourceRef);
-    const version = (await installer?.getLatestVersion?.(sourceRef)) ?? "unknown";
+    const installer = this.findInstaller(normalizedRef);
+    const version = (await installer?.getLatestVersion?.(normalizedRef)) ?? "unknown";
 
     const meta: InstallMeta = {
-      installedFrom: sourceRef,
+      installedFrom: normalizedRef,
       version,
       source,
       installedAt: new Date().toISOString(),

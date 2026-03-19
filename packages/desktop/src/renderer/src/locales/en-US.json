@@ -170,8 +170,8 @@
 
   "settings.skills": "Skills",
   "settings.skills.addSkill": "Add Skill",
-  "settings.skills.addDescription": "Install skills from a Git repository, npm package, or local path.",
-  "settings.skills.sourcePlaceholder": "user/repo, git URL, npm:package, or local path",
+  "settings.skills.addDescription": "Install skills from ClawHub, a Git repository, or npm package.",
+  "settings.skills.sourcePlaceholder": "clawhub.ai URL, clawhub:slug, git URL, or npm:package",
   "settings.skills.preview": "Preview",
   "settings.skills.fetching": "Fetching skills from {{source}}...",
   "settings.skills.selectToInstall": "Select skills to install:",

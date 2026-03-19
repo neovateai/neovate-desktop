@@ -30,7 +30,7 @@ export interface RecommendedSkill {
   installed: boolean;
 }
 
-export type SkillSource = "prebuilt" | "git" | "npm";
+export type SkillSource = "prebuilt" | "git" | "npm" | "clawhub";
 
 export interface PreviewSkill {
   name: string;

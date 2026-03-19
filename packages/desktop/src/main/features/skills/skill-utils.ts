@@ -21,6 +21,7 @@ const INSTALL_META_FILE = ".neovate-install.json";
  */
 export function parseFrontmatter(content: string): {
   frontmatter: SkillFrontmatter;
+  name: string | undefined;
   description: string;
   body: string;
 } {
@@ -31,7 +32,7 @@ export function parseFrontmatter(content: string): {
         .split("\n\n")[0]
         ?.replace(/^#\s+.*\n?/, "")
         .trim() ?? "";
-    return { frontmatter: {}, description: firstParagraph, body: content };
+    return { frontmatter: {}, name: undefined, description: firstParagraph, body: content };
   }
 
   const yamlStr = match[1] ?? "";
@@ -110,7 +111,9 @@ export function parseFrontmatter(content: string): {
           ?.replace(/^#\s+.*\n?/, "")
           .trim() ?? "");
 
-  return { frontmatter, description, body };
+  const name = typeof fm.name === "string" ? fm.name : undefined;
+
+  return { frontmatter, name, description, body };
 }
 
 /**
@@ -140,11 +143,8 @@ export async function scanSkillDirs(baseDir: string, singleName?: string): Promi
   // Tier 1: Root-level SKILL.md
   const rootContent = await readFile(path.join(baseDir, SKILL_FILE), "utf-8").catch(() => null);
   if (rootContent) {
-    const { frontmatter, description } = parseFrontmatter(rootContent);
-    const name =
-      typeof (frontmatter as Record<string, unknown>).name === "string"
-        ? ((frontmatter as Record<string, unknown>).name as string)
-        : path.basename(baseDir);
+    const { name: fmName, description } = parseFrontmatter(rootContent);
+    const name = fmName ?? path.basename(baseDir);
     return [{ name, description, skillPath: "." }];
   }
 
@@ -294,7 +294,7 @@ export async function scanInstalledSkills(
         continue;
       }
 
-      const { frontmatter, description } = parseFrontmatter(content);
+      const { frontmatter, name: fmName, description } = parseFrontmatter(content);
 
       // Read install metadata if present
       let version: string | undefined;
@@ -308,10 +308,7 @@ export async function scanInstalledSkills(
         // No install metadata
       }
 
-      const name =
-        typeof (frontmatter as Record<string, unknown>).name === "string"
-          ? ((frontmatter as Record<string, unknown>).name as string)
-          : entry;
+      const name = fmName ?? entry;
 
       skills.push({
         name,

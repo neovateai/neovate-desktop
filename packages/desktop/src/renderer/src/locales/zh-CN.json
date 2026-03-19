@@ -173,8 +173,8 @@
 
   "settings.skills": "技能",
   "settings.skills.addSkill": "添加技能",
-  "settings.skills.addDescription": "从 Git 仓库、npm 包或本地路径安装技能。",
-  "settings.skills.sourcePlaceholder": "用户名/仓库名、Git URL、npm:包名 或本地路径",
+  "settings.skills.addDescription": "从 ClawHub、Git 仓库或 npm 包安装技能。",
+  "settings.skills.sourcePlaceholder": "clawhub.ai URL、clawhub:slug、Git URL 或 npm:包名",
   "settings.skills.preview": "预览",
   "settings.skills.fetching": "正在从 {{source}} 获取技能...",
   "settings.skills.selectToInstall": "选择要安装的技能：",

@@ -144,17 +144,22 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                 <div>{t("settings.skills.examples")}</div>
                 <div className="pl-2">
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    https://clawhub.ai/owner/skill-name
+                  </code>
+                </div>
+                <div className="pl-2">
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    clawhub:skill-name
+                  </code>
+                </div>
+                <div className="pl-2">
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     github.com/user/claude-skills
                   </code>
                 </div>
                 <div className="pl-2">
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     npm:@claude-skills/pr-apply
-                  </code>
-                </div>
-                <div className="pl-2">
-                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
-                    /path/to/local/skill
                   </code>
                 </div>
               </div>
