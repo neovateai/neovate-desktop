@@ -69,7 +69,7 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
       className="relative grid h-screen w-screen overflow-hidden pb-2 bg-background"
       style={APP_LAYOUT_GRID}
     >
-      <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-11" />
+      <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
       {children}
     </div>
   );
@@ -81,7 +81,7 @@ export function AppLayoutTitleBar({ children }: { children: ReactNode }) {
   return (
     <motion.div
       data-slot="titlebar"
-      className="flex h-11 select-none items-center justify-between gap-2"
+      className="[-webkit-app-region:drag] flex h-11 select-none items-center"
       style={{ gridArea: APP_LAYOUT_GRID_AREA.titleBar }}
       animate={{ marginLeft: collapsed ? APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN : 0 }}
       transition={{ type: "spring" as const, stiffness: 360, damping: 34 }}
@@ -129,7 +129,7 @@ export function AppLayoutTrafficLights() {
     <div
       data-slot="traffic-lights"
       className="[-webkit-app-region:no-drag] pointer-events-auto fixed z-[100] flex items-center gap-1"
-      style={{ top: 9.5, left: 90 }}
+      style={{ top: 9, left: 82 }}
     >
       <Button
         variant="ghost"
@@ -230,55 +230,61 @@ export function AppLayoutSecondaryTitleBar() {
   const lazyComponents = useLazyComponents(items);
 
   return (
-    <div data-slot="secondary-titlebar" className="flex shrink-0 items-center gap-1 pr-1.5">
-      {activeProject && <OpenAppButton cwd={activeProject.path} />}
-      <TooltipProvider delay={0}>
-        {items.map((item) => {
-          const Component = lazyComponents.get(item.id)!;
-          return (
-            <Suspense key={item.id}>
-              {item.tooltip ? (
-                <TooltipTrigger
-                  handle={secondaryTitlebarTooltipHandle}
-                  payload={resolveLocalizedString(item.tooltip, locale)}
-                  render={<span className="inline-flex" />}
-                >
+    <div
+      data-slot="secondary-titlebar"
+      className="[-webkit-app-region:drag] flex flex-1 items-center"
+    >
+      <div className="flex-1" />
+      <div className="[-webkit-app-region:no-drag] flex shrink-0 items-center gap-1 pr-1.5">
+        {activeProject && <OpenAppButton cwd={activeProject.path} />}
+        <TooltipProvider delay={0}>
+          {items.map((item) => {
+            const Component = lazyComponents.get(item.id)!;
+            return (
+              <Suspense key={item.id}>
+                {item.tooltip ? (
+                  <TooltipTrigger
+                    handle={secondaryTitlebarTooltipHandle}
+                    payload={resolveLocalizedString(item.tooltip, locale)}
+                    render={<span className="inline-flex" />}
+                  >
+                    <Component />
+                  </TooltipTrigger>
+                ) : (
                   <Component />
-                </TooltipTrigger>
-              ) : (
-                <Component />
-              )}
-            </Suspense>
-          );
-        })}
-        <Tooltip handle={secondaryTitlebarTooltipHandle}>
-          {({ payload }) => <TooltipPopup side="bottom">{payload}</TooltipPopup>}
-        </Tooltip>
-      </TooltipProvider>
-      <Separator orientation="vertical" className="mx-2 my-1 w-[2px] rounded-xl" />
-      <ContentPanelToggle />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => togglePanel("secondarySidebar")}
-        title={secondaryCollapsed ? t("sidebar.showSidebar") : t("sidebar.hideSidebar")}
-        className={cn("hover:bg-accent", !secondaryCollapsed && "bg-accent")}
-      >
-        <HugeiconsIcon
-          icon={secondaryCollapsed ? PanelRightIcon : ViewSidebarRightIcon}
-          size={16}
-          strokeWidth={1.8}
-        />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="size-7"
-        title={t("sidebar.settings")}
-        onClick={() => setShowSettings(true)}
-      >
-        <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.8} />
-      </Button>
+                )}
+              </Suspense>
+            );
+          })}
+          <Tooltip handle={secondaryTitlebarTooltipHandle}>
+            {({ payload }) => <TooltipPopup side="bottom">{payload}</TooltipPopup>}
+          </Tooltip>
+        </TooltipProvider>
+        <Separator orientation="vertical" className="mx-2 my-1 w-[2px] rounded-xl" />
+        <ContentPanelToggle />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => togglePanel("secondarySidebar")}
+          title={secondaryCollapsed ? t("sidebar.showSidebar") : t("sidebar.hideSidebar")}
+          className={cn("hover:bg-accent", !secondaryCollapsed && "bg-accent")}
+        >
+          <HugeiconsIcon
+            icon={secondaryCollapsed ? PanelRightIcon : ViewSidebarRightIcon}
+            size={16}
+            strokeWidth={1.8}
+          />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-7"
+          title={t("sidebar.settings")}
+          onClick={() => setShowSettings(true)}
+        >
+          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.8} />
+        </Button>
+      </div>
     </div>
   );
 }
