@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Globe,
   Paperclip,
+  RotateCw,
   SendHorizonal,
   Settings,
   Shield,
@@ -48,6 +49,8 @@ type Props = {
   streaming: boolean;
   disabled?: boolean;
   sessionInitializing?: boolean;
+  sessionInitError?: string | null;
+  onRetry?: () => void;
   onSend: () => void;
   onCancel: () => void;
   onAttach: () => void;
@@ -58,12 +61,15 @@ export function InputToolbar({
   streaming,
   disabled,
   sessionInitializing,
+  sessionInitError,
+  onRetry,
   onSend,
   onCancel,
   onAttach,
   activeSessionId,
 }: Props) {
   const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
+  const networkInspector = useConfigStore((s) => s.networkInspector);
 
   const { t } = useTranslation();
 
@@ -86,11 +92,18 @@ export function InputToolbar({
       </Button>
       <ModelSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
       <PermissionModeSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
-      {sessionInitializing && (
+      {sessionInitError ? (
+        <span className="text-xs text-destructive">
+          {t("chat.sessionInitFailed")}
+          {networkInspector && (
+            <span className="text-muted-foreground ml-1">— {t("chat.sessionInitNetworkHint")}</span>
+          )}
+        </span>
+      ) : sessionInitializing ? (
         <span className="text-xs text-muted-foreground animate-pulse">
           {t("chat.sessionInitializing")}
         </span>
-      )}
+      ) : null}
       <div className="flex-1" />
       {streaming ? (
         <Button
@@ -101,6 +114,17 @@ export function InputToolbar({
           onClick={onCancel}
         >
           <Square className="h-3.5 w-3.5" />
+        </Button>
+      ) : sessionInitError ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onRetry}
+          title={t("chat.sessionInitRetry")}
+        >
+          <RotateCw className="h-4 w-4 text-muted-foreground" />
         </Button>
       ) : sessionInitializing ? (
         <div className="flex h-7 w-7 items-center justify-center">

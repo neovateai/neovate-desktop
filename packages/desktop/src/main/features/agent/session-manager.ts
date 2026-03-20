@@ -82,6 +82,9 @@ function listSessionFiles(filter?: string): string[] {
 /** Auto-cancel permission requests after 5 minutes of no UI response. */
 export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 
+/** Timeout for SDK initializationResult() to prevent hanging sessions. */
+const INIT_TIMEOUT_MS = 10_000;
+
 const ENV_BLOCKLIST = new Set([
   "ELECTRON_RUN_AS_NODE",
   "NODE_OPTIONS",
@@ -288,7 +291,7 @@ export class SessionManager {
       provider?.id ?? "(none)",
     );
 
-    const initResult = await this.initSession(sessionId, cwd, {
+    const initResult = await this.initSessionWithTimeout(sessionId, cwd, {
       model: modelSetting?.model,
       provider,
     });
@@ -331,7 +334,7 @@ export class SessionManager {
       ? readProviderModelSetting(sessionId, cwd, provider, this.configStore, this.projectStore)
       : readModelSetting(sessionId, cwd);
 
-    const capabilities = await this.initSession(sessionId, cwd, {
+    const capabilities = await this.initSessionWithTimeout(sessionId, cwd, {
       model: modelSetting?.model,
       resume: sessionId,
       provider,
@@ -591,6 +594,31 @@ export class SessionManager {
       pendingRequests,
     });
     return q.initializationResult();
+  }
+
+  /** Wrap initSession with a timeout to prevent hanging sessions. */
+  private async initSessionWithTimeout(
+    sessionId: string,
+    cwd: string,
+    opts?: { model?: string; resume?: string; provider?: Provider },
+  ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error("Session initialization timed out")),
+        INIT_TIMEOUT_MS,
+      );
+    });
+
+    try {
+      const result = await Promise.race([this.initSession(sessionId, cwd, opts), timeoutPromise]);
+      clearTimeout(timer!);
+      return result;
+    } catch (err) {
+      clearTimeout(timer!);
+      await this.closeSession(sessionId);
+      throw err;
+    }
   }
 
   async listSessions(cwd?: string): Promise<SessionInfo[]> {

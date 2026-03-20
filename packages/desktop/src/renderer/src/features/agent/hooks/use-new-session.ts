@@ -10,6 +10,7 @@ const newSessionLog = debug("neovate:agent-new-session");
 
 export function useNewSession() {
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
+  const setSessionInitError = useAgentStore((s) => s.setSessionInitError);
 
   const createNewSession = useCallback(
     async (cwd: string) => {
@@ -28,6 +29,8 @@ export function useNewSession() {
       const { sessionId, commands, models, currentModel, modelScope, providerId } =
         await claudeCodeChatManager.createSession(cwd);
       newSessionLog("createNewSession: created %s currentModel=%s", sessionId, currentModel);
+
+      setSessionInitError(null);
 
       // Guard: if user navigated to another session during the async gap, don't steal focus
       const currentActiveId = useAgentStore.getState().activeSessionId;
@@ -49,7 +52,7 @@ export function useNewSession() {
 
       return sessionId;
     },
-    [setActiveSession],
+    [setActiveSession, setSessionInitError],
   );
 
   /** Pre-warm a new empty session in the background (no activation). */
@@ -64,16 +67,23 @@ export function useNewSession() {
     }
 
     newSessionLog("preWarmSession: creating background session cwd=%s", cwd);
-    const { sessionId, commands, models, currentModel, modelScope, providerId } =
-      await claudeCodeChatManager.createSession(cwd);
-    newSessionLog("preWarmSession: created %s currentModel=%s", sessionId, currentModel);
+    try {
+      const { sessionId, commands, models, currentModel, modelScope, providerId } =
+        await claudeCodeChatManager.createSession(cwd);
+      newSessionLog("preWarmSession: created %s currentModel=%s", sessionId, currentModel);
 
-    registerSessionInStore(
-      sessionId,
-      projectPath,
-      { commands, models, currentModel, modelScope, providerId },
-      false,
-    );
+      registerSessionInStore(
+        sessionId,
+        projectPath,
+        { commands, models, currentModel, modelScope, providerId },
+        false,
+      );
+    } catch (error) {
+      newSessionLog(
+        "preWarmSession: FAILED error=%s",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }, []);
 
   return { createNewSession, preWarmSession };
