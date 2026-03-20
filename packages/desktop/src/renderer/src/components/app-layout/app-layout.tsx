@@ -44,6 +44,7 @@ import {
   APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
   APP_LAYOUT_GRID,
   APP_LAYOUT_GRID_AREA,
+  getGridTemplateColumns,
 } from "./constants";
 import { usePanelResize } from "./hooks";
 import { ResizeHandle } from "./resize-handle";
@@ -62,12 +63,17 @@ function useLazyComponents(items: TitlebarItem[]) {
 export function AppLayoutRoot({ children }: { children: ReactNode }) {
   usePanelResize();
 
+  const contentPanelExpanded = useLayoutStore((s) => !s.panels.contentPanel?.collapsed);
+
   return (
     <div
       data-slot="app-layout-root"
       data-testid="app-root"
       className="relative grid h-screen w-screen overflow-hidden pb-2 bg-background"
-      style={APP_LAYOUT_GRID}
+      style={{
+        ...APP_LAYOUT_GRID,
+        gridTemplateColumns: getGridTemplateColumns(contentPanelExpanded),
+      }}
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
       {children}
@@ -96,12 +102,18 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const sessions = useAgentStore((s) => s.sessions);
   const activeSession = activeSessionId ? sessions.get(activeSessionId) : undefined;
+
+  // When contentPanel is expanded, chatPanel uses fixed width from store
+  const contentPanelExpanded = useLayoutStore((s) => !s.panels.contentPanel?.collapsed);
+  const chatPanelWidth = useLayoutStore((s) => s.panels.chatPanel?.width);
+
   return (
     <div
       data-slot="chat-panel"
       className="min-w-0 overflow-hidden rounded-lg pb-2 bg-card backdrop-blur-lg shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
       style={{
         gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
+        width: contentPanelExpanded ? chatPanelWidth : undefined,
         backgroundImage:
           !activeSession || activeSession.isNew
             ? `url("${getChatPanelBgUrl(resolvedTheme as "dark" | "light" | undefined)}")`

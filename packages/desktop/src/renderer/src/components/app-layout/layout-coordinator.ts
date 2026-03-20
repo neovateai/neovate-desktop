@@ -37,6 +37,11 @@ export function setPanelWidth(panels: PanelMap, id: PanelId, width: number): Pan
   return { ...panels, [id]: { ...panels[id], width } };
 }
 
+/** Set panel width and update preferredWidth (user's manual preference). */
+function setPanelWidthWithPreference(panels: PanelMap, id: PanelId, width: number): PanelMap {
+  return { ...panels, [id]: { ...panels[id], width, preferredWidth: width } };
+}
+
 function setPanelCollapsed(panels: PanelMap, id: PanelId, collapsed: boolean): PanelMap {
   return { ...panels, [id]: { ...panels[id], collapsed } };
 }
@@ -116,13 +121,41 @@ export function constrainWidth(
 // Fit — resolve overflow across all panels (global solver)
 // ---------------------------------------------------------------------------
 
+/**
+ * Compute shrink priority for a panel at runtime.
+ * Higher priority = shrinks first.
+ *
+ * Dynamic priority: contentPanel gets highest priority when expanded.
+ * This ensures window resize affects contentPanel first when it's open,
+ * preserving chatPanel width when contentPanel is available to absorb changes.
+ */
+function getShrinkPriority(descriptor: PanelDescriptor, panels: PanelMap): number {
+  // contentPanel: highest priority when expanded, ignored when collapsed
+  if (descriptor.id === "contentPanel") {
+    return panels.contentPanel.collapsed ? -1 : 4;
+  }
+
+  // chatPanel: high priority (absorbs changes when contentPanel is closed)
+  if (descriptor.id === "chatPanel") {
+    return 3;
+  }
+
+  // Other panels: use static priority from descriptor
+  return descriptor.overflow.priority;
+}
+
 /** Shrink expanded panels by overflow priority until total width fits within windowWidth. */
-export function shrinkPanelsToFit(panels: PanelMap, windowWidth: number): PanelMap {
+export function shrinkPanelsToFit(
+  panels: PanelMap,
+  windowWidth: number,
+  protectPanel?: PanelId,
+): PanelMap {
   const excess = computeTotalWidth(panels) - windowWidth;
   if (excess <= 0) return panels;
 
+  // Sort by DYNAMIC priority — higher priority shrinks first
   const byPriority = expandedDescriptors(panels).sort(
-    (a, b) => b.overflow.priority - a.overflow.priority,
+    (a, b) => getShrinkPriority(b, panels) - getShrinkPriority(a, panels),
   );
 
   let result = panels;
@@ -130,9 +163,67 @@ export function shrinkPanelsToFit(panels: PanelMap, windowWidth: number): PanelM
 
   for (const descriptor of byPriority) {
     if (remaining <= 0) break;
+    // Skip protected panel (e.g., panel being opened)
+    if (descriptor.id === protectPanel) continue;
     const give = descriptor.overflow.shrink(result[descriptor.id].width, descriptor.min, remaining);
     result = setPanelWidth(result, descriptor.id, result[descriptor.id].width - give);
     remaining -= give;
+  }
+
+  return result;
+}
+
+/**
+ * Adjust panels when window width changes.
+ * If contentPanel is expanded, it absorbs the change (grow or shrink).
+ * If contentPanel is collapsed, chatPanel absorbs the change automatically (flex-1).
+ *
+ * This creates the UX where window resize primarily affects contentPanel when open,
+ * preserving chatPanel width when possible.
+ */
+export function adjustPanelsForWindowDelta(
+  panels: PanelMap,
+  previousWidth: number,
+  currentWidth: number,
+): PanelMap {
+  const delta = currentWidth - previousWidth;
+  if (delta === 0) return panels;
+
+  // If contentPanel is collapsed, chatPanel will naturally absorb the change (flex-1)
+  // Just shrink panels if needed
+  if (panels.contentPanel.collapsed) {
+    if (delta < 0) {
+      return shrinkPanelsToFit(panels, currentWidth);
+    }
+    return panels;
+  }
+
+  // contentPanel is expanded - let it absorb the window change
+  const contentPanelDesc = getDescriptor("contentPanel");
+  const contentPanel = panels.contentPanel;
+
+  let result = panels;
+
+  if (delta > 0) {
+    // Window grew: expand contentPanel first
+    const growRoom = contentPanelDesc.max - contentPanel.width;
+    const grow = Math.min(delta, growRoom);
+    if (grow > 0) {
+      result = setPanelWidth(result, "contentPanel", contentPanel.width + grow);
+    }
+    // Any remaining delta is naturally absorbed by chatPanel (flex-1)
+  } else {
+    // Window shrank: shrink contentPanel first
+    const shrinkRoom = contentPanel.width - contentPanelDesc.min;
+    const shrink = Math.min(-delta, shrinkRoom);
+    if (shrink > 0) {
+      result = setPanelWidth(result, "contentPanel", contentPanel.width - shrink);
+    }
+    // If contentPanel can't absorb all, use shrinkPanelsToFit for the rest
+    const remainingDelta = -delta - shrink;
+    if (remainingDelta > 0) {
+      result = shrinkPanelsToFit(result, currentWidth);
+    }
   }
 
   return result;
@@ -172,9 +263,26 @@ function resolveEffectivePanels(
  * Separator `i` sits between PANEL_ORDER[i] and PANEL_ORDER[i+1].
  * Resolves effective expanded panels on each side (skipping collapsed gaps)
  * then walks panels by physical position from the separator outward.
+ *
+ * Special case: when contentPanel is expanded (1fr), dragging sep2 only adjusts chatPanel width.
  */
 export function applyDelta(panels: PanelMap, separatorIndex: number, delta: number): PanelMap {
   if (delta === 0) return panels;
+
+  // Special case: sep2 (chatPanel:contentPanel) when contentPanel is expanded (1fr)
+  // Only adjust chatPanel width, contentPanel auto-adapts as 1fr
+  if (separatorIndex === 1 && !panels.contentPanel.collapsed) {
+    const chatPanel = panels.chatPanel;
+    const chatPanelDesc = getDescriptor("chatPanel");
+    const newWidth = Math.max(
+      chatPanelDesc.min,
+      Math.min(chatPanelDesc.max, chatPanel.width + delta),
+    );
+    if (newWidth !== chatPanel.width) {
+      return setPanelWidthWithPreference(panels, "chatPanel", newWidth);
+    }
+    return panels;
+  }
 
   const { leftId, rightId } = resolveEffectivePanels(panels, separatorIndex);
   const absDelta = Math.abs(delta);
@@ -206,7 +314,9 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     }
     const consumed = cappedDelta - remaining;
     if (consumed > 0) {
-      result = setPanelWidth(result, leftId, growPanel.width + consumed);
+      // User dragged to grow this panel — update preferredWidth
+      const newWidth = growPanel.width + consumed;
+      result = setPanelWidthWithPreference(result, leftId, newWidth);
     }
     return result;
   } else {
@@ -236,7 +346,9 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     }
     const consumed = cappedDelta - remaining;
     if (consumed > 0) {
-      result = setPanelWidth(result, rightId, growPanel.width + consumed);
+      // User dragged to grow this panel — update preferredWidth
+      const newWidth = growPanel.width + consumed;
+      result = setPanelWidthWithPreference(result, rightId, newWidth);
     }
     return result;
   }
@@ -248,15 +360,26 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
 
 /**
  * Expand a panel. Pipeline:
- * 1. Propose — open behavior computes target width
+ * 1. Propose — open behavior computes target width (uses preferredWidth if available)
  * 2. Constrain — clamp within min/max/available bounds
  * 3. Fit — shrink siblings if layout overflows
  */
 export function openPanel(panels: PanelMap, id: PanelId, windowWidth: number): PanelMap {
   const descriptor = getDescriptor(id);
+  const panel = panels[id];
+
+  // Use preferredWidth (user's last manual setting) if available, otherwise current width
+  const storedWidth = panel.preferredWidth ?? panel.width;
+  console.log("[openPanel]", {
+    id,
+    preferredWidth: panel.preferredWidth,
+    storedWidth,
+    windowWidth,
+  });
 
   // 1. Propose
-  const proposed = descriptor.open(panels[id].width, { windowWidth, panels });
+  const proposed = descriptor.open(storedWidth, { windowWidth, panels });
+  console.log("[openPanel] proposed:", proposed);
 
   // 2. Constrain (against expanded state so available space accounts for this panel)
   const expanded = setPanelCollapsed(panels, id, false);
@@ -264,9 +387,17 @@ export function openPanel(panels: PanelMap, id: PanelId, windowWidth: number): P
     windowWidth,
     panels: expanded,
   });
+  console.log(
+    "[openPanel] constrained:",
+    width,
+    "maxAvailable:",
+    computeMaxAvailableWidth(descriptor, { windowWidth, panels: expanded }),
+  );
 
-  // 3. Fit
-  return shrinkPanelsToFit(setPanelWidth(expanded, id, width), windowWidth);
+  // 3. Fit - protect the panel being opened from shrinkage
+  const fitted = shrinkPanelsToFit(setPanelWidth(expanded, id, width), windowWidth, id);
+  console.log("[openPanel] fitted:", fitted[id].width);
+  return fitted;
 }
 
 /** Collapse a panel (preserves stored width for restore). */

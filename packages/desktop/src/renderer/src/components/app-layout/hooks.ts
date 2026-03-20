@@ -1,11 +1,15 @@
 import debug from "debug";
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { client } from "../../orpc";
 
 const log = debug("neovate:layout");
-import { shrinkPanelsToFit, computeMinWindowWidth, setPanelWidth } from "./layout-coordinator";
-import { applyDelta } from "./layout-coordinator";
+import {
+  computeMinWindowWidth,
+  setPanelWidth,
+  adjustPanelsForWindowDelta,
+  applyDelta,
+} from "./layout-coordinator";
 import { useLayoutStore, layoutStore } from "./store";
 
 /** Syncs the OS minimum window width via IPC whenever panels change (debounced 100ms). */
@@ -60,19 +64,32 @@ function useSyncChatPanelWidth() {
   }, []);
 }
 
-/** Shrinks explicit-width panels on overflow and syncs chatPanel width from DOM after resize. */
-function useShrinkPanelsOnWindowResize() {
-  useEffect(() => {
-    const fit = () => {
-      const { panels } = layoutStore.getState();
-      const windowWidth = window.innerWidth;
+/**
+ * Adjusts panels when window width changes.
+ * If contentPanel is expanded, it absorbs the window change (grow or shrink).
+ * If contentPanel is collapsed, chatPanel absorbs the change automatically (flex-1).
+ */
+function useAdjustPanelsOnWindowResize() {
+  const previousWidthRef = useRef<number>(window.innerWidth);
 
-      // Shrink explicit-width panels if they overflow
-      const newPanels = shrinkPanelsToFit(panels, windowWidth);
+  useEffect(() => {
+    const adjust = () => {
+      const { panels } = layoutStore.getState();
+      const currentWidth = window.innerWidth;
+      const previousWidth = previousWidthRef.current;
+
+      // Adjust panels based on window delta
+      const newPanels = adjustPanelsForWindowDelta(panels, previousWidth, currentWidth);
       if (newPanels !== panels) {
-        log("panels overflow, shrinking to fit", { windowWidth });
+        log("adjusted panels for window delta", {
+          delta: currentWidth - previousWidth,
+          contentPanelCollapsed: panels.contentPanel.collapsed,
+        });
         layoutStore.setState({ panels: newPanels });
       }
+
+      // Update previous width for next resize
+      previousWidthRef.current = currentWidth;
 
       // Sync chatPanel store width from DOM (flex-1 auto-adjusts visually)
       requestAnimationFrame(() => {
@@ -86,11 +103,11 @@ function useShrinkPanelsOnWindowResize() {
       });
     };
 
-    fit();
+    adjust();
     let rafId = 0;
     const onResize = () => {
       cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(fit);
+      rafId = requestAnimationFrame(adjust);
     };
     window.addEventListener("resize", onResize);
     return () => {
@@ -148,10 +165,10 @@ function usePanelDrag() {
   }, [resizing, stopResize]);
 }
 
-/** Composes all panel resize hooks: window min sync, chat sync, fit-on-resize, and drag handling. */
+/** Composes all panel resize hooks: window min sync, chat sync, adjust-on-resize, and drag handling. */
 export function usePanelResize() {
   useSyncWindowMinWidth();
   useSyncChatPanelWidth();
-  useShrinkPanelsOnWindowResize();
+  useAdjustPanelsOnWindowResize();
   usePanelDrag();
 }

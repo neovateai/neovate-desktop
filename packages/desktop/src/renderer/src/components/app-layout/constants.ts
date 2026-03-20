@@ -62,6 +62,20 @@ export const APP_LAYOUT_GRID = {
     "${APP_LAYOUT_GRID_AREA.primarySidebar} ${APP_LAYOUT_GRID_AREA["primarySidebar:chatPanel"]} ${APP_LAYOUT_GRID_AREA.titleBar}   ${APP_LAYOUT_GRID_AREA.titleBar}                       ${APP_LAYOUT_GRID_AREA.titleBar}      ${APP_LAYOUT_GRID_AREA.titleBar}                              ${APP_LAYOUT_GRID_AREA.titleBar}          ${APP_LAYOUT_GRID_AREA.titleBar}"
     "${APP_LAYOUT_GRID_AREA.primarySidebar} ${APP_LAYOUT_GRID_AREA["primarySidebar:chatPanel"]} ${APP_LAYOUT_GRID_AREA.chatPanel}  ${APP_LAYOUT_GRID_AREA["chatPanel:contentPanel"]} ${APP_LAYOUT_GRID_AREA.contentPanel}  ${APP_LAYOUT_GRID_AREA["contentPanel:secondarySidebar"]} ${APP_LAYOUT_GRID_AREA.secondarySidebar}  ${APP_LAYOUT_GRID_AREA.activityBar}"
   `,
-  gridTemplateColumns: "auto auto 1fr auto auto auto auto auto",
   gridTemplateRows: "auto 1fr",
 } as const;
+
+/**
+ * Generate dynamic grid template columns based on contentPanel state.
+ * - contentPanel collapsed: chatPanel gets 1fr (flex-1), contentPanel and sep2 collapse to 0
+ * - contentPanel expanded: contentPanel gets 1fr (flex-1), chatPanel gets fixed width
+ */
+export function getGridTemplateColumns(contentPanelExpanded: boolean): string {
+  // Column structure (8 columns):
+  // 1: primarySidebar, 2: sep1, 3: chatPanel, 4: sep2, 5: contentPanel, 6: sep3, 7: secondarySidebar, 8: activityBar
+  // When contentPanel expanded: 1fr at column 5 (contentPanel)
+  // When contentPanel collapsed: 1fr at column 3 (chatPanel), columns 4-5 collapse to 0, sep3 stays auto for resize handle
+  return contentPanelExpanded
+    ? "auto auto auto auto 1fr auto auto auto"
+    : "auto auto 1fr 0 0 auto auto auto";
+}

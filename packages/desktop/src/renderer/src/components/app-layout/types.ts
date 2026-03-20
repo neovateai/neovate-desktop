@@ -2,6 +2,8 @@ export type PanelId = "primarySidebar" | "chatPanel" | "contentPanel" | "seconda
 
 export type PanelState = {
   width: number;
+  /** User's preferred width (preserved across window resizes). */
+  preferredWidth?: number;
   collapsed: boolean;
   activeView?: string;
 };

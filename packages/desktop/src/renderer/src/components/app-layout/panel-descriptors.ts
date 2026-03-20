@@ -24,12 +24,12 @@ export const PANEL_DESCRIPTORS: PanelDescriptor[] = [
   },
   {
     id: "contentPanel",
-    min: 300,
+    min: 0,
     max: Infinity,
-    defaultWidth: 300,
+    defaultWidth: 0,
     defaultCollapsed: true,
-    open: open.splitWith(300, 0.5),
-    overflow: overflow.shrinkable(2),
+    open: open.restore(),
+    overflow: overflow.shrinkable(0),
   },
   {
     id: "secondarySidebar",

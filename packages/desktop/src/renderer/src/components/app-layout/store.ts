@@ -8,6 +8,7 @@ import type { PanelId, PanelMap, PanelState } from "./types";
 const log = debug("neovate:layout");
 
 import { client } from "../../orpc";
+import { APP_LAYOUT_CHAT_PANEL_MIN_WIDTH } from "./constants";
 import {
   openPanel,
   collapsePanel,
@@ -71,6 +72,10 @@ export function mergePersisted<T extends { panels: Record<PanelId, PanelState> }
       width,
       collapsed: id === "chatPanel" ? false : panel.collapsed,
       ...(typeof panel.activeView === "string" ? { activeView: panel.activeView } : {}),
+      // Preserve preferredWidth if valid
+      ...(typeof panel.preferredWidth === "number" && Number.isFinite(panel.preferredWidth)
+        ? { preferredWidth: panel.preferredWidth }
+        : {}),
     };
   }
 
@@ -88,23 +93,73 @@ const layoutStore = createStore<LayoutStore>()(
           const { panels } = get();
           if (!panels[id]) return;
 
+          // Special handling for contentPanel
+          if (id === "contentPanel") {
+            if (!panels.contentPanel.collapsed) {
+              // Collapse contentPanel: save chatPanel width before collapsing
+              log("collapse contentPanel, save chatPanel width");
+              const chatPanelEl = document.querySelector('[data-slot="chat-panel"]');
+              let chatWidth = panels.chatPanel.width;
+              if (chatPanelEl) {
+                chatWidth = chatPanelEl.getBoundingClientRect().width;
+              }
+              // Save chatPanel's current width as its preferredWidth
+              const updatedPanels = {
+                ...panels,
+                chatPanel: { ...panels.chatPanel, preferredWidth: chatWidth },
+                contentPanel: { ...panels.contentPanel, collapsed: true },
+              };
+              set({ panels: updatedPanels });
+              return;
+            } else {
+              // Expand contentPanel: restore chatPanel to preferred width
+              log("expand contentPanel, restore chatPanel width");
+              const chatPanelWidth =
+                panels.chatPanel.preferredWidth ?? APP_LAYOUT_CHAT_PANEL_MIN_WIDTH;
+              const updatedPanels = {
+                ...panels,
+                chatPanel: { ...panels.chatPanel, width: chatPanelWidth },
+                contentPanel: { ...panels.contentPanel, collapsed: false, width: 0 },
+              };
+              set({ panels: updatedPanels });
+              return;
+            }
+          }
+
+          // Default behavior for other panels
           if (!panels[id].collapsed) {
-            log("collapse panel", { id });
-            set({ panels: collapsePanel(panels, id) });
+            log("collapse panel", {
+              id,
+              width: panels[id].width,
+              preferredWidth: panels[id].preferredWidth,
+            });
+            // 保存当前宽度作为 preferredWidth
+            const updatedPanels = {
+              ...panels,
+              [id]: { ...panels[id], preferredWidth: panels[id].width },
+            };
+            set({ panels: collapsePanel(updatedPanels, id) });
             return;
           }
 
           // Expand window first, then open panel into the available space
           const minWidth = computeMinWindowWidthWithPanel(panels, id);
-          log("expand panel, ensure min width", { id, minWidth });
+          const targetWidth = panels[id].preferredWidth ?? panels[id].width;
+          log("expand panel", {
+            id,
+            storedWidth: panels[id].width,
+            preferredWidth: panels[id].preferredWidth,
+            targetWidth,
+            minWidth,
+          });
           await client.window.ensureWidth({ minWidth }).catch(() => {});
 
           // Re-check: panel may have been toggled again during await
           set((state) => {
             if (!state.panels[id].collapsed) return state;
-            return {
-              panels: openPanel(state.panels, id, Math.max(window.innerWidth, minWidth)),
-            };
+            const result = openPanel(state.panels, id, Math.max(window.innerWidth, minWidth));
+            log("expand panel result", { id, resultWidth: result[id].width });
+            return { panels: result };
           });
         },
 
