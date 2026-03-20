@@ -1,13 +1,6 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  RefreshCw,
-  Undo2,
-  Plus,
-  FileText,
-  Minus,
-  File,
-} from "lucide-react";
+import { FileSearchIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDown, ChevronRight, RefreshCw, Undo2, Plus, Minus, File } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
@@ -171,7 +164,11 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.viewAllStageChanges")}
                 >
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                  <HugeiconsIcon
+                    icon={FileSearchIcon}
+                    className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none"
+                    size={14}
+                  />
                 </button>
                 <button
                   onClick={(e) => {
@@ -196,7 +193,11 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.viewAllWorkingChanges")}
                 >
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                  <HugeiconsIcon
+                    icon={FileSearchIcon}
+                    className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none"
+                    size={14}
+                  />
                 </button>
                 <button
                   onClick={(e) => {
@@ -240,8 +241,15 @@ export default memo(function GitView() {
               >
                 {getFileIcon(file.relPath)}
 
-                <div className="text-sm truncate mr-auto text-foreground" title={file.relPath}>
-                  {file.fileName}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-foreground flex-shrink-0" title={file.fileName}>
+                      {file.fileName}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate" title={file.relPath}>
+                      {file.relPath}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex-shrink-0 flex items-center gap-0.5">
