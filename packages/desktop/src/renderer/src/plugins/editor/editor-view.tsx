@@ -144,7 +144,7 @@ function EditorViewCore(props: { cwd: string }) {
           ref={iframeRef}
           src={serverUrl}
           title="Code Editor"
-          className={`flex-1 w-full h-full border-0 bg-background min-h-0 block"}`}
+          className={`flex-1 w-full h-full border-0 bg-background min-h-0 block`}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
         />
       )}
