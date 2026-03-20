@@ -35,6 +35,8 @@ type Props = {
   streaming: boolean;
   disabled?: boolean;
   sessionInitializing?: boolean;
+  sessionInitError?: string | null;
+  onRetry?: () => void;
   cwd: string;
   dockAttached?: boolean;
 };
@@ -47,6 +49,8 @@ export function MessageInput({
   streaming,
   disabled,
   sessionInitializing,
+  sessionInitError,
+  onRetry,
   cwd,
   dockAttached = false,
 }: Props) {
@@ -347,6 +351,8 @@ export function MessageInput({
             streaming={streaming}
             disabled={disabled}
             sessionInitializing={sessionInitializing}
+            sessionInitError={sessionInitError}
+            onRetry={onRetry}
             onSend={send}
             onCancel={onCancel}
             onAttach={() => fileInputRef.current?.click()}

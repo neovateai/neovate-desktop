@@ -337,5 +337,8 @@
   "chat.clearSessionOverride": "Clear session override",
   "chat.providerSwitchHint": "Provider switch requires a new session",
   "chat.messageActions": "Message actions",
-  "chat.sessionInitializing": "Starting session..."
+  "chat.sessionInitializing": "Starting session...",
+  "chat.sessionInitFailed": "Session failed to start",
+  "chat.sessionInitRetry": "Retry",
+  "chat.sessionInitNetworkHint": "Try disabling Network Inspector in Settings and retry"
 }

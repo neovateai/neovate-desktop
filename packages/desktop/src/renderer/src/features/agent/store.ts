@@ -98,6 +98,8 @@ type AgentState = {
   setProviderId: (sessionId: string, providerId: string | undefined) => void;
   setPermissionMode: (sessionId: string, mode: PermissionMode) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
+  sessionInitError: string | null;
+  setSessionInitError: (error: string | null) => void;
 };
 
 export const useAgentStore = create<AgentState>()(
@@ -107,6 +109,7 @@ export const useAgentStore = create<AgentState>()(
     agentSessions: [],
     sessionsLoaded: false,
     unseenTurnResults: new Map(),
+    sessionInitError: null,
     _nextMessageId: 0,
 
     setActiveSession: (sessionId) => {
@@ -269,6 +272,10 @@ export const useAgentStore = create<AgentState>()(
         const session = state.sessions.get(sessionId);
         if (session) session.permissionMode = mode;
       });
+    },
+
+    setSessionInitError: (error) => {
+      set({ sessionInitError: error });
     },
 
     renameSession: async (sessionId, title) => {
