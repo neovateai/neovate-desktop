@@ -83,7 +83,7 @@ export default memo(function ChangesView() {
   const { resolvedTheme } = useTheme();
   const activeProject = useProjectStore((s) => s.activeProject);
   const { sessionId } = useActiveSession();
-  const { viewId, viewState: savedState } = useContentPanelViewContext();
+  const { viewId, viewState: savedState, isActive } = useContentPanelViewContext();
 
   const [category, setCategory] = useState<ChangesCategory>(
     (savedState.category as ChangesCategory) || "unstaged",
@@ -229,6 +229,19 @@ export default memo(function ChangesView() {
     window.addEventListener("neovate:open-changes", handler);
     return () => window.removeEventListener("neovate:open-changes", handler);
   }, []);
+
+  // Cmd+R to refresh
+  useEffect(() => {
+    if (!isActive) return;
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "r") {
+        e.preventDefault();
+        refresh();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [refresh, isActive]);
 
   // Scroll to file from file tree — force visible to bypass intersection observer
   const diffContainerRef = useRef<HTMLDivElement>(null);
