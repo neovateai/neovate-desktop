@@ -1,7 +1,7 @@
 import type { PluginContext } from "../../core/plugin/types";
 import type { AppContext } from "../../router";
 
-export function createReviewRouter(orpcServer: PluginContext["orpcServer"]) {
+export function createChangesRouter(orpcServer: PluginContext["orpcServer"]) {
   return orpcServer.router({
     lastTurnFiles: orpcServer.handler(async ({ input, context }) => {
       const { sessionId } = input as { sessionId: string };

@@ -27,8 +27,8 @@ import { useContentPanelViewContext } from "../../features/content-panel";
 import { useProjectStore } from "../../features/project/store";
 import { useIntersectionObserver } from "../../hooks/use-intersection-observer";
 import { useActiveSession } from "../../hooks/useActiveSession";
-import { useReview, type ReviewCategory, type ReviewFile } from "./hooks/useReview";
-import { useReviewTranslation } from "./i18n";
+import { useChanges, type ChangesCategory, type ChangesFile } from "./hooks/useChanges";
+import { useChangesTranslation } from "./i18n";
 
 type DiffStyle = "unified" | "split";
 
@@ -44,7 +44,7 @@ function LazyDiffContent({
   lastHeight,
   onHeightChange,
 }: {
-  file: ReviewFile;
+  file: ChangesFile;
   diff: { oldContent: string; newContent: string };
   options: Record<string, unknown>;
   forceVisible: boolean;
@@ -77,16 +77,16 @@ function LazyDiffContent({
   );
 }
 
-export default memo(function ReviewView() {
-  const { t } = useReviewTranslation();
+export default memo(function ChangesView() {
+  const { t } = useChangesTranslation();
   const { app } = usePluginContext();
   const { resolvedTheme } = useTheme();
   const activeProject = useProjectStore((s) => s.activeProject);
   const { sessionId } = useActiveSession();
   const { viewId, viewState: savedState } = useContentPanelViewContext();
 
-  const [category, setCategory] = useState<ReviewCategory>(
-    (savedState.category as ReviewCategory) || "unstaged",
+  const [category, setCategory] = useState<ChangesCategory>(
+    (savedState.category as ChangesCategory) || "unstaged",
   );
   const [diffStyle, setDiffStyle] = useState<DiffStyle>(
     (savedState.diffStyle as DiffStyle) || "unified",
@@ -97,7 +97,7 @@ export default memo(function ReviewView() {
   const [diffHeights, setDiffHeights] = useState<Record<string, number>>({});
 
   const { files, loading, error, branchInfo, diffs, loadingDiffs, refresh, loadDiff } =
-    useReview(category);
+    useChanges(category);
 
   // L1: Memoize diff options to avoid unnecessary MultiFileDiff re-renders
   const diffOptions = useMemo(
@@ -144,7 +144,7 @@ export default memo(function ReviewView() {
     [app, viewId],
   );
 
-  const handleCategoryChange = (value: ReviewCategory) => {
+  const handleCategoryChange = (value: ChangesCategory) => {
     setCategory(value);
     setExpandedFiles(new Set());
     persistState({ category: value });
@@ -218,16 +218,16 @@ export default memo(function ReviewView() {
     setExpandedFiles(new Set());
   };
 
-  // Listen for neovate:open-review event
+  // Listen for neovate:open-changes event
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ category?: ReviewCategory }>)?.detail;
+      const detail = (e as CustomEvent<{ category?: ChangesCategory }>)?.detail;
       if (detail?.category) {
         handleCategoryChange(detail.category);
       }
     };
-    window.addEventListener("neovate:open-review", handler);
-    return () => window.removeEventListener("neovate:open-review", handler);
+    window.addEventListener("neovate:open-changes", handler);
+    return () => window.removeEventListener("neovate:open-changes", handler);
   }, []);
 
   // Scroll to file from file tree — force visible to bypass intersection observer
@@ -328,7 +328,7 @@ export default memo(function ReviewView() {
   const isFileTooLarge = (diff: { oldContent: string; newContent: string }) =>
     diff.oldContent.length + diff.newContent.length > FILE_SIZE_LIMIT;
 
-  const renderFileDiff = (file: ReviewFile) => {
+  const renderFileDiff = (file: ChangesFile) => {
     const isExpanded = expandedFiles.has(file.relPath);
     const diff = diffs[file.relPath];
     const isLoadingDiff = loadingDiffs[file.relPath];
@@ -415,7 +415,7 @@ export default memo(function ReviewView() {
       <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0">
         <Select
           value={category}
-          onValueChange={(val) => handleCategoryChange(val as ReviewCategory)}
+          onValueChange={(val) => handleCategoryChange(val as ChangesCategory)}
         >
           <SelectTrigger size="sm" className="min-w-32 max-w-48 h-7">
             <SelectValue>

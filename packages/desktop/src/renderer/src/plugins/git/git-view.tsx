@@ -129,9 +129,9 @@ export default memo(function GitView() {
   };
 
   const viewAll = (type: "staged" | "unstaged") => {
-    app.workbench.contentPanel.openView("review");
+    app.workbench.contentPanel.openView("changes");
     setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("neovate:open-review", { detail: { category: type } }));
+      window.dispatchEvent(new CustomEvent("neovate:open-changes", { detail: { category: type } }));
     }, DISPATCH_DELAY);
   };
 

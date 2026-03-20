@@ -5,13 +5,13 @@ import type { RendererPlugin } from "../../core/plugin";
 
 import { layoutStore } from "../../components/app-layout/store";
 
-const ReviewIcon = ({ className }: { className?: string }) => (
+const ChangesIcon = ({ className }: { className?: string }) => (
   <HugeiconsIcon icon={FileSearchIcon} className={className} size={16} strokeWidth={1.5} />
 );
 
 let cleanupListener: (() => void) | null = null;
 
-const NAME = "plugin-review";
+const NAME = "plugin-changes";
 
 const plugin: RendererPlugin = {
   name: NAME,
@@ -33,12 +33,12 @@ const plugin: RendererPlugin = {
     return {
       contentPanelViews: [
         {
-          viewType: "review",
-          name: { "en-US": "Review", "zh-CN": "变更" },
+          viewType: "changes",
+          name: { "en-US": "Changes", "zh-CN": "变更" },
           singleton: true,
           deactivation: "offscreen",
-          icon: ReviewIcon,
-          component: () => import("./review-view"),
+          icon: ChangesIcon,
+          component: () => import("./changes-view"),
         },
       ],
     };
@@ -50,10 +50,10 @@ const plugin: RendererPlugin = {
       if (panels.contentPanel?.collapsed) {
         layoutStore.getState().togglePanel("contentPanel");
       }
-      ctx.app.workbench.contentPanel.openView("review");
+      ctx.app.workbench.contentPanel.openView("changes");
     };
-    window.addEventListener("neovate:open-review", handler);
-    cleanupListener = () => window.removeEventListener("neovate:open-review", handler);
+    window.addEventListener("neovate:open-changes", handler);
+    cleanupListener = () => window.removeEventListener("neovate:open-changes", handler);
   },
 
   deactivate() {

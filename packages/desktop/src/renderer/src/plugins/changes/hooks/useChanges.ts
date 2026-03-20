@@ -2,17 +2,17 @@ import type { ContractRouterClient } from "@orpc/contract";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { changesContract } from "../../../../../shared/plugins/changes/contract";
 import type { GitFile, GitBranchFile } from "../../../../../shared/plugins/git/contract";
 import type { gitContract } from "../../../../../shared/plugins/git/contract";
-import type { reviewContract } from "../../../../../shared/plugins/review/contract";
 
 import { usePluginContext } from "../../../core/app";
 import { useProjectStore } from "../../../features/project/store";
 import { useActiveSession } from "../../../hooks/useActiveSession";
 
-export type ReviewCategory = "unstaged" | "staged" | "last-turn" | "branch";
+export type ChangesCategory = "unstaged" | "staged" | "last-turn" | "branch";
 
-export interface ReviewFile {
+export interface ChangesFile {
   relPath: string;
   fileName: string;
   extName: string;
@@ -33,17 +33,17 @@ export interface BranchInfo {
 
 type Client = ContractRouterClient<{
   git: typeof gitContract;
-  review: typeof reviewContract;
+  changes: typeof changesContract;
 }>;
 
-export function useReview(category: ReviewCategory) {
+export function useChanges(category: ChangesCategory) {
   const { orpcClient } = usePluginContext();
   const client = orpcClient as Client;
   const activeProject = useProjectStore((s) => s.activeProject);
   const cwd = activeProject?.path || "";
   const { sessionId } = useActiveSession();
 
-  const [files, setFiles] = useState<ReviewFile[]>([]);
+  const [files, setFiles] = useState<ChangesFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [branchInfo, setBranchInfo] = useState<BranchInfo | null>(null);
@@ -89,7 +89,7 @@ export function useReview(category: ReviewCategory) {
           setFiles([]);
           return;
         }
-        const res = await client.review.lastTurnFiles({ sessionId });
+        const res = await client.changes.lastTurnFiles({ sessionId });
         if (fetchId !== fetchIdRef.current) return;
         if (res.filesChanged && res.filesChanged.length > 0) {
           setFiles(
@@ -170,7 +170,7 @@ export function useReview(category: ReviewCategory) {
           }
         } else if (category === "last-turn") {
           if (!sessionId) return;
-          const res = await client.review.lastTurnDiff({ sessionId, file: relPath });
+          const res = await client.changes.lastTurnDiff({ sessionId, file: relPath });
           if (res.success && res.data) {
             oldContent = res.data.oldContent;
             newContent = res.data.newContent;
