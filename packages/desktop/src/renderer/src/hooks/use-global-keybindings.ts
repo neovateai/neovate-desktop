@@ -1,7 +1,9 @@
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
+import { layoutStore } from "../components/app-layout/store";
 import { toastManager } from "../components/ui/toast";
+import { useRendererApp } from "../core/app";
 import { useNewSession } from "../features/agent/hooks/use-new-session";
 import { useConfigStore } from "../features/config/store";
 import { useProjectStore } from "../features/project/store";
@@ -17,6 +19,7 @@ export function useGlobalKeybindings(): void {
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const { resolvedTheme, setTheme } = useTheme();
   const { createNewSession } = useNewSession();
+  const app = useRendererApp();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -57,6 +60,34 @@ export function useGlobalKeybindings(): void {
       // Don't handle other shortcuts when in settings
       if (showSettings) return;
 
+      // Toggle Changes
+      if (matchesBinding(e, keybindings.toggleChanges)) {
+        e.preventDefault();
+        app.workbench.contentPanel.toggleView("changes");
+        return;
+      }
+
+      // Toggle Terminal
+      if (matchesBinding(e, keybindings.toggleTerminal)) {
+        e.preventDefault();
+        app.workbench.contentPanel.toggleView("terminal");
+        return;
+      }
+
+      // Toggle Browser
+      if (matchesBinding(e, keybindings.toggleBrowser)) {
+        e.preventDefault();
+        app.workbench.contentPanel.toggleView("browser");
+        return;
+      }
+
+      // Toggle Files
+      if (matchesBinding(e, keybindings.toggleFiles)) {
+        e.preventDefault();
+        layoutStore.getState().setSecondarySidebarActiveView("files");
+        return;
+      }
+
       // New Chat
       if (matchesBinding(e, keybindings.newChat)) {
         e.preventDefault();
@@ -85,5 +116,5 @@ export function useGlobalKeybindings(): void {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showSettings, setShowSettings, resolvedTheme, setTheme, createNewSession]);
+  }, [showSettings, setShowSettings, resolvedTheme, setTheme, createNewSession, app]);
 }

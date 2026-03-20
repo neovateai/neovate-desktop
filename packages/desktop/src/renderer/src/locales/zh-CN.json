@@ -113,6 +113,10 @@
   "settings.keybindings.prevSession": "上一个会话",
   "settings.keybindings.nextSession": "下一个会话",
   "settings.keybindings.copyPath": "复制路径",
+  "settings.keybindings.toggleChanges": "切换变更面板",
+  "settings.keybindings.toggleTerminal": "切换终端",
+  "settings.keybindings.toggleBrowser": "切换浏览器",
+  "settings.keybindings.toggleFiles": "切换文件",
   "settings.keybindings.toggleMultiProject": "切换多项目支持",
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 

@@ -113,6 +113,10 @@
   "settings.keybindings.prevSession": "Previous Session",
   "settings.keybindings.nextSession": "Next Session",
   "settings.keybindings.copyPath": "Copy Path",
+  "settings.keybindings.toggleChanges": "Toggle Changes",
+  "settings.keybindings.toggleTerminal": "Toggle Terminal",
+  "settings.keybindings.toggleBrowser": "Toggle Browser",
+  "settings.keybindings.toggleFiles": "Toggle Files",
   "settings.keybindings.toggleMultiProject": "Toggle Multi-Project Support",
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
