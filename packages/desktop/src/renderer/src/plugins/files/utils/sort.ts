@@ -3,6 +3,9 @@ export function convertPathListDepth(pathList: Set<string>, cwd: string): string
   const directoriesByDepth = new Map<number, string[]>();
 
   for (const path of pathList) {
+    if (path === cwd) {
+      continue; // 外层已经处理
+    }
     if (!path.startsWith(cwd)) {
       continue;
     }
