@@ -15,6 +15,7 @@ import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 
 import type { Project } from "../../../../../shared/features/project/types";
@@ -41,12 +42,12 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
   const loadSession = useLoadSession(project.path);
   const [restoring, setRestoring] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_SESSION_LIMIT);
 
   const items = useFilteredSessions({ projectPath: project.path, filter: "unpinned" });
 
-  const visibleItems = expanded ? items : items.slice(0, DEFAULT_SESSION_LIMIT);
-  const hiddenCount = items.length - DEFAULT_SESSION_LIMIT;
+  const visibleItems = items.slice(0, visibleCount);
+  const remainingCount = items.length - visibleCount;
 
   const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
 
@@ -77,28 +78,44 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
 
   return (
     <ul className="flex flex-col gap-0.5">
-      {visibleItems.map((item) => {
-        const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-        return (
-          <UnifiedSessionItem
-            key={id}
-            item={item}
-            activeSessionId={activeSessionId}
-            isPinned={false}
-            restoring={restoring}
-            onActivate={handleActivate}
-            onLoad={handleLoad}
-          />
-        );
-      })}
-      {hiddenCount > 0 && (
+      <AnimatePresence initial={false}>
+        {visibleItems.map((item) => {
+          const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+          return (
+            <motion.li
+              key={id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0, transition: { duration: 0 } }}
+              transition={{ duration: 0.15 }}
+            >
+              <UnifiedSessionItem
+                item={item}
+                activeSessionId={activeSessionId}
+                isPinned={false}
+                restoring={restoring}
+                onActivate={handleActivate}
+                onLoad={handleLoad}
+              />
+            </motion.li>
+          );
+        })}
+      </AnimatePresence>
+      {remainingCount > 0 ? (
         <button
           className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => setVisibleCount((c) => c + DEFAULT_SESSION_LIMIT)}
         >
-          {expanded ? "Show less" : `Show ${hiddenCount} more`}
+          {`Show ${Math.min(DEFAULT_SESSION_LIMIT, remainingCount)} more of ${items.length}`}
         </button>
-      )}
+      ) : visibleCount > DEFAULT_SESSION_LIMIT && items.length > DEFAULT_SESSION_LIMIT ? (
+        <button
+          className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setVisibleCount(DEFAULT_SESSION_LIMIT)}
+        >
+          Show less
+        </button>
+      ) : null}
     </ul>
   );
 });
