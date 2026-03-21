@@ -107,6 +107,9 @@ const config = {
 
     // ── claude-agent-sdk: strip non-macOS ripgrep binaries ──
     "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-linux/**",
+
+    // ── node-pty: strip non-macOS prebuilds ──
+    "!**/node_modules/node-pty/prebuilds/win32-*/**",
   ],
 
   compression: isDev ? "normal" : "maximum",
