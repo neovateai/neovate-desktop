@@ -84,6 +84,9 @@ const config = {
     // ── Unused dependencies ──
     "!**/node_modules/@img/sharp-libvips*/**",
     "!**/node_modules/framer-motion/**",
+
+    // ── Renderer-only: date-fns (33M of locales, already bundled by Vite) ──
+    "!**/node_modules/date-fns/**",
   ],
 
   compression: isDev ? "normal" : "maximum",
