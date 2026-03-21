@@ -37,7 +37,7 @@ export function MessagePartRenderer({
   renderToolPart: RenderToolPart;
 }) {
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-1 w-full">
       {message.parts.map((part, index) => {
         if (isToolUIPart(part)) {
           if (part.type === "dynamic-tool") {

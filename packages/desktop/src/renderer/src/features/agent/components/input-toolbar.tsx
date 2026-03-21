@@ -2,12 +2,12 @@ import type { StoreApi } from "zustand";
 
 import debug from "debug";
 import {
+  ArrowUp,
   ChevronDown,
   FolderOpen,
   Globe,
   Paperclip,
   RotateCw,
-  SendHorizonal,
   Settings,
   Shield,
   Square,
@@ -106,42 +106,45 @@ export function InputToolbar({
       ) : null}
       <div className="flex-1" />
       {streaming ? (
-        <Button
+        /* Streaming: subtle stop button with animated ring */
+        <button
           type="button"
-          variant="destructive"
-          size="icon"
-          className="h-7 w-7"
+          className="relative flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10 text-foreground transition-all duration-150 hover:bg-foreground/15 active:scale-95"
           onClick={onCancel}
         >
-          <Square className="h-3.5 w-3.5" />
-        </Button>
+          <span className="absolute inset-0 rounded-full border border-foreground/20 animate-pulse" />
+          <Square className="h-2.5 w-2.5 fill-current" />
+        </button>
       ) : sessionInitError ? (
-        <Button
+        /* Error: retry button */
+        <button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-95"
           onClick={onRetry}
           title={t("chat.sessionInitRetry")}
         >
-          <RotateCw className="h-4 w-4 text-muted-foreground" />
-        </Button>
+          <RotateCw className="h-3.5 w-3.5" />
+        </button>
       ) : sessionInitializing ? (
-        <div className="flex h-7 w-7 items-center justify-center">
-          <Spinner className="h-4 w-4 text-muted-foreground" />
+        /* Initializing: subtle spinner */
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/50">
+          <Spinner className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
       ) : (
-        <Button
+        /* Normal / Disabled states */
+        <button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 bg-secondary hover:!bg-secondary/80"
+          className={
+            disabled
+              ? "flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground/40 cursor-not-allowed"
+              : "flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-primary/85 active:scale-95"
+          }
           disabled={disabled}
           onClick={onSend}
           title={sendMessageWith === "cmdEnter" ? t("chat.sendCmdEnter") : t("chat.sendEnter")}
         >
-          <SendHorizonal className="h-4 w-4" style={{ color: "var(--secondary-foreground)" }} />
-        </Button>
+          <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />
+        </button>
       )}
     </div>
   );

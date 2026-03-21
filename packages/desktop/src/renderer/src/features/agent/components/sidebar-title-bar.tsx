@@ -44,8 +44,8 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
   };
 
   return (
-    <div className="flex items-center justify-between px-2.5 py-2">
-      <span className="text-sm font-medium text-foreground/90">{t("sidebar.sessions")}</span>
+    <div className="flex items-center justify-between px-2.5 py-1">
+      <span className="text-sm font-medium text-muted-foreground/70">{t("sidebar.sessions")}</span>
       <div className="flex items-center gap-0.5">
         {sidebarOrganize === "chronological" && (
           <Button

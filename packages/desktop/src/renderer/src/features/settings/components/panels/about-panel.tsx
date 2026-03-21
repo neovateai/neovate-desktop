@@ -70,12 +70,14 @@ export const AboutPanel = () => {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-6 flex items-center gap-2 text-foreground">
-        <HelpCircle className="size-[22px]" />
+      <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
+        <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
+          <HelpCircle className="size-5 text-primary" />
+        </span>
         {t("settings.about")}
       </h1>
 
-      <div className="space-y-0">
+      <div className="space-y-0 rounded-xl bg-muted/30 border border-border/50 px-5 py-2">
         {/* Check for Updates */}
         <SettingsRow
           title={t("settings.about.checkForUpdates")}

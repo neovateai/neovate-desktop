@@ -224,8 +224,10 @@ export const RulesPanel = () => {
   return (
     <div>
       {/* Header */}
-      <h1 className="text-xl font-semibold mb-6 flex items-center gap-2 text-foreground">
-        <BookOpen className="size-[22px]" />
+      <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
+        <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
+          <BookOpen className="size-5 text-primary" />
+        </span>
         {t("settings.rules")}
       </h1>
 
@@ -262,32 +264,35 @@ export const RulesPanel = () => {
         </div>
       </div>
 
-      {/* Description */}
-      <p className="text-sm text-muted-foreground mb-3">
-        {t("settings.rules.globalRules.description")}
-      </p>
+      {/* Editor Container */}
+      <div className="rounded-xl bg-muted/30 border border-border/50 overflow-hidden">
+        {/* Description */}
+        <p className="text-xs text-muted-foreground px-4 pt-3 pb-2">
+          {t("settings.rules.globalRules.description")}
+        </p>
 
-      {/* Editor */}
-      <textarea
-        ref={textareaRef}
-        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono text-foreground shadow-xs/5 ring-ring/24 transition-shadow focus:border-ring focus:ring-[3px] focus:outline-none resize-none"
-        style={{
-          minHeight: "200px",
-          maxHeight: "60vh",
-          fieldSizing: "content",
-        }}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={t("settings.rules.placeholder")}
-        aria-label={t("settings.rules.globalRules")}
-        spellCheck={false}
-      />
+        {/* Editor */}
+        <textarea
+          ref={textareaRef}
+          className="w-full border-0 bg-transparent px-4 py-3 text-sm font-mono text-foreground ring-ring/24 transition-all focus:ring-0 focus:outline-none resize-none"
+          style={{
+            minHeight: "200px",
+            maxHeight: "60vh",
+            fieldSizing: "content",
+          }}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={t("settings.rules.placeholder")}
+          aria-label={t("settings.rules.globalRules")}
+          spellCheck={false}
+        />
+      </div>
 
       {/* External change prompt */}
       {externalChangePrompt && (
-        <div className="mt-3 p-3 rounded-md border border-border bg-muted">
-          <p className="text-sm text-foreground mb-2">
+        <div className="mt-4 p-4 rounded-xl border border-border/50 bg-muted/30">
+          <p className="text-sm text-foreground mb-3">
             {t("settings.rules.fileChangedExternally")}
           </p>
           <div className="flex gap-2">
@@ -303,15 +308,15 @@ export const RulesPanel = () => {
 
       {/* Referenced files */}
       {references.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+        <div className="mt-5">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">
             {t("settings.rules.referencedFiles", { count: references.length })}
           </h3>
-          <div className="space-y-1">
+          <div className="rounded-xl bg-muted/30 border border-border/50 overflow-hidden divide-y divide-border/40">
             {references.map((ref) => (
-              <div key={ref.filename} className="rounded-md border border-border bg-muted">
+              <div key={ref.filename}>
                 <button
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left cursor-pointer hover:bg-accent/50 transition-colors rounded-md"
+                  className="w-full flex items-center gap-2.5 px-4 py-3 text-left cursor-pointer hover:bg-accent/30 transition-colors"
                   onClick={() => ref.exists && toggleRefExpanded(ref.filename)}
                   disabled={!ref.exists}
                 >
@@ -333,8 +338,8 @@ export const RulesPanel = () => {
                   </span>
                 </button>
                 {ref.exists && expandedRefs.has(ref.filename) && (
-                  <div className="border-t border-border">
-                    <pre className="px-3 py-2 text-xs font-mono text-muted-foreground overflow-auto max-h-64 whitespace-pre-wrap">
+                  <div className="border-t border-border/40 bg-background/50">
+                    <pre className="px-4 py-3 text-xs font-mono text-muted-foreground overflow-auto max-h-64 whitespace-pre-wrap">
                       {ref.content}
                     </pre>
                   </div>

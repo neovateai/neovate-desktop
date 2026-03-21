@@ -52,7 +52,7 @@ export const SettingsMenu = ({
 
   return (
     <div
-      className="w-56 h-full flex flex-col pt-8 px-3 border-r border-border bg-background"
+      className="w-56 h-full flex flex-col pt-10 px-3 border-r border-border bg-background"
       style={{
         // @ts-expect-error - Electron specific CSS property
         WebkitAppRegion: "drag",
@@ -60,7 +60,7 @@ export const SettingsMenu = ({
     >
       {/* Back to app button */}
       <button
-        className="flex items-center text-muted-foreground gap-3 px-3 py-3 text-sm transition-colors cursor-pointer hover:text-foreground focus-visible:text-foreground focus-visible:outline-none border-b border-border"
+        className="flex items-center gap-3 mx-1 px-2.5 py-2 text-sm text-muted-foreground rounded-lg transition-all duration-150 cursor-pointer hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         style={{
           // @ts-expect-error - Electron specific CSS property
           WebkitAppRegion: "no-drag",
@@ -71,8 +71,11 @@ export const SettingsMenu = ({
         <span>{t("settings.backToApp")}</span>
       </button>
 
+      {/* Divider */}
+      <div className="my-2 mx-3 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
       {/* Menu items */}
-      <nav className="flex-1 py-2">
+      <nav className="flex-1 space-y-0.5 px-1">
         {menuItems.map((item) => {
           const isActive = activeMenu === item.id;
           const Icon = item.icon;
@@ -82,10 +85,10 @@ export const SettingsMenu = ({
               key={item.id}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors cursor-pointer rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "w-full flex items-center gap-3 px-2.5 py-2 text-sm rounded-lg transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
-                  ? "bg-accent text-accent-foreground border-border font-medium"
-                  : "text-muted-foreground hover:text-foreground border-transparent",
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent",
               )}
               style={{
                 // @ts-expect-error - Electron specific CSS property
@@ -93,7 +96,7 @@ export const SettingsMenu = ({
               }}
               onClick={() => onMenuSelect(item.id)}
             >
-              <Icon className="size-4.5" />
+              <Icon className={cn("size-[18px]", isActive && "text-primary")} />
               <span>{t(MENU_LABEL_KEYS[item.id])}</span>
             </button>
           );

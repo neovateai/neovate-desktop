@@ -85,12 +85,14 @@ export const ChatPanel = () => {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-6 flex items-center gap-2 text-foreground">
-        <MessageSquare className="size-[22px]" />
+      <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
+        <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
+          <MessageSquare className="size-5 text-primary" />
+        </span>
         {t("settings.chat")}
       </h1>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Model */}
         <SettingsGroup title={t("settings.chat.group.model")}>
           <SettingsRow

@@ -17,6 +17,7 @@ import debug from "debug";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../../../shared/features/project/types";
 
@@ -37,6 +38,7 @@ const DEFAULT_SESSION_LIMIT = 5;
 // --- ProjectSessions ---
 
 const ProjectSessions = memo(function ProjectSessions({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
@@ -77,7 +79,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   }
 
   return (
-    <ul className="flex flex-col gap-0.5">
+    <ul className="flex flex-col gap-1">
       <AnimatePresence initial={false}>
         {visibleItems.map((item) => {
           const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
@@ -103,17 +105,17 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
       </AnimatePresence>
       {remainingCount > 0 ? (
         <button
-          className="cursor-pointer px-2.5 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+          className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setVisibleCount((c) => c + DEFAULT_SESSION_LIMIT)}
         >
-          {`Show ${Math.min(DEFAULT_SESSION_LIMIT, remainingCount)} more of ${items.length}`}
+          {t("session.showMore", { count: Math.min(DEFAULT_SESSION_LIMIT, remainingCount), total: items.length })}
         </button>
       ) : visibleCount > DEFAULT_SESSION_LIMIT && items.length > DEFAULT_SESSION_LIMIT ? (
         <button
-          className="cursor-pointer px-2.5 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+          className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setVisibleCount(DEFAULT_SESSION_LIMIT)}
         >
-          Show less
+          {t("session.showLess")}
         </button>
       ) : null}
     </ul>
@@ -169,7 +171,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
             </span>
           </AccordionPrimitive.Trigger>
         </div>
-        <div className="flex items-center gap-0.5 pr-1">
+        <div className="flex items-center gap-1 pr-1">
           <button
             className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
             onClick={(e) => {

@@ -3,6 +3,15 @@ import { ArrowUpCircle, Download, Plus, RefreshCw, Search, Wand2 } from "lucide-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// Get initials from skill name
+const getInitials = (name: string): string => {
+  const words = name.split(/[\s-_]+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
 import type {
   RecommendedSkill,
   SkillMeta,
@@ -201,30 +210,30 @@ export const SkillsPanel = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold flex items-center gap-2 text-foreground">
-          <Wand2 className="size-[22px]" />
-          {t("settings.skills")}
-        </h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowAddModal(true)}>
-            <Plus className="size-3.5" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
-            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
-          </Button>
-        </div>
-      </div>
+      <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
+        <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
+          <Wand2 className="size-5 text-primary" />
+        </span>
+        {t("settings.skills")}
+      </h1>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10" />
-        <Input
-          className="pl-9"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t("settings.skills.searchPlaceholder")}
-        />
+      {/* Toolbar: Search + Actions */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10" />
+          <Input
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("settings.skills.searchPlaceholder")}
+          />
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowAddModal(true)}>
+          <Plus className="size-3.5" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
+          <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+        </Button>
       </div>
 
       {error && (
@@ -271,24 +280,50 @@ export const SkillsPanel = () => {
         </div>
 
         {filteredInstalled.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            {searchQuery
-              ? t("settings.skills.noMatchingSkills", { query: searchQuery })
-              : t("settings.skills.noInstalledSkills")}
-          </p>
+          <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
+            <p className="text-sm text-muted-foreground text-center">
+              {searchQuery
+                ? t("settings.skills.noMatchingSkills", { query: searchQuery })
+                : t("settings.skills.noInstalledSkills")}
+            </p>
+          </div>
         ) : (
-          <div className="space-y-1">
-            {filteredInstalled.map((skill) => (
-              <div
-                key={`${skill.scope}-${skill.projectPath ?? ""}-${skill.dirName}`}
-                className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => setSelectedSkill(skill)}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {skill.name}
-                    </span>
+          <div className="grid grid-cols-3 gap-3">
+            {filteredInstalled.map((skill) => {
+              const initials = getInitials(skill.name);
+              const update = getUpdate(skill);
+              return (
+                <div
+                  key={`${skill.scope}-${skill.projectPath ?? ""}-${skill.dirName}`}
+                  className="group relative flex flex-col p-4 rounded-xl bg-background border border-border/50 cursor-pointer hover:border-border hover:shadow-sm transition-all"
+                  onClick={() => setSelectedSkill(skill)}
+                >
+                  {/* Header: Avatar + Toggle */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0">
+                      {initials}
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        checked={skill.enabled}
+                        disabled={togglingSkill !== null}
+                        onCheckedChange={() => handleToggleEnabled(skill)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-sm font-medium text-foreground truncate mb-1">
+                    {skill.name}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-8">
+                    {skill.description || t("settings.skills.noDescription")}
+                  </p>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-auto">
                     {showScopeBadge && (
                       <Badge variant="outline" size="sm">
                         {skill.scope === "global"
@@ -302,28 +337,16 @@ export const SkillsPanel = () => {
                         v{skill.version}
                       </Badge>
                     )}
-                    {getUpdate(skill) && (
+                    {update && (
                       <Badge variant="default" size="sm" className="gap-1">
                         <ArrowUpCircle className="size-3" />
-                        {getUpdate(skill)!.latestVersion}
+                        {update.latestVersion}
                       </Badge>
                     )}
                   </div>
-                  {skill.description && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {skill.description}
-                    </p>
-                  )}
                 </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <Switch
-                    checked={skill.enabled}
-                    disabled={togglingSkill !== null}
-                    onCheckedChange={() => handleToggleEnabled(skill)}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -346,23 +369,61 @@ export const SkillsPanel = () => {
           <h2 className="text-sm font-medium mb-3 text-muted-foreground">
             {t("settings.skills.recommendedCount", { count: filteredRecommended.length })}
           </h2>
-          <div className="space-y-1">
-            {filteredRecommended.map((skill) => (
-              <div
-                key={skill.sourceRef}
-                className="flex items-center justify-between p-3 rounded-md bg-muted border border-border cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => {
-                  if (skill.installed) {
-                    const match = installed.find((s) => s.dirName === skill.skillName);
-                    if (match) setSelectedSkill(match);
-                  } else {
-                    setSelectedRecommended(skill);
-                  }
-                }}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{skill.name}</span>
+          <div className="grid grid-cols-3 gap-3">
+            {filteredRecommended.map((skill) => {
+              const initials = getInitials(skill.name);
+              return (
+                <div
+                  key={skill.sourceRef}
+                  className={cn(
+                    "group relative flex flex-col p-4 rounded-xl bg-background border border-border/50 cursor-pointer hover:border-border hover:shadow-sm transition-all",
+                    skill.installed && "opacity-60",
+                  )}
+                  onClick={() => {
+                    if (skill.installed) {
+                      const match = installed.find((s) => s.dirName === skill.skillName);
+                      if (match) setSelectedSkill(match);
+                    } else {
+                      setSelectedRecommended(skill);
+                    }
+                  }}
+                >
+                  {/* Header: Avatar + Action */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0">
+                      {initials}
+                    </div>
+                    {skill.installed ? (
+                      <Badge variant="secondary" size="sm">
+                        {t("settings.skills.installedBadge")}
+                      </Badge>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleInstallRecommended(skill, "global");
+                        }}
+                      >
+                        <Download className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-sm font-medium text-foreground truncate mb-1">
+                    {skill.name}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-8">
+                    {skill.description}
+                  </p>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-auto">
                     <Badge variant="outline" size="sm">
                       {skill.source}
                     </Badge>
@@ -372,29 +433,9 @@ export const SkillsPanel = () => {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {skill.description}
-                  </p>
                 </div>
-                {skill.installed ? (
-                  <Badge variant="secondary" size="sm">
-                    {t("settings.skills.installedBadge")}
-                  </Badge>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleInstallRecommended(skill, "global");
-                    }}
-                  >
-                    <Download className="size-3.5" />
-                    {t("settings.skills.install")}
-                  </Button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

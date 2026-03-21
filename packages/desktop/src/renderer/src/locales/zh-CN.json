@@ -231,6 +231,7 @@
   "settings.skills.detail.uninstall": "卸载",
   "settings.skills.detail.update": "更新",
   "settings.skills.detail.updating": "正在更新...",
+  "settings.skills.noDescription": "暂无描述",
   "settings.skills.retry": "重试",
   "settings.skills.removeSkill": "移除技能",
   "common.yes": "是",
@@ -301,6 +302,8 @@
   "session.copyWorkingDirectory": "复制工作目录",
   "session.copySessionId": "复制会话 ID",
   "session.copyJsonlPath": "复制会话 JSONL 路径",
+  "session.showMore": "显示更多 {{count}}/{{total}}",
+  "session.showLess": "收起",
 
   "project.openProject": "打开项目",
   "project.selectProject": "选择项目...",
@@ -323,6 +326,9 @@
 
   "contentPanel.noProjectSelected": "未选择项目",
   "contentPanel.noTabsOpen": "暂无打开的标签页",
+
+  "terminal.search.noResults": "无结果",
+  "terminal.search.results": "{{current}} / {{total}}",
 
   "error.somethingWentWrong": "出错了",
   "error.tryAgain": "重试",

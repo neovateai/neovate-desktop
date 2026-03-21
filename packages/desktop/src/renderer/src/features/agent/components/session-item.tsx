@@ -129,10 +129,10 @@ export const SessionItem = memo(function SessionItem({
       >
         <div
           className={cn(
-            "flex items-center gap-2.5 px-2.5 py-1.5 cursor-pointer rounded-lg transition-all group",
+            "flex items-center gap-2.5 pl-2.5 pr-3 py-1 cursor-pointer rounded-lg transition-all group",
             isActive
               ? "bg-accent/80 text-foreground"
-              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}
           onMouseLeave={handleMouseLeave}

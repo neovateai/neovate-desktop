@@ -41,7 +41,7 @@ interface KeyBadgeProps {
 }
 
 const KeyBadge = ({ keyStr }: KeyBadgeProps) => (
-  <span className="inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded text-xs font-medium bg-muted border border-border text-foreground">
+  <span className="inline-flex items-center justify-center min-w-6 px-2 py-1 rounded-md text-xs font-medium bg-background border border-border/60 text-foreground shadow-sm">
     {keyStr}
   </span>
 );
@@ -106,7 +106,7 @@ const KeybindingRow = ({
   }, [isRecording, onStopRecording]);
 
   return (
-    <div className="flex items-center justify-between py-4 border-b border-border last:border-b-0">
+    <div className="flex items-center justify-between py-3.5 border-b border-border/40 last:border-b-0">
       <div className="flex-1 flex items-center gap-2">
         <div>
           <div
@@ -213,12 +213,14 @@ export const KeybindingsPanel = () => {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-6 flex items-center gap-2 text-foreground">
-        <Keyboard className="size-[22px]" />
+      <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
+        <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
+          <Keyboard className="size-5 text-primary" />
+        </span>
         {t("settings.keybindings")}
       </h1>
 
-      <div className="space-y-0">
+      <div className="space-y-0 rounded-xl bg-muted/30 border border-border/50 px-5 py-2">
         {KEYBINDING_ACTIONS.map((action) => (
           <KeybindingRow
             key={action}
@@ -234,7 +236,7 @@ export const KeybindingsPanel = () => {
       </div>
 
       {hasCustomBindings && (
-        <div className="mt-6 flex justify-end">
+        <div className="mt-5 flex justify-end">
           <Button variant="outline" size="sm" onClick={handleReset}>
             {t("settings.keybindings.resetToDefaults")}
           </Button>

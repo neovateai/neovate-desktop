@@ -294,7 +294,7 @@ export const CodeBlockContainer = ({
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => (
   <div
     className={cn(
-      "group relative w-full overflow-hidden rounded-md bg-muted/30 text-foreground",
+      "group relative w-full overflow-hidden rounded-lg bg-muted/40 text-foreground",
       "[contain-intrinsic-size:var(--code-block-contain-intrinsic-size,auto_200px)]",
       "[content-visibility:var(--code-block-content-visibility,auto)]",
       className,
@@ -311,7 +311,7 @@ export const CodeBlockHeader = ({
 }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex items-center justify-between bg-muted/50 px-2.5 py-1.5 text-muted-foreground text-xs",
+      "flex items-center justify-between bg-muted/30 px-3 py-1.5 text-muted-foreground text-xs",
       className,
     )}
     {...props}

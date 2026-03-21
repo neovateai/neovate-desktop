@@ -11,14 +11,14 @@ interface SettingsGroupProps {
 
 export function SettingsGroup({ title, description, children, className }: SettingsGroupProps) {
   return (
-    <div className={cn("rounded-[0.625rem] border border-border", className)}>
-      <div className="px-4 pt-3 pb-1">
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          {title}
-        </div>
-        {description && <div className="text-xs text-muted-foreground mt-0.5">{description}</div>}
+    <div className={cn("rounded-xl bg-muted/30 border border-border/50", className)}>
+      <div className="px-5 pt-4 pb-2">
+        <div className="text-sm font-medium text-muted-foreground">{title}</div>
+        {description && (
+          <div className="text-xs text-muted-foreground/70 mt-0.5">{description}</div>
+        )}
       </div>
-      <div className="px-4">{children}</div>
+      <div className="px-5 pb-2">{children}</div>
     </div>
   );
 }

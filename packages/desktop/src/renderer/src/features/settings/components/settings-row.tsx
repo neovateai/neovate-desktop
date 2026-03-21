@@ -13,13 +13,15 @@ export function SettingsRow({ title, description, children, className }: Setting
   return (
     <div
       className={cn(
-        "flex items-center justify-between py-4 border-b border-border last:border-b-0",
+        "flex items-center justify-between py-3.5 border-b border-border/40 last:border-b-0 transition-colors",
         className,
       )}
     >
       <div className="flex-1 pr-4">
         <div className="text-sm font-medium text-foreground">{title}</div>
-        {description && <div className="text-sm text-muted-foreground mt-0.5">{description}</div>}
+        {description && (
+          <div className="text-xs text-muted-foreground/80 mt-0.5">{description}</div>
+        )}
       </div>
       <div className="flex items-center gap-2">{children}</div>
     </div>

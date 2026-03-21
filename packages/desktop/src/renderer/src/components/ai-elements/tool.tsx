@@ -244,7 +244,7 @@ export const ToolHeader = ({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded-md",
+        "flex items-center gap-2 py-1 px-2 rounded-md",
         "transition-colors cursor-pointer group w-full hover:bg-muted/50",
         className,
       )}
@@ -252,8 +252,8 @@ export const ToolHeader = ({
     >
       <TooltipProvider>
         {/* Icon */}
-        <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0">
-          <ToolIcon className={cn("size-4", iconColor)} />
+        <div className="relative flex items-center justify-center size-5 rounded shrink-0">
+          <ToolIcon className={cn("size-3.5", iconColor)} />
         </div>
         <span className="text-sm text-foreground truncate">
           {mainLabel}&nbsp;
@@ -300,14 +300,14 @@ export const ToolContent = ({ className, children }: ToolContentProps) => (
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{
-              height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.15 },
+              height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.12 },
             }}
             className="overflow-hidden"
           >
             <div
               className={cn(
-                "pl-7 space-y-3 py-2 pr-3 text-popover-foreground [--code-block-content-visibility:visible]",
+                "pl-7 space-y-2 py-1.5 pr-2 text-popover-foreground [--code-block-content-visibility:visible]",
                 className,
               )}
             >
@@ -325,9 +325,9 @@ export type ToolInputProps = ComponentProps<"div"> & {
 };
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-1.5", className)} {...props}>
-    <span className="text-xs font-medium text-muted-foreground">Input</span>
-    <div className="rounded-md bg-muted/30 overflow-hidden">
+  <div className={cn("space-y-1", className)} {...props}>
+    <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Input</span>
+    <div className="rounded-lg overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -352,17 +352,17 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   }
 
   return (
-    <div className={cn("space-y-1.5", className)} {...props}>
-      <span className="text-xs font-medium text-muted-foreground">
+    <div className={cn("space-y-1", className)} {...props}>
+      <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
         {errorText ? "Error" : "Output"}
       </span>
       <div
         className={cn(
-          "rounded-md overflow-hidden",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/30",
+          "rounded-lg overflow-hidden",
+          errorText && "bg-destructive/10 text-destructive",
         )}
       >
-        {errorText && <div className="p-3 text-sm">{errorText}</div>}
+        {errorText && <div className="p-2.5 text-sm">{errorText}</div>}
         {Output}
       </div>
     </div>
