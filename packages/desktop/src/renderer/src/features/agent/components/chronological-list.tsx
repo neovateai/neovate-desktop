@@ -73,7 +73,7 @@ export const ChronologicalList = memo(function ChronologicalList() {
       })}
       {hiddenCount > 0 && (
         <button
-          className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="cursor-pointer px-2.5 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
           onClick={() => setShowAll(!showAll)}
         >
           {showAll ? "Show less" : `Show ${hiddenCount} more`}

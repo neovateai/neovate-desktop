@@ -37,6 +37,19 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-glass-1: var(--glass-1);
+  --color-glass-2: var(--glass-2);
+  --color-glass-3: var(--glass-3);
+  --color-glass-4: var(--glass-4);
+  --color-diff-added: var(--diff-added);
+  --color-diff-added-foreground: var(--diff-added-foreground);
+  --color-diff-added-bg: var(--diff-added-bg);
+  --color-diff-removed: var(--diff-removed);
+  --color-diff-removed-foreground: var(--diff-removed-foreground);
+  --color-diff-removed-bg: var(--diff-removed-bg);
+  --color-skill: var(--skill);
+  --color-skill-foreground: var(--skill-foreground);
+  --color-skill-bg: var(--skill-bg);
   @keyframes skeleton {
     to {
       background-position: -200% 0;
@@ -62,9 +75,9 @@
   --muted-foreground: color-mix(in srgb, var(--color-neutral-500) 90%, var(--color-black));
   --popover: var(--color-white);
   --popover-foreground: var(--color-neutral-800);
-  --primary: #fa216e;
+  --primary: #b83b5e;
   --primary-foreground: var(--color-white);
-  --ring: var(--color-neutral-400);
+  --ring: #b83b5e;
   --secondary: #000000;
   --secondary-foreground: #ffffff;
   --sidebar: var(--color-neutral-50);
@@ -74,51 +87,99 @@
   --sidebar-accent: --alpha(var(--color-black) / 4%);
   --sidebar-accent-foreground: var(--color-neutral-800);
   --sidebar-border: --alpha(var(--color-black) / 6%);
-  --sidebar-ring: var(--color-neutral-400);
+  --sidebar-ring: #b83b5e;
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-700);
   --warning: var(--color-amber-500);
   --warning-foreground: var(--color-amber-700);
   --color-chat: #f5f7fa;
   --color-chat-foreground: var(--color-neutral-800);
+
+  /* Glass system */
+  --glass-tint: var(--color-white);
+  --glass-border: --alpha(var(--color-black) / 6%);
+  --glass-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.08);
+  --glass-1: --alpha(var(--glass-tint) / 72%);
+  --glass-2: --alpha(var(--glass-tint) / 80%);
+  --glass-3: --alpha(var(--glass-tint) / 88%);
+  --glass-4: --alpha(var(--glass-tint) / 92%);
+  --glass-blur-1: 24px;
+  --glass-blur-2: 16px;
+  --glass-blur-3: 12px;
+  --glass-blur-4: 8px;
+
+  /* Semantic colors - Diff */
+  --diff-added: #00a240;
+  --diff-added-foreground: #006428;
+  --diff-added-bg: --alpha(#00a240 / 12%);
+  --diff-removed: #e02e2a;
+  --diff-removed-foreground: #991b1b;
+  --diff-removed-bg: --alpha(#e02e2a / 12%);
+
+  /* Semantic colors - Skill */
+  --skill: #751ed9;
+  --skill-foreground: #5b21b6;
+  --skill-bg: --alpha(#751ed9 / 12%);
 }
 .dark {
-  --accent: --alpha(var(--color-white) / 4%);
+  --accent: --alpha(var(--color-white) / 6%);
   --accent-foreground: var(--color-neutral-100);
-  --background: #222221;
-  --background-secondary: #222221;
-  --border: --alpha(var(--color-white) / 6%);
-  --card: color-mix(in srgb, var(--background) 98%, var(--color-white));
+  --background: #0a0a0a;
+  --background-secondary: #0a0a0a;
+  --border: --alpha(var(--color-white) / 8%);
+  --card: #1a1a1a;
   --card-foreground: var(--color-neutral-100);
   --destructive: color-mix(in srgb, var(--color-red-500) 90%, var(--color-white));
   --destructive-foreground: var(--color-red-400);
   --foreground: var(--color-neutral-100);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-400);
-  --input: --alpha(var(--color-white) / 8%);
-  --muted: --alpha(var(--color-white) / 4%);
+  --input: --alpha(var(--color-white) / 10%);
+  --muted: --alpha(var(--color-white) / 6%);
   --muted-foreground: color-mix(in srgb, var(--color-neutral-500) 90%, var(--color-white));
-  --popover: color-mix(in srgb, var(--background) 98%, var(--color-white));
+  --popover: #1e1e1e;
   --popover-foreground: var(--color-neutral-100);
-  --primary: #fa216e;
+  --primary: #eb6b8e;
   --primary-foreground: var(--color-white);
-  --ring: var(--color-neutral-500);
+  --ring: #eb6b8e;
   --secondary: #ffffff;
   --secondary-foreground: #000000;
-  --sidebar: color-mix(in srgb, var(--color-neutral-950) 97%, var(--color-white));
-  --sidebar-foreground: color-mix(in srgb, var(--color-neutral-100) 64%, var(--sidebar));
+  --sidebar: #141414;
+  --sidebar-foreground: color-mix(in srgb, var(--color-neutral-100) 72%, var(--sidebar));
   --sidebar-primary: var(--color-neutral-100);
   --sidebar-primary-foreground: var(--color-neutral-800);
-  --sidebar-accent: --alpha(var(--color-white) / 4%);
+  --sidebar-accent: --alpha(var(--color-white) / 6%);
   --sidebar-accent-foreground: var(--color-neutral-100);
-  --sidebar-border: --alpha(var(--color-white) / 5%);
-  --sidebar-ring: var(--color-neutral-400);
+  --sidebar-border: --alpha(var(--color-white) / 8%);
+  --sidebar-ring: #eb6b8e;
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-400);
   --warning: var(--color-amber-500);
   --warning-foreground: var(--color-amber-400);
-  --color-chat: color-mix(in srgb, var(--color-neutral-950) 95%, var(--color-white));
+  --color-chat: #161616;
   --color-chat-foreground: var(--color-neutral-100);
+
+  /* Glass system (Dark) */
+  --glass-tint: #1e1e1e;
+  --glass-border: --alpha(var(--color-white) / 10%);
+  --glass-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.4);
+  --glass-1: --alpha(var(--glass-tint) / 72%);
+  --glass-2: --alpha(var(--glass-tint) / 80%);
+  --glass-3: --alpha(var(--glass-tint) / 88%);
+  --glass-4: --alpha(var(--glass-tint) / 92%);
+
+  /* Semantic colors - Diff (Dark) */
+  --diff-added: #00a240;
+  --diff-added-foreground: #4ade80;
+  --diff-added-bg: --alpha(#00a240 / 15%);
+  --diff-removed: #e02e2a;
+  --diff-removed-foreground: #f87171;
+  --diff-removed-bg: --alpha(#e02e2a / 15%);
+
+  /* Semantic colors - Skill (Dark) */
+  --skill: #b06dff;
+  --skill-foreground: #c4b5fd;
+  --skill-bg: --alpha(#b06dff / 15%);
 }
 @layer base {
   * {
@@ -191,5 +252,28 @@
 
   .attachment-thumb img {
     border: 1px solid var(--border);
+  }
+}
+@layer utilities {
+  .glass-card {
+    background: var(--glass-2);
+    backdrop-filter: blur(var(--glass-blur-2));
+    -webkit-backdrop-filter: blur(var(--glass-blur-2));
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-popover {
+    background: var(--glass-3);
+    backdrop-filter: blur(var(--glass-blur-3));
+    -webkit-backdrop-filter: blur(var(--glass-blur-3));
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-sidebar {
+    background: var(--glass-1);
+    backdrop-filter: blur(var(--glass-blur-1));
+    -webkit-backdrop-filter: blur(var(--glass-blur-1));
   }
 }

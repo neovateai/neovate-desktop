@@ -9,17 +9,16 @@ export function WelcomePanel() {
   const { resolvedTheme } = useTheme();
   const { t } = useTranslation();
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-1 text-muted-foreground">
-      {/* <MessageCircle className="size-12 opacity-50" /> */}
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 text-muted-foreground">
       <img
         src={getLogoUrl(resolvedTheme as "dark" | "light" | undefined)}
-        className="w-[120px]"
+        className="h-24 w-auto object-contain"
         alt={`${APP_NAME} Logo`}
       />
-      <p className="text-lg text-center font-bold text-foreground">
+      <p className="text-base text-center font-medium text-foreground/90">
         {t("chat.guideMessage", { APP_NAME })}
       </p>
-      <div className="mt-2">
+      <div>
         <ProjectSelector variant="select" />
       </div>
     </div>

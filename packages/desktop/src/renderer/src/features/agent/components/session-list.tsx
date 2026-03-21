@@ -49,9 +49,7 @@ function MultiProjectSessionList() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="px-2">
-        <NewChatButton projectPath={activeProject?.path} />
-      </div>
+      <NewChatButton projectPath={activeProject?.path} />
       <PinnedSessionList />
       <SidebarTitleBar />
       {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}

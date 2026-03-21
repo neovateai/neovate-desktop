@@ -129,22 +129,25 @@ export const SessionItem = memo(function SessionItem({
       >
         <div
           className={cn(
-            "flex items-center gap-2 px-2 py-1.5 mb-1 cursor-pointer rounded transition-colors group",
+            "flex items-center gap-2.5 px-2.5 py-1.5 cursor-pointer rounded-lg transition-all group",
             isActive
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              ? "bg-accent/80 text-foreground"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}
           onMouseLeave={handleMouseLeave}
         >
-          <button className="hidden group-hover:block" onClick={handlePinToggle}>
+          <button
+            className="hidden group-hover:flex size-5 items-center justify-center"
+            onClick={handlePinToggle}
+          >
             {isPinned ? (
               <PinOff size={14} strokeWidth={1.5} />
             ) : (
               <Pin size={14} strokeWidth={1.5} />
             )}
           </button>
-          <div className="group-hover:hidden">
+          <div className="flex size-5 items-center justify-center group-hover:hidden">
             {hasPendingPermission ? (
               <HugeiconsIcon
                 icon={HelpCircleIcon}
@@ -159,7 +162,7 @@ export const SessionItem = memo(function SessionItem({
                 size={8}
                 strokeWidth={0}
                 fill="currentColor"
-                className={turnResult === "success" ? "text-green-500" : "text-destructive"}
+                className={turnResult === "success" ? "text-success" : "text-destructive"}
               />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
@@ -209,7 +212,7 @@ export const SessionItem = memo(function SessionItem({
           )}
           <span
             className={cn(
-              "text-sm text-muted-foreground group-hover:hidden",
+              "text-xs tabular-nums text-muted-foreground/70 group-hover:hidden",
               isConfirming && "hidden",
             )}
           >
@@ -217,14 +220,14 @@ export const SessionItem = memo(function SessionItem({
           </span>
           {isConfirming ? (
             <button
-              className="text-xs text-destructive cursor-pointer rounded bg-muted px-2 py-0.5 hover:bg-destructive/10 transition-colors"
+              className="text-xs text-destructive-foreground cursor-pointer rounded-md bg-destructive/10 px-2 py-0.5 hover:bg-destructive/20 transition-colors"
               onClick={(e) => handleArchive(e)}
             >
               Confirm
             </button>
           ) : (
             <button
-              className="hidden group-hover:block cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
+              className="hidden group-hover:flex size-5 items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
               onClick={handleStartArchive}
             >
               <Archive size={14} strokeWidth={1.5} />

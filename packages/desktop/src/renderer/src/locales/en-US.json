@@ -325,7 +325,7 @@
   "error.somethingWentWrong": "Something went wrong",
   "error.tryAgain": "Try again",
 
-  "chat.guideMessage": "Hi, I am {{APP_NAME}}. Let's create something together!",
+  "chat.guideMessage": "Hi~  I'm {{APP_NAME}}, what shall we create today?",
   "chat.placeholder": "Type a message...",
   "chat.attachImage": "Attach image",
   "chat.attachImages": "Attach images",

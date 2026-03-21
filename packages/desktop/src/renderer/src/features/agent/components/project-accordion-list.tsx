@@ -103,14 +103,14 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
       </AnimatePresence>
       {remainingCount > 0 ? (
         <button
-          className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="cursor-pointer px-2.5 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
           onClick={() => setVisibleCount((c) => c + DEFAULT_SESSION_LIMIT)}
         >
           {`Show ${Math.min(DEFAULT_SESSION_LIMIT, remainingCount)} more of ${items.length}`}
         </button>
       ) : visibleCount > DEFAULT_SESSION_LIMIT && items.length > DEFAULT_SESSION_LIMIT ? (
         <button
-          className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="cursor-pointer px-2.5 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
           onClick={() => setVisibleCount(DEFAULT_SESSION_LIMIT)}
         >
           Show less
@@ -147,17 +147,17 @@ const SortableProjectItem = memo(function SortableProjectItem({
 
   return (
     <AccordionItem ref={setNodeRef} style={style} value={project.id} className="border-b-0">
-      <AccordionPrimitive.Header className="group flex justify-between items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+      <AccordionPrimitive.Header className="group flex justify-between items-center rounded-lg text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground">
         <div
-          className="flex flex-1 cursor-grab items-center gap-2 px-2 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
+          className="flex flex-1 cursor-grab items-center gap-2.5 px-2.5 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
           {...attributes}
           {...listeners}
         >
-          <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2 text-left max-w-[calc(100%)]">
-            <div className="flex-shrink-0 group-hover:hidden">
+          <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2.5 text-left max-w-[calc(100%)]">
+            <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
               <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
             </div>
-            <div className="hidden flex-shrink-0 group-hover:block">
+            <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
               {!closedSet.has(project.id) ? (
                 <ChevronDown size={16} strokeWidth={1.5} />
               ) : (
@@ -169,9 +169,9 @@ const SortableProjectItem = memo(function SortableProjectItem({
             </span>
           </AccordionPrimitive.Trigger>
         </div>
-        <div className="flex">
+        <div className="flex items-center gap-0.5 pr-1">
           <button
-            className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+            className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
               onRemove(project.id);
@@ -180,7 +180,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
             <Trash2 size={14} strokeWidth={1.5} />
           </button>
           <button
-            className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+            className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
               onCreateSession(project);
@@ -314,8 +314,8 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
       </SortableContext>
       <DragOverlay>
         {activeProject ? (
-          <div className="flex items-center gap-2 rounded bg-accent px-3 py-1.5 text-sm font-medium shadow-md">
-            <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+          <div className="flex items-center gap-2.5 rounded-lg bg-popover px-3 py-2 text-sm font-medium shadow-lg border border-border/50">
+            <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} className="text-muted-foreground" />
             <span className="truncate">{activeProject.name}</span>
           </div>
         ) : null}

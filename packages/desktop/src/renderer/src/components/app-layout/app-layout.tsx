@@ -99,7 +99,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
   return (
     <div
       data-slot="chat-panel"
-      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-card shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
+      className="min-w-0 overflow-hidden rounded-lg pb-2 bg-card backdrop-blur-lg shadow-[-2px_0_8px_rgba(0,0,0,0.05)]"
       style={{
         gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
         backgroundImage:
