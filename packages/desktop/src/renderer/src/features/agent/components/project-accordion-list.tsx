@@ -315,7 +315,12 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
       <DragOverlay>
         {activeProject ? (
           <div className="flex items-center gap-2.5 rounded-lg bg-popover px-3 py-2 text-sm font-medium shadow-lg border border-border/50">
-            <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} className="text-muted-foreground" />
+            <HugeiconsIcon
+              icon={FolderIcon}
+              size={16}
+              strokeWidth={1.5}
+              className="text-muted-foreground"
+            />
             <span className="truncate">{activeProject.name}</span>
           </div>
         ) : null}
