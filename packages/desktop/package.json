@@ -16,6 +16,7 @@
     "dev": "bun run build:interceptor && electron-vite dev",
     "start": "electron-vite preview",
     "build": "bun run build:interceptor && electron-vite build",
+    "typecheck": "tsgo --noEmit -p tsconfig.node.json && tsgo --noEmit -p tsconfig.web.json",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "bun run build && electron-builder --dir --config configs/electron-builder.mjs",
     "build:mac": "bun run build && electron-builder --mac --config configs/electron-builder.mjs",

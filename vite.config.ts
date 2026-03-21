@@ -19,12 +19,7 @@ export default defineConfig({
       newlinesBetween: true,
     },
   },
-  lint: {
-    options: {
-      typeAware: true,
-      typeCheck: true,
-    },
-  },
+  lint: {},
   staged: {
     "*": "vp fmt --no-error-on-unmatched-pattern",
   },

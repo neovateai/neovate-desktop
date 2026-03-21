@@ -39,7 +39,7 @@ IPC: oRPC over MessagePort (contracts in `src/shared/contract.ts`, client in `sr
 ## Commands
 
 - `bun dev` — start dev server with hot reload
-- `bun check` — typecheck + lint + format check (via `vp check`)
+- `bun check` — lint + format (via `vp check`) + typecheck (via `tsgo`)
 - `bun test:run` — unit tests (via `vp test`)
 - `bun ready` — full pre-push readiness check (format + check + test)
 - `bun lint` — lint (via `vp lint`)
