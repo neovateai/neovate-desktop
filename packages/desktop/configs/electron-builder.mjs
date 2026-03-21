@@ -85,8 +85,25 @@ const config = {
     "!**/node_modules/@img/sharp-libvips*/**",
     "!**/node_modules/framer-motion/**",
 
-    // ── Renderer-only: date-fns (33M of locales, already bundled by Vite) ──
+    // ── Renderer-only deps (already bundled into dist/renderer/ by Vite) ──
     "!**/node_modules/date-fns/**",
+    "!**/node_modules/mermaid/**",
+    "!**/node_modules/@mermaid-js/**",
+    "!**/node_modules/cytoscape/**",
+    "!**/node_modules/cytoscape-*/**",
+    "!**/node_modules/langium/**",
+    "!**/node_modules/shiki/**",
+    "!**/node_modules/@shikijs/**",
+    "!**/node_modules/@tiptap/**",
+    "!**/node_modules/@pierre/**",
+    "!**/node_modules/@streamdown/**",
+    "!**/node_modules/katex/**",
+    "!**/node_modules/lodash-es/**",
+    "!**/node_modules/motion-dom/**",
+    "!**/node_modules/d3-*/**",
+    "!**/node_modules/dompurify/**",
+    "!**/node_modules/chevrotain/**",
+    "!**/node_modules/@chevrotain/**",
   ],
 
   compression: isDev ? "normal" : "maximum",
