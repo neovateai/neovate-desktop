@@ -104,6 +104,9 @@ const config = {
     "!**/node_modules/dompurify/**",
     "!**/node_modules/chevrotain/**",
     "!**/node_modules/@chevrotain/**",
+
+    // ── claude-agent-sdk: strip non-macOS ripgrep binaries ──
+    "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-linux/**",
   ],
 
   compression: isDev ? "normal" : "maximum",
