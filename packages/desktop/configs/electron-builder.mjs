@@ -80,6 +80,10 @@ const config = {
     "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}",
     "!{.env,.env.*,.npmrc,pnpm-lock.yaml}",
     "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
+
+    // ── Unused dependencies ──
+    "!**/node_modules/@img/sharp-libvips*/**",
+    "!**/node_modules/framer-motion/**",
   ],
 
   compression: isDev ? "normal" : "maximum",
