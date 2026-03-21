@@ -29,6 +29,12 @@ export default defineConfig({
   renderer: {
     define: appDefine,
     plugins: [react(), tailwindcss()],
+    resolve: {
+      // Force a single copy of shiki so @pierre/diffs (shiki@3) shares the
+      // app's shiki@4 — the APIs are compatible and this eliminates ~6 MB of
+      // duplicated language/theme grammar chunks.
+      dedupe: ["shiki"],
+    },
     build: {
       outDir: "dist/renderer",
       emptyOutDir: true,
