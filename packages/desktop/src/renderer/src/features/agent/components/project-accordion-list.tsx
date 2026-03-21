@@ -108,7 +108,10 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
           className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setVisibleCount((c) => c + DEFAULT_SESSION_LIMIT)}
         >
-          {t("session.showMore", { count: Math.min(DEFAULT_SESSION_LIMIT, remainingCount), total: items.length })}
+          {t("session.showMore", {
+            count: Math.min(DEFAULT_SESSION_LIMIT, remainingCount),
+            total: items.length,
+          })}
         </button>
       ) : visibleCount > DEFAULT_SESSION_LIMIT && items.length > DEFAULT_SESSION_LIMIT ? (
         <button

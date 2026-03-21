@@ -78,7 +78,9 @@ export const ChronologicalList = memo(function ChronologicalList() {
           className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? t("session.showLess") : t("session.showMore", { count: hiddenCount, total: items.length })}
+          {showAll
+            ? t("session.showLess")
+            : t("session.showMore", { count: hiddenCount, total: items.length })}
         </button>
       )}
     </ul>

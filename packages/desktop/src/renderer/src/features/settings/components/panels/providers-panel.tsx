@@ -495,7 +495,9 @@ export const ProvidersPanel = () => {
             </SettingsRow>
           ))}
           {providers.length === 0 && (
-            <p className="text-sm text-muted-foreground py-6 text-center">{t("settings.providers.empty")}</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              {t("settings.providers.empty")}
+            </p>
           )}
         </div>
       )}
