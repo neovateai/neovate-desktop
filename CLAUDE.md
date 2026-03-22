@@ -39,11 +39,11 @@ IPC: oRPC over MessagePort (contracts in `src/shared/contract.ts`, client in `sr
 ## Commands
 
 - `bun dev` — start dev server with hot reload
-- `bun check` — typecheck + lint + format check
-- `bun test:run` — unit tests (vitest)
+- `bun check` — lint + format (via `vp check`) + typecheck (via `tsgo`)
+- `bun test:run` — unit tests (via `vp test`)
 - `bun ready` — full pre-push readiness check (format + check + test)
-- `bun lint` — oxlint
-- `bun format` — oxfmt
+- `bun lint` — lint (via `vp lint`)
+- `bun format` — format (via `vp fmt`)
 
 ## Before Finishing
 
@@ -52,7 +52,7 @@ Run `bun ready` — it runs format check + typecheck + lint + tests. This is the
 ## Code Conventions
 
 - Commits: Conventional Commits (`feat:`, `fix:`, `chore:`)
-- Linter: oxlint. Formatter: oxfmt. NOT eslint/prettier.
+- Toolchain: `vite-plus` for lint/fmt/test/check (wraps oxlint + oxfmt + vitest). NOT eslint/prettier.
 - Relative imports in renderer code (no `@/` aliases)
 - `components/ui/` files are shadcn-generated — use `/coss-ui-sync` skill to add/update, don't edit by hand
 - Debug logging: `import debug from "debug"` with `neovate:` namespace prefix
@@ -63,8 +63,9 @@ Run `bun ready` — it runs format check + typecheck + lint + tests. This is the
 
 - Animations: `motion` (not framer-motion)
 - Headless UI: `@base-ui/react` (not radix)
-- Linter: `oxlint` (not eslint)
-- Formatter: `oxfmt` (not prettier)
+- Toolchain: `vite-plus` — unified lint/fmt/test/check (not eslint/prettier)
+- Linter: `oxlint` via vite-plus (not eslint)
+- Formatter: `oxfmt` via vite-plus (not prettier)
 - Tailwind CSS 4 (CSS-first config, no tailwind.config.js)
 - Zod 4 (not zod 3)
 - Icons: `lucide-react` (general use), `@hugeicons/core-free-icons` (sidebar/plugin icons)
