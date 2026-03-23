@@ -36,6 +36,7 @@ import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
 import { useScrollPosition } from "../hooks/use-scroll-position";
 import { BranchSwitcher } from "./branch-switcher";
+import { ContextLeft } from "./context-left";
 import { MessageInput } from "./message-input";
 import { MessageParts } from "./message-parts";
 import { PermissionDialog } from "./permission-dialog";
@@ -307,8 +308,10 @@ function AgentChatSession({
           </div>
         </div>
         {cwd && (
-          <div className="px-4 pb-2">
+          <div className="flex items-center px-4 pb-2">
             <BranchSwitcher cwd={cwd} disabled={status === "streaming"} />
+            <div className="flex-1" />
+            <ContextLeft sessionId={sessionId} />
           </div>
         )}
       </div>

@@ -48,6 +48,9 @@ export type SessionUsage = {
   totalDurationMs: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  contextWindowSize: number;
+  contextUsedTokens: number;
+  remainingPct: number;
 };
 
 export type ChatSession = {
@@ -97,6 +100,10 @@ type AgentState = {
   setModelScope: (sessionId: string, scope: ModelScope | undefined) => void;
   setProviderId: (sessionId: string, providerId: string | undefined) => void;
   setPermissionMode: (sessionId: string, mode: PermissionMode) => void;
+  setSessionUsage: (
+    sessionId: string,
+    usage: { contextWindowSize: number; usedTokens: number; remainingPct: number },
+  ) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
   sessionInitError: string | null;
   setSessionInitError: (error: string | null) => void;
@@ -271,6 +278,24 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.permissionMode = mode;
+      });
+    },
+
+    setSessionUsage: (sessionId, usage) => {
+      storeLog("setSessionUsage: sid=%s remaining=%d%%", sessionId, usage.remainingPct);
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) return;
+        session.usage = {
+          ...session.usage,
+          totalCostUsd: session.usage?.totalCostUsd ?? 0,
+          totalDurationMs: session.usage?.totalDurationMs ?? 0,
+          totalInputTokens: session.usage?.totalInputTokens ?? 0,
+          totalOutputTokens: session.usage?.totalOutputTokens ?? 0,
+          contextWindowSize: usage.contextWindowSize,
+          contextUsedTokens: usage.usedTokens,
+          remainingPct: usage.remainingPct,
+        };
       });
     },
 

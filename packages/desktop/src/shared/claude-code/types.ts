@@ -56,6 +56,13 @@ export function isClaudeCodeUIMessage(value: unknown): value is ClaudeCodeUIMess
 
 // ─── Subscribe (event) ───────────────────────────────────────────────────────
 
+export type ContextUsageEvent = {
+  type: "context_usage";
+  contextWindowSize: number;
+  usedTokens: number;
+  remainingPct: number;
+};
+
 export type ClaudeCodeUIEventPart =
   | SDKResultMessage
   | SDKSystemMessage
@@ -73,7 +80,8 @@ export type ClaudeCodeUIEventPart =
   | SDKToolUseSummaryMessage
   | SDKAuthStatusMessage
   | SDKRateLimitEvent
-  | SDKPromptSuggestionMessage;
+  | SDKPromptSuggestionMessage
+  | ContextUsageEvent;
 
 export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
 
