@@ -18,9 +18,8 @@ export class ExtensionBridgeServer extends EventEmitter {
   private clients = new Map<string, net.Socket>();
   private handlers = new Map<
     string,
-    (params: IBridgeRequestParams["params"], cwd: string, webContents?: WebContents) => Promise<any>
+    (params: IBridgeRequestParams["params"], cwd: string) => Promise<any>
   >();
-  private webContents?: WebContents;
   private pendingRequests = new Map<
     string,
     {
@@ -30,23 +29,18 @@ export class ExtensionBridgeServer extends EventEmitter {
     }
   >();
 
-  connect2renderer(webContents: WebContents) {
-    this.webContents = webContents;
-  }
-
   start(port: number, maxRetries: number = 10): Promise<number> {
     return new Promise((resolve, reject) => {
       const tryListen = (currentPort: number, attempt: number) => {
         this.server = net.createServer((socket) => {
           let currentCwd: string | null = null;
-
+          // response or events
           socket.on("data", async (raw) => {
             try {
               const data = JSON.parse(raw.toString());
               log("received", data);
               const { operationType, params, cwd, result, requestId } = data || {};
-
-              // 处理响应（包含requestId的是响应消息）
+              // handle response data from extension (with requestId of current instance)
               if (requestId && this.pendingRequests.has(requestId)) {
                 const pending = this.pendingRequests.get(requestId);
                 if (pending) {
@@ -56,12 +50,9 @@ export class ExtensionBridgeServer extends EventEmitter {
                   return;
                 }
               }
-
-              // 处理请求（包含operationType的是请求消息）
               if (!operationType || !cwd) {
                 return;
               }
-
               // 首次连接或cwd变化时更新映射
               if (currentCwd !== cwd) {
                 if (currentCwd) {
@@ -70,11 +61,11 @@ export class ExtensionBridgeServer extends EventEmitter {
                 currentCwd = cwd;
                 this.clients.set(cwd, socket);
               }
-
+              // handle events/request data from extension.
               const handler = this.handlers.get(operationType);
               if (handler) {
                 try {
-                  const result = await handler(params, cwd, this.webContents);
+                  const result = await handler(params, cwd);
                   const response = JSON.stringify({
                     ...result,
                     requestId: data.requestId,

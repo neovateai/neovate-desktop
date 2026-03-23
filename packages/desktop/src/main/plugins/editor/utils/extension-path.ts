@@ -12,10 +12,11 @@ const log = debug("neovate:editor:extension");
  * - 0.0.7 原仓库迁移，保留基础能力 ping/editor.open/editor.theme.set/editor.inspect
  * - 0.0.8 fix: 增加了socket 通信的粘包处理
  * - 0.0.9 feat: 消费 process.env.NEOVATE_BRIDGE_PORT 以匹配通信端口
+ * - 0.1.0 feat: 增加 editor 文件 右键菜单 Add to Chat[context.add] 事件
  */
 const RESOURCE_PATH =
-  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*0CnZR4rEnzoAAAAAQGAAAAgAegAAAQ"; // 0.0.9
-const VSIX_FILENAME = "neovate-code-extension-0.0.9.vsix";
+  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*-KLyTKqa09YAAAAAQGAAAAgAegAAAQ"; // 0.1.0
+const VSIX_FILENAME = "neovate-code-extension-0.1.0.vsix";
 
 export function ensureExtension(extDir: string): Promise<string> {
   log("ensuring extension is available");
@@ -26,6 +27,7 @@ export function ensureExtension(extDir: string): Promise<string> {
     }
 
     const extensionPath = path.join(extDir, VSIX_FILENAME);
+    // const extensionPath = LOCAL_VSIX_PATH;
 
     if (fs.existsSync(extensionPath)) {
       log("extension already exists at %s", extensionPath);
