@@ -479,33 +479,33 @@ export default memo(function ChangesView() {
           <PopoverTrigger className="p-1 hover:bg-accent rounded">
             <Ellipsis className="w-3.5 h-3.5 text-muted-foreground" />
           </PopoverTrigger>
-          <PopoverPopup side="bottom" align="end" className="!p-0">
-            <div className="py-1 min-w-40">
+          <PopoverPopup side="bottom" align="end" viewportClassName="p-1">
+            <div className="min-w-32">
               <button
                 onClick={() => refresh()}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent text-left"
+                className="flex w-full select-none items-center gap-2 rounded-sm px-2 py-1 text-sm hover:bg-accent hover:text-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw />
                 {t("review.menu.refresh")}
               </button>
               <button
                 onClick={toggleFileTree}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent text-left"
+                className="flex w-full select-none items-center gap-2 rounded-sm px-2 py-1 text-sm hover:bg-accent hover:text-accent-foreground"
               >
                 {showFileTree ? t("review.menu.hideFileTree") : t("review.menu.showFileTree")}
               </button>
-              <div className="h-px bg-border mx-2 my-1" />
+              <div className="mx-2 my-1 h-px bg-border" />
               <button
                 onClick={expandAll}
                 disabled={files.length === 0}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent text-left disabled:opacity-50"
+                className="flex w-full select-none items-center gap-2 rounded-sm px-2 py-1 text-sm hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-64"
               >
                 {t("review.menu.expandAll")}
               </button>
               <button
                 onClick={collapseAll}
                 disabled={expandedFiles.size === 0}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent text-left disabled:opacity-50"
+                className="flex w-full select-none items-center gap-2 rounded-sm px-2 py-1 text-sm hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-64"
               >
                 {t("review.menu.collapseAll")}
               </button>
