@@ -37,6 +37,8 @@ interface SessionItemProps {
   isStreaming?: boolean;
   hasPendingPermission?: boolean;
   turnResult?: TurnResult;
+  /** Session has an active backend process (loaded in SessionManager) */
+  isInitialized?: boolean;
   onClick: () => void;
   projectPath: string;
 }
@@ -51,6 +53,7 @@ export const SessionItem = memo(function SessionItem({
   isStreaming = false,
   hasPendingPermission = false,
   turnResult,
+  isInitialized = false,
   onClick,
   projectPath,
 }: SessionItemProps) {
@@ -59,6 +62,7 @@ export const SessionItem = memo(function SessionItem({
   const renameSession = useAgentStore((s) => s.renameSession);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
+  const developerMode = useConfigStore((s) => s.developerMode);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
@@ -67,6 +71,13 @@ export const SessionItem = memo(function SessionItem({
   const displayTitle = title || sessionId.slice(0, 8);
   const isProcessing = isStreaming || isRestoring;
   const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+
+  log(
+    "render: sid=%s isInitialized=%s isActive=%s",
+    sessionId.slice(0, 8),
+    isInitialized,
+    isActive,
+  );
 
   const handlePinToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,6 +135,8 @@ export const SessionItem = memo(function SessionItem({
         <div
           className={cn(
             "flex items-center gap-2.5 pl-2.5 pr-3 py-1 cursor-pointer rounded-lg transition-all group",
+            developerMode && "border-l-2",
+            developerMode && (isInitialized ? "border-green-500" : "border-transparent"),
             isActive
               ? "bg-accent/80 text-foreground"
               : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",

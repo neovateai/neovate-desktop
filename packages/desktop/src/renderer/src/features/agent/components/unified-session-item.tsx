@@ -55,6 +55,7 @@ export const UnifiedSessionItem = memo(
         isStreaming={isStreaming}
         hasPendingPermission={hasPendingRequests}
         turnResult={turnResult}
+        isInitialized={item.kind === "memory"}
         onClick={handleClick}
         projectPath={item.projectPath}
       />
