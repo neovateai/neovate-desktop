@@ -73,6 +73,7 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
       style={{
         ...APP_LAYOUT_GRID,
         gridTemplateColumns: getGridTemplateColumns(contentPanelExpanded),
+        transition: "grid-template-columns 300ms ease-in-out",
       }}
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />

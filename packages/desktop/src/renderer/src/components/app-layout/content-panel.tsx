@@ -14,7 +14,6 @@ export function AppLayoutContentPanel({ children }: { children?: ReactNode }) {
       className={cn(
         "h-full shrink-0 overflow-hidden rounded-lg bg-card backdrop-blur-lg shadow-[-2px_0_8px_rgba(0,0,0,0.05)]",
         collapsed && "pointer-events-none",
-        !collapsed && "w-full",
       )}
     >
       {children}
