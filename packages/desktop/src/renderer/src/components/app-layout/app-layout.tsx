@@ -3,7 +3,6 @@ import {
   FolderIcon,
   PanelLeftIcon,
   PanelRightIcon,
-  Settings03Icon,
   ViewSidebarLeftIcon,
   ViewSidebarRightIcon,
   SidebarRightIcon,
@@ -29,7 +28,6 @@ import { useConfigStore } from "../../features/config/store";
 import { OpenAppButton } from "../../features/open-in";
 import { ProjectSelector } from "../../features/project/components/project-selector";
 import { useProjectStore } from "../../features/project/store";
-import { useSettingsStore } from "../../features/settings";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
@@ -40,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { UserAvatarMenu } from "../user-avatar-menu";
 import {
   APP_LAYOUT_COLLAPSED_TITLEBAR_LEFT_MARGIN,
   APP_LAYOUT_GRID,
@@ -223,7 +222,6 @@ export function AppLayoutSecondaryTitleBar() {
   const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
-  const setShowSettings = useSettingsStore((s) => s.setShowSettings);
   const locale = useConfigStore((s) => s.locale);
   const app = useRendererApp();
   const items = app.pluginManager.contributions.secondaryTitlebarItems;
@@ -275,15 +273,7 @@ export function AppLayoutSecondaryTitleBar() {
             strokeWidth={1.8}
           />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="size-7"
-          title={t("sidebar.settings")}
-          onClick={() => setShowSettings(true)}
-        >
-          <HugeiconsIcon icon={Settings03Icon} size={16} strokeWidth={1.8} />
-        </Button>
+        <UserAvatarMenu />
       </div>
     </div>
   );
