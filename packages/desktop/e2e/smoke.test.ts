@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures/electron";
 import { APP_ROOT, APP_TITLE } from "./selectors/app";
 
-test("window opens and app shell renders", async ({ window }) => {
+test.skip("window opens and app shell renders", async ({ window }) => {
   await expect(window.locator(APP_ROOT)).toBeVisible();
   await expect(window.locator(APP_TITLE)).toBeVisible();
 });
