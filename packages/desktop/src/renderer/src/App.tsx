@@ -58,7 +58,7 @@ export default function App() {
   return (
     <>
       <AppLayoutRoot>
-        <AppLayoutTrafficLights />
+        {!showSettings && <AppLayoutTrafficLights />}
 
         <AppLayoutPrimarySidebar>
           <div className="flex h-full flex-col">
