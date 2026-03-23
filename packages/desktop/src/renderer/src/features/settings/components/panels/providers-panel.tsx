@@ -132,10 +132,10 @@ export const ProvidersPanel = () => {
   const addProvider = useProviderStore((s) => s.addProvider);
   const updateProvider = useProviderStore((s) => s.updateProvider);
   const removeProvider = useProviderStore((s) => s.removeProvider);
-  const benchmarkResults = useProviderStore((s) => s.benchmarkResults);
-  const benchmarkingModels = useProviderStore((s) => s.benchmarkingModels);
-  const cancelBenchmarks = useProviderStore((s) => s.cancelBenchmarks);
-  const clearBenchmarkResults = useProviderStore((s) => s.clearBenchmarkResults);
+  const modelTestResults = useProviderStore((s) => s.modelTestResults);
+  const testingModels = useProviderStore((s) => s.testingModels);
+  const cancelTests = useProviderStore((s) => s.cancelTests);
+  const clearTestResults = useProviderStore((s) => s.clearTestResults);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -168,8 +168,8 @@ export const ProvidersPanel = () => {
 
   // Cancel in-flight benchmarks when leaving the providers panel
   useEffect(() => {
-    return () => cancelBenchmarks();
-  }, [cancelBenchmarks]);
+    return () => cancelTests();
+  }, [cancelTests]);
 
   const usedBuiltInIds = useMemo(
     () => new Set(providers.map((p) => p.builtInId).filter(Boolean)),
@@ -200,7 +200,7 @@ export const ProvidersPanel = () => {
     setShowTemplatePicker(true);
     setIsCreating(false);
     useProviderStore.setState((state) => {
-      state.benchmarkResults = {};
+      state.modelTestResults = {};
     });
   }, []);
 
@@ -220,14 +220,14 @@ export const ProvidersPanel = () => {
 
   const startEdit = useCallback(
     (p: Provider) => {
-      clearBenchmarkResults(p.baseURL);
+      clearTestResults(p.baseURL);
       setEditingId(p.id);
       setIsCreating(false);
       setShowApiKey(false);
       setForm(providerToForm(p));
       setError(null);
     },
-    [clearBenchmarkResults],
+    [clearTestResults],
   );
 
   const cancel = useCallback(() => {
@@ -686,9 +686,9 @@ export const ProvidersPanel = () => {
             </div>
             <div className="mt-1 space-y-1">
               {Object.entries(form.models).map(([key, entry]) => {
-                const benchKey = `${form.baseURL}:${key}`;
-                const result = benchmarkResults[benchKey];
-                const isRunning = benchmarkingModels[benchKey] ?? false;
+                const testKey = `${form.baseURL}:${key}`;
+                const result = modelTestResults[testKey];
+                const isRunning = testingModels[testKey] ?? false;
                 const failed = result && !isRunning && !result.success;
 
                 return (
@@ -700,7 +700,10 @@ export const ProvidersPanel = () => {
                       )}
                       <div className="ml-auto flex items-center gap-1.5">
                         {isRunning && <Spinner className="h-3 w-3" />}
-                        {result && !isRunning && result.success && (
+                        {result && !isRunning && result.success && result.type === "quick" && (
+                          <Check className="h-3.5 w-3.5 text-success-foreground" />
+                        )}
+                        {result && !isRunning && result.success && result.type === "benchmark" && (
                           <Tooltip>
                             <TooltipTrigger className="cursor-default">
                               <BenchmarkMetrics

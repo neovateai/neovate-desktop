@@ -2,7 +2,7 @@ import debug from "debug";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import type { BenchmarkResult, Provider } from "../../../../shared/features/provider/types";
+import type { ModelTestResult, Provider } from "../../../../shared/features/provider/types";
 
 import { client } from "../../orpc";
 
@@ -14,8 +14,8 @@ let benchmarkController: AbortController | null = null;
 type ProviderState = {
   providers: Provider[];
   loaded: boolean;
-  benchmarkResults: Record<string, BenchmarkResult>;
-  benchmarkingModels: Record<string, boolean>;
+  modelTestResults: Record<string, ModelTestResult>;
+  testingModels: Record<string, boolean>;
 
   load: () => Promise<void>;
   addProvider: (input: {
@@ -29,17 +29,18 @@ type ProviderState = {
   }) => Promise<Provider>;
   updateProvider: (id: string, updates: Partial<Omit<Provider, "id">>) => Promise<Provider>;
   removeProvider: (id: string) => Promise<void>;
-  checkAll: (baseURL: string, apiKey: string, modelIds: string[]) => Promise<void>;
-  cancelBenchmarks: () => void;
-  clearBenchmarkResults: (baseURL: string) => void;
+  quickCheckAll: (baseURL: string, apiKey: string, modelIds: string[]) => Promise<void>;
+  benchmarkAll: (baseURL: string, apiKey: string, modelIds: string[]) => Promise<void>;
+  cancelTests: () => void;
+  clearTestResults: (baseURL: string) => void;
 };
 
 export const useProviderStore = create<ProviderState>()(
   immer((set, get) => ({
     providers: [],
     loaded: false,
-    benchmarkResults: {},
-    benchmarkingModels: {},
+    modelTestResults: {},
+    testingModels: {},
 
     load: async () => {
       const providers = await client.provider.list();
@@ -77,8 +78,52 @@ export const useProviderStore = create<ProviderState>()(
       });
     },
 
-    checkAll: async (baseURL, apiKey, modelIds) => {
-      log("checkAll: baseURL=%s models=%o", baseURL, modelIds);
+    quickCheckAll: async (baseURL, apiKey, modelIds) => {
+      log("quickCheckAll: baseURL=%s models=%o", baseURL, modelIds);
+      benchmarkController?.abort();
+
+      const controller = new AbortController();
+      benchmarkController = controller;
+
+      const keys = modelIds.map((id) => `${baseURL}:${id}`);
+
+      // Mark all as testing
+      set((state) => {
+        for (const key of keys) {
+          delete state.modelTestResults[key];
+          state.testingModels[key] = true;
+        }
+      });
+
+      try {
+        const results = await Promise.all(
+          modelIds.map((modelId) =>
+            client.provider
+              .quickCheck({ baseURL, apiKey, modelId }, { signal: controller.signal })
+              .then((r) => ({ modelId, ...r })),
+          ),
+        );
+
+        set((state) => {
+          for (const { modelId, success, error } of results) {
+            const key = `${baseURL}:${modelId}`;
+            state.modelTestResults[key] = { type: "quick", success, error };
+          }
+        });
+      } finally {
+        set((state) => {
+          for (const key of keys) {
+            delete state.testingModels[key];
+          }
+        });
+        if (benchmarkController === controller) {
+          benchmarkController = null;
+        }
+      }
+    },
+
+    benchmarkAll: async (baseURL, apiKey, modelIds) => {
+      log("benchmarkAll: baseURL=%s models=%o", baseURL, modelIds);
       benchmarkController?.abort();
 
       const controller = new AbortController();
@@ -88,25 +133,25 @@ export const useProviderStore = create<ProviderState>()(
         for (const modelId of modelIds) {
           if (controller.signal.aborted) break;
           const key = `${baseURL}:${modelId}`;
-          if (get().benchmarkingModels[key]) continue;
+          if (get().testingModels[key]) continue;
 
-          log("checking model: %s", modelId);
+          log("benchmarking model: %s", modelId);
           set((state) => {
-            delete state.benchmarkResults[key];
-            state.benchmarkingModels[key] = true;
+            delete state.modelTestResults[key];
+            state.testingModels[key] = true;
           });
           try {
             const result = await client.provider.checkModel(
               { baseURL, apiKey, modelId },
               { signal: controller.signal },
             );
-            log("model check result: %s success=%s", modelId, result.success);
+            log("benchmark result: %s success=%s", modelId, result.success);
             set((state) => {
-              state.benchmarkResults[key] = result;
+              state.modelTestResults[key] = { type: "benchmark", ...result };
             });
           } finally {
             set((state) => {
-              delete state.benchmarkingModels[key];
+              delete state.testingModels[key];
             });
           }
         }
@@ -117,22 +162,22 @@ export const useProviderStore = create<ProviderState>()(
       }
     },
 
-    cancelBenchmarks: () => {
+    cancelTests: () => {
       if (benchmarkController) {
-        log("canceling benchmarks");
+        log("canceling tests");
         benchmarkController.abort();
         benchmarkController = null;
         set((state) => {
-          state.benchmarkingModels = {};
+          state.testingModels = {};
         });
       }
     },
 
-    clearBenchmarkResults: (baseURL) => {
+    clearTestResults: (baseURL) => {
       set((state) => {
-        for (const key of Object.keys(state.benchmarkResults)) {
+        for (const key of Object.keys(state.modelTestResults)) {
           if (key.startsWith(`${baseURL}:`)) {
-            delete state.benchmarkResults[key];
+            delete state.modelTestResults[key];
           }
         }
       });

@@ -156,6 +156,8 @@
   "settings.providers.benchmark.total": "Total",
   "settings.providers.benchmark.failed": "Failed",
   "settings.providers.benchmark.cancel": "Cancel",
+  "settings.providers.benchmark.quickTest": "Quick test all models",
+  "settings.providers.benchmark.fullBenchmark": "Full Benchmark",
   "settings.providers.validation.nameRequired": "Name is required",
   "settings.providers.validation.invalidURL": "Invalid base URL",
   "settings.providers.validation.apiKeyRequired": "API key is required",

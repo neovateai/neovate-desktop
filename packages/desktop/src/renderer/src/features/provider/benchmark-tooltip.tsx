@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import type { BenchmarkResult } from "../../../../shared/features/provider/types";
+import type { ModelTestResult } from "../../../../shared/features/provider/types";
 
 import {
   formatMs,
@@ -12,7 +12,7 @@ import {
 } from "./benchmark-utils";
 
 interface BenchmarkTooltipProps {
-  result: BenchmarkResult;
+  result: ModelTestResult;
 }
 
 export function BenchmarkTooltipContent({ result }: BenchmarkTooltipProps) {
@@ -24,6 +24,10 @@ export function BenchmarkTooltipContent({ result }: BenchmarkTooltipProps) {
         {result.error || t("settings.providers.benchmark.failed")}
       </div>
     );
+  }
+
+  if (result.type === "quick") {
+    return null;
   }
 
   return (

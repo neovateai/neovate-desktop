@@ -2,7 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk";
 import { ORPCError, implement } from "@orpc/server";
 import debug from "debug";
 
-import type { BenchmarkResult, Provider } from "../../../shared/features/provider/types";
+import type { BenchmarkModelTestResult, Provider } from "../../../shared/features/provider/types";
 import type { AppContext } from "../../router";
 
 import { providerContract } from "../../../shared/features/provider/contract";
@@ -18,6 +18,7 @@ const BENCHMARK_PROMPT =
   "Write a short paragraph explaining what a benchmark test measures in software engineering.";
 const BENCHMARK_MAX_TOKENS = 100;
 const BENCHMARK_TIMEOUT_MS = 30_000;
+const QUICK_CHECK_TIMEOUT_MS = 10_000;
 
 function createBenchmarkClient(provider: Provider): Anthropic {
   return new Anthropic({
@@ -32,11 +33,57 @@ function calculateAvg(values: number[]): number | null {
   return nonZero.reduce((a, b) => a + b, 0) / nonZero.length;
 }
 
+async function runQuickCheck(
+  provider: Provider,
+  modelId: string,
+  externalSignal?: AbortSignal,
+): Promise<{ success: boolean; error?: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), QUICK_CHECK_TIMEOUT_MS);
+  const onExternalAbort = () => controller.abort();
+  externalSignal?.addEventListener("abort", onExternalAbort);
+
+  try {
+    const client = createBenchmarkClient(provider);
+    await client.messages.create(
+      {
+        model: modelId,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }],
+      },
+      { signal: controller.signal },
+    );
+    return { success: true };
+  } catch (err) {
+    log("quickCheck failed: provider=%s model=%s error=%s", provider.id, modelId, err);
+
+    let error: string;
+    if (err instanceof Anthropic.APIError) {
+      const parts = [`${err.status}`];
+      const body = err.error as Record<string, unknown> | undefined;
+      const inner = body?.error as Record<string, unknown> | undefined;
+      if (inner?.type) parts.push(String(inner.type));
+      if (inner?.message) parts.push(String(inner.message));
+      else if (err.message) parts.push(err.message);
+      error = parts.join(" — ");
+    } else if (err instanceof Error) {
+      error = err.message;
+    } else {
+      error = String(err);
+    }
+
+    return { success: false, error };
+  } finally {
+    clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
+  }
+}
+
 async function runBenchmark(
   provider: Provider,
   modelId: string,
   externalSignal?: AbortSignal,
-): Promise<BenchmarkResult> {
+): Promise<Omit<BenchmarkModelTestResult, "type">> {
   const startTime = performance.now();
   let firstTokenTime: number | null = null;
   const tpotValues: number[] = [];
@@ -222,6 +269,12 @@ export const providerRouter = os.provider.router({
   remove: os.provider.remove.handler(({ input, context }) => {
     context.configStore.removeProvider(input.id);
     log("remove: id=%s", input.id);
+  }),
+
+  quickCheck: os.provider.quickCheck.handler(async ({ input, signal }) => {
+    const { baseURL, apiKey, modelId } = input;
+    log("quickCheck: baseURL=%s model=%s", baseURL, modelId);
+    return runQuickCheck({ id: "_check", baseURL, apiKey } as Provider, modelId, signal);
   }),
 
   checkModel: os.provider.checkModel.handler(async ({ input, signal }) => {

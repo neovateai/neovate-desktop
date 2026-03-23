@@ -156,6 +156,8 @@
   "settings.providers.benchmark.total": "总耗时",
   "settings.providers.benchmark.failed": "失败",
   "settings.providers.benchmark.cancel": "取消",
+  "settings.providers.benchmark.quickTest": "快速测试所有模型",
+  "settings.providers.benchmark.fullBenchmark": "完整基准测试",
   "settings.providers.validation.nameRequired": "名称不能为空",
   "settings.providers.validation.invalidURL": "无效的 API 地址",
   "settings.providers.validation.apiKeyRequired": "API 密钥不能为空",
