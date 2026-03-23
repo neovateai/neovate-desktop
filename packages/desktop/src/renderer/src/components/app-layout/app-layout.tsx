@@ -74,6 +74,7 @@ export function AppLayoutRoot({ children }: { children: ReactNode }) {
         ...APP_LAYOUT_GRID,
         gridTemplateColumns: getGridTemplateColumns(contentPanelExpanded),
         transition: "grid-template-columns 300ms ease-in-out",
+        willChange: "grid-template-columns",
       }}
     >
       <div className="[-webkit-app-region:drag] absolute inset-x-0 top-0 h-10" />
@@ -115,6 +116,7 @@ export function AppLayoutChatPanel({ children }: { children: ReactNode }) {
       style={{
         gridArea: APP_LAYOUT_GRID_AREA.chatPanel,
         width: contentPanelExpanded ? chatPanelWidth : undefined,
+        contain: "layout",
         backgroundImage:
           !activeSession || activeSession.isNew
             ? `url("${getChatPanelBgUrl(resolvedTheme as "dark" | "light" | undefined)}")`
@@ -142,7 +144,7 @@ export function AppLayoutTrafficLights() {
     <div
       data-slot="traffic-lights"
       className="[-webkit-app-region:no-drag] pointer-events-auto fixed z-[100] flex items-center gap-1"
-      style={{ top: 9, left: 82 }}
+      style={{ top: 10, left: 82 }}
     >
       <Button
         variant="ghost"
