@@ -64,6 +64,12 @@ export function SessionActionsMenu({
     navigator.clipboard.writeText(cwd);
   };
 
+  const handleCopyResumeCommand = () => {
+    const command = `cd ${cwd} && claude --resume ${sessionId}`;
+    log("copyResumeCommand: %s", command);
+    navigator.clipboard.writeText(command);
+  };
+
   const handleArchive = () => {
     const isActive = useAgentStore.getState().activeSessionId === sessionId;
     archiveSession(projectPath, sessionId, isActive);
@@ -95,6 +101,9 @@ export function SessionActionsMenu({
           </ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
             {t("session.copyJsonlPath")}
+          </ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
+            {t("session.copyResumeCommand")}
           </ContextMenuItem>
         </ContextMenuPopup>
       </ContextMenu>
@@ -129,6 +138,9 @@ export function SessionActionsMenu({
         <MenuItem onClick={handleCopySessionId}>{t("session.copySessionId")}</MenuItem>
         <MenuItem disabled={isNew} onClick={handleCopyJsonlPath}>
           {t("session.copyJsonlPath")}
+        </MenuItem>
+        <MenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
+          {t("session.copyResumeCommand")}
         </MenuItem>
       </MenuPopup>
     </Menu>

@@ -302,6 +302,7 @@
   "session.copyWorkingDirectory": "Copy working directory",
   "session.copySessionId": "Copy session ID",
   "session.copyJsonlPath": "Copy session JSONL path",
+  "session.copyResumeCommand": "Copy Claude Code resume command",
   "session.showMore": "Show {{count}} more of {{total}}",
   "session.showLess": "Show less",
 

@@ -304,6 +304,7 @@
   "session.copyWorkingDirectory": "复制工作目录",
   "session.copySessionId": "复制会话 ID",
   "session.copyJsonlPath": "复制会话 JSONL 路径",
+  "session.copyResumeCommand": "复制 Claude Code 恢复命令",
   "session.showMore": "显示更多 {{count}}/{{total}}",
   "session.showLess": "收起",
 
