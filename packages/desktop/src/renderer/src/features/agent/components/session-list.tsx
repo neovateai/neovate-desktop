@@ -6,6 +6,7 @@ import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
 import type { ChatSession } from "../store";
 
+import { ScrollArea } from "../../../components/ui/scroll-area";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
@@ -48,11 +49,17 @@ function MultiProjectSessionList() {
   }, [projects, loadSessionPreferences]);
 
   return (
-    <div className="flex flex-1 flex-col pt-2">
-      <NewChatButton projectPath={activeProject?.path} />
-      <PinnedSessionList />
-      <SidebarTitleBar />
-      {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
+    <div className="flex flex-1 flex-col pt-2 min-h-0">
+      {/* Fixed header area */}
+      <div className="shrink-0">
+        <NewChatButton projectPath={activeProject?.path} />
+        <PinnedSessionList />
+        <SidebarTitleBar />
+      </div>
+      {/* Scrollable session list */}
+      <ScrollArea className="flex-1 min-h-0" scrollFade>
+        {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
+      </ScrollArea>
     </div>
   );
 }
@@ -159,48 +166,54 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-1 pt-2">
-      <NewChatButton projectPath={projectPath} />
-      {pinnedItems.length === 0 && regularItems.length === 0 ? (
-        sessionsLoaded ? (
-          <EmptySessionState />
-        ) : null
-      ) : (
-        <ul className="flex flex-col gap-1">
-          {pinnedItems.length > 0 && (
-            <>
-              {pinnedItems.map((item) => {
-                const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-                return (
-                  <UnifiedSessionItem
-                    key={id}
-                    item={item}
-                    activeSessionId={activeSessionId}
-                    isPinned={true}
-                    restoring={restoring}
-                    onActivate={handleActivate}
-                    onLoad={handleLoad}
-                  />
-                );
-              })}
-            </>
-          )}
-          {regularItems.map((item) => {
-            const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-            return (
-              <UnifiedSessionItem
-                key={id}
-                item={item}
-                activeSessionId={activeSessionId}
-                isPinned={pinned.has(id)}
-                restoring={restoring}
-                onActivate={handleActivate}
-                onLoad={handleLoad}
-              />
-            );
-          })}
-        </ul>
-      )}
+    <div className="flex flex-1 flex-col gap-1 pt-2 min-h-0">
+      {/* Fixed header area */}
+      <div className="shrink-0">
+        <NewChatButton projectPath={projectPath} />
+      </div>
+      {/* Scrollable session list */}
+      <ScrollArea className="flex-1 min-h-0" scrollFade>
+        {pinnedItems.length === 0 && regularItems.length === 0 ? (
+          sessionsLoaded ? (
+            <EmptySessionState />
+          ) : null
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {pinnedItems.length > 0 && (
+              <>
+                {pinnedItems.map((item) => {
+                  const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+                  return (
+                    <UnifiedSessionItem
+                      key={id}
+                      item={item}
+                      activeSessionId={activeSessionId}
+                      isPinned={true}
+                      restoring={restoring}
+                      onActivate={handleActivate}
+                      onLoad={handleLoad}
+                    />
+                  );
+                })}
+              </>
+            )}
+            {regularItems.map((item) => {
+              const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+              return (
+                <UnifiedSessionItem
+                  key={id}
+                  item={item}
+                  activeSessionId={activeSessionId}
+                  isPinned={pinned.has(id)}
+                  restoring={restoring}
+                  onActivate={handleActivate}
+                  onLoad={handleLoad}
+                />
+              );
+            })}
+          </ul>
+        )}
+      </ScrollArea>
     </div>
   );
 });
