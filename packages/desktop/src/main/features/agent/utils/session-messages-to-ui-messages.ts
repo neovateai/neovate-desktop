@@ -4,7 +4,6 @@ import debug from "debug";
 
 import type { ClaudeCodeUIMessage } from "../../../../shared/claude-code/types";
 
-import appLog from "../../../core/logger";
 import { sdkMessagesToUIMessage } from "./sdk-messages-to-ui-message";
 
 const log = debug("neovate:session-messages");
@@ -44,7 +43,6 @@ export async function sessionMessagesToUIMessages(
 
   const rawMessageTypes = countMessageTypes(messages);
   log("RAW messageTypes=%O", rawMessageTypes);
-  appLog.info("[restore-debug] sessionMessagesToUIMessages raw messageTypes=%j", rawMessageTypes);
 
   const flushBatch = async () => {
     if (batch.length === 0) return;
@@ -56,11 +54,6 @@ export async function sessionMessagesToUIMessages(
         : message.type,
     );
     log("FLUSH batchSize=%d batchTypes=%O", batchCopy.length, batchTypes);
-    appLog.info(
-      "[restore-debug] sessionMessagesToUIMessages flush batchSize=%d batchTypes=%j",
-      batchCopy.length,
-      batchTypes,
-    );
     const last = await sdkMessagesToUIMessage(batchCopy);
     if (last) {
       last.metadata = {
@@ -74,16 +67,9 @@ export async function sessionMessagesToUIMessages(
         last.role,
         last.parts.map((part) => part.type),
       );
-      appLog.info(
-        "[restore-debug] sessionMessagesToUIMessages result messageId=%s role=%s partTypes=%j",
-        last.id,
-        last.role,
-        last.parts.map((part) => part.type),
-      );
       results.push(last);
     } else {
       log("FLUSH result=<empty>");
-      appLog.info("[restore-debug] sessionMessagesToUIMessages result=<empty>");
     }
   };
 
