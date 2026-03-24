@@ -16,23 +16,23 @@ export class WorkbenchLayoutService implements IWorkbenchLayoutService {
   // to consume workbench.layout as its state source.
   constructor(private readonly adapter: LayoutAdapter) {}
 
-  expandPart(part: CollapsibleWorkbenchPartId): void | Promise<void> {
+  async expandPart(part: CollapsibleWorkbenchPartId): Promise<void> {
     if (this.adapter.isExpanded(part)) return;
-    return this.adapter.togglePart(part);
+    await this.adapter.togglePart(part);
   }
 
-  collapsePart(part: CollapsibleWorkbenchPartId): void | Promise<void> {
+  async collapsePart(part: CollapsibleWorkbenchPartId): Promise<void> {
     if (!this.adapter.isExpanded(part)) return;
-    return this.adapter.togglePart(part);
+    await this.adapter.togglePart(part);
   }
 
-  togglePart(part: CollapsibleWorkbenchPartId): void | Promise<void> {
-    return this.adapter.togglePart(part);
+  async togglePart(part: CollapsibleWorkbenchPartId): Promise<void> {
+    await this.adapter.togglePart(part);
   }
 
-  maximizePart(part: MaximizableWorkbenchPartId): void | Promise<void> {
+  async maximizePart(part: MaximizableWorkbenchPartId): Promise<void> {
     if (part !== "contentPanel") return;
     if (!this.adapter.isExpanded("contentPanel")) return;
-    return this.adapter.maximizeContentPanel();
+    await this.adapter.maximizeContentPanel();
   }
 }
