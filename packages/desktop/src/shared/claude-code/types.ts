@@ -20,6 +20,8 @@ import type {
   SDKAuthStatusMessage,
   SDKRateLimitEvent,
   SDKPromptSuggestionMessage,
+  SDKResultSuccess,
+  SDKResultError,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { InferUIMessageChunk, UIMessage } from "ai";
 
@@ -28,6 +30,7 @@ import type { ClaudeCodeUITools } from "./tools";
 // ─── Stream (message) ────────────────────────────────────────────────────────
 
 type Metadata = {
+  deliveryMode?: "stream" | "restored";
   sessionId: string;
   parentToolUseId: string | null;
 };
@@ -35,6 +38,8 @@ type Metadata = {
 type DataTypes = {
   "system/init": SDKSystemMessage;
   "system/compact_boundary": SDKCompactBoundaryMessage;
+  "result/success": SDKResultSuccess;
+  "result/error": SDKResultError;
 };
 
 export type ClaudeCodeUIMessage = UIMessage<Metadata, DataTypes, ClaudeCodeUITools>;

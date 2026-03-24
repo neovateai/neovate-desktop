@@ -1,4 +1,9 @@
 {
+  "chat.messages.summary": "{{toolCallCount}} tool calls, {{messageCount}} messages",
+  "chat.messages.summarySeparator": ", ",
+  "chat.messages.summaryToolsOnly": "{{toolCallCount}} tool calls",
+  "chat.messages.summaryMessagesOnly": "{{messageCount}} messages",
+  "chat.messages.summaryReasoningOnly": "{{reasoningCount}} thoughts",
   "settings.theme": "Theme",
   "settings.theme.description": "Select your preferred color scheme",
   "settings.theme.light": "Light",

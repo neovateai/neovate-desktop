@@ -127,7 +127,7 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn("not-prose overflow-hidden rounded-md", className)}
+          className={cn("not-prose mb-4", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -148,9 +148,9 @@ const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
     return <Shimmer duration={1}>Thinking...</Shimmer>;
   }
   if (duration === undefined) {
-    return <>Thought for a few seconds</>;
+    return <span>Thought for a few seconds</span>;
   }
-  return <>Thought for {duration} seconds</>;
+  return <span>Thought for {duration} seconds</span>;
 };
 
 export const ReasoningTrigger = memo(
@@ -165,26 +165,23 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-2 py-1.5 px-2 rounded-md text-muted-foreground text-sm transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer group",
+          "group flex w-full items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground",
           className,
         )}
         {...props}
       >
         {children ?? (
           <>
-            <div className="relative flex items-center justify-center size-6 -ml-1 rounded-sm shrink-0">
-              <BrainIcon className="size-4" />
-            </div>
-            <span className="truncate">{getThinkingMessage(isStreaming, duration)}</span>
-            {/* Chevron icon - shows on hover, starts pointing right (-rotate-90), rotates to down (0) when open */}
-            <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="relative flex size-4 shrink-0 items-center justify-center">
+              <BrainIcon className="absolute size-4 transition-opacity duration-150 group-hover:opacity-0" />
               <ChevronDownIcon
                 className={cn(
-                  "size-3 text-muted-foreground transition-transform",
+                  "absolute size-4 transition-all duration-150 opacity-0 group-hover:opacity-100",
                   isOpen ? "rotate-0" : "-rotate-90",
                 )}
               />
             </div>
+            {getThinkingMessage(isStreaming, duration)}
           </>
         )}
       </CollapsibleTrigger>
@@ -199,17 +196,13 @@ export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & 
 export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
   <CollapsibleContent
     className={cn(
-      "pl-7 py-2.5 pr-3 text-sm",
+      "mt-2 text-sm !pl-0",
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
       className,
     )}
     {...props}
   >
-    <Streamdown
-      className="markdown-root"
-      components={markdownBaseComponents}
-      plugins={markdownPlugins}
-    >
+    <Streamdown components={markdownBaseComponents} plugins={markdownPlugins}>
       {children}
     </Streamdown>
   </CollapsibleContent>

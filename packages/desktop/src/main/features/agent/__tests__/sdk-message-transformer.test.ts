@@ -534,7 +534,11 @@ describe("SDKMessageTransformer", () => {
       } as any),
     );
 
-    expect(resultChunks.map((chunk: any) => chunk.type)).toEqual(["finish-step", "finish"]);
+    expect(resultChunks.map((chunk: any) => chunk.type)).toEqual([
+      "finish-step",
+      "finish",
+      "data-result/success",
+    ]);
   });
 
   it("stream_event empty text delta emits nothing", () => {

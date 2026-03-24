@@ -1,4 +1,9 @@
 {
+  "chat.messages.summary": "{{toolCallCount}} 次工具调用，{{messageCount}} 条消息",
+  "chat.messages.summarySeparator": "，",
+  "chat.messages.summaryToolsOnly": "{{toolCallCount}} 次工具调用",
+  "chat.messages.summaryMessagesOnly": "{{messageCount}} 条消息",
+  "chat.messages.summaryReasoningOnly": "{{reasoningCount}} 次思考",
   "settings.theme": "主题",
   "settings.theme.description": "选择您喜欢的配色方案",
   "settings.theme.light": "浅色",

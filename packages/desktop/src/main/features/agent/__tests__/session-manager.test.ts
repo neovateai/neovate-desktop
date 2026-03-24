@@ -174,6 +174,10 @@ describe("SessionManager", () => {
       done: false,
       value: { type: "finish" },
     });
+    await expect(stream.next()).resolves.toMatchObject({
+      done: false,
+      value: { type: "data-result/success" },
+    });
     await expect(stream.next()).resolves.toMatchObject({ done: true, value: undefined });
 
     expect(input.push).toHaveBeenCalledWith(

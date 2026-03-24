@@ -127,7 +127,15 @@ export class SDKMessageTransformer {
         if (msg.subtype !== "success") {
           yield { type: "error", errorText: msg.errors.join("\n") || msg.subtype };
         }
+
         yield { type: "finish" };
+
+        if (msg.subtype === "success") {
+          yield { type: "data-result/success", data: msg };
+        } else {
+          yield { type: "data-result/error", data: msg };
+        }
+
         this.inStep = false;
         this.currentMessageId = null;
         this.activeStreamedMessageId = null;

@@ -4,6 +4,7 @@ import type { ClaudeCodeUITools } from "../../../../../../shared/claude-code/typ
 
 import { AgentTool } from "./agent-tool";
 import { AskUserQuestionTool } from "./ask-user-question-tool";
+import { BashOutputTool } from "./bash-output-tool";
 import { BashTool } from "./bash-tool";
 import { EditTool } from "./edit-tool";
 import { EnterPlanModeTool } from "./enter-plan-mode-tool";
@@ -15,6 +16,7 @@ import { MultiEditTool } from "./multi-edit-tool";
 import { NotebookEditTool } from "./notebook-edit-tool";
 import { ReadTool } from "./read-tool";
 import { SkillTool } from "./skill-tool";
+import { SlashCommandTool } from "./slash-command-tool";
 import { TaskOutputTool } from "./task-output-tool";
 import { TaskStopTool } from "./task-stop-tool";
 import { TodoWriteTool } from "./todo-write-tool";
@@ -46,6 +48,8 @@ function ClaudeCodeToolUIPartComponent({ part }: { part: ToolUIPart<ClaudeCodeUI
       return <AskUserQuestionTool invocation={part} />;
     case "tool-Bash":
       return <BashTool invocation={part} />;
+    case "tool-BashOutput":
+      return <BashOutputTool invocation={part} />;
     case "tool-Edit":
       return <EditTool invocation={part} />;
     case "tool-MultiEdit":
@@ -72,6 +76,8 @@ function ClaudeCodeToolUIPartComponent({ part }: { part: ToolUIPart<ClaudeCodeUI
       return <TaskStopTool invocation={part} />;
     case "tool-Skill":
       return <SkillTool invocation={part} />;
+    case "tool-SlashCommand":
+      return <SlashCommandTool invocation={part} />;
     case "tool-EnterPlanMode":
       return <EnterPlanModeTool invocation={part} />;
     case "tool-ExitPlanMode":
