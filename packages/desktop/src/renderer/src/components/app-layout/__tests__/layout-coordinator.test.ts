@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 
 import type { PanelMap, LayoutContext } from "../types";
 
-import { APP_LAYOUT_CHAT_PANEL_MIN_WIDTH } from "../constants";
 import {
   constrainWidth,
   computeMaxAvailableWidth,
