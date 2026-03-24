@@ -1,7 +1,8 @@
-import { implement } from "@orpc/server";
+import { implement, ORPCError } from "@orpc/server";
 import debug from "debug";
 import { BrowserWindow, dialog } from "electron";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import type { AppContext } from "../../router";
@@ -40,6 +41,11 @@ export const projectRouter = os.project.router({
 
   open: os.project.open.handler(({ input, context }) => {
     log("open project", { path: input.path });
+    if (!existsSync(input.path)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Directory does not exist: ${input.path}`,
+      });
+    }
     const existing = context.projectStore.findByPath(input.path);
     if (existing) {
       log("project already exists, activating", { id: existing.id });
@@ -72,7 +78,13 @@ export const projectRouter = os.project.router({
   }),
 
   getActive: os.project.getActive.handler(({ context }) => {
-    return context.projectStore.getActive();
+    const project = context.projectStore.getActive();
+    if (project && !existsSync(project.path)) {
+      log("active project path missing, clearing: %s", project.path);
+      context.projectStore.setActive(null);
+      return null;
+    }
+    return project;
   }),
 
   pickDirectory: os.project.pickDirectory.handler(async () => {
