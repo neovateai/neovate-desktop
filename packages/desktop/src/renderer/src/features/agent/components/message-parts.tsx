@@ -80,21 +80,26 @@ function AssistantMessageParts({
       <Collapsible className="w-full" onOpenChange={setIsOpen} open={isOpen}>
         <CollapsibleTrigger
           className={cn(
-            "flex w-full items-center gap-2 text-sm text-muted-foreground transition-[color,height,margin,opacity] duration-200 hover:text-foreground",
+            "group/trigger flex w-full items-center gap-2 transition-[height,margin,opacity] duration-200",
             collapseMode === "prepare" &&
               "h-0 min-h-0 overflow-hidden opacity-0 pointer-events-none",
           )}
         >
-          <ChevronDownIcon
-            className={cn(
-              "size-4 shrink-0 transition-transform duration-150",
-              isOpen ? "rotate-0" : "-rotate-90",
-            )}
-          />
-          <span>{triggerLabel}</span>
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs text-muted-foreground transition-colors group-hover/trigger:bg-muted group-hover/trigger:text-foreground">
+            <ChevronDownIcon
+              className={cn(
+                "size-3 shrink-0 transition-transform duration-200",
+                isOpen ? "rotate-0" : "-rotate-90",
+              )}
+            />
+            <span className="font-medium">{triggerLabel}</span>
+          </div>
         </CollapsibleTrigger>
         <CollapsibleContent className={cn(collapseMode === "prepare" ? "mt-0" : "mt-2")}>
-          <MessagePartRenderer message={collapsibleMessage} renderToolPart={renderToolPart} />
+          {/* Indented content with subtle left border and muted colors */}
+          <div className="ml-2 pl-4 border-l-2 border-border/40 text-foreground/80 [&_.markdown-root]:text-foreground/70">
+            <MessagePartRenderer message={collapsibleMessage} renderToolPart={renderToolPart} />
+          </div>
         </CollapsibleContent>
       </Collapsible>
       {trailingMessage ? (
