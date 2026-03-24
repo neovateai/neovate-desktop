@@ -8,6 +8,22 @@ import { sdkMessagesToUIMessage } from "./sdk-messages-to-ui-message";
 
 const log = debug("neovate:session-messages");
 
+function countMessageTypes(messages: SDKMessage[]) {
+  const counts = new Map<string, number>();
+
+  for (const message of messages) {
+    const key =
+      message.type === "system"
+        ? `${message.type}:${message.subtype}`
+        : message.type === "result"
+          ? `${message.type}:${message.subtype}`
+          : message.type;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return Object.fromEntries(counts);
+}
+
 /**
  * Convert raw SDK session messages into UI messages.
  * Human prompts become user messages; assistant/tool_result batches
@@ -23,17 +39,39 @@ export async function sessionMessagesToUIMessages(
   log("START count=%d", sessionMessages.length);
   const results: ClaudeCodeUIMessage[] = [];
   let batch: SDKMessage[] = [];
+  const messages = sessionMessages as unknown as SDKMessage[];
+
+  const rawMessageTypes = countMessageTypes(messages);
+  log("RAW messageTypes=%O", rawMessageTypes);
 
   const flushBatch = async () => {
     if (batch.length === 0) return;
     const batchCopy = batch;
     batch = [];
+    const batchTypes = batchCopy.map((message) =>
+      message.type === "system" || message.type === "result"
+        ? `${message.type}:${message.subtype}`
+        : message.type,
+    );
+    log("FLUSH batchSize=%d batchTypes=%O", batchCopy.length, batchTypes);
     const last = await sdkMessagesToUIMessage(batchCopy);
-    if (last) results.push(last);
+    if (last) {
+      last.metadata = {
+        deliveryMode: "restored",
+        parentToolUseId: last.metadata?.parentToolUseId ?? null,
+        sessionId: last.metadata?.sessionId ?? batchCopy[0]?.session_id ?? "",
+      };
+      log(
+        "FLUSH result messageId=%s role=%s partTypes=%O",
+        last.id,
+        last.role,
+        last.parts.map((part) => part.type),
+      );
+      results.push(last);
+    } else {
+      log("FLUSH result=<empty>");
+    }
   };
-
-  // SessionMessage type is narrower than runtime data; cast once here.
-  const messages = sessionMessages as unknown as SDKMessage[];
 
   for (const msg of messages) {
     // Skip messages that don't contribute to UIMessage content
@@ -108,7 +146,11 @@ export async function sessionMessagesToUIMessages(
         id: msg.uuid ?? crypto.randomUUID(),
         role: "user",
         parts,
-        metadata: { sessionId: msg.session_id, parentToolUseId: null },
+        metadata: {
+          deliveryMode: "restored",
+          sessionId: msg.session_id,
+          parentToolUseId: null,
+        },
       } as ClaudeCodeUIMessage);
     } else {
       batch.push(msg);

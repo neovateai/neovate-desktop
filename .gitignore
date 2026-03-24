@@ -14,4 +14,5 @@ docs/plans
 packages/desktop/vendor/bun/
 packages/desktop/vendor/rtk/
 .worktrees/
+.firecrawl/
 /tmp

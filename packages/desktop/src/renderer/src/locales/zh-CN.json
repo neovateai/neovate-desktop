@@ -1,4 +1,9 @@
 {
+  "chat.messages.summary": "{{toolCallCount}} 次工具调用，{{messageCount}} 条消息",
+  "chat.messages.summarySeparator": "，",
+  "chat.messages.summaryToolsOnly": "{{toolCallCount}} 次工具调用",
+  "chat.messages.summaryMessagesOnly": "{{messageCount}} 条消息",
+  "chat.messages.summaryReasoningOnly": "{{reasoningCount}} 次思考",
   "settings.theme": "主题",
   "settings.theme.description": "选择您喜欢的配色方案",
   "settings.theme.light": "浅色",
@@ -360,5 +365,9 @@
   "chat.sessionInitializing": "正在启动会话...",
   "chat.sessionInitFailed": "会话启动失败",
   "chat.sessionInitRetry": "重试",
-  "chat.sessionInitNetworkHint": "尝试在设置中关闭网络检查器后重试"
+  "chat.sessionInitNetworkHint": "尝试在设置中关闭网络检查器后重试",
+
+  "chat.tools.bashOutput.polling": "正在轮询后台 Shell 输出",
+  "chat.tools.bashOutput.pollingFiltered": "正在轮询后台 Shell 输出，过滤条件：{{filter}}。",
+  "chat.tools.slashCommand.running": "正在运行斜杠命令并等待响应。"
 }
