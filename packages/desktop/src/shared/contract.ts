@@ -10,6 +10,7 @@ import { rulesContract } from "./features/rules/contract";
 import { skillsContract } from "./features/skills/contract";
 import { storageContract } from "./features/storage/contract";
 import { updaterContract } from "./features/updater/contract";
+import { usageContract } from "./features/usage/contract";
 import { utilsContract } from "./features/utils/contract";
 import { changesContract } from "./plugins/changes/contract";
 import { gitContract } from "./plugins/git/contract";
@@ -25,6 +26,7 @@ export const contract = {
   skills: skillsContract,
   storage: storageContract,
   updater: updaterContract,
+  usage: usageContract,
   utils: utilsContract,
   git: gitContract,
   changes: changesContract,

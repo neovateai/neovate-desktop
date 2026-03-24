@@ -12,7 +12,7 @@ import {
   Shield,
   Square,
 } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
@@ -44,6 +44,9 @@ import { registerSessionInStore } from "../session-utils";
 import { useAgentStore } from "../store";
 
 const log = debug("neovate:input-toolbar");
+
+// Track if model menu should reopen after provider switch (survives component remount)
+let reopenModelMenuAfterSwitch = false;
 
 type Props = {
   streaming: boolean;
@@ -158,6 +161,13 @@ const PERMISSION_MODE_I18N_KEYS = {
   dontAsk: "settings.chat.permissionMode.dontAsk",
 } as const satisfies Record<PermissionMode, string>;
 
+const PERMISSION_MODE_HINT_KEYS = {
+  default: "settings.chat.permissionMode.default.hint",
+  acceptEdits: "settings.chat.permissionMode.acceptEdits.hint",
+  plan: "settings.chat.permissionMode.plan.hint",
+  bypassPermissions: "settings.chat.permissionMode.bypassPermissions.hint",
+} as const;
+
 function PermissionModeSelect({
   activeSessionId,
   disabled,
@@ -196,6 +206,8 @@ function ConnectedPermissionModeSelect({
     [activeSessionId, setPermissionMode],
   );
 
+  const modeOptions = ["default", "acceptEdits", "plan", "bypassPermissions"] as const;
+
   return (
     <Menu>
       <MenuTrigger
@@ -206,16 +218,20 @@ function ConnectedPermissionModeSelect({
         <span>{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
       </MenuTrigger>
-      <MenuPopup side="top" align="start">
+      <MenuPopup side="top" align="start" className="w-52 p-1.5">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
-          <MenuRadioItem value="default">{t("settings.chat.permissionMode.default")}</MenuRadioItem>
-          <MenuRadioItem value="acceptEdits">
-            {t("settings.chat.permissionMode.acceptEdits")}
-          </MenuRadioItem>
-          <MenuRadioItem value="plan">{t("settings.chat.permissionMode.plan")}</MenuRadioItem>
-          <MenuRadioItem value="bypassPermissions">
-            {t("settings.chat.permissionMode.bypassPermissions")}
-          </MenuRadioItem>
+          {modeOptions.map((mode) => (
+            <MenuRadioItem key={mode} value={mode} className="!min-h-0 rounded-md py-2">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium leading-tight">
+                  {t(PERMISSION_MODE_I18N_KEYS[mode])}
+                </span>
+                <span className="text-[11px] leading-tight text-muted-foreground">
+                  {t(PERMISSION_MODE_HINT_KEYS[mode])}
+                </span>
+              </div>
+            </MenuRadioItem>
+          ))}
         </MenuRadioGroup>
       </MenuPopup>
     </Menu>
@@ -257,6 +273,14 @@ function ConnectedModelSelect({
   disabled: boolean;
 }) {
   const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(() => {
+    // Check if we should reopen menu after provider switch
+    if (reopenModelMenuAfterSwitch) {
+      reopenModelMenuAfterSwitch = false;
+      return true;
+    }
+    return false;
+  });
   const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
   const setModelScope = useAgentStore((s) => s.setModelScope);
   const currentModel = useAgentStore((s) => s.sessions.get(activeSessionId)?.currentModel);
@@ -277,6 +301,7 @@ function ConnectedModelSelect({
   }, [loaded, loadProviders]);
 
   const activeProvider = providerId ? providers.find((p) => p.id === providerId) : undefined;
+  const enabledProviders = providers.filter((p) => p.enabled);
 
   const handleModelSelect = useCallback(
     (value: unknown) => {
@@ -350,6 +375,9 @@ function ConnectedModelSelect({
         cwd,
       );
 
+      // Set flag to reopen menu after component remounts with new session
+      reopenModelMenuAfterSwitch = true;
+
       // Remove old empty session
       const oldSessionId = activeSessionId;
       useAgentStore.getState().removeSession(oldSessionId);
@@ -406,10 +434,20 @@ function ConnectedModelSelect({
       availableModels?.[0]?.displayName);
   const buttonLabel = providerLabel ? `${providerLabel} / ${modelLabel}` : modelLabel;
 
+  // Helper to build model alias badge
+  const getModelBadge = (p: (typeof providers)[0], key: string) => {
+    const aliases: string[] = [];
+    if (p.modelMap.model === key) aliases.push("default");
+    if (p.modelMap.haiku === key) aliases.push("haiku");
+    if (p.modelMap.opus === key) aliases.push("opus");
+    if (p.modelMap.sonnet === key) aliases.push("sonnet");
+    return aliases.length > 0 ? aliases.join(", ") : null;
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger className="inline-flex">
-        <Menu>
+        <Menu open={menuOpen} onOpenChange={setMenuOpen}>
           <MenuTrigger
             disabled={disabled}
             className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
@@ -418,117 +456,107 @@ function ConnectedModelSelect({
             <span className="max-w-[200px] truncate">{buttonLabel}</span>
             <ChevronDown className="h-3 w-3 opacity-50" />
           </MenuTrigger>
-          <MenuPopup side="top" align="start" className="max-h-80 overflow-y-auto">
-            {/* Provider groups — only show when providers exist */}
-            {providers.filter((p) => p.enabled).length > 0 && (
-              <>
-                {providers
-                  .filter((p) => p.enabled)
-                  .map((p) => (
-                    <div key={p.id}>
-                      <button
-                        type="button"
-                        disabled={hasMessages && providerId !== p.id}
-                        className={`w-full text-left px-3 py-1.5 text-xs font-medium ${
-                          providerId === p.id
-                            ? "text-foreground"
-                            : hasMessages
-                              ? "text-muted-foreground/50 cursor-not-allowed"
-                              : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
-                        }`}
-                        title={
-                          hasMessages && providerId !== p.id
-                            ? t("chat.providerSwitchHint")
-                            : undefined
+          <MenuPopup side="top" align="start" className="w-64 max-h-80 overflow-y-auto p-1">
+            {/* Provider switcher header - only when multiple providers */}
+            {enabledProviders.length > 0 && (
+              <div className="px-2 py-1.5 mb-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* SDK Default chip */}
+                  <button
+                    type="button"
+                    disabled={hasMessages && !!providerId}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
+                      !providerId
+                        ? "bg-primary/10 text-primary font-medium"
+                        : hasMessages
+                          ? "bg-muted text-muted-foreground/40 cursor-not-allowed"
+                          : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+                    }`}
+                    title={hasMessages && providerId ? t("chat.providerSwitchHint") : undefined}
+                    onClick={() => {
+                      if (providerId && !hasMessages) {
+                        handleProviderSwitch(null);
+                      }
+                    }}
+                  >
+                    {t("chat.sdkDefault")}
+                  </button>
+                  {/* Provider chips */}
+                  {enabledProviders.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={hasMessages && providerId !== p.id}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
+                        providerId === p.id
+                          ? "bg-primary/10 text-primary font-medium"
+                          : hasMessages
+                            ? "bg-muted text-muted-foreground/40 cursor-not-allowed"
+                            : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+                      }`}
+                      title={
+                        hasMessages && providerId !== p.id
+                          ? t("chat.providerSwitchHint")
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (providerId !== p.id && !hasMessages) {
+                          handleProviderSwitch(p.id);
                         }
-                        onClick={() => {
-                          if (providerId !== p.id && !hasMessages) {
-                            handleProviderSwitch(p.id);
-                          }
-                        }}
-                      >
-                        {providerId === p.id ? "\u2022 " : "\u25CB "}
-                        {p.name}
-                      </button>
-                      {providerId === p.id && (
-                        <MenuRadioGroup
-                          value={currentModel ?? ""}
-                          onValueChange={handleModelSelect}
-                        >
-                          {Object.entries(p.models).map(([key, entry]) => {
-                            const aliases: string[] = [];
-                            if (p.modelMap.model === key) aliases.push("default");
-                            if (p.modelMap.haiku === key) aliases.push("haiku");
-                            if (p.modelMap.opus === key) aliases.push("opus");
-                            if (p.modelMap.sonnet === key) aliases.push("sonnet");
-                            const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
-                            return (
-                              <MenuRadioItem key={key} value={key} className="pl-6">
-                                {(entry.displayName ?? key) + badge}
-                              </MenuRadioItem>
-                            );
-                          })}
-                        </MenuRadioGroup>
-                      )}
-                    </div>
+                      }}
+                    >
+                      {p.name}
+                    </button>
                   ))}
-                <div className="h-px bg-border my-1" />
-              </>
+                </div>
+              </div>
             )}
 
-            {/* SDK Default section */}
-            <div>
-              {providers.filter((p) => p.enabled).length > 0 && (
-                <button
-                  type="button"
-                  disabled={hasMessages && !!providerId}
-                  className={`w-full text-left px-3 py-1.5 text-xs font-medium ${
-                    !providerId
-                      ? "text-foreground"
-                      : hasMessages
-                        ? "text-muted-foreground/50 cursor-not-allowed"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
-                  }`}
-                  title={hasMessages && providerId ? t("chat.providerSwitchHint") : undefined}
-                  onClick={() => {
-                    if (providerId && !hasMessages) {
-                      handleProviderSwitch(null);
-                    }
-                  }}
-                >
-                  {!providerId ? "\u2022 " : "\u25CB "}
-                  {t("chat.sdkDefault")}
-                </button>
-              )}
-              {!providerId && availableModels && (
-                <MenuRadioGroup
-                  value={currentModel ?? availableModels[0]?.value ?? ""}
-                  onValueChange={handleModelSelect}
-                >
-                  {availableModels.map((m) => (
-                    <MenuRadioItem
-                      key={m.value}
-                      value={m.value}
-                      className={providers.filter((p) => p.enabled).length > 0 ? "pl-6" : ""}
-                    >
-                      {m.displayName}
+            {/* Separator */}
+            {enabledProviders.length > 0 && <div className="h-px bg-border mb-1" />}
+
+            {/* Models for active provider */}
+            {activeProvider ? (
+              <MenuRadioGroup value={currentModel ?? ""} onValueChange={handleModelSelect}>
+                {Object.entries(activeProvider.models).map(([key, entry]) => {
+                  const badge = getModelBadge(activeProvider, key);
+                  return (
+                    <MenuRadioItem key={key} value={key} className="flex items-center gap-2">
+                      <span className="flex-1 truncate">{entry.displayName ?? key}</span>
+                      {badge && (
+                        <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {badge}
+                        </span>
+                      )}
                     </MenuRadioItem>
-                  ))}
-                </MenuRadioGroup>
-              )}
-            </div>
+                  );
+                })}
+              </MenuRadioGroup>
+            ) : availableModels ? (
+              <MenuRadioGroup
+                value={currentModel ?? availableModels[0]?.value ?? ""}
+                onValueChange={handleModelSelect}
+              >
+                {availableModels.map((m) => (
+                  <MenuRadioItem key={m.value} value={m.value}>
+                    {m.displayName}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            ) : null}
 
             {/* Manage Providers link */}
-            {providers.length > 0 && <div className="h-px bg-border my-1" />}
+            <div className="h-px bg-border my-1" />
             <button
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+              type="button"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
               onClick={() => {
                 useSettingsStore.getState().setActiveTab("providers");
                 useSettingsStore.getState().setShowSettings(true);
               }}
             >
-              <Settings className="h-3 w-3" />
-              {t("chat.manageProviders")}
+              <Settings className="h-3.5 w-3.5" />
+              <span>{t("chat.manageProviders")}</span>
             </button>
           </MenuPopup>
         </Menu>

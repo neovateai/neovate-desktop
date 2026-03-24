@@ -11,6 +11,7 @@ const startupLog = debug("neovate:startup");
 
 import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
 import { layoutStore } from "../components/app-layout/store";
+import { SplashScreen } from "../components/splash-screen";
 import { ToastProvider } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
@@ -266,19 +267,21 @@ export class RendererApp implements IRendererApp {
                 enableSystem
                 disableTransitionOnChange
               >
-                <ToastProvider>
-                  <ThemeSync />
-                  <MenuCommandHandler />
-                  <Suspense
-                    fallback={
-                      <div className="flex h-screen items-center justify-center">
-                        <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
-                      </div>
-                    }
-                  >
-                    <AppComponent />
-                  </Suspense>
-                </ToastProvider>
+                <SplashScreen>
+                  <ToastProvider>
+                    <ThemeSync />
+                    <MenuCommandHandler />
+                    <Suspense
+                      fallback={
+                        <div className="flex h-screen items-center justify-center">
+                          <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
+                        </div>
+                      }
+                    >
+                      <AppComponent />
+                    </Suspense>
+                  </ToastProvider>
+                </SplashScreen>
               </ThemeProvider>
             </PluginContextReact.Provider>
           </RendererAppContext.Provider>

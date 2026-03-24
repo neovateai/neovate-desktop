@@ -19,6 +19,8 @@ import { ContentPanelRenderer } from "./features/content-panel";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
 import { UpdaterToast } from "./features/updater/updater-toast";
+import { useUsageStore } from "./features/usage";
+import { UsagePage } from "./features/usage/components/usage-page";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
 
 const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) : null;
@@ -26,6 +28,7 @@ const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) 
 export default function App() {
   useGlobalKeybindings();
   const showSettings = useSettingsStore((state) => state.showSettings);
+  const showUsage = useUsageStore((state) => state.showUsage);
   const developerMode = useConfigStore((s) => s.developerMode);
 
   // TODO: refactor with 统一的埋点体系, replace raw CustomEvent dispatching
@@ -58,7 +61,7 @@ export default function App() {
   return (
     <>
       <AppLayoutRoot>
-        {!showSettings && <AppLayoutTrafficLights />}
+        {!showSettings && !showUsage && <AppLayoutTrafficLights />}
 
         <AppLayoutPrimarySidebar>
           <div className="flex h-full flex-col">
@@ -91,6 +94,7 @@ export default function App() {
       </AppLayoutRoot>
 
       {showSettings && <SettingsPage />}
+      {showUsage && <UsagePage />}
     </>
   );
 }
