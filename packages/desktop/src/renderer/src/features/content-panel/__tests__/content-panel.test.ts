@@ -20,6 +20,12 @@ const VIEWS: ContentPanelView[] = [
     name: "Editor",
     component: () => Promise.resolve({ default: () => null }),
   }, // singleton defaults to true
+  {
+    viewType: "search",
+    name: "Search",
+    persist: false,
+    component: () => Promise.resolve({ default: () => null }),
+  },
 ];
 
 function makeOptions(overrides?: Partial<ContentPanelOptions>): ContentPanelOptions {
@@ -167,7 +173,7 @@ describe("getViewState / updateViewState", () => {
 
 describe("registeredViewTypes", () => {
   it("returns set of registered view types", () => {
-    expect(panel.registeredViewTypes).toEqual(new Set(["terminal", "editor"]));
+    expect(panel.registeredViewTypes).toEqual(new Set(["terminal", "editor", "search"]));
   });
 });
 
@@ -262,7 +268,9 @@ describe("observe + flush", () => {
 
     vi.advanceTimersByTime(100);
     expect(options.save).toHaveBeenCalledTimes(1);
-    expect(options.save).toHaveBeenCalledWith(panel.store.getState().projects);
+    // save receives filterPersistable(projects) — same content here since only persistable tabs opened
+    const savedData = vi.mocked(options.save).mock.calls[0][0];
+    expect(savedData[PROJECT].tabs).toHaveLength(2);
 
     panel.dispose();
   });
@@ -319,5 +327,146 @@ describe("observe + flush", () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
     consoleSpy.mockRestore();
     p.dispose();
+  });
+});
+
+// --- persist option ---
+
+describe("persist option", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("flush excludes persist:false tabs from saved data", async () => {
+    vi.useFakeTimers();
+    await panel.hydrate();
+
+    panel.openView("terminal");
+    panel.openView("search"); // persist: false
+
+    vi.advanceTimersByTime(100);
+
+    expect(options.save).toHaveBeenCalledTimes(1);
+    const savedData = vi.mocked(options.save).mock.calls[0][0];
+    const savedTabs = savedData[PROJECT].tabs;
+    expect(savedTabs).toHaveLength(1);
+    expect(savedTabs[0].viewType).toBe("terminal");
+
+    panel.dispose();
+  });
+
+  it("flush preserves unknown viewType tabs", async () => {
+    vi.useFakeTimers();
+    const saved = {
+      [PROJECT]: {
+        tabs: [{ id: "u1", viewType: "unknown-plugin", state: {} }],
+        activeTabId: "u1",
+      },
+    };
+    const opts = makeOptions({ load: vi.fn(() => Promise.resolve(saved)) });
+    const p = new ContentPanel(opts);
+    p.setProjectPath(PROJECT);
+    await p.hydrate();
+
+    p.openView("terminal");
+    vi.advanceTimersByTime(100);
+
+    const savedData = vi.mocked(opts.save).mock.calls[0][0];
+    const viewTypes = savedData[PROJECT].tabs.map((t: any) => t.viewType);
+    expect(viewTypes).toContain("unknown-plugin");
+    expect(viewTypes).toContain("terminal");
+
+    p.dispose();
+  });
+
+  it("hydrate filters persist:false tabs from loaded data", async () => {
+    const saved = {
+      [PROJECT]: {
+        tabs: [
+          { id: "t1", viewType: "terminal", state: {} },
+          { id: "s1", viewType: "search", state: {} },
+        ],
+        activeTabId: "t1",
+      },
+    };
+    const opts = makeOptions({ load: vi.fn(() => Promise.resolve(saved)) });
+    const p = new ContentPanel(opts);
+    p.setProjectPath(PROJECT);
+
+    await p.hydrate();
+
+    const state = p.store.getState().getProjectState(PROJECT);
+    expect(state.tabs).toHaveLength(1);
+    expect(state.tabs[0].viewType).toBe("terminal");
+    p.dispose();
+  });
+
+  it("hydrate falls back activeTabId to first remaining tab", async () => {
+    const saved = {
+      [PROJECT]: {
+        tabs: [
+          { id: "t1", viewType: "terminal", state: {} },
+          { id: "s1", viewType: "search", state: {} },
+        ],
+        activeTabId: "s1", // points to persist:false tab
+      },
+    };
+    const opts = makeOptions({ load: vi.fn(() => Promise.resolve(saved)) });
+    const p = new ContentPanel(opts);
+    p.setProjectPath(PROJECT);
+
+    await p.hydrate();
+
+    const state = p.store.getState().getProjectState(PROJECT);
+    expect(state.activeTabId).toBe("t1");
+    p.dispose();
+  });
+
+  it("all tabs filtered results in empty state", async () => {
+    const saved = {
+      [PROJECT]: {
+        tabs: [{ id: "s1", viewType: "search", state: {} }],
+        activeTabId: "s1",
+      },
+    };
+    const opts = makeOptions({ load: vi.fn(() => Promise.resolve(saved)) });
+    const p = new ContentPanel(opts);
+    p.setProjectPath(PROJECT);
+
+    await p.hydrate();
+
+    const state = p.store.getState().getProjectState(PROJECT);
+    expect(state.tabs).toHaveLength(0);
+    expect(state.activeTabId).toBeNull();
+    p.dispose();
+  });
+
+  it("preserves null activeTabId when no tabs were filtered", async () => {
+    vi.useFakeTimers();
+    await panel.hydrate();
+
+    panel.openView("terminal", { activate: false });
+
+    vi.advanceTimersByTime(100);
+
+    const savedData = vi.mocked(options.save).mock.calls[0][0];
+    expect(savedData[PROJECT].activeTabId).toBeNull();
+
+    panel.dispose();
+  });
+
+  it("persist:true (default) tabs are always saved", async () => {
+    vi.useFakeTimers();
+    await panel.hydrate();
+
+    panel.openView("terminal");
+    panel.openView("editor");
+
+    vi.advanceTimersByTime(100);
+
+    const savedData = vi.mocked(options.save).mock.calls[0][0] as Record<string, any>;
+    expect(savedData[PROJECT].tabs).toHaveLength(2);
+
+    panel.dispose();
   });
 });
