@@ -41,20 +41,6 @@ export function useProject() {
     return project;
   }, [fetchProjects]);
 
-  const createNewProject = useCallback(async () => {
-    log("creating new project via directory picker");
-    const result = await client.project.createDirectory();
-    if (!result) {
-      log("directory picker canceled");
-      return null;
-    }
-    log("opening newly created project at path", { path: result.path });
-    const project = await client.project.open({ path: result.path });
-    log("new project created and opened", { id: project.id, name: project.name });
-    await fetchProjects();
-    return project;
-  }, [fetchProjects]);
-
   const createProject = useCallback(
     async (path: string, name?: string) => {
       log("create project", { path, name });
@@ -89,7 +75,6 @@ export function useProject() {
     activeProject,
     loading,
     openProject,
-    createNewProject,
     createProject,
     removeProject,
     switchProject,

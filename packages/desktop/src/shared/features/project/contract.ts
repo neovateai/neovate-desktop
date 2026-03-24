@@ -20,8 +20,6 @@ export const projectContract = {
 
   pickDirectory: oc.output(type<{ path: string } | null>()),
 
-  createDirectory: oc.output(type<{ path: string } | null>()),
-
   getArchivedSessions: oc.output(type<Record<string, string[]>>()),
 
   archiveSession: oc
