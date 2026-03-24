@@ -1,9 +1,12 @@
+import { useTranslation } from "react-i18next";
+
 import type { SlashCommandUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { MessageResponse } from "../../../../components/ai-elements/message";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
 export function SlashCommandTool({ invocation }: { invocation: SlashCommandUIToolInvocation }) {
+  const { t } = useTranslation();
   if (!invocation) return null;
   const { state, input, output, errorText } = invocation;
 
@@ -18,9 +21,7 @@ export function SlashCommandTool({ invocation }: { invocation: SlashCommandUIToo
         ) : typeof output === "string" && output ? (
           <MessageResponse>{output}</MessageResponse>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Running the slash command and waiting for a response.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("chat.tools.slashCommand.running")}</p>
         )}
       </ToolContent>
     </Tool>
