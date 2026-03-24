@@ -206,15 +206,39 @@ function ConnectedPermissionModeSelect({
         <span>{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
       </MenuTrigger>
-      <MenuPopup side="top" align="start">
+      <MenuPopup side="top" align="start" className="min-w-52">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
-          <MenuRadioItem value="default">{t("settings.chat.permissionMode.default")}</MenuRadioItem>
-          <MenuRadioItem value="acceptEdits">
-            {t("settings.chat.permissionMode.acceptEdits")}
+          <MenuRadioItem value="default" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.default")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.default.desc")}
+              </span>
+            </div>
           </MenuRadioItem>
-          <MenuRadioItem value="plan">{t("settings.chat.permissionMode.plan")}</MenuRadioItem>
-          <MenuRadioItem value="bypassPermissions">
-            {t("settings.chat.permissionMode.bypassPermissions")}
+          <MenuRadioItem value="acceptEdits" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.acceptEdits")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.acceptEdits.desc")}
+              </span>
+            </div>
+          </MenuRadioItem>
+          <MenuRadioItem value="plan" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.plan")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.plan.desc")}
+              </span>
+            </div>
+          </MenuRadioItem>
+          <MenuRadioItem value="bypassPermissions" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.bypassPermissions")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.bypassPermissions.desc")}
+              </span>
+            </div>
           </MenuRadioItem>
         </MenuRadioGroup>
       </MenuPopup>

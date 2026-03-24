@@ -10,7 +10,7 @@ export function NewChatButton({ projectPath }: { projectPath?: string }) {
   return (
     <div>
       <button
-        className="group flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+        className="group flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-foreground transition-all hover:bg-accent/50 disabled:pointer-events-none disabled:opacity-40"
         onClick={() => projectPath && createNewSession(projectPath)}
         disabled={!projectPath}
       >
