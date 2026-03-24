@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 
 import type { ImageAttachment, PermissionMode } from "../../../../../shared/features/agent/types";
 
+import { toastManager } from "../../../components/ui/toast";
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
 import { cn } from "../../../lib/utils";
@@ -60,6 +61,31 @@ export function MessageInput({
   const { createNewSession } = useNewSession();
 
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
+
+  // Subscribe to prompt suggestion from the per-session chat store.
+  // Uses useState+useEffect instead of useStore to avoid conditional hook calls
+  // (chatStore may be undefined when no session is active).
+  const [promptSuggestion, setPromptSuggestion] = useState<string | null>(null);
+  useEffect(() => {
+    const store = activeSessionId
+      ? claudeCodeChatManager.getChat(activeSessionId)?.store
+      : undefined;
+    if (!store) {
+      setPromptSuggestion(null);
+      return;
+    }
+    setPromptSuggestion(store.getState().promptSuggestion);
+    return store.subscribe((state) => {
+      setPromptSuggestion(state.promptSuggestion);
+    });
+  }, [activeSessionId]);
+  const promptSuggestionRef = useLatestRef(promptSuggestion);
+
+  const clearSuggestion = useEventCallback(() => {
+    if (!activeSessionId) return;
+    claudeCodeChatManager.getChat(activeSessionId)?.store.setState({ promptSuggestion: null });
+  });
+
   const permissionMode = useAgentStore(
     (s) =>
       (activeSessionId ? s.sessions.get(activeSessionId)?.permissionMode : undefined) ?? "default",
@@ -129,7 +155,11 @@ export function MessageInput({
         blockquote: false,
       }),
       Placeholder.configure({
-        placeholder: t("chat.placeholder"),
+        placeholder: () => {
+          const suggestion = promptSuggestionRef.current;
+          if (suggestion) return suggestion + "    Tab to fill · Enter to send";
+          return t("chat.placeholder");
+        },
       }),
       mentionExtension,
       slashCommandsExtension,
@@ -144,6 +174,19 @@ export function MessageInput({
               props: {
                 handleKeyDown(_view, event) {
                   const mode = sendMessageWithRef.current;
+
+                  // Tab: accept prompt suggestion (fill editor)
+                  if (event.key === "Tab" && !event.shiftKey) {
+                    if (document.querySelector("[data-suggestion-popup]")) return false;
+                    const suggestion = promptSuggestionRef.current;
+                    if (suggestion && editor.isEmpty) {
+                      event.preventDefault();
+                      editor.commands.setContent(suggestion);
+                      clearSuggestion();
+                      return true;
+                    }
+                    return false;
+                  }
 
                   // Bare Enter (no modifier)
                   if (
@@ -161,6 +204,20 @@ export function MessageInput({
 
                     event.preventDefault();
                     const text = extractText(editor.getJSON()).trim();
+
+                    // Empty input + suggestion → send suggestion directly
+                    const suggestion = promptSuggestionRef.current;
+                    if (!text && suggestion) {
+                      clearSuggestion();
+                      onSend(suggestion);
+                      toastManager.add({
+                        type: "info",
+                        title: t("chat.suggestionSent"),
+                        timeout: 2000,
+                      });
+                      return true;
+                    }
+
                     if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
                       editor.commands.clearContent();
                       createNewSession(cwdRef.current);
@@ -176,6 +233,20 @@ export function MessageInput({
                     if (mode === "cmdEnter") {
                       event.preventDefault();
                       const text = extractText(editor.getJSON()).trim();
+
+                      // Empty input + suggestion → send suggestion directly
+                      const suggestion = promptSuggestionRef.current;
+                      if (!text && suggestion) {
+                        clearSuggestion();
+                        onSend(suggestion);
+                        toastManager.add({
+                          type: "info",
+                          title: t("chat.suggestionSent"),
+                          timeout: 2000,
+                        });
+                        return true;
+                      }
+
                       if (NEW_CHAT_EASTER_EGGS.has(text.toLowerCase())) {
                         editor.commands.clearContent();
                         createNewSession(cwdRef.current);
@@ -198,6 +269,11 @@ export function MessageInput({
                     return true;
                   }
                   if (event.key === "Escape") {
+                    // Dismiss suggestion first, then blur on next Escape
+                    if (promptSuggestionRef.current) {
+                      clearSuggestion();
+                      return true;
+                    }
                     editor.commands.blur();
                     return true;
                   }
@@ -250,6 +326,12 @@ export function MessageInput({
   useEffect(() => {
     editor?.setEditable(!disabled && !streaming);
   }, [editor, disabled, streaming]);
+
+  // Force placeholder re-render when suggestion changes
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(editor.state.tr.setMeta("promptSuggestion", promptSuggestion));
+  }, [editor, promptSuggestion]);
 
   // Close suggestion popups when settings opens
   const showSettings = useSettingsStore((s) => s.showSettings);
@@ -345,7 +427,9 @@ export function MessageInput({
               </motion.div>
             )}
           </AnimatePresence>
-          <EditorContent editor={editor} />
+          <div data-has-suggestion={promptSuggestion ? "" : undefined}>
+            <EditorContent editor={editor} />
+          </div>
           <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
           <InputToolbar
             streaming={streaming}

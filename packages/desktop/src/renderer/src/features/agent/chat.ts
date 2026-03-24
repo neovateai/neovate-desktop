@@ -73,6 +73,9 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
         if (status === prev) return;
 
         if (status === "submitted" || status === "streaming") {
+          if (cur.promptSuggestion !== null) {
+            this.store.setState({ promptSuggestion: null });
+          }
           onTurnStart?.(id);
         } else if (
           (prev === "streaming" && (status === "ready" || status === "error")) ||
@@ -125,6 +128,10 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
         usedTokens,
         remainingPct,
       });
+    } else if (event.type === "prompt_suggestion") {
+      const suggestion = (event as { suggestion: string }).suggestion;
+      log("prompt_suggestion: sessionId=%s suggestion=%s", this.id, suggestion);
+      this.store.setState({ promptSuggestion: suggestion });
     }
   }
 

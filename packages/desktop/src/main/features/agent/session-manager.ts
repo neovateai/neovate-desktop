@@ -154,6 +154,7 @@ export class SessionManager {
       enableFileCheckpointing: true,
       includePartialMessages: true,
       permissionMode: this.configStore.get("permissionMode") ?? "default",
+      promptSuggestions: true,
       systemPrompt: {
         type: "preset",
         preset: "claude_code",

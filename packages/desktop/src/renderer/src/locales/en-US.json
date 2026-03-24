@@ -343,6 +343,7 @@
   "chat.sendCmdEnter": "Send (⌘Enter)",
   "chat.planMode": "Plan mode",
   "chat.planModeExit": "Shift+Tab to exit",
+  "chat.suggestionSent": "Sent suggested follow-up",
   "chat.sdkDefault": "SDK Default",
   "chat.manageProviders": "Manage Providers...",
   "chat.setProjectDefault": "Set as project default",

@@ -212,6 +212,11 @@
     height: 0;
   }
 
+  /* Prompt suggestion placeholder: different color */
+  [data-has-suggestion] .tiptap p.is-editor-empty:first-child::before {
+    color: --alpha(var(--primary) / 50%);
+  }
+
   .tiptap .mention {
     background: --alpha(var(--primary) / 15%);
     color: var(--primary);

@@ -345,6 +345,7 @@
   "chat.sendCmdEnter": "发送 (⌘Enter)",
   "chat.planMode": "计划模式",
   "chat.planModeExit": "Shift+Tab 退出",
+  "chat.suggestionSent": "已发送建议的后续消息",
   "chat.sdkDefault": "SDK 默认",
   "chat.manageProviders": "管理服务商...",
   "chat.setProjectDefault": "设为项目默认",
