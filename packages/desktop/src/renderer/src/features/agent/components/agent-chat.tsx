@@ -151,6 +151,25 @@ export function AgentChat() {
       return;
     }
 
+    // If the user explicitly clicked a session belonging to this project,
+    // don't overwrite their selection with a new empty session.
+    // In multi-project mode, switching via project selector keeps activeSessionId
+    // pointing to the old project's session (cwd won't match), so auto-create
+    // correctly proceeds for that case.
+    const { activeSessionId: currentId, sessions: currentSessions } = useAgentStore.getState();
+    if (currentId) {
+      const session = currentSessions.get(currentId);
+      if (session && session.cwd === activeProjectPath && !session.isNew) {
+        chatLog(
+          "effect[auto-create]: skipping, active session %s already in project %s",
+          currentId,
+          activeProjectPath,
+        );
+        initializedPathRef.current = activeProjectPath;
+        return;
+      }
+    }
+
     initializedPathRef.current = activeProjectPath;
     chatLog("effect[auto-create]: creating new session for %s", activeProjectPath);
     createNewSession(activeProjectPath)
