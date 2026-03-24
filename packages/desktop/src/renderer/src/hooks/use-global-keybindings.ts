@@ -57,6 +57,13 @@ export function useGlobalKeybindings(): void {
         return;
       }
 
+      // Toggle Sidebar
+      if (matchesBinding(e, keybindings.toggleSidebar)) {
+        e.preventDefault();
+        layoutStore.getState().togglePanel("primarySidebar");
+        return;
+      }
+
       // Don't handle other shortcuts when in settings
       if (showSettings) return;
 
