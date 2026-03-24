@@ -1,6 +1,7 @@
 import debug from "debug";
 import { FolderOpen } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { client } from "../../../orpc";
 import { useProjectStore } from "../../project/store";
@@ -10,6 +11,7 @@ import { SessionActionsMenu } from "./session-actions-menu";
 const log = debug("neovate:session-info-bar");
 
 export function SessionInfoBar() {
+  const { t } = useTranslation();
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const sessions = useAgentStore((s) => s.sessions);
   const renameSession = useAgentStore((s) => s.renameSession);
@@ -27,7 +29,7 @@ export function SessionInfoBar() {
   const handleStartRename = () => {
     if (activeSession) {
       log("startRename: sessionId=%s", activeSessionId?.slice(0, 8));
-      setRenameValue(activeSession.title || "New Chat");
+      setRenameValue(activeSession.title || t("session.newChat"));
       setIsRenaming(true);
     }
   };
@@ -64,7 +66,7 @@ export function SessionInfoBar() {
         />
       ) : (
         <span className="max-w-80 truncate font-medium text-foreground">
-          {activeSession?.title || "New Chat"}
+          {activeSession?.title || t("session.newChat")}
         </span>
       )}
       {hasSession && projectName && (

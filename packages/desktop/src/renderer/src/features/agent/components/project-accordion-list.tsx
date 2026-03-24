@@ -205,6 +205,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
 // --- ProjectAccordionList ---
 
 export const ProjectAccordionList = memo(function ProjectAccordionList() {
+  const { t } = useTranslation();
   const projects = useProjectStore((s) => s.projects);
   const closedProjectAccordions = useProjectStore((s) => s.closedProjectAccordions);
   const setClosedProjectAccordions = useProjectStore((s) => s.setClosedProjectAccordions);
@@ -287,10 +288,8 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
             strokeWidth={1.5}
             className="mx-auto mb-2 text-muted-foreground"
           />
-          <p className="text-sm font-medium text-muted-foreground">No projects</p>
-          <p className="text-xs text-muted-foreground">
-            Click the + icon above to add your first project
-          </p>
+          <p className="text-sm font-medium text-muted-foreground">{t("sidebar.noProjects")}</p>
+          <p className="text-xs text-muted-foreground">{t("sidebar.addFirstProject")}</p>
         </div>
       </div>
     );

@@ -78,7 +78,9 @@ export const projectRouter = os.project.router({
   pickDirectory: os.project.pickDirectory.handler(async () => {
     log("opening directory picker");
     const win = BrowserWindow.getFocusedWindow();
-    const options: Electron.OpenDialogOptions = { properties: ["openDirectory"] };
+    const options: Electron.OpenDialogOptions = {
+      properties: ["openDirectory", "createDirectory"],
+    };
     const result = win
       ? await dialog.showOpenDialog(win, options)
       : await dialog.showOpenDialog(options);
