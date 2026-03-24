@@ -6,101 +6,111 @@ GitHub issue #286. When a remembered project path no longer exists on disk, the 
 
 ## 2. Problem Analysis
 
-Current state: `getActive()` returns the persisted active project without validating that its path still exists on disk. The renderer trusts this and proceeds to auto-create a session, initialize file watchers, git views, and terminal — all of which fail against a missing directory.
+Current state: `getActive()` returns the persisted active project without validating that its path still exists on disk. The renderer trusts this and proceeds to auto-create a session, initialize file watchers, git views, and terminal -- all of which fail against a missing directory.
 
-- **Approach A: Add `pathMissing` flag to Project type** — Tag each project with a boolean, add new `StaleProjectView` component. Rejected: pollutes persisted schema, requires changes across renderer.
-- **Approach B: Auto-fallback to most recent valid project** — Silently switch. Rejected: surprising behavior, user doesn't understand what happened.
-- **Chosen approach: Clear activeProjectId when path is missing** — In `getActive()`, if `existsSync(project.path)` is false, clear `activeProjectId` and return `null`. The renderer already handles `null` activeProject gracefully everywhere (WelcomePanel, disabled plugins, "No project" in title bar with ProjectSelector dropdown). ~15 lines of code, no new types or components.
+- **Approach A: Add `pathMissing` flag to persisted Project type** -- Tag each project with a boolean, add new `StaleProjectView` component. Rejected: pollutes persisted schema, requires large renderer changes.
+- **Approach B: Auto-fallback to most recent valid project** -- Silently switch. Rejected: surprising behavior, user doesn't understand what happened.
+- **Chosen approach: Multi-layered validation** -- Clear activeProjectId on startup via `getActive()`, validate in `setActive()` and `open()`, tag projects with `pathMissing` in `list()` response (separate `ProjectInfo` type, not persisted), show toast on stale detection, and visually mark stale projects in the ProjectSelector.
 
 ## 3. Decision Log
 
 **1. Where to validate path existence?**
 
-- Options: A) All projects on every list() call · B) Only active project on getActive() · C) Both
-- Decision: **B) Only active project** — The cascade only triggers for the active project. Checking all projects adds unnecessary synchronous I/O per list() call.
+- Options: A) Only active project on getActive() - B) All projects on list() + active on getActive() - C) Lazy validation on UI open
+- Decision: **B) All projects on list() + active on getActive()** -- The perf impact of N `existsSync` calls is negligible (<1ms for 10 projects). This enables visual indicators in the ProjectSelector without a separate IPC call.
 
-**2. What to do when path is missing?**
+**2. What to do when active project path is missing?**
 
-- Options: A) Return project with `pathMissing` flag · B) Clear activeProjectId and return null · C) Remove the project entirely
-- Decision: **B) Clear and return null** — Leverages all existing null-handling in the renderer. The project stays in the list so user can remove it manually.
+- Options: A) Return project with `pathMissing` flag - B) Clear activeProjectId and return null - C) Remove the project entirely
+- Decision: **B) Clear and return null** -- Leverages all existing null-handling in the renderer. The project stays in the list so user can remove it manually.
 
-**3. Should we add recovery UI?**
+**3. How to communicate staleness without polluting the persisted type?**
 
-- Options: A) New StaleProjectView component · B) Rely on existing WelcomePanel + ProjectSelector
-- Decision: **B) Existing UI** — WelcomePanel shows "Open Project" button. Title bar ProjectSelector lets user switch or remove projects. No new UI needed.
+- Options: A) Add `pathMissing` to `Project` type - B) Separate `ProjectInfo` response type - C) Separate IPC validation method
+- Decision: **B) Separate `ProjectInfo` type** -- `ProjectInfo = Project & { pathMissing?: boolean }` used only in contract responses. The persisted `Project` type stays clean.
 
-**4. Should we validate in open/create handlers too?**
+**4. Should we notify the user when their project is cleared?**
 
-- Options: A) Yes · B) No, only getActive
-- Decision: **A) Yes** — Prevents storing bad paths at the source. Both the new-project and existing-project-reactivation code paths in `open` need the guard.
+- Options: A) Silent (just show WelcomePanel) - B) Toast notification
+- Decision: **B) Toast** -- When `project.refresh()` detects that the active project went from non-null to null, show a warning toast with the project name and missing path. Eliminates the "what just happened?" moment.
+
+**5. Should we validate in setActive?**
+
+- Options: A) Yes, reject with ORPCError - B) No, let getActive handle it on next refresh
+- Decision: **A) Yes** -- Without this, clicking a stale project in the selector causes: setActive succeeds -> getActive clears on next refresh -> UI bounces. Rejecting in setActive makes the failure immediate; the renderer catches it and shows a toast.
+
+**6. Should stale projects be visually marked?**
+
+- Options: A) Yes, in ProjectSelector - B) No, user discovers on click
+- Decision: **A) Yes** -- Dimmed row + warning icon + "Directory not found" subtitle. Clicking a stale project triggers removal instead of switching. Minimal UI change, big clarity improvement.
 
 ## 4. Design
 
+### Shared types
+
+`src/shared/features/project/types.ts`:
+
+```typescript
+/** Project enriched with runtime status (not persisted). */
+export type ProjectInfo = Project & {
+  pathMissing?: boolean;
+};
+```
+
 ### Main process changes
 
-**`src/main/features/project/router.ts` — `getActive` handler:**
+`src/main/features/project/router.ts`:
 
-After fetching the active project from the store, check `existsSync(project.path)`. If the path is missing, clear the active project and return null:
+- **`list`**: Map projects with `pathMissing: !existsSync(p.path)`
+- **`getActive`**: If path missing, clear activeProjectId and return null
+- **`open`**: Reject with ORPCError if path doesn't exist
+- **`setActive`**: Reject with ORPCError if target project's path doesn't exist
 
-```typescript
-getActive: handler(({ context }) => {
-  const project = context.projectStore.getActive();
-  if (project && !existsSync(project.path)) {
-    log("active project path missing, clearing: %s", project.path);
-    context.projectStore.setActive(null);
-    return null;
-  }
-  return project;
-}),
-```
+### Renderer changes
 
-**`src/main/features/project/router.ts` — `open` handler:**
-
-Add `existsSync` check before both the existing-project reactivation branch and the new-project creation branch:
-
-```typescript
-open: handler(({ input, context }) => {
-  if (!existsSync(input.path)) {
-    throw new ORPCError("BAD_REQUEST", { message: "Directory does not exist" });
-  }
-  // ... existing logic
-}),
-```
-
-### Renderer behavior (no changes needed)
-
-When `activeProject` is null:
-
-- `AgentChat`: renders `WelcomePanel` with `hasProject={false}` (no session auto-create)
-- `SingleProjectSessionList`: shows "Select a project" message
-- `AppLayoutPrimaryTitleBar`: shows "No project" with ProjectSelector dropdown (user can switch/remove/open)
-- All content panel plugins: idle (no cwd to operate on)
-- The stale project remains in `projects[]` and is visible in the ProjectSelector for removal
+- **`project/store.ts`**: `projects` typed as `ProjectInfo[]`. `switchToProjectByPath` guards against stale projects and reverts optimistic state on setActive failure.
+- **`core/app.tsx`**: `project.refresh()` detects stale clearing (prevActive non-null, newActive null) and shows warning toast via `toastManager.add()`.
+- **`use-project.ts`**: `switchProject` catches setActive errors and shows warning toast.
+- **`project-selector.tsx`**: Stale projects rendered with `opacity-50`, `TriangleAlertIcon`, "Directory not found -- click to remove" subtitle. Clicking triggers `removeProject` instead of `switchProject`.
 
 ### Data flow
 
 ```
 Startup
-  → main: getActive() → existsSync fails → setActive(null) → return null
-  → renderer: project.refresh() → activeProject = null
-  → WelcomePanel rendered, plugins idle
-  → User clicks ProjectSelector → switches to valid project or opens new one
-  → User can delete stale project from ProjectSelector dropdown
+  -> main: list() -> each project tagged with pathMissing
+  -> main: getActive() -> existsSync fails -> setActive(null) -> return null
+  -> renderer: project.refresh() -> detects stale clearing -> shows toast
+  -> WelcomePanel rendered, plugins idle
+  -> ProjectSelector shows stale project dimmed with warning icon
+  -> User can remove stale project or open a new one
+
+Project switch to stale project
+  -> renderer: switchProject(id) -> main: setActive(id) -> existsSync fails -> throws ORPCError
+  -> renderer: catches error -> shows "Cannot switch" toast
+  -> UI stays on current project
 ```
 
 ## 5. Files Changed
 
-- `src/main/features/project/router.ts` — Add existsSync check in `getActive` and `open` handlers
+- `src/shared/features/project/types.ts` -- Add `ProjectInfo` type
+- `src/shared/features/project/contract.ts` -- Use `ProjectInfo[]` for list output
+- `src/main/features/project/router.ts` -- Validate in list, getActive, open, setActive
+- `src/renderer/src/features/project/store.ts` -- Use `ProjectInfo[]`, guard switchToProjectByPath
+- `src/renderer/src/core/app.tsx` -- Detect stale clearing, show toast
+- `src/renderer/src/features/project/hooks/use-project.ts` -- Catch setActive errors, show toast
+- `src/renderer/src/features/project/components/project-selector.tsx` -- Visual stale indicator
+- `src/renderer/src/locales/en-US.json` -- Add i18n string
 
 ## 6. Verification
 
-1. Persist a project path, delete the directory, restart the app. Expect: lands on WelcomePanel, no crashes, no session init errors.
-2. The deleted project still appears in the ProjectSelector dropdown and can be removed.
-3. Opening a new project via the selector works normally.
-4. `bun ready` passes (typecheck + lint + format + tests).
+1. Persist a project path, delete the directory, restart the app. Expect: lands on WelcomePanel, toast shows "Project X unavailable -- Directory not found: /path".
+2. The deleted project appears dimmed with warning icon in the ProjectSelector.
+3. Clicking the stale project in the selector removes it.
+4. Trying to switch to a stale project via multi-project session list is blocked.
+5. Opening a new project via the selector works normally after recovery.
+6. `bun ready` passes (typecheck + lint + format + tests).
 
 ## 7. Known Limitations
 
-- **No visual distinction for stale projects in the list.** They look like normal projects. User discovers staleness when they try to switch to one (setActive succeeds in store, but getActive() clears it on next refresh, causing a UI bounce back to no-project state). Acceptable for initial fix; visual indicators can be added as a follow-up.
-- **Path disappearing while app is running isn't detected** until the next `getActive()` call (e.g., project refresh). Acceptable trade-off.
-- **No toast/notification explaining why the active project was cleared.** The user sees the generic WelcomePanel. Could add in a follow-up.
+- **Path disappearing while app is running isn't detected** until the next `getActive()` or `list()` call (e.g., project refresh). Acceptable trade-off.
+- **Multi-project session list** still shows sessions for stale projects. Clicking a session belonging to a stale project would trigger `switchToProjectByPath`, which now guards against stale projects and is a no-op.

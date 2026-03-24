@@ -4,7 +4,7 @@ import { immer } from "zustand/middleware/immer";
 
 const log = debug("neovate:project");
 
-import type { Project } from "../../../../shared/features/project/types";
+import type { Project, ProjectInfo } from "../../../../shared/features/project/types";
 
 import { client } from "../../orpc";
 import { claudeCodeChatManager } from "../agent/chat-manager";
@@ -12,7 +12,7 @@ import { findPreWarmedSession, registerSessionInStore } from "../agent/session-u
 import { useAgentStore } from "../agent/store";
 
 type ProjectState = {
-  projects: Project[];
+  projects: ProjectInfo[];
   activeProject: Project | null;
   loading: boolean;
   /** projectPath → archived sessionIds */
@@ -21,7 +21,7 @@ type ProjectState = {
   pinnedSessions: Record<string, string[]>;
   closedProjectAccordions: string[];
 
-  setProjects: (projects: Project[]) => void;
+  setProjects: (projects: ProjectInfo[]) => void;
   setActiveProject: (project: Project | null) => void;
   setLoading: (loading: boolean) => void;
   switchToProjectByPath: (projectPath: string) => void;
@@ -48,11 +48,14 @@ export const useProjectStore = create<ProjectState>()(
       const { activeProject, projects } = useProjectStore.getState();
       if (activeProject?.path === projectPath) return;
       const project = projects.find((p) => p.path === projectPath);
-      if (project) {
-        log("switch to project by path", { projectPath, id: project.id });
-        client.project.setActive({ id: project.id }).catch(() => {});
-        set({ activeProject: project });
-      }
+      if (!project || project.pathMissing) return;
+      log("switch to project by path", { projectPath, id: project.id });
+      const prev = activeProject;
+      set({ activeProject: project });
+      client.project.setActive({ id: project.id }).catch(() => {
+        log("switch to project by path failed, reverting", { projectPath });
+        set({ activeProject: prev });
+      });
     },
     archiveSession: (projectPath, sessionId, isActive) => {
       log("archive session", { projectPath, sessionId, isActive });

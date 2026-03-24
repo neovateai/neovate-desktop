@@ -1,10 +1,10 @@
 import { oc, type } from "@orpc/contract";
 import { z } from "zod";
 
-import type { Project } from "./types";
+import type { Project, ProjectInfo } from "./types";
 
 export const projectContract = {
-  list: oc.output(type<Project[]>()),
+  list: oc.output(type<ProjectInfo[]>()),
 
   create: oc
     .input(z.object({ path: z.string(), name: z.string().optional() }))

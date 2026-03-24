@@ -15,7 +15,10 @@ const os = implement({ project: projectContract }).$context<AppContext>();
 
 export const projectRouter = os.project.router({
   list: os.project.list.handler(({ context }) => {
-    return context.projectStore.getAll();
+    return context.projectStore.getAll().map((p) => ({
+      ...p,
+      pathMissing: !existsSync(p.path),
+    }));
   }),
 
   create: os.project.create.handler(({ input, context }) => {
@@ -74,6 +77,14 @@ export const projectRouter = os.project.router({
 
   setActive: os.project.setActive.handler(({ input, context }) => {
     log("set active project", { id: input.id });
+    if (input.id !== null) {
+      const project = context.projectStore.get(input.id);
+      if (project && !existsSync(project.path)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `Project directory does not exist: ${project.path}`,
+        });
+      }
+    }
     context.projectStore.setActive(input.id);
   }),
 

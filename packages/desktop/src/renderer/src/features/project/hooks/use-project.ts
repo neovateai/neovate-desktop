@@ -1,6 +1,7 @@
 import debug from "debug";
 import { useCallback, useEffect } from "react";
 
+import { toastManager } from "../../../components/ui/toast";
 import { client } from "../../../orpc";
 import { useProjectStore } from "../store";
 
@@ -64,7 +65,18 @@ export function useProject() {
   const switchProject = useCallback(
     async (id: string | null) => {
       log("switch project", { id });
-      await client.project.setActive({ id });
+      try {
+        await client.project.setActive({ id });
+      } catch {
+        const project = useProjectStore.getState().projects.find((p) => p.id === id);
+        toastManager.add({
+          type: "warning",
+          title: `Cannot switch to "${project?.name ?? "project"}"`,
+          description: "Directory no longer exists",
+          timeout: 5000,
+        });
+        return;
+      }
       await fetchProjects();
     },
     [fetchProjects],

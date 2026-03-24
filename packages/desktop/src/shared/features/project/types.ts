@@ -8,6 +8,11 @@ export type Project = {
   lastAccessedAt: string;
 };
 
+/** Project enriched with runtime status (not persisted). */
+export type ProjectInfo = Project & {
+  pathMissing?: boolean;
+};
+
 export type ProjectStore = {
   projects: Project[];
   activeProjectId: string | null;

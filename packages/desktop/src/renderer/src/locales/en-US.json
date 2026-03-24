@@ -322,6 +322,7 @@
   "project.openProject": "Open Project",
   "project.selectProject": "Select a project...",
   "project.getStarted": "Open a project to get started",
+  "project.pathMissing": "Directory not found — click to remove",
 
   "openIn.open": "Open",
   "openIn.noAppsDetected": "No apps detected",
