@@ -94,11 +94,13 @@ export function useChanges(category: ChangesCategory) {
         if (res.filesChanged && res.filesChanged.length > 0) {
           setFiles(
             res.filesChanged.map((filePath: string) => {
-              const parts = filePath.split("/");
+              const relPath =
+                cwd && filePath.startsWith(cwd + "/") ? filePath.slice(cwd.length + 1) : filePath;
+              const parts = relPath.split("/");
               const fileName = parts[parts.length - 1];
               const extIdx = fileName.lastIndexOf(".");
               return {
-                relPath: filePath,
+                relPath,
                 fileName,
                 extName: extIdx >= 0 ? fileName.slice(extIdx + 1) : "",
                 status: "modified",
