@@ -293,6 +293,8 @@
   "sidebar.sortBy.created": "Created",
   "sidebar.sortBy.updated": "Updated",
   "sidebar.noProject": "No project",
+  "sidebar.noProjects": "No projects",
+  "sidebar.addFirstProject": "Click the + icon above to add your first project",
 
   "session.noConversations": "No conversations",
   "session.noConversationsYet": "No conversations yet",
@@ -303,6 +305,7 @@
   "session.pin": "Pin",
   "session.unpin": "Unpin",
   "session.archive": "Archive",
+  "session.archiveConfirm": "Confirm archive",
   "session.copyWorkingDirectory": "Copy working directory",
   "session.copySessionId": "Copy session ID",
   "session.copyJsonlPath": "Copy session JSONL path",
@@ -311,7 +314,9 @@
   "session.showLess": "Show less",
 
   "project.openProject": "Open Project",
+  "project.newProject": "New Project",
   "project.selectProject": "Select a project...",
+  "project.getStarted": "Open a project to get started",
 
   "openIn.open": "Open",
   "openIn.noAppsDetected": "No apps detected",
@@ -337,6 +342,7 @@
 
   "error.somethingWentWrong": "Something went wrong",
   "error.tryAgain": "Try again",
+  "error.copyError": "Copy error",
 
   "chat.guideMessage": "Hi~  I'm {{APP_NAME}}, what shall we create today?",
   "chat.placeholder": "Type a message...",

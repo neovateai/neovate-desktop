@@ -2,6 +2,7 @@ import { implement } from "@orpc/server";
 import debug from "debug";
 import { BrowserWindow, dialog } from "electron";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 
 import type { AppContext } from "../../router";
@@ -78,7 +79,9 @@ export const projectRouter = os.project.router({
   pickDirectory: os.project.pickDirectory.handler(async () => {
     log("opening directory picker");
     const win = BrowserWindow.getFocusedWindow();
-    const options: Electron.OpenDialogOptions = { properties: ["openDirectory"] };
+    const options: Electron.OpenDialogOptions = {
+      properties: ["openDirectory", "createDirectory"],
+    };
     const result = win
       ? await dialog.showOpenDialog(win, options)
       : await dialog.showOpenDialog(options);
@@ -88,6 +91,36 @@ export const projectRouter = os.project.router({
     }
     log("directory selected", { path: result.filePaths[0] });
     return { path: result.filePaths[0] };
+  }),
+
+  createDirectory: os.project.createDirectory.handler(async () => {
+    log("opening save dialog for new project folder");
+    const win = BrowserWindow.getFocusedWindow();
+    const options: Electron.SaveDialogOptions = {
+      title: "New Project",
+      defaultPath: "my-project",
+      buttonLabel: "Create",
+    };
+    const result = win
+      ? await dialog.showSaveDialog(win, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) {
+      log("save dialog canceled");
+      return null;
+    }
+    const dirPath = result.filePath;
+    log("creating project directory", { path: dirPath });
+    try {
+      // Create the directory if it doesn't exist
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+      log("project directory ready", { path: dirPath });
+      return { path: dirPath };
+    } catch (err) {
+      log("failed to create directory", { path: dirPath, error: err });
+      throw err;
+    }
   }),
 
   getArchivedSessions: os.project.getArchivedSessions.handler(({ context }) => {

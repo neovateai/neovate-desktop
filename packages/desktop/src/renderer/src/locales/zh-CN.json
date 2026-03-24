@@ -295,6 +295,8 @@
   "sidebar.sortBy.created": "创建时间",
   "sidebar.sortBy.updated": "更新时间",
   "sidebar.noProject": "无项目",
+  "sidebar.noProjects": "暂无项目",
+  "sidebar.addFirstProject": "点击上方 + 图标添加您的第一个项目",
 
   "session.noConversations": "暂无会话",
   "session.noConversationsYet": "暂无会话",
@@ -305,6 +307,7 @@
   "session.pin": "置顶",
   "session.unpin": "取消置顶",
   "session.archive": "归档",
+  "session.archiveConfirm": "确认归档",
   "session.copyWorkingDirectory": "复制工作目录",
   "session.copySessionId": "复制会话 ID",
   "session.copyJsonlPath": "复制会话 JSONL 路径",
@@ -313,7 +316,9 @@
   "session.showLess": "收起",
 
   "project.openProject": "打开项目",
+  "project.newProject": "新建项目",
   "project.selectProject": "选择项目...",
+  "project.getStarted": "打开项目开始使用",
 
   "openIn.open": "打开",
   "openIn.noAppsDetected": "未检测到应用",
@@ -339,6 +344,7 @@
 
   "error.somethingWentWrong": "出错了",
   "error.tryAgain": "重试",
+  "error.copyError": "复制错误",
 
   "chat.guideMessage": "嗨~  我是 {{APP_NAME}}，今天我们一起创造点什么？",
   "chat.placeholder": "输入消息...",
