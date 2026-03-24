@@ -165,23 +165,23 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-2 py-1 px-2 rounded-md text-muted-foreground text-sm transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer group",
+          "group flex w-full items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground",
           className,
         )}
         {...props}
       >
         {children ?? (
           <>
-            <div className="relative flex items-center justify-center size-5 rounded shrink-0">
-              <BrainIcon className="absolute size-3.5 transition-opacity duration-150 group-hover:opacity-0" />
+            <div className="relative flex size-4 shrink-0 items-center justify-center">
+              <BrainIcon className="absolute size-4 transition-opacity duration-150 group-hover:opacity-0" />
               <ChevronDownIcon
                 className={cn(
-                  "absolute size-3 text-muted-foreground transition-transform opacity-0 group-hover:opacity-100",
+                  "absolute size-4 transition-all duration-150 opacity-0 group-hover:opacity-100",
                   isOpen ? "rotate-0" : "-rotate-90",
                 )}
               />
             </div>
-            <span className="truncate">{getThinkingMessage(isStreaming, duration)}</span>
+            {getThinkingMessage(isStreaming, duration)}
           </>
         )}
       </CollapsibleTrigger>
@@ -196,7 +196,7 @@ export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & 
 export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
   <CollapsibleContent
     className={cn(
-      "pl-7 py-2 pr-2 text-sm",
+      "mt-2 text-sm !pl-0",
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
       className,
     )}

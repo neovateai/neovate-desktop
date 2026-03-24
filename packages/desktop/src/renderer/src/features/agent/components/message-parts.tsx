@@ -76,7 +76,7 @@ function AssistantMessageParts({
   }
 
   return (
-    <div className="flex flex-col gap-1 w-full">
+    <div className="flex flex-col gap-2 w-full">
       <Collapsible className="w-full" onOpenChange={setIsOpen} open={isOpen}>
         <CollapsibleTrigger
           className={cn(
