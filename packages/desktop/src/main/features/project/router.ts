@@ -11,13 +11,25 @@ import { projectContract } from "../../../shared/features/project/contract";
 
 const log = debug("neovate:project");
 
+/** Cached existsSync to avoid repeated filesystem checks on every list() call. */
+const pathCache = new Map<string, { exists: boolean; ts: number }>();
+const PATH_CACHE_TTL = 5_000;
+
+function pathExists(p: string): boolean {
+  const cached = pathCache.get(p);
+  if (cached && Date.now() - cached.ts < PATH_CACHE_TTL) return cached.exists;
+  const exists = existsSync(p);
+  pathCache.set(p, { exists, ts: Date.now() });
+  return exists;
+}
+
 const os = implement({ project: projectContract }).$context<AppContext>();
 
 export const projectRouter = os.project.router({
   list: os.project.list.handler(({ context }) => {
     return context.projectStore.getAll().map((p) => ({
       ...p,
-      pathMissing: !existsSync(p.path),
+      pathMissing: !pathExists(p.path),
     }));
   }),
 

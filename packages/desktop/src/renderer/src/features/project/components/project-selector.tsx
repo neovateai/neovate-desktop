@@ -50,7 +50,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
               return (
                 <MenuItem
                   key={project.id}
-                  onClick={() => (isStale ? removeProject(project.id) : switchProject(project.id))}
+                  onClick={() => !isStale && switchProject(project.id)}
                   className={`group ${isStale ? "opacity-50" : ""}`}
                 >
                   <div className="min-w-0 flex-1">
@@ -71,7 +71,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
                   )}
                   {!isActive && (
                     <button
-                      className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+                      className={`rounded p-1 transition-opacity hover:bg-destructive/10 ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         removeProject(project.id);

@@ -14,12 +14,12 @@ import { CSS } from "@dnd-kit/utilities";
 import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, TriangleAlertIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Project } from "../../../../../shared/features/project/types";
+import type { ProjectInfo } from "../../../../../shared/features/project/types";
 
 import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
 import { useProject } from "../../project/hooks/use-project";
@@ -37,7 +37,7 @@ const DEFAULT_SESSION_LIMIT = 5;
 
 // --- ProjectSessions ---
 
-const ProjectSessions = memo(function ProjectSessions({ project }: { project: Project }) {
+const ProjectSessions = memo(function ProjectSessions({ project }: { project: ProjectInfo }) {
   const { t } = useTranslation();
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
@@ -135,10 +135,10 @@ const SortableProjectItem = memo(function SortableProjectItem({
   onRemove,
   onCreateSession,
 }: {
-  project: Project;
+  project: ProjectInfo;
   closedSet: Set<string>;
   onRemove: (id: string) => void;
-  onCreateSession: (project: Project) => void;
+  onCreateSession: (project: ProjectInfo) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
@@ -150,9 +150,13 @@ const SortableProjectItem = memo(function SortableProjectItem({
     opacity: isDragging ? 0.5 : undefined,
   };
 
+  const isStale = project.pathMissing;
+
   return (
     <AccordionItem ref={setNodeRef} style={style} value={project.id} className="border-b-0">
-      <AccordionPrimitive.Header className="group flex justify-between items-center rounded-lg text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground">
+      <AccordionPrimitive.Header
+        className={`group flex justify-between items-center rounded-lg text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground ${isStale ? "opacity-50" : ""}`}
+      >
         <div
           className="flex flex-1 cursor-grab items-center gap-2.5 px-2.5 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
           {...attributes}
@@ -160,7 +164,11 @@ const SortableProjectItem = memo(function SortableProjectItem({
         >
           <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2.5 text-left max-w-[calc(100%)]">
             <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
-              <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+              {isStale ? (
+                <TriangleAlertIcon size={16} className="text-warning" />
+              ) : (
+                <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+              )}
             </div>
             <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
               {!closedSet.has(project.id) ? (
@@ -176,7 +184,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
         </div>
         <div className="flex items-center gap-1 pr-1">
           <button
-            className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+            className={`flex size-6 items-center justify-center rounded-md transition-all hover:bg-destructive/10 hover:text-destructive ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
             onClick={(e) => {
               e.stopPropagation();
               onRemove(project.id);
@@ -184,20 +192,24 @@ const SortableProjectItem = memo(function SortableProjectItem({
           >
             <Trash2 size={14} strokeWidth={1.5} />
           </button>
-          <button
-            className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCreateSession(project);
-            }}
-          >
-            <Plus size={14} strokeWidth={1.5} />
-          </button>
+          {!isStale && (
+            <button
+              className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateSession(project);
+              }}
+            >
+              <Plus size={14} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
       </AccordionPrimitive.Header>
-      <AccordionPanel className="pb-1 pt-0">
-        <ProjectSessions project={project} />
-      </AccordionPanel>
+      {!isStale && (
+        <AccordionPanel className="pb-1 pt-0">
+          <ProjectSessions project={project} />
+        </AccordionPanel>
+      )}
     </AccordionItem>
   );
 });
@@ -221,7 +233,7 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
 
   const handleCreateSession = useCallback(
-    async (project: Project) => {
+    async (project: ProjectInfo) => {
       const currentActive = useProjectStore.getState().activeProject;
       if (currentActive?.id !== project.id) {
         await switchProject(project.id);
