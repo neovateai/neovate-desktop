@@ -136,13 +136,30 @@ export const ChatPanel = () => {
               <SelectTrigger size="sm" className="min-w-36">
                 <SelectValue>{t(permissionModeKeys[config.permissionMode])}</SelectValue>
               </SelectTrigger>
-              <SelectPopup>
-                <SelectItem value="default">{t("settings.chat.permissionMode.default")}</SelectItem>
-                <SelectItem value="acceptEdits">
-                  {t("settings.chat.permissionMode.acceptEdits")}
+              <SelectPopup className="min-w-52">
+                <SelectItem value="default" className="items-start py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span>{t("settings.chat.permissionMode.default")}</span>
+                    <span className="text-[10px] text-muted-foreground/80 font-normal">
+                      {t("settings.chat.permissionMode.default.desc")}
+                    </span>
+                  </div>
                 </SelectItem>
-                <SelectItem value="bypassPermissions">
-                  {t("settings.chat.permissionMode.bypassPermissions")}
+                <SelectItem value="acceptEdits" className="items-start py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span>{t("settings.chat.permissionMode.acceptEdits")}</span>
+                    <span className="text-[10px] text-muted-foreground/80 font-normal">
+                      {t("settings.chat.permissionMode.acceptEdits.desc")}
+                    </span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="bypassPermissions" className="items-start py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span>{t("settings.chat.permissionMode.bypassPermissions")}</span>
+                    <span className="text-[10px] text-muted-foreground/80 font-normal">
+                      {t("settings.chat.permissionMode.bypassPermissions.desc")}
+                    </span>
+                  </div>
                 </SelectItem>
               </SelectPopup>
             </Select>
