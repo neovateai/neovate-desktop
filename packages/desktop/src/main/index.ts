@@ -16,10 +16,10 @@ import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
+import changesPlugin from "./plugins/changes";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
 import gitPlugin from "./plugins/git";
-import reviewPlugin from "./plugins/review";
 import terminalPlugin from "./plugins/terminal";
 
 const log = debug("neovate:orpc");
@@ -60,7 +60,7 @@ const requestTracker = new RequestTracker();
 const sessionManager = new SessionManager(configStore, projectStore, requestTracker);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
-  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, reviewPlugin],
+  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
 });
 const updaterService = new UpdaterService();
 

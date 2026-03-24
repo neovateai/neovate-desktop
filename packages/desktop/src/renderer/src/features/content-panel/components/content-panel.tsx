@@ -1,6 +1,7 @@
 import debug from "debug";
 import { useTheme } from "next-themes";
 import { Activity, lazy, Suspense, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import type { ContentPanelView } from "../../../core/plugin/contributions";
@@ -128,6 +129,7 @@ function EmptyState({
 }
 
 export function ContentPanelRenderer() {
+  const { t } = useTranslation();
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
   const views = app.pluginManager.contributions.contentPanelViews;
@@ -149,7 +151,7 @@ export function ContentPanelRenderer() {
   const projects = useStore(contentPanel.store, (s: ContentPanelStoreState) => s.projects);
 
   if (!projectPath) {
-    return <EmptyState message="No project selected" />;
+    return <EmptyState message={t("contentPanel.noProjectSelected")} />;
   }
 
   const projectState = projects[projectPath] ?? { tabs: [], activeTabId: null };
@@ -204,7 +206,7 @@ export function ContentPanelRenderer() {
 
         {tabs.length === 0 && (
           <EmptyState
-            message="No tabs open"
+            message={t("contentPanel.noTabsOpen")}
             imgSrc={getEmpty1Url(resolvedTheme as "dark" | "light" | undefined)}
           />
         )}

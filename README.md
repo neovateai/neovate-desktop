@@ -16,6 +16,8 @@
 
 </div>
 
+![](https://pic.sorrycc.com/proxy/1773904722984-990808729.png)
+
 ## Quick Start
 
 Prerequisites: macOS, [Bun](https://bun.sh/) >= 1.3.9

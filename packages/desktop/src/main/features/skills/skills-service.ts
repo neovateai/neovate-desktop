@@ -18,6 +18,7 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { SkillInstaller } from "./installers/types";
 
+import { ClawhubInstaller } from "./installers/clawhub";
 import { GitInstaller } from "./installers/git";
 import { NpmInstaller } from "./installers/npm";
 import { PrebuiltInstaller } from "./installers/prebuilt";
@@ -30,7 +31,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const remoteSkillSchema = z.object({
   name: z.string(),
   description: z.string(),
-  source: z.enum(["prebuilt", "git", "npm"]),
+  source: z.enum(["prebuilt", "git", "npm", "clawhub"]),
   sourceRef: z.string(),
   skillName: z.string(),
   version: z.string().optional(),
@@ -44,6 +45,7 @@ export class SkillsService {
     data: Omit<RecommendedSkill, "installed">[];
     fetchedAt: number;
   } | null = null;
+  private previewSources = new Map<string, string>();
 
   constructor(projectStore: ProjectStore, configStore: ConfigStore, resourcesDir: string) {
     this.projectStore = projectStore;
@@ -51,6 +53,7 @@ export class SkillsService {
     this.installers = [
       new PrebuiltInstaller(path.join(resourcesDir, "skills")),
       new NpmInstaller(),
+      new ClawhubInstaller(),
       new GitInstaller(),
     ];
   }
@@ -82,11 +85,11 @@ export class SkillsService {
   }
 
   async getContent(
-    name: string,
+    dirName: string,
     scope: "global" | "project",
     projectPath?: string,
   ): Promise<string> {
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     try {
       return await readFile(path.join(skillDir, "SKILL.md"), "utf-8");
     } catch {
@@ -101,11 +104,11 @@ export class SkillsService {
     const registry = await this.fetchRegistry();
     log("recommended: registry returned %d items", registry.length);
     const installed = await this.list("all");
-    const installedNames = new Set(installed.map((s) => s.name));
+    const installedDirNames = new Set(installed.map((s) => s.dirName));
 
     const result = registry.map((skill) => ({
       ...skill,
-      installed: installedNames.has(skill.skillName),
+      installed: installedDirNames.has(skill.skillName),
     }));
     log("recommended: returning %d items", result.length);
     return result;
@@ -115,7 +118,9 @@ export class SkillsService {
     log("preview", { source });
     const installer = this.findInstaller(source);
     if (!installer) throw new Error(`No installer found for source: ${source}`);
-    return installer.scan(source);
+    const result = await installer.scan(source);
+    this.previewSources.set(result.previewId, source);
+    return result;
   }
 
   async install(
@@ -145,37 +150,68 @@ export class SkillsService {
     const targetDir = this.resolveSkillsDir(scope, projectPath);
     await mkdir(targetDir, { recursive: true });
 
+    const sourceRef = this.previewSources.get(previewId);
+
     for (const installer of this.installers) {
       try {
-        await installer.installFromPreview(previewId, selectedSkills, targetDir);
+        const installedNames = await installer.installFromPreview(
+          previewId,
+          selectedSkills,
+          targetDir,
+        );
+        if (sourceRef) {
+          for (const name of installedNames) {
+            await this.writeInstallMeta(path.join(targetDir, name), sourceRef);
+          }
+        }
+        this.previewSources.delete(previewId);
         return;
       } catch {
         continue;
       }
     }
+    this.previewSources.delete(previewId);
     throw new Error("Preview not found or expired");
   }
 
-  async remove(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("remove", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async remove(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("remove", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     await rm(skillDir, { recursive: true, force: true });
   }
 
-  async enable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("enable", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
-    await rename(path.join(skillDir, "SKILL.md.disabled"), path.join(skillDir, "SKILL.md"));
+  async enable(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("enable", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
+    const enabledPath = path.join(skillDir, "SKILL.md");
+    const disabledPath = path.join(skillDir, "SKILL.md.disabled");
+    try {
+      await readFile(enabledPath, "utf-8");
+      return; // Already enabled
+    } catch {
+      await rename(disabledPath, enabledPath);
+    }
   }
 
-  async disable(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("disable", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
-    await rename(path.join(skillDir, "SKILL.md"), path.join(skillDir, "SKILL.md.disabled"));
+  async disable(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("disable", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
+    const enabledPath = path.join(skillDir, "SKILL.md");
+    const disabledPath = path.join(skillDir, "SKILL.md.disabled");
+    try {
+      await readFile(disabledPath, "utf-8");
+      return; // Already disabled
+    } catch {
+      await rename(enabledPath, disabledPath);
+    }
   }
 
-  async exists(name: string, scope: "global" | "project", projectPath?: string): Promise<boolean> {
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async exists(
+    dirName: string,
+    scope: "global" | "project",
+    projectPath?: string,
+  ): Promise<boolean> {
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
     try {
       await readFile(path.join(skillDir, "SKILL.md"), "utf-8");
       return true;
@@ -193,6 +229,7 @@ export class SkillsService {
     for (const installer of this.installers) {
       await installer.cleanup(previewId);
     }
+    this.previewSources.delete(previewId);
   }
 
   async checkUpdates(
@@ -213,6 +250,7 @@ export class SkillsService {
       if (latest && latest !== skill.version) {
         updates.push({
           name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
           currentVersion: skill.version,
@@ -225,9 +263,9 @@ export class SkillsService {
     return updates;
   }
 
-  async update(name: string, scope: "global" | "project", projectPath?: string): Promise<void> {
-    log("update", { name, scope, projectPath });
-    const skillDir = this.resolveSkillDir(name, scope, projectPath);
+  async update(dirName: string, scope: "global" | "project", projectPath?: string): Promise<void> {
+    log("update", { dirName, scope, projectPath });
+    const skillDir = this.resolveSkillDir(dirName, scope, projectPath);
 
     const metaPath = path.join(skillDir, INSTALL_META_FILE);
     const metaContent = await readFile(metaPath, "utf-8");
@@ -239,8 +277,8 @@ export class SkillsService {
     const installer = this.findInstaller(meta.installedFrom);
     if (!installer) throw new Error(`No installer found for source: ${meta.installedFrom}`);
 
-    await installer.install(meta.installedFrom, name, targetDir);
-    await this.writeInstallMeta(path.join(targetDir, name), meta.installedFrom);
+    await installer.install(meta.installedFrom, dirName, targetDir);
+    await this.writeInstallMeta(path.join(targetDir, dirName), meta.installedFrom);
   }
 
   // --- Registry fetching ---
@@ -323,14 +361,20 @@ export class SkillsService {
 
   private async writeInstallMeta(skillDir: string, sourceRef: string): Promise<void> {
     let source: SkillSource = "git";
+    let normalizedRef = sourceRef;
     if (sourceRef.startsWith("prebuilt:")) source = "prebuilt";
     else if (sourceRef.startsWith("npm:") || sourceRef.startsWith("@")) source = "npm";
+    else if (sourceRef.startsWith("clawhub:") || sourceRef.startsWith("https://clawhub.ai/")) {
+      source = "clawhub";
+      const installer = this.findInstaller(sourceRef) as ClawhubInstaller;
+      normalizedRef = installer.normalize(sourceRef);
+    }
 
-    const installer = this.findInstaller(sourceRef);
-    const version = (await installer?.getLatestVersion?.(sourceRef)) ?? "unknown";
+    const installer = this.findInstaller(normalizedRef);
+    const version = (await installer?.getLatestVersion?.(normalizedRef)) ?? "unknown";
 
     const meta: InstallMeta = {
-      installedFrom: sourceRef,
+      installedFrom: normalizedRef,
       version,
       source,
       installedAt: new Date().toISOString(),

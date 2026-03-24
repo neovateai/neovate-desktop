@@ -10,13 +10,13 @@ import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
 import { shellEnvService } from "../../../core/shell-service";
-import { scanSkillDirs } from "../skill-utils";
+import { deriveInstallName, resolveSkillSource, scanSkillDirs } from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
 const log = debug("neovate:skills:git");
 
 export class GitInstaller implements SkillInstaller {
-  private previewDirs = new Map<string, string>();
+  private previewDirs = new Map<string, { tmpDir: string; sourceRef: string; subpath?: string }>();
 
   detect(sourceRef: string): boolean {
     if (sourceRef.startsWith("prebuilt:") || sourceRef.startsWith("npm:")) return false;
@@ -30,35 +30,33 @@ export class GitInstaller implements SkillInstaller {
   async scan(sourceRef: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
     log("scan", { sourceRef });
     const env = await shellEnvService.getEnv();
-    const url = this.normalizeUrl(sourceRef);
+    const { url, branch, subpath } = this.parseSourceRef(sourceRef);
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
 
-    await execFileAsync("git", ["clone", "--depth", "1", url, tmpDir], {
-      timeout: 60_000,
-      env,
-    });
+    await this.cloneRepo({ url, branch, subpath, tmpDir, env });
 
-    this.previewDirs.set(previewId, tmpDir);
-    const skills = await scanSkillDirs(tmpDir);
+    this.previewDirs.set(previewId, { tmpDir, sourceRef, subpath });
+    const scanRoot = subpath ? path.join(tmpDir, subpath) : tmpDir;
+    const skills = await scanSkillDirs(scanRoot);
     return { previewId, skills };
   }
 
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
     log("install", { sourceRef, skillName, targetDir });
     const env = await shellEnvService.getEnv();
-    const url = this.normalizeUrl(sourceRef);
-    const previewId = randomUUID();
-    const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
+    const { url, branch, subpath } = this.parseSourceRef(sourceRef);
+    const tmpId = randomUUID();
+    const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${tmpId}`);
 
     try {
-      await execFileAsync("git", ["clone", "--depth", "1", url, tmpDir], {
-        timeout: 60_000,
-        env,
-      });
-      const src = path.join(tmpDir, skillName);
-      const dest = path.join(targetDir, skillName);
-      await cp(src, dest, { recursive: true });
+      await this.cloneRepo({ url, branch, subpath, tmpDir, env });
+      const baseDir = subpath ? path.join(tmpDir, subpath) : tmpDir;
+      const src = resolveSkillSource(baseDir, skillName);
+      const destName = deriveInstallName(skillName, sourceRef);
+      const dest = path.join(targetDir, destName);
+      const filter = (s: string) => path.basename(s) !== ".git";
+      await cp(src, dest, { recursive: true, filter });
     } finally {
       await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
@@ -66,26 +64,32 @@ export class GitInstaller implements SkillInstaller {
 
   async installFromPreview(
     previewId: string,
-    skillNames: string[],
+    skillPaths: string[],
     targetDir: string,
-  ): Promise<void> {
-    log("installFromPreview", { previewId, skillNames });
-    const tmpDir = this.previewDirs.get(previewId);
-    if (!tmpDir) throw new Error("Preview not found or expired");
+  ): Promise<string[]> {
+    log("installFromPreview", { previewId, skillPaths });
+    const preview = this.previewDirs.get(previewId);
+    if (!preview) throw new Error("Preview not found or expired");
 
-    for (const name of skillNames) {
-      const src = path.join(tmpDir, name);
-      const dest = path.join(targetDir, name);
-      await cp(src, dest, { recursive: true });
+    const installed: string[] = [];
+    const filter = (s: string) => path.basename(s) !== ".git";
+    const baseDir = preview.subpath ? path.join(preview.tmpDir, preview.subpath) : preview.tmpDir;
+    for (const sp of skillPaths) {
+      const destName = deriveInstallName(sp, preview.sourceRef);
+      const src = resolveSkillSource(baseDir, sp);
+      const dest = path.join(targetDir, destName);
+      await cp(src, dest, { recursive: true, filter });
+      installed.push(destName);
     }
 
     await this.cleanup(previewId);
+    return installed;
   }
 
   async cleanup(previewId: string): Promise<void> {
-    const tmpDir = this.previewDirs.get(previewId);
-    if (tmpDir) {
-      await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+    const preview = this.previewDirs.get(previewId);
+    if (preview) {
+      await rm(preview.tmpDir, { recursive: true, force: true }).catch(() => {});
       this.previewDirs.delete(previewId);
     }
   }
@@ -94,7 +98,7 @@ export class GitInstaller implements SkillInstaller {
     log("getLatestVersion", { sourceRef });
     try {
       const env = await shellEnvService.getEnv();
-      const url = this.normalizeUrl(sourceRef);
+      const { url } = this.parseSourceRef(sourceRef);
       const { stdout } = await execFileAsync("git", ["ls-remote", url, "HEAD"], {
         timeout: 15_000,
         env,
@@ -108,19 +112,63 @@ export class GitInstaller implements SkillInstaller {
 
   /** Clean up any stale preview directories */
   cleanupStale(): void {
-    for (const [id, dir] of this.previewDirs) {
-      rm(dir, { recursive: true, force: true })
+    for (const [id, { tmpDir }] of this.previewDirs) {
+      rm(tmpDir, { recursive: true, force: true })
         .then(() => this.previewDirs.delete(id))
         .catch(() => {});
     }
   }
 
-  private normalizeUrl(sourceRef: string): string {
-    let url = sourceRef.replace(/^git:/, "");
+  private parseSourceRef(sourceRef: string): {
+    url: string;
+    branch?: string;
+    subpath?: string;
+  } {
+    let raw = sourceRef.replace(/^git:/, "");
+
     // user/repo shorthand → github URL
-    if (/^[\w.-]+\/[\w.-]+$/.test(url)) {
-      url = `https://github.com/${url}.git`;
+    if (/^[\w.-]+\/[\w.-]+$/.test(raw)) {
+      return { url: `https://github.com/${raw}.git` };
     }
-    return url;
+
+    // GitHub/GitLab/Bitbucket tree URLs: .../tree/<branch>[/<subpath>]
+    const treeMatch = raw.match(
+      /^(https?:\/\/[^/]+\/[^/]+\/[^/]+?)(?:\.git)?\/tree\/([^/]+)(?:\/(.+))?$/,
+    );
+    if (treeMatch) {
+      const url = `${treeMatch[1]}.git`;
+      const branch = treeMatch[2]!;
+      const subpath = treeMatch[3]?.replace(/\/+$/, ""); // strip trailing slashes
+      return { url, branch, subpath: subpath || undefined };
+    }
+
+    return { url: raw };
+  }
+
+  private async cloneRepo(opts: {
+    url: string;
+    branch?: string;
+    subpath?: string;
+    tmpDir: string;
+    env: Record<string, string>;
+  }): Promise<void> {
+    const { url, branch, subpath, tmpDir, env } = opts;
+
+    if (subpath) {
+      // Sparse checkout: only download files under the subpath
+      const cloneArgs = ["clone", "--depth", "1", "--filter=blob:none", "--sparse"];
+      if (branch) cloneArgs.push("--branch", branch);
+      cloneArgs.push(url, tmpDir);
+      await execFileAsync("git", cloneArgs, { timeout: 60_000, env });
+      await execFileAsync("git", ["-C", tmpDir, "sparse-checkout", "set", subpath], {
+        timeout: 30_000,
+        env,
+      });
+    } else {
+      const cloneArgs = ["clone", "--depth", "1"];
+      if (branch) cloneArgs.push("--branch", branch);
+      cloneArgs.push(url, tmpDir);
+      await execFileAsync("git", cloneArgs, { timeout: 60_000, env });
+    }
   }
 }

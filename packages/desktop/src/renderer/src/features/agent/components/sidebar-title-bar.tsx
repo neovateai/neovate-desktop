@@ -44,14 +44,14 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
   };
 
   return (
-    <div className="flex items-center justify-between px-2 py-2">
-      <span className="text-sm font-medium text-foreground">{t("sidebar.sessions")}</span>
-      <div className="flex items-center gap-1">
+    <div className="flex items-center justify-between px-2.5 py-1">
+      <span className="text-sm font-medium text-muted-foreground/70">{t("sidebar.sessions")}</span>
+      <div className="flex items-center gap-0.5">
         {sidebarOrganize === "chronological" && (
           <Button
             variant="ghost"
             size="icon"
-            className="size-7"
+            className="size-7 text-muted-foreground hover:text-foreground"
             onClick={() => activeProject && createNewSession(activeProject.path)}
             disabled={!activeProject}
             title={t("sidebar.newChat")}
@@ -62,7 +62,7 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-7"
+          className="size-7 text-muted-foreground hover:text-foreground"
           onClick={() => openProject()}
           title={t("sidebar.addProject")}
         >
@@ -71,7 +71,12 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
         <Menu>
           <MenuTrigger
             render={
-              <Button variant="ghost" size="icon" className="size-7" title={t("sidebar.filter")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                title={t("sidebar.filter")}
+              >
                 <HugeiconsIcon icon={FilterIcon} size={16} strokeWidth={1.5} />
               </Button>
             }

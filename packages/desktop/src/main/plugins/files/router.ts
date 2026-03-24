@@ -55,7 +55,7 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     rename: orpcServer.handler(async ({ input }) => {
       const data = input as { oldPath: string; newPath: string };
-      log("rename requested", { oldPath: data?.oldPath, newPath: data?.newPath });
+      log("rename requested", input);
       try {
         const { oldPath, newPath } = data || {};
         if (!oldPath || !newPath) {
@@ -88,24 +88,40 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       const { cwd } = input as { cwd: string };
       log("watch requested", { cwd });
 
-      const publisher = watchDirectory(cwd, {
-        onFsChange: (subType, file) => {
-          publisher.publish("file-changed", {
-            timestamp: Date.now(),
-            path: file?.fullPath || "",
-            type: subType,
-          });
-        },
-      });
-      if (signal) {
-        signal.addEventListener("abort", () => {
+      try {
+        const publisher = watchDirectory(cwd, {
+          onFsChange: (subType, file) => {
+            publisher.publish("file-changed", {
+              timestamp: Date.now(),
+              path: file?.fullPath || "",
+              type: subType,
+            });
+          },
+        });
+
+        const cleanup = () => {
           log("unwatch", { cwd });
           unwatchDirectory(cwd);
-        });
-      }
-      const events = publisher.subscribe("file-changed", { signal });
-      for await (const event of events) {
-        yield event;
+        };
+        if (signal) {
+          signal.addEventListener("abort", cleanup, { once: true });
+        }
+        const events = publisher.subscribe("file-changed", { signal });
+
+        try {
+          for await (const event of events) {
+            yield event;
+          }
+        } finally {
+          cleanup();
+        }
+      } catch (e) {
+        // 忽略 AbortError，这是正常的中断
+        if (e instanceof Error && e.name === "AbortError") {
+          log("watch aborted normally", { cwd });
+          return;
+        }
+        log("file watch error", e);
       }
     }),
   });

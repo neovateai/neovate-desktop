@@ -41,6 +41,9 @@
   "settings.general.terminalFont.default": "默认",
   "settings.general.developerMode": "开发者模式",
   "settings.general.developerMode.description": "在聊天输入等位置显示调试信息",
+  "settings.general.group.appearance": "外观",
+  "settings.general.group.terminal": "终端",
+  "settings.general.group.advanced": "高级",
 
   "settings.chat": "聊天",
   "settings.chat.model": "模型",
@@ -72,6 +75,8 @@
   "settings.chat.networkInspector.description": "在网络面板中显示 API 请求。在新会话中生效。",
   "settings.chat.sendMessage": "发送消息",
   "settings.chat.sendMessage.description": "发送消息的键盘快捷键",
+  "settings.chat.group.model": "模型",
+  "settings.chat.group.behavior": "行为",
   "settings.chat.model.auto": "默认（自动）",
   "settings.chat.model.sdkDefault": "SDK 默认",
   "settings.chat.selectPlaceholder": "请选择...",
@@ -113,6 +118,10 @@
   "settings.keybindings.prevSession": "上一个会话",
   "settings.keybindings.nextSession": "下一个会话",
   "settings.keybindings.copyPath": "复制路径",
+  "settings.keybindings.toggleChanges": "切换变更面板",
+  "settings.keybindings.toggleTerminal": "切换终端",
+  "settings.keybindings.toggleBrowser": "切换浏览器",
+  "settings.keybindings.toggleFiles": "切换文件",
   "settings.keybindings.toggleMultiProject": "切换多项目支持",
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 
@@ -152,6 +161,8 @@
   "settings.providers.benchmark.total": "总耗时",
   "settings.providers.benchmark.failed": "失败",
   "settings.providers.benchmark.cancel": "取消",
+  "settings.providers.benchmark.quickTest": "快速测试所有模型",
+  "settings.providers.benchmark.fullBenchmark": "完整基准测试",
   "settings.providers.validation.nameRequired": "名称不能为空",
   "settings.providers.validation.invalidURL": "无效的 API 地址",
   "settings.providers.validation.apiKeyRequired": "API 密钥不能为空",
@@ -173,8 +184,8 @@
 
   "settings.skills": "技能",
   "settings.skills.addSkill": "添加技能",
-  "settings.skills.addDescription": "从 Git 仓库、npm 包或本地路径安装技能。",
-  "settings.skills.sourcePlaceholder": "用户名/仓库名、Git URL、npm:包名 或本地路径",
+  "settings.skills.addDescription": "从 ClawHub、Git 仓库或 npm 包安装技能。",
+  "settings.skills.sourcePlaceholder": "clawhub.ai URL、clawhub:slug、Git URL 或 npm:包名",
   "settings.skills.preview": "预览",
   "settings.skills.fetching": "正在从 {{source}} 获取技能...",
   "settings.skills.selectToInstall": "选择要安装的技能：",
@@ -227,6 +238,7 @@
   "settings.skills.detail.uninstall": "卸载",
   "settings.skills.detail.update": "更新",
   "settings.skills.detail.updating": "正在更新...",
+  "settings.skills.noDescription": "暂无描述",
   "settings.skills.retry": "重试",
   "settings.skills.removeSkill": "移除技能",
   "common.yes": "是",
@@ -297,6 +309,9 @@
   "session.copyWorkingDirectory": "复制工作目录",
   "session.copySessionId": "复制会话 ID",
   "session.copyJsonlPath": "复制会话 JSONL 路径",
+  "session.copyResumeCommand": "复制 Claude Code 恢复命令",
+  "session.showMore": "显示更多 {{count}}/{{total}}",
+  "session.showLess": "收起",
 
   "project.openProject": "打开项目",
   "project.selectProject": "选择项目...",
@@ -320,10 +335,13 @@
   "contentPanel.noProjectSelected": "未选择项目",
   "contentPanel.noTabsOpen": "暂无打开的标签页",
 
+  "terminal.search.noResults": "无结果",
+  "terminal.search.results": "{{current}} / {{total}}",
+
   "error.somethingWentWrong": "出错了",
   "error.tryAgain": "重试",
 
-  "chat.guideMessage": "嗨，我是 {{APP_NAME}}。让我们一起创造点什么吧！",
+  "chat.guideMessage": "嗨~  我是 {{APP_NAME}}，今天我们一起创造点什么？",
   "chat.placeholder": "输入消息...",
   "chat.attachImage": "附加图片",
   "chat.attachImages": "附加图片",
@@ -339,5 +357,8 @@
   "chat.clearSessionOverride": "清除会话覆盖",
   "chat.providerSwitchHint": "切换服务商需要新建会话",
   "chat.messageActions": "消息操作",
-  "chat.sessionInitializing": "正在启动会话..."
+  "chat.sessionInitializing": "正在启动会话...",
+  "chat.sessionInitFailed": "会话启动失败",
+  "chat.sessionInitRetry": "重试",
+  "chat.sessionInitNetworkHint": "尝试在设置中关闭网络检查器后重试"
 }

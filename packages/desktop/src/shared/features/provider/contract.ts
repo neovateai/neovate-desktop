@@ -54,6 +54,21 @@ export const providerContract = {
 
   remove: oc.input(z.object({ id: z.string() })).output(type<void>()),
 
+  quickCheck: oc
+    .input(
+      z.object({
+        baseURL: z.string().url(),
+        apiKey: z.string().min(1),
+        modelId: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        success: z.boolean(),
+        error: z.string().optional(),
+      }),
+    ),
+
   checkModel: oc
     .input(
       z.object({

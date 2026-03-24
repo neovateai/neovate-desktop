@@ -1,5 +1,5 @@
 import { is } from "@electron-toolkit/utils";
-import { shell, screen, BrowserWindow } from "electron";
+import { app, shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
 import { join } from "path";
@@ -27,6 +27,7 @@ function stripColors(msg: string): string {
 export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
+  #isQuitting = false;
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: APP_DATA_DIR,
@@ -94,9 +95,19 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     win.on("enter-full-screen", debouncedSave);
     win.on("leave-full-screen", debouncedSave);
 
-    win.on("close", () => {
+    if (process.platform === "darwin") {
+      app.on("before-quit", () => {
+        this.#isQuitting = true;
+      });
+    }
+
+    win.on("close", (e) => {
       if (saveTimer) clearTimeout(saveTimer);
       saveState();
+      if (process.platform === "darwin" && !this.#isQuitting) {
+        e.preventDefault();
+        win.hide();
+      }
     });
 
     win.on("closed", () => {

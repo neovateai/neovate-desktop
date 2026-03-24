@@ -20,6 +20,10 @@ interface SearchResult {
   matches?: ContentMatch[];
 }
 
+function containsChinese(str: string): boolean {
+  return /[\u4e00-\u9fff]/.test(str);
+}
+
 function searchContentWithMatches(
   rgPath: string,
   cwd: string,
@@ -50,7 +54,10 @@ function searchContentWithMatches(
     }
 
     if (exactMatch) {
-      args.push("--word-regexp");
+      const isContainsChinese = containsChinese(query); // 中文场景下，全词匹配逻辑不生效（中文无准确分词处理）
+      if (!isContainsChinese) {
+        args.push("--word-regexp");
+      }
     }
 
     args.push(query);

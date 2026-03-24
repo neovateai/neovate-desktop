@@ -25,6 +25,7 @@ import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useFilesTranslation } from "./i18n";
 import { TreeNode } from "./tree-node";
+import { convertPathListDepth } from "./utils/sort";
 
 const log = debug("neovate:files-view");
 
@@ -60,7 +61,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const refreshTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // --- Lazy tree loading (Section 3) ---
-
   const fetchChildren = useCallback(
     async (dir: string) => {
       if (!cwd) return [];
@@ -101,7 +101,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
   );
 
   // --- Watcher management (Section 2b) ---
-
   const startWatcher = useCallback(
     (dir: string) => {
       if (watchersRef.current.has(dir)) return;
@@ -120,6 +119,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
               updateChildrenInTree(dir, children);
             }, 500),
           );
+        },
+        onError: (e) => {
+          log("file watch error: consumeEventIterator", e);
         },
       });
       watchersRef.current.set(dir, cancel);
@@ -154,7 +156,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
   }, []);
 
   // --- Lifecycle: start/stop watching based on visibility + cwd ---
-
   useEffect(() => {
     if (!cwd || !isVisible) {
       stopAllWatchers();
@@ -172,21 +173,40 @@ function FilesViewComponent({ project }: FilesViewProps) {
     fetchChildren(cwd).then((children) => {
       setTreeData(children);
       setLoading(false);
+      // After root is loaded, restore all expanded directories
+      restoreExpandedDirectories();
     });
     startWatcher(cwd);
-
-    // Also restart watchers for already-expanded directories
-    for (const key of expandedKeys) {
-      startWatcher(key);
-    }
 
     return () => {
       stopAllWatchers();
     };
   }, [cwd, isVisible]);
 
-  // --- Expand/collapse with lazy loading + lazy watching ---
+  const restoreExpandedDirectories = useCallback(async () => {
+    if (!cwd || expandedKeys.size === 0) return;
+    log("restoring expanded directories", { count: expandedKeys.size });
+    // 按层级分批加载目录数据
+    const depthList = convertPathListDepth(expandedKeys, cwd);
+    for (let i = 0; i < depthList.length; i++) {
+      const dirs = depthList[i];
+      log(`loading depth ${i + 1} directories`, { dirs });
+      // 同层级并行加载
+      await Promise.allSettled(
+        dirs.map(async (key) => {
+          try {
+            const children = await fetchChildren(key);
+            updateChildrenInTree(key, children);
+            startWatcher(key);
+          } catch (error) {
+            log("failed to restore directory", { key, error });
+          }
+        }),
+      );
+    }
+  }, [cwd, expandedKeys]);
 
+  // --- Expand/collapse with lazy loading + lazy watching ---
   const handleToggleExpand = useCallback(
     async (key: string) => {
       setExpandedKeys((prev) => {

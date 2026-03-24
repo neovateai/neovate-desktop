@@ -72,7 +72,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
         previewId: result.previewId,
         source,
         skills: result.skills,
-        selected: new Set(result.skills.map((s) => s.name)),
+        selected: new Set(result.skills.map((s) => s.skillPath)),
       });
     } catch (e: any) {
       setPhase({ step: "input", error: e.message || t("settings.skills.fetchFailed") });
@@ -88,11 +88,11 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
     onClose();
   };
 
-  const toggleSkill = (name: string) => {
+  const toggleSkill = (skillPath: string) => {
     if (phase.step !== "select") return;
     const next = new Set(phase.selected);
-    if (next.has(name)) next.delete(name);
-    else next.add(name);
+    if (next.has(skillPath)) next.delete(skillPath);
+    else next.add(skillPath);
     setPhase({ ...phase, selected: next });
   };
 
@@ -144,17 +144,22 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                 <div>{t("settings.skills.examples")}</div>
                 <div className="pl-2">
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    https://clawhub.ai/owner/skill-name
+                  </code>
+                </div>
+                <div className="pl-2">
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    clawhub:skill-name
+                  </code>
+                </div>
+                <div className="pl-2">
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     github.com/user/claude-skills
                   </code>
                 </div>
                 <div className="pl-2">
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     npm:@claude-skills/pr-apply
-                  </code>
-                </div>
-                <div className="pl-2">
-                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
-                    /path/to/local/skill
                   </code>
                 </div>
               </div>
@@ -183,7 +188,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
               </div>
               <div className="space-y-1">
                 {phase.skills.map((skill) => {
-                  const isSelected = phase.selected.has(skill.name);
+                  const isSelected = phase.selected.has(skill.skillPath);
                   return (
                     <label
                       key={skill.skillPath}
@@ -194,7 +199,7 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                     >
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={() => toggleSkill(skill.name)}
+                        onCheckedChange={() => toggleSkill(skill.skillPath)}
                       />
                       <div className="min-w-0">
                         <span className="text-sm font-medium text-foreground">{skill.name}</span>

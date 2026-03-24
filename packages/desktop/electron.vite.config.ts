@@ -14,7 +14,7 @@ export default defineConfig({
       outDir: "dist/main",
       // TODO: fix this
       externalizeDeps: {
-        exclude: ["acpx", "electron-store", "get-port"],
+        exclude: ["electron-store"],
       },
     },
   },
@@ -29,6 +29,12 @@ export default defineConfig({
   renderer: {
     define: appDefine,
     plugins: [react(), tailwindcss()],
+    resolve: {
+      // Force a single copy of shiki so @pierre/diffs (shiki@3) shares the
+      // app's shiki@4 — the APIs are compatible and this eliminates ~6 MB of
+      // duplicated language/theme grammar chunks.
+      dedupe: ["shiki"],
+    },
     build: {
       outDir: "dist/renderer",
       emptyOutDir: true,

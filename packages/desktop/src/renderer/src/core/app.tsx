@@ -18,6 +18,7 @@ import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
 import browserPlugin from "../plugins/browser";
+import changesPlugin from "../plugins/changes";
 import debugPlugin from "../plugins/debug";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 // import demoWindowPlugin from "../plugins/demo-window";
@@ -26,7 +27,6 @@ import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import networkPlugin from "../plugins/network";
 import { providersPlugin } from "../plugins/providers";
-import reviewPlugin from "../plugins/review";
 import searchPlugin from "../plugins/search";
 import terminalPlugin from "../plugins/terminal";
 import { DisposableStore } from "./disposable";
@@ -102,7 +102,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   browserPlugin,
   searchPlugin,
   editorPlugin,
-  reviewPlugin,
+  changesPlugin,
   networkPlugin,
   debugPlugin,
   providersPlugin,

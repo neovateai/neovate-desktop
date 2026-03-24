@@ -13,10 +13,12 @@ import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIEventMessage,
   ClaudeCodeUIMessage,
+  ContextUsageEvent,
 } from "../../../../shared/claude-code/types";
 import type { ClaudeCodeChatTransport } from "./chat-transport";
 
 import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
+import { useAgentStore } from "./store";
 
 export interface ClaudeCodeChatInit extends Omit<ChatInit<ClaudeCodeUIMessage>, "transport"> {
   id: string;
@@ -114,10 +116,15 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   }
 
   #handleEvent(event: ClaudeCodeUIEventMessage) {
-    if (event.type === "result" && event.is_error) {
-      // this.stateStore.store.setState({
-      //   eventError: new Error(event.errors.join("\n") || event.subtype),
-      // });
+    if (event.type === "context_usage") {
+      const { contextWindowSize, usedTokens, remainingPct } = event as ContextUsageEvent & {
+        id: string;
+      };
+      useAgentStore.getState().setSessionUsage(this.id, {
+        contextWindowSize,
+        usedTokens,
+        remainingPct,
+      });
     }
   }
 

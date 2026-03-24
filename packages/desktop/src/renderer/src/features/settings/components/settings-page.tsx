@@ -43,16 +43,16 @@ export const SettingsPage = () => {
       <SettingsMenu activeMenu={activeMenu} onMenuSelect={setActiveMenu} />
 
       {/* Right Content */}
-      <div className="flex-1 overflow-y-auto bg-card">
+      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-card to-background">
         {/* Draggable header area */}
         <div
-          className="h-12"
+          className="h-10"
           style={{
             // @ts-expect-error - Electron specific CSS property
             WebkitAppRegion: "drag",
           }}
         />
-        <div className="mx-auto max-w-3xl px-8 pb-8">
+        <div className="mx-auto max-w-3xl px-8 pb-12">
           {activeMenu === "chat" && <ChatPanel />}
           {activeMenu === "rules" && <RulesPanel />}
           {activeMenu === "general" && <GeneralPanel />}

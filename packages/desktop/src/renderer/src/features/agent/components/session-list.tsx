@@ -48,10 +48,8 @@ function MultiProjectSessionList() {
   }, [projects, loadSessionPreferences]);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="px-2">
-        <NewChatButton projectPath={activeProject?.path} />
-      </div>
+    <div className="flex flex-1 flex-col pt-2">
+      <NewChatButton projectPath={activeProject?.path} />
       <PinnedSessionList />
       <SidebarTitleBar />
       {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
@@ -161,14 +159,14 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-1">
+    <div className="flex flex-1 flex-col gap-1 pt-2">
       <NewChatButton projectPath={projectPath} />
       {pinnedItems.length === 0 && regularItems.length === 0 ? (
         sessionsLoaded ? (
           <EmptySessionState />
         ) : null
       ) : (
-        <ul className="flex flex-col">
+        <ul className="flex flex-col gap-1">
           {pinnedItems.length > 0 && (
             <>
               {pinnedItems.map((item) => {

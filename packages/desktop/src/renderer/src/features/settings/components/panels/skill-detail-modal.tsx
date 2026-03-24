@@ -65,6 +65,7 @@ export const SkillDetailModal = ({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [installScope, setInstallScope] = useState<string>("global");
 
   // Fetch SKILL.md content for installed skills
@@ -72,42 +73,44 @@ export const SkillDetailModal = ({
     if (!skill) return;
     setLoadingContent(true);
     client.skills
-      .getContent({ name: skill.name, scope: skill.scope, projectPath: skill.projectPath })
+      .getContent({ dirName: skill.dirName, scope: skill.scope, projectPath: skill.projectPath })
       .then(setContent)
       .catch(() => setContent(null))
       .finally(() => setLoadingContent(false));
   }, [skill]);
 
   const handleToggle = async () => {
-    if (!skill) return;
+    if (!skill || toggling) return;
+    setToggling(true);
     try {
       if (skill.enabled) {
         await client.skills.disable({
-          name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
         });
       } else {
         await client.skills.enable({
-          name: skill.name,
+          dirName: skill.dirName,
           scope: skill.scope,
           projectPath: skill.projectPath,
         });
       }
       await onRefresh();
-      onClose();
     } catch {
       // Silently fail
+    } finally {
+      setToggling(false);
     }
   };
 
   const handleRemove = async () => {
     if (!skill) return;
-    log("removing skill: name=%s scope=%s", skill.name, skill.scope);
+    log("removing skill: dirName=%s scope=%s", skill.dirName, skill.scope);
     setRemoving(true);
     try {
       await client.skills.remove({
-        name: skill.name,
+        dirName: skill.dirName,
         scope: skill.scope,
         projectPath: skill.projectPath,
       });
@@ -121,7 +124,7 @@ export const SkillDetailModal = ({
   const handleOpenFolder = () => {
     if (!skill) return;
     client.skills.openFolder({
-      name: skill.name,
+      dirName: skill.dirName,
       scope: skill.scope,
       projectPath: skill.projectPath,
     });
@@ -129,11 +132,11 @@ export const SkillDetailModal = ({
 
   const handleUpdate = async () => {
     if (!skill) return;
-    log("updating skill: name=%s scope=%s", skill.name, skill.scope);
+    log("updating skill: dirName=%s scope=%s", skill.dirName, skill.scope);
     setUpdating(true);
     try {
       await client.skills.update({
-        name: skill.name,
+        dirName: skill.dirName,
         scope: skill.scope,
         projectPath: skill.projectPath,
       });
@@ -175,7 +178,7 @@ export const SkillDetailModal = ({
                   ? t("settings.skills.detail.enabled")
                   : t("settings.skills.detail.disabled")}
               </span>
-              <Switch checked={skill.enabled} onCheckedChange={handleToggle} />
+              <Switch checked={skill.enabled} disabled={toggling} onCheckedChange={handleToggle} />
             </div>
           )}
           {isInstalled && (

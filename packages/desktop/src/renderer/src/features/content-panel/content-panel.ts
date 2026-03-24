@@ -116,6 +116,29 @@ export class ContentPanel {
     return tab.id;
   }
 
+  toggleView(viewType: string): void {
+    const view = this.views.find((v) => v.viewType === viewType);
+    if (!view) return;
+
+    const store = this.store.getState();
+    const existing = store.findTabByViewType(this.projectPath, viewType);
+
+    if (!existing) {
+      this.openView(viewType);
+      return;
+    }
+
+    const project = store.getProjectState(this.projectPath);
+    const isActive = project.activeTabId === existing.id;
+
+    if (isActive) {
+      void this.options.layout.togglePart(COLLAPSIBLE_WORKBENCH_PART.contentPanel);
+    } else {
+      this.activateView(existing.id);
+      void this.options.layout.expandPart(COLLAPSIBLE_WORKBENCH_PART.contentPanel);
+    }
+  }
+
   closeView(viewId: string): void {
     log("close view", { viewId });
     this.store.getState().removeTab(this.projectPath, viewId);

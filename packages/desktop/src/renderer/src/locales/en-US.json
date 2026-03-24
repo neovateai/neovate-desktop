@@ -41,6 +41,9 @@
   "settings.general.terminalFont.default": "Default",
   "settings.general.developerMode": "Developer Mode",
   "settings.general.developerMode.description": "Show debug info in chat input and other places",
+  "settings.general.group.appearance": "Appearance",
+  "settings.general.group.terminal": "Terminal",
+  "settings.general.group.advanced": "Advanced",
 
   "settings.chat": "Chat",
   "settings.chat.model": "Model",
@@ -72,6 +75,8 @@
   "settings.chat.networkInspector.description": "Show API requests in the Network panel. Takes effect on new sessions.",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
+  "settings.chat.group.model": "Model",
+  "settings.chat.group.behavior": "Behavior",
   "settings.chat.model.auto": "Default (auto)",
   "settings.chat.model.sdkDefault": "SDK Default",
   "settings.chat.selectPlaceholder": "Select...",
@@ -113,6 +118,10 @@
   "settings.keybindings.prevSession": "Previous Session",
   "settings.keybindings.nextSession": "Next Session",
   "settings.keybindings.copyPath": "Copy Path",
+  "settings.keybindings.toggleChanges": "Toggle Changes",
+  "settings.keybindings.toggleTerminal": "Toggle Terminal",
+  "settings.keybindings.toggleBrowser": "Toggle Browser",
+  "settings.keybindings.toggleFiles": "Toggle Files",
   "settings.keybindings.toggleMultiProject": "Toggle Multi-Project Support",
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
@@ -152,6 +161,8 @@
   "settings.providers.benchmark.total": "Total",
   "settings.providers.benchmark.failed": "Failed",
   "settings.providers.benchmark.cancel": "Cancel",
+  "settings.providers.benchmark.quickTest": "Quick test all models",
+  "settings.providers.benchmark.fullBenchmark": "Full Benchmark",
   "settings.providers.validation.nameRequired": "Name is required",
   "settings.providers.validation.invalidURL": "Invalid base URL",
   "settings.providers.validation.apiKeyRequired": "API key is required",
@@ -170,8 +181,8 @@
 
   "settings.skills": "Skills",
   "settings.skills.addSkill": "Add Skill",
-  "settings.skills.addDescription": "Install skills from a Git repository, npm package, or local path.",
-  "settings.skills.sourcePlaceholder": "user/repo, git URL, npm:package, or local path",
+  "settings.skills.addDescription": "Install skills from ClawHub, a Git repository, or npm package.",
+  "settings.skills.sourcePlaceholder": "clawhub.ai URL, clawhub:slug, git URL, or npm:package",
   "settings.skills.preview": "Preview",
   "settings.skills.fetching": "Fetching skills from {{source}}...",
   "settings.skills.selectToInstall": "Select skills to install:",
@@ -224,6 +235,7 @@
   "settings.skills.detail.uninstall": "Uninstall",
   "settings.skills.detail.update": "Update",
   "settings.skills.detail.updating": "Updating...",
+  "settings.skills.noDescription": "No description",
 
   "common.loading": "Loading...",
   "common.yes": "yes",
@@ -295,6 +307,9 @@
   "session.copyWorkingDirectory": "Copy working directory",
   "session.copySessionId": "Copy session ID",
   "session.copyJsonlPath": "Copy session JSONL path",
+  "session.copyResumeCommand": "Copy Claude Code resume command",
+  "session.showMore": "Show {{count}} more of {{total}}",
+  "session.showLess": "Show less",
 
   "project.openProject": "Open Project",
   "project.selectProject": "Select a project...",
@@ -318,10 +333,13 @@
   "contentPanel.noProjectSelected": "No project selected",
   "contentPanel.noTabsOpen": "No tabs open",
 
+  "terminal.search.noResults": "No results",
+  "terminal.search.results": "{{current}} of {{total}}",
+
   "error.somethingWentWrong": "Something went wrong",
   "error.tryAgain": "Try again",
 
-  "chat.guideMessage": "Hi, I am {{APP_NAME}}. Let's create something together!",
+  "chat.guideMessage": "Hi~  I'm {{APP_NAME}}, what shall we create today?",
   "chat.placeholder": "Type a message...",
   "chat.attachImage": "Attach image",
   "chat.attachImages": "Attach images",
@@ -337,5 +355,8 @@
   "chat.clearSessionOverride": "Clear session override",
   "chat.providerSwitchHint": "Provider switch requires a new session",
   "chat.messageActions": "Message actions",
-  "chat.sessionInitializing": "Starting session..."
+  "chat.sessionInitializing": "Starting session...",
+  "chat.sessionInitFailed": "Session failed to start",
+  "chat.sessionInitRetry": "Retry",
+  "chat.sessionInitNetworkHint": "Try disabling Network Inspector in Settings and retry"
 }

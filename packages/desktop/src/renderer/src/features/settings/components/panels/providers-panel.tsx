@@ -132,10 +132,10 @@ export const ProvidersPanel = () => {
   const addProvider = useProviderStore((s) => s.addProvider);
   const updateProvider = useProviderStore((s) => s.updateProvider);
   const removeProvider = useProviderStore((s) => s.removeProvider);
-  const benchmarkResults = useProviderStore((s) => s.benchmarkResults);
-  const benchmarkingModels = useProviderStore((s) => s.benchmarkingModels);
-  const cancelBenchmarks = useProviderStore((s) => s.cancelBenchmarks);
-  const clearBenchmarkResults = useProviderStore((s) => s.clearBenchmarkResults);
+  const modelTestResults = useProviderStore((s) => s.modelTestResults);
+  const testingModels = useProviderStore((s) => s.testingModels);
+  const cancelTests = useProviderStore((s) => s.cancelTests);
+  const clearTestResults = useProviderStore((s) => s.clearTestResults);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -168,8 +168,8 @@ export const ProvidersPanel = () => {
 
   // Cancel in-flight benchmarks when leaving the providers panel
   useEffect(() => {
-    return () => cancelBenchmarks();
-  }, [cancelBenchmarks]);
+    return () => cancelTests();
+  }, [cancelTests]);
 
   const usedBuiltInIds = useMemo(
     () => new Set(providers.map((p) => p.builtInId).filter(Boolean)),
@@ -200,7 +200,7 @@ export const ProvidersPanel = () => {
     setShowTemplatePicker(true);
     setIsCreating(false);
     useProviderStore.setState((state) => {
-      state.benchmarkResults = {};
+      state.modelTestResults = {};
     });
   }, []);
 
@@ -220,14 +220,14 @@ export const ProvidersPanel = () => {
 
   const startEdit = useCallback(
     (p: Provider) => {
-      clearBenchmarkResults(p.baseURL);
+      clearTestResults(p.baseURL);
       setEditingId(p.id);
       setIsCreating(false);
       setShowApiKey(false);
       setForm(providerToForm(p));
       setError(null);
     },
-    [clearBenchmarkResults],
+    [clearTestResults],
   );
 
   const cancel = useCallback(() => {
@@ -409,13 +409,15 @@ export const ProvidersPanel = () => {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-6 flex items-center gap-2 text-foreground">
-        <Server className="size-[22px]" />
+      <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
+        <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
+          <Server className="size-5 text-primary" />
+        </span>
         {t("settings.providers")}
       </h1>
 
       {showTemplatePicker && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <p className="text-sm text-muted-foreground">{t("settings.providers.chooseTemplate")}</p>
           <div className="grid grid-cols-3 gap-3">
             {sortedTemplates.map((template) => {
@@ -427,12 +429,12 @@ export const ProvidersPanel = () => {
                   key={template.id}
                   disabled={isUsed}
                   className={cn(
-                    "flex flex-col items-start gap-1 rounded-lg border border-input p-3 text-left transition-colors",
+                    "flex flex-col items-start gap-1.5 rounded-xl border border-border/50 bg-background p-4 text-left transition-all",
                     isUsed
                       ? "opacity-40 cursor-not-allowed"
                       : isDeprecated
-                        ? "opacity-60 hover:border-primary hover:bg-accent"
-                        : "hover:border-primary hover:bg-accent",
+                        ? "opacity-60 hover:border-border hover:shadow-sm cursor-pointer"
+                        : "hover:border-border hover:shadow-sm cursor-pointer",
                   )}
                   onClick={() => !isUsed && selectTemplate(template)}
                 >
@@ -444,15 +446,15 @@ export const ProvidersPanel = () => {
                       </Badge>
                     ))}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground line-clamp-2">
                     {resolveL10n(template.description, i18n.language)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground/60">{hostname}</span>
+                  <span className="text-[10px] text-muted-foreground/60 mt-auto">{hostname}</span>
                 </button>
               );
             })}
             <button
-              className="flex flex-col items-start gap-1 rounded-lg border border-dashed border-input p-3 text-left hover:border-primary hover:bg-accent transition-colors"
+              className="flex flex-col items-start gap-1.5 rounded-xl border border-dashed border-border/50 bg-background p-4 text-left hover:border-border hover:shadow-sm transition-all cursor-pointer"
               onClick={selectCustom}
             >
               <span className="text-sm font-medium">{t("settings.providers.custom")}</span>
@@ -468,7 +470,7 @@ export const ProvidersPanel = () => {
       )}
 
       {!isEditing && !showTemplatePicker && (
-        <div className="space-y-0">
+        <div className="space-y-0 rounded-xl bg-muted/30 border border-border/50 px-5 py-2">
           {providers.map((p) => (
             <SettingsRow key={p.id} title={p.name} description={p.baseURL}>
               <div className="flex items-center gap-2">
@@ -493,14 +495,19 @@ export const ProvidersPanel = () => {
             </SettingsRow>
           ))}
           {providers.length === 0 && (
-            <p className="text-sm text-muted-foreground py-4">{t("settings.providers.empty")}</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              {t("settings.providers.empty")}
+            </p>
           )}
-          <div className="pt-4">
-            <Button variant="outline" size="sm" onClick={startCreate}>
-              <Plus className="h-4 w-4 mr-1" />
-              {t("settings.providers.add")}
-            </Button>
-          </div>
+        </div>
+      )}
+
+      {!isEditing && !showTemplatePicker && (
+        <div className="mt-5 flex justify-end">
+          <Button variant="outline" size="sm" onClick={startCreate}>
+            <Plus className="h-4 w-4 mr-1" />
+            {t("settings.providers.add")}
+          </Button>
         </div>
       )}
 
@@ -679,9 +686,9 @@ export const ProvidersPanel = () => {
             </div>
             <div className="mt-1 space-y-1">
               {Object.entries(form.models).map(([key, entry]) => {
-                const benchKey = `${form.baseURL}:${key}`;
-                const result = benchmarkResults[benchKey];
-                const isRunning = benchmarkingModels[benchKey] ?? false;
+                const testKey = `${form.baseURL}:${key}`;
+                const result = modelTestResults[testKey];
+                const isRunning = testingModels[testKey] ?? false;
                 const failed = result && !isRunning && !result.success;
 
                 return (
@@ -693,7 +700,10 @@ export const ProvidersPanel = () => {
                       )}
                       <div className="ml-auto flex items-center gap-1.5">
                         {isRunning && <Spinner className="h-3 w-3" />}
-                        {result && !isRunning && result.success && (
+                        {result && !isRunning && result.success && result.type === "quick" && (
+                          <Check className="h-3.5 w-3.5 text-success-foreground" />
+                        )}
+                        {result && !isRunning && result.success && result.type === "benchmark" && (
                           <Tooltip>
                             <TooltipTrigger className="cursor-default">
                               <BenchmarkMetrics

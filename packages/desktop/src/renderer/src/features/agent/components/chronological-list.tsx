@@ -1,5 +1,6 @@
 import debug from "debug";
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
@@ -13,6 +14,7 @@ const log = debug("neovate:chronological-list");
 const CHRONOLOGICAL_SESSION_LIMIT = 50;
 
 export const ChronologicalList = memo(function ChronologicalList() {
+  const { t } = useTranslation();
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const loadSession = useLoadSession();
@@ -56,7 +58,7 @@ export const ChronologicalList = memo(function ChronologicalList() {
   }
 
   return (
-    <ul className="flex flex-col gap-0.5">
+    <ul className="flex flex-col gap-1">
       {visibleItems.map((item) => {
         const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
         return (
@@ -73,10 +75,12 @@ export const ChronologicalList = memo(function ChronologicalList() {
       })}
       {hiddenCount > 0 && (
         <button
-          className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? "Show less" : `Show ${hiddenCount} more`}
+          {showAll
+            ? t("session.showLess")
+            : t("session.showMore", { count: hiddenCount, total: items.length })}
         </button>
       )}
     </ul>

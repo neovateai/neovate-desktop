@@ -130,6 +130,10 @@ export type KeybindingAction =
   | "prevSession"
   | "nextSession"
   | "copyPath"
+  | "toggleChanges"
+  | "toggleTerminal"
+  | "toggleBrowser"
+  | "toggleFiles"
   | "toggleMultiProject";
 
 /**
@@ -154,6 +158,10 @@ export const KEYBINDING_LABEL_KEYS = {
   prevSession: "settings.keybindings.prevSession",
   nextSession: "settings.keybindings.nextSession",
   copyPath: "settings.keybindings.copyPath",
+  toggleChanges: "settings.keybindings.toggleChanges",
+  toggleTerminal: "settings.keybindings.toggleTerminal",
+  toggleBrowser: "settings.keybindings.toggleBrowser",
+  toggleFiles: "settings.keybindings.toggleFiles",
   toggleMultiProject: "settings.keybindings.toggleMultiProject",
 } as const satisfies Record<KeybindingAction, string>;
 
@@ -169,6 +177,10 @@ export const KEYBINDING_LABELS: Record<KeybindingAction, string> = {
   prevSession: "Previous Session",
   nextSession: "Next Session",
   copyPath: "Copy Path",
+  toggleChanges: "Toggle Changes",
+  toggleTerminal: "Toggle Terminal",
+  toggleBrowser: "Toggle Browser",
+  toggleFiles: "Toggle Files",
   toggleMultiProject: "Toggle Multi-Project Support",
 };
 
@@ -184,5 +196,9 @@ export const DEFAULT_KEYBINDINGS: Record<KeybindingAction, string> = {
   prevSession: "Cmd+Option+ArrowUp",
   nextSession: "Cmd+Option+ArrowDown",
   copyPath: "Cmd+Shift+C",
-  toggleMultiProject: "Cmd+E",
+  toggleChanges: "Cmd+E",
+  toggleTerminal: "Cmd+J",
+  toggleBrowser: "Cmd+Shift+B",
+  toggleFiles: "Cmd+G",
+  toggleMultiProject: "Cmd+Shift+E",
 };

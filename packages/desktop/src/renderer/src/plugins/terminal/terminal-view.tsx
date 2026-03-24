@@ -9,6 +9,7 @@ import { Terminal } from "@xterm/xterm";
 import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "@xterm/xterm/css/xterm.css";
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 import { usePluginContext } from "../../core/app";
@@ -72,6 +73,7 @@ const DEFAULT_FONT_FAMILY = 'JetBrains Mono, Menlo, Monaco, "Courier New", monos
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 export default function TerminalView() {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const { orpcClient } = usePluginContext();
   const { resolvedTheme } = useTheme();
@@ -313,8 +315,11 @@ export default function TerminalView() {
     searchResults === null
       ? null
       : searchResults.resultCount === 0
-        ? "No results"
-        : `${searchResults.resultIndex + 1} of ${searchResults.resultCount}`;
+        ? t("terminal.search.noResults")
+        : t("terminal.search.results", {
+            current: searchResults.resultIndex + 1,
+            total: searchResults.resultCount,
+          });
 
   return (
     <div className="relative h-full w-full overflow-hidden">

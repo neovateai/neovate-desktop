@@ -34,7 +34,9 @@ import { cn } from "../../../lib/utils";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
+import { useScrollPosition } from "../hooks/use-scroll-position";
 import { BranchSwitcher } from "./branch-switcher";
+import { ContextLeft } from "./context-left";
 import { MessageInput } from "./message-input";
 import { MessageParts } from "./message-parts";
 import { PermissionDialog } from "./permission-dialog";
@@ -96,6 +98,8 @@ export function AgentChat() {
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const setAgentSessions = useAgentStore((s) => s.setAgentSessions);
   const sessions = useAgentStore((s) => s.sessions);
+  const sessionInitError = useAgentStore((s) => s.sessionInitError);
+  const setSessionInitError = useAgentStore((s) => s.setSessionInitError);
 
   const { createNewSession } = useNewSession();
 
@@ -158,8 +162,11 @@ export function AgentChat() {
           "effect[auto-create]: FAILED error=%s",
           error instanceof Error ? error.message : String(error),
         );
+        if (initializedPathRef.current === activeProjectPath) {
+          setSessionInitError(error instanceof Error ? error.message : String(error));
+        }
       });
-  }, [activeProjectPath, createNewSession]);
+  }, [activeProjectPath, createNewSession, setSessionInitError]);
 
   const handleSend = (message: string, attachments?: ImageAttachment[]) => {
     chatLog(
@@ -180,6 +187,14 @@ export function AgentChat() {
 
   const sessionInitializing = !!activeProjectPath && !activeSessionId;
 
+  const handleRetry = useCallback(() => {
+    if (!activeProjectPath) return;
+    setSessionInitError(null);
+    createNewSession(activeProjectPath).catch((error) => {
+      setSessionInitError(error instanceof Error ? error.message : String(error));
+    });
+  }, [activeProjectPath, createNewSession, setSessionInitError]);
+
   // State 1: No session yet (or new empty session) — show welcome panel with input
   if (!activeSession || activeSession.isNew) {
     return (
@@ -191,6 +206,8 @@ export function AgentChat() {
           streaming={false}
           disabled={!activeProjectPath}
           sessionInitializing={sessionInitializing}
+          sessionInitError={sessionInitError}
+          onRetry={handleRetry}
           cwd={cwd}
         />
         {cwd && (
@@ -229,6 +246,8 @@ function AgentChatSession({
   // Ref to access scroll context for smooth scrolling on new message
   const conversationContextRef = useRef<StickToBottomContext | null>(null);
 
+  const { initialScrollBehavior } = useScrollPosition(sessionId, conversationContextRef);
+
   const handleSend = (text: string, attachments?: ImageAttachment[]) => {
     chatLog(
       "handleSend: sessionId=%s msgLen=%d attachments=%d",
@@ -253,7 +272,7 @@ function AgentChatSession({
 
   return (
     <div className="flex h-full flex-col">
-      <Conversation contextRef={conversationContextRef}>
+      <Conversation contextRef={conversationContextRef} initial={initialScrollBehavior}>
         <ConversationContent>
           {messages.map((message) => (
             <MessageParts
@@ -289,8 +308,10 @@ function AgentChatSession({
           </div>
         </div>
         {cwd && (
-          <div className="px-4 pb-2">
+          <div className="flex items-center px-4 pb-2">
             <BranchSwitcher cwd={cwd} disabled={status === "streaming"} />
+            <div className="flex-1" />
+            <ContextLeft sessionId={sessionId} />
           </div>
         )}
       </div>

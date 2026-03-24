@@ -8,12 +8,6 @@ import { memo, useMemo, useState } from "react";
 import type { TurnResult } from "../store";
 
 import { Spinner } from "../../../components/ui/spinner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../../components/ui/tooltip";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
@@ -43,6 +37,8 @@ interface SessionItemProps {
   isStreaming?: boolean;
   hasPendingPermission?: boolean;
   turnResult?: TurnResult;
+  /** Session has an active backend process (loaded in SessionManager) */
+  isInitialized?: boolean;
   onClick: () => void;
   projectPath: string;
 }
@@ -57,6 +53,7 @@ export const SessionItem = memo(function SessionItem({
   isStreaming = false,
   hasPendingPermission = false,
   turnResult,
+  isInitialized = false,
   onClick,
   projectPath,
 }: SessionItemProps) {
@@ -65,6 +62,7 @@ export const SessionItem = memo(function SessionItem({
   const renameSession = useAgentStore((s) => s.renameSession);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
+  const developerMode = useConfigStore((s) => s.developerMode);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
@@ -73,6 +71,13 @@ export const SessionItem = memo(function SessionItem({
   const displayTitle = title || sessionId.slice(0, 8);
   const isProcessing = isStreaming || isRestoring;
   const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+
+  log(
+    "render: sid=%s isInitialized=%s isActive=%s",
+    sessionId.slice(0, 8),
+    isInitialized,
+    isActive,
+  );
 
   const handlePinToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -129,22 +134,27 @@ export const SessionItem = memo(function SessionItem({
       >
         <div
           className={cn(
-            "flex items-center gap-2 px-2 py-1.5 mb-1 cursor-pointer rounded transition-colors group",
+            "flex items-center gap-2.5 pl-2.5 pr-3 py-1 cursor-pointer rounded-lg transition-all group",
+            developerMode && "border-l-2",
+            developerMode && (isInitialized ? "border-green-500" : "border-transparent"),
             isActive
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              ? "bg-accent/80 text-foreground"
+              : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}
           onMouseLeave={handleMouseLeave}
         >
-          <button className="hidden group-hover:block" onClick={handlePinToggle}>
+          <button
+            className="hidden group-hover:flex size-5 items-center justify-center"
+            onClick={handlePinToggle}
+          >
             {isPinned ? (
               <PinOff size={14} strokeWidth={1.5} />
             ) : (
               <Pin size={14} strokeWidth={1.5} />
             )}
           </button>
-          <div className="group-hover:hidden">
+          <div className="flex size-5 items-center justify-center group-hover:hidden">
             {hasPendingPermission ? (
               <HugeiconsIcon
                 icon={HelpCircleIcon}
@@ -159,7 +169,7 @@ export const SessionItem = memo(function SessionItem({
                 size={8}
                 strokeWidth={0}
                 fill="currentColor"
-                className={turnResult === "success" ? "text-green-500" : "text-destructive"}
+                className={turnResult === "success" ? "text-success" : "text-destructive"}
               />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
@@ -192,24 +202,13 @@ export const SessionItem = memo(function SessionItem({
               onFocus={(e) => e.target.select()}
             />
           ) : (
-            <TooltipProvider delay={300}>
-              <Tooltip>
-                <TooltipTrigger className="flex-1 text-sm truncate text-left cursor-pointer">
-                  {isRestoring ? "Restoring..." : displayTitle}
-                </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={4}>
-                  {isRestoring
-                    ? "Restoring..."
-                    : displayTitle.length > 50
-                      ? displayTitle.slice(0, 50) + "..."
-                      : displayTitle}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <span className="flex-1 text-sm truncate text-left">
+              {isRestoring ? "Restoring..." : displayTitle}
+            </span>
           )}
           <span
             className={cn(
-              "text-sm text-muted-foreground group-hover:hidden",
+              "text-xs tabular-nums text-muted-foreground/70 group-hover:hidden",
               isConfirming && "hidden",
             )}
           >
@@ -217,14 +216,14 @@ export const SessionItem = memo(function SessionItem({
           </span>
           {isConfirming ? (
             <button
-              className="text-xs text-destructive cursor-pointer rounded bg-muted px-2 py-0.5 hover:bg-destructive/10 transition-colors"
+              className="text-xs text-destructive-foreground cursor-pointer rounded-md bg-destructive/10 px-2 py-0.5 hover:bg-destructive/20 transition-colors"
               onClick={(e) => handleArchive(e)}
             >
               Confirm
             </button>
           ) : (
             <button
-              className="hidden group-hover:block cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
+              className="hidden group-hover:flex size-5 items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
               onClick={handleStartArchive}
             >
               <Archive size={14} strokeWidth={1.5} />

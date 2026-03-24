@@ -10,6 +10,7 @@ export interface SkillFrontmatter {
 
 export interface SkillMeta {
   name: string;
+  dirName: string;
   description: string;
   dirPath: string;
   scope: "global" | "project";
@@ -30,7 +31,7 @@ export interface RecommendedSkill {
   installed: boolean;
 }
 
-export type SkillSource = "prebuilt" | "git" | "npm";
+export type SkillSource = "prebuilt" | "git" | "npm" | "clawhub";
 
 export interface PreviewSkill {
   name: string;
@@ -40,6 +41,7 @@ export interface PreviewSkill {
 
 export interface SkillUpdate {
   name: string;
+  dirName: string;
   scope: "global" | "project";
   projectPath?: string;
   currentVersion?: string;

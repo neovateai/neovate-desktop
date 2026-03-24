@@ -15,7 +15,9 @@ import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../../../shared/features/project/types";
 
@@ -36,17 +38,18 @@ const DEFAULT_SESSION_LIMIT = 5;
 // --- ProjectSessions ---
 
 const ProjectSessions = memo(function ProjectSessions({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
   const loadSession = useLoadSession(project.path);
   const [restoring, setRestoring] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_SESSION_LIMIT);
 
   const items = useFilteredSessions({ projectPath: project.path, filter: "unpinned" });
 
-  const visibleItems = expanded ? items : items.slice(0, DEFAULT_SESSION_LIMIT);
-  const hiddenCount = items.length - DEFAULT_SESSION_LIMIT;
+  const visibleItems = items.slice(0, visibleCount);
+  const remainingCount = items.length - visibleCount;
 
   const switchToProjectByPath = useProjectStore((s) => s.switchToProjectByPath);
 
@@ -76,29 +79,48 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
   }
 
   return (
-    <ul className="flex flex-col gap-0.5">
-      {visibleItems.map((item) => {
-        const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-        return (
-          <UnifiedSessionItem
-            key={id}
-            item={item}
-            activeSessionId={activeSessionId}
-            isPinned={false}
-            restoring={restoring}
-            onActivate={handleActivate}
-            onLoad={handleLoad}
-          />
-        );
-      })}
-      {hiddenCount > 0 && (
+    <ul className="flex flex-col gap-1">
+      <AnimatePresence initial={false}>
+        {visibleItems.map((item) => {
+          const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+          return (
+            <motion.li
+              key={id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0, transition: { duration: 0 } }}
+              transition={{ duration: 0.15 }}
+            >
+              <UnifiedSessionItem
+                item={item}
+                activeSessionId={activeSessionId}
+                isPinned={false}
+                restoring={restoring}
+                onActivate={handleActivate}
+                onLoad={handleLoad}
+              />
+            </motion.li>
+          );
+        })}
+      </AnimatePresence>
+      {remainingCount > 0 ? (
         <button
-          className="cursor-pointer px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          onClick={() => setExpanded(!expanded)}
+          className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
+          onClick={() => setVisibleCount((c) => c + DEFAULT_SESSION_LIMIT)}
         >
-          {expanded ? "Show less" : `Show ${hiddenCount} more`}
+          {t("session.showMore", {
+            count: Math.min(DEFAULT_SESSION_LIMIT, remainingCount),
+            total: items.length,
+          })}
         </button>
-      )}
+      ) : visibleCount > DEFAULT_SESSION_LIMIT && items.length > DEFAULT_SESSION_LIMIT ? (
+        <button
+          className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
+          onClick={() => setVisibleCount(DEFAULT_SESSION_LIMIT)}
+        >
+          {t("session.showLess")}
+        </button>
+      ) : null}
     </ul>
   );
 });
@@ -130,17 +152,17 @@ const SortableProjectItem = memo(function SortableProjectItem({
 
   return (
     <AccordionItem ref={setNodeRef} style={style} value={project.id} className="border-b-0">
-      <AccordionPrimitive.Header className="group flex justify-between items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+      <AccordionPrimitive.Header className="group flex justify-between items-center rounded-lg text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground">
         <div
-          className="flex flex-1 cursor-grab items-center gap-2 px-2 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
+          className="flex flex-1 cursor-grab items-center gap-2.5 px-2.5 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
           {...attributes}
           {...listeners}
         >
-          <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2 text-left max-w-[calc(100%)]">
-            <div className="flex-shrink-0 group-hover:hidden">
+          <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2.5 text-left max-w-[calc(100%)]">
+            <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
               <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
             </div>
-            <div className="hidden flex-shrink-0 group-hover:block">
+            <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
               {!closedSet.has(project.id) ? (
                 <ChevronDown size={16} strokeWidth={1.5} />
               ) : (
@@ -152,9 +174,9 @@ const SortableProjectItem = memo(function SortableProjectItem({
             </span>
           </AccordionPrimitive.Trigger>
         </div>
-        <div className="flex">
+        <div className="flex items-center gap-1 pr-1">
           <button
-            className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+            className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
               onRemove(project.id);
@@ -163,7 +185,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
             <Trash2 size={14} strokeWidth={1.5} />
           </button>
           <button
-            className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+            className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
               onCreateSession(project);
@@ -297,8 +319,13 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
       </SortableContext>
       <DragOverlay>
         {activeProject ? (
-          <div className="flex items-center gap-2 rounded bg-accent px-3 py-1.5 text-sm font-medium shadow-md">
-            <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+          <div className="flex items-center gap-2.5 rounded-lg bg-popover px-3 py-2 text-sm font-medium shadow-lg border border-border/50">
+            <HugeiconsIcon
+              icon={FolderIcon}
+              size={16}
+              strokeWidth={1.5}
+              className="text-muted-foreground"
+            />
             <span className="truncate">{activeProject.name}</span>
           </div>
         ) : null}

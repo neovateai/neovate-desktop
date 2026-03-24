@@ -28,7 +28,7 @@ export const skillsRouter = os.skills.router({
 
   getContent: os.skills.getContent.handler(async ({ input, context }) => {
     try {
-      return await context.skillsService.getContent(input.name, input.scope, input.projectPath);
+      return await context.skillsService.getContent(input.dirName, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to read skill content");
     }
@@ -78,7 +78,7 @@ export const skillsRouter = os.skills.router({
 
   remove: os.skills.remove.handler(async ({ input, context }) => {
     try {
-      await context.skillsService.remove(input.name, input.scope, input.projectPath);
+      await context.skillsService.remove(input.dirName, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to remove skill");
     }
@@ -86,7 +86,7 @@ export const skillsRouter = os.skills.router({
 
   enable: os.skills.enable.handler(async ({ input, context }) => {
     try {
-      await context.skillsService.enable(input.name, input.scope, input.projectPath);
+      await context.skillsService.enable(input.dirName, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to enable skill");
     }
@@ -94,7 +94,7 @@ export const skillsRouter = os.skills.router({
 
   disable: os.skills.disable.handler(async ({ input, context }) => {
     try {
-      await context.skillsService.disable(input.name, input.scope, input.projectPath);
+      await context.skillsService.disable(input.dirName, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to disable skill");
     }
@@ -103,7 +103,7 @@ export const skillsRouter = os.skills.router({
   openFolder: os.skills.openFolder.handler(async ({ input, context }) => {
     // Resolve the skill directory path securely on the backend
     const skills = await context.skillsService.list(input.scope, input.projectPath);
-    const skill = skills.find((s) => s.name === input.name);
+    const skill = skills.find((s) => s.dirName === input.dirName);
     if (skill) {
       shell.showItemInFolder(skill.dirPath);
     }
@@ -111,7 +111,7 @@ export const skillsRouter = os.skills.router({
 
   exists: os.skills.exists.handler(async ({ input, context }) => {
     try {
-      return await context.skillsService.exists(input.name, input.scope, input.projectPath);
+      return await context.skillsService.exists(input.dirName, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to check skill existence");
     }
@@ -135,7 +135,7 @@ export const skillsRouter = os.skills.router({
 
   update: os.skills.update.handler(async ({ input, context }) => {
     try {
-      await context.skillsService.update(input.name, input.scope, input.projectPath);
+      await context.skillsService.update(input.dirName, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to update skill");
     }

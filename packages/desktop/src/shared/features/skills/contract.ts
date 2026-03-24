@@ -6,7 +6,7 @@ import type { PreviewSkill, RecommendedSkill, SkillMeta, SkillUpdate } from "./t
 const scopeSchema = z.enum(["global", "project"]);
 const allScopeSchema = z.enum(["all", "global", "project"]);
 const skillIdentifier = z.object({
-  name: z.string(),
+  dirName: z.string(),
   scope: scopeSchema,
   projectPath: z.string().optional(),
 });

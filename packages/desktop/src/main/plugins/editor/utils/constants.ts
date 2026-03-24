@@ -3,19 +3,8 @@ import path from "node:path";
 
 // Version pinning (matches Ami's artifacts)
 export const CODE_SERVER_VERSION = "e104b68";
-
 // Storage paths
 export const CODE_SERVER_DIR = path.join(os.homedir(), ".neovate", "code-server");
-export const EXTENSIONS_DIR = path.join(
-  os.homedir(),
-  ".local",
-  "share",
-  "neovate-code",
-  "extensions",
-);
-
-/** {data_dir}/user/setting.json */
-export const DATA_DIR = path.join(os.homedir(), ".local", "share", "neovate-code", "code-user");
 
 // Platform mapping for download URL
 function getPlatformString() {

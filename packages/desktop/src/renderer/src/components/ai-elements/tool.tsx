@@ -214,55 +214,45 @@ export const ToolHeader = ({
     : actionName || displayName || derivedName;
 
   return (
-    <TooltipProvider>
-      <div
-        className={cn(
-          "flex items-center justify-start gap-2 text-left transition-colors",
-          className,
-        )}
-      >
-        <CollapsibleTrigger
-          className="inline-flex gap-2 flex-none w-max shrink-0 appearance-none items-center justify-start cursor-pointer bg-transparent p-0 m-0 border-0"
-          style={{ width: "max-content" }}
-          {...props}
-        >
-          <div className="relative flex size-4 shrink-0 items-center justify-center">
-            <ToolIcon
-              className={cn(
-                "absolute size-4 transition-opacity duration-150 group-hover/tool:opacity-0",
-                iconColor,
-              )}
-            />
-            <ChevronDown className="absolute size-4 -rotate-90 text-muted-foreground opacity-0 transition-all duration-150 group-hover/tool:opacity-100 group-data-[open]/tool:rotate-0" />
-          </div>
-
-          <span className="min-w-0 truncate text-sm text-foreground">
-            {mainLabel}&nbsp;
-            {extra && <span className="text-muted-foreground"> {extra}</span>}
-            {/* Only show displayName separately when it's a file path */}
-            {hasFilePath && displayName && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <span className="cursor-default">
-                      {extra ? "" : " "}
-                      <span className="text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                        {displayName}
-                      </span>
+    <CollapsibleTrigger
+      className={cn(
+        "flex items-center gap-2 py-1 px-2 rounded-md",
+        "transition-colors cursor-pointer group w-full hover:bg-muted/50",
+        className,
+      )}
+      {...props}
+    >
+      <TooltipProvider>
+        <div className="relative flex items-center justify-center size-5 rounded shrink-0">
+          <ToolIcon className={cn("size-3.5", iconColor)} />
+        </div>
+        <span className="text-sm text-foreground truncate">
+          {mainLabel}&nbsp;
+          {extra && <span className="text-muted-foreground"> {extra}</span>}
+          {hasFilePath && displayName && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className="cursor-default">
+                    {extra ? "" : " "}
+                    <span className="text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                      {displayName}
                     </span>
-                  }
-                />
-                <TooltipContent side="top" align="start" className="max-w-md">
-                  <p className="break-all">{fullPath}</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </span>
-
-          <StatusDot state={state} preliminary={preliminary} />
-        </CollapsibleTrigger>
-      </div>
-    </TooltipProvider>
+                  </span>
+                }
+              />
+              <TooltipContent side="top" align="start" className="max-w-md">
+                <p className="break-all">{fullPath}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </span>
+        <StatusDot state={state} preliminary={preliminary} />
+        <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ChevronDown className="size-3 text-muted-foreground transition-transform -rotate-90 group-data-[open]/tool:rotate-0" />
+        </div>
+      </TooltipProvider>
+    </CollapsibleTrigger>
   );
 };
 
@@ -279,14 +269,14 @@ export const ToolContent = ({ className, children }: ToolContentProps) => (
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{
-              height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.15 },
+              height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.12 },
             }}
             className="overflow-hidden"
           >
             <div
               className={cn(
-                "space-y-2 text-popover-foreground [--code-block-content-visibility:visible]",
+                "pl-7 space-y-2 py-1.5 pr-2 text-popover-foreground [--code-block-content-visibility:visible]",
                 className,
               )}
             >
@@ -304,9 +294,11 @@ export type ToolInputProps = ComponentProps<"div"> & {
 };
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-1.5", className)} {...props}>
-    <span className="text-xs font-medium text-muted-foreground">Input</span>
-    <div className="rounded-md bg-muted/30 overflow-hidden">
+  <div className={cn("space-y-1", className)} {...props}>
+    <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
+      Input
+    </span>
+    <div className="rounded-lg overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -331,17 +323,17 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   }
 
   return (
-    <div className={cn("space-y-1.5", className)} {...props}>
-      <span className="text-xs font-medium text-muted-foreground">
+    <div className={cn("space-y-1", className)} {...props}>
+      <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
         {errorText ? "Error" : "Output"}
       </span>
       <div
         className={cn(
-          "rounded-md overflow-hidden",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/30",
+          "rounded-lg overflow-hidden",
+          errorText && "bg-destructive/10 text-destructive",
         )}
       >
-        {errorText && <div className="p-3 text-sm">{errorText}</div>}
+        {errorText && <div className="p-2.5 text-sm">{errorText}</div>}
         {Output}
       </div>
     </div>

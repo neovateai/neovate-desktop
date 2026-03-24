@@ -45,7 +45,7 @@ export const CheckpointReviewTrigger = ({
           variant={variant}
           onClick={() => {
             window.dispatchEvent(
-              new CustomEvent("neovate:open-review", {
+              new CustomEvent("neovate:open-changes", {
                 detail: { category: "last-turn" },
               }),
             );
