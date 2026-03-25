@@ -25,38 +25,38 @@ describe("OpenerService", () => {
     });
 
     it("converts bare paths to file:// URLs", () => {
-      const spy = vi.fn(() => true);
+      const spy = vi.fn((_url: URL) => true);
       opener.registerOpener({ open: spy });
       opener.open("/src/main.ts");
-      const url: URL = spy.mock.calls[0][0];
+      const url = spy.mock.calls[0][0];
       expect(url.protocol).toBe("file:");
       expect(url.pathname).toBe("/src/main.ts");
     });
 
     it("converts path:line to file:// URL with hash fragment", () => {
-      const spy = vi.fn(() => true);
+      const spy = vi.fn((_url: URL) => true);
       opener.registerOpener({ open: spy });
       opener.open("/src/main.ts:42");
-      const url: URL = spy.mock.calls[0][0];
+      const url = spy.mock.calls[0][0];
       expect(url.protocol).toBe("file:");
       expect(url.pathname).toBe("/src/main.ts");
       expect(url.hash).toBe("#42");
     });
 
     it("encodes spaces in path segments", () => {
-      const spy = vi.fn(() => true);
+      const spy = vi.fn((_url: URL) => true);
       opener.registerOpener({ open: spy });
       opener.open("/my project/file name.ts");
-      const url: URL = spy.mock.calls[0][0];
+      const url = spy.mock.calls[0][0];
       expect(url.protocol).toBe("file:");
       expect(decodeURIComponent(url.pathname)).toBe("/my project/file name.ts");
     });
 
     it("encodes # in path segments so it is not parsed as fragment", () => {
-      const spy = vi.fn(() => true);
+      const spy = vi.fn((_url: URL) => true);
       opener.registerOpener({ open: spy });
       opener.open("/path/to/#readme.md");
-      const url: URL = spy.mock.calls[0][0];
+      const url = spy.mock.calls[0][0];
       expect(url.protocol).toBe("file:");
       expect(url.hash).toBe("");
       expect(decodeURIComponent(url.pathname)).toBe("/path/to/#readme.md");
