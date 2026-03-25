@@ -12,7 +12,7 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { ButtonGroup, ButtonGroupText } from "../ui/group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { useMarkdownComponents } from "./use-markdown-components";
+import { markdownBaseComponents } from "./markdown-base-components";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -277,17 +277,14 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse: FC<MessageResponseProps> = memo<MessageResponseProps>(
-  ({ className, ...props }) => {
-    const components = useMarkdownComponents();
-    return (
-      <Streamdown
-        className={cn("markdown-root size-full", className)}
-        components={components}
-        plugins={markdownPlugins}
-        {...props}
-      />
-    );
-  },
+  ({ className, ...props }) => (
+    <Streamdown
+      className={cn("markdown-root size-full", className)}
+      components={markdownBaseComponents}
+      plugins={markdownPlugins}
+      {...props}
+    />
+  ),
   (prevProps, nextProps) => prevProps.children === nextProps.children,
 );
 

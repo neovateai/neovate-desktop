@@ -19,8 +19,8 @@ import { Streamdown } from "streamdown";
 import { markdownPlugins } from "../../lib/markdown";
 import { cn } from "../../lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import { markdownBaseComponents } from "./markdown-base-components";
 import { Shimmer } from "./shimmer";
-import { useMarkdownComponents } from "./use-markdown-components";
 
 interface ReasoningContextValue {
   isStreaming: boolean;
@@ -196,23 +196,24 @@ export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & 
   children: string;
 };
 
-export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => {
-  const components = useMarkdownComponents();
-  return (
-    <CollapsibleContent
-      className={cn(
-        "pl-7 py-2 pr-2 text-sm",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-        className,
-      )}
-      {...props}
+export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
+  <CollapsibleContent
+    className={cn(
+      "pl-7 py-2 pr-2 text-sm",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      className,
+    )}
+    {...props}
+  >
+    <Streamdown
+      className="markdown-root"
+      components={markdownBaseComponents}
+      plugins={markdownPlugins}
     >
-      <Streamdown className="markdown-root" components={components} plugins={markdownPlugins}>
-        {children}
-      </Streamdown>
-    </CollapsibleContent>
-  );
-});
+      {children}
+    </Streamdown>
+  </CollapsibleContent>
+));
 
 Reasoning.displayName = "Reasoning";
 ReasoningTrigger.displayName = "ReasoningTrigger";

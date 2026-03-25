@@ -13,6 +13,7 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "../../../components/ai-elements/reasoning";
+import { useMarkdownComponents } from "../hooks/use-markdown-components";
 
 type RenderToolPart = (
   message: ClaudeCodeUIMessage,
@@ -36,6 +37,7 @@ export function MessagePartRenderer({
   message: ClaudeCodeUIMessage;
   renderToolPart: RenderToolPart;
 }) {
+  const markdownComponents = useMarkdownComponents();
   return (
     <div className="flex flex-col gap-1 w-full">
       {message.parts.map((part, index) => {
@@ -60,7 +62,7 @@ export function MessagePartRenderer({
               >
                 <MessageContent>
                   {message.role === "assistant" ? (
-                    <MessageResponse>{part.text}</MessageResponse>
+                    <MessageResponse components={markdownComponents}>{part.text}</MessageResponse>
                   ) : (
                     <p className="m-0 whitespace-pre-wrap">{part.text}</p>
                   )}

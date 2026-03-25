@@ -2,9 +2,9 @@ import type { Components } from "streamdown";
 
 import { useMemo } from "react";
 
-import { useRendererApp } from "../../core/app";
-import { cn } from "../../lib/utils";
-import { markdownBaseComponents } from "./markdown-base-components";
+import { markdownBaseComponents } from "../../../components/ai-elements/markdown-base-components";
+import { useRendererApp } from "../../../core/app";
+import { cn } from "../../../lib/utils";
 
 export function useMarkdownComponents(): Components {
   const app = useRendererApp();

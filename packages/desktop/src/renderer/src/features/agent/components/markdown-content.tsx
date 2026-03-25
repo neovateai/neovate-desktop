@@ -1,7 +1,7 @@
 import { Streamdown } from "streamdown";
 
-import { useMarkdownComponents } from "../../../components/ai-elements/use-markdown-components";
 import { markdownPlugins } from "../../../lib/markdown";
+import { useMarkdownComponents } from "../hooks/use-markdown-components";
 
 type Props = { content: string; streaming?: boolean };
 
