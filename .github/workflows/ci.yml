@@ -136,10 +136,14 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Build dev package
+      - name: Build app
         working-directory: packages/desktop
-        run: bun run build && $env:BUILD_ENV='dev'; bunx electron-builder --win --x64 --config configs/electron-builder.mjs --publish=never
-        shell: pwsh
+        run: bun run build
+      - name: Package Windows installer
+        working-directory: packages/desktop
+        run: bunx electron-builder --win --x64 --config configs/electron-builder.mjs --publish=never
+        env:
+          BUILD_ENV: dev
       - name: Calculate artifact sizes
         id: sizes
         working-directory: packages/desktop
@@ -168,7 +172,7 @@ jobs:
   comment:
     needs: [build-mac-dev, build-win-dev]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: always() && needs.build-mac-dev.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Download size info artifacts
         uses: actions/download-artifact@v4
