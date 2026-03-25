@@ -152,7 +152,7 @@ export default function TerminalView() {
     xterm.loadAddon(
       new WebLinksAddon((event, uri) => {
         if (isMac ? event.metaKey : event.ctrlKey) {
-          window.open(uri);
+          window.open(uri, "_blank");
         }
       }),
     );

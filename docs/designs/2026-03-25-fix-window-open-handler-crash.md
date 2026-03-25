@@ -75,9 +75,14 @@ win.webContents.setWindowOpenHandler((details) => {
 - `.catch()` handles the rejected promise for legitimate URLs that still fail
 - Returns `{ action: "deny" }` synchronously as before
 
+### Terminal `WebLinksAddon` fix
+
+The terminal's `WebLinksAddon` callback (`terminal-view.tsx:155`) calls `window.open(uri)` without a target. Electron interprets this as opening `about:blank` — the actual URI never reaches `setWindowOpenHandler`. Fix: pass `"_blank"` as the target so Electron delivers the real URL.
+
 ## 7. Files Changed
 
 - `packages/desktop/src/main/core/browser-window-manager.ts` — Add URL validation and error handling to `setWindowOpenHandler`
+- `packages/desktop/src/renderer/src/plugins/terminal/terminal-view.tsx` — Fix `window.open(uri)` → `window.open(uri, "_blank")` in `WebLinksAddon` callback
 
 ## 8. Verification
 
@@ -85,3 +90,4 @@ win.webContents.setWindowOpenHandler((details) => {
 2. [AC2] Check logs for warning message when external URL fails to open
 3. [AC3] Click a normal `https://` link — must open in default browser
 4. [AC4] No error dialog or toast shown to user on failure
+5. [AC5] Cmd+click a URL in the terminal — must open in default browser (not log `about:blank`)
