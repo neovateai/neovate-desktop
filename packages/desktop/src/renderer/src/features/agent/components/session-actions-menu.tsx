@@ -14,6 +14,7 @@ import {
   ContextMenuTrigger,
 } from "../../../components/ui/context-menu";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../../../components/ui/menu";
+import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
 
@@ -64,8 +65,11 @@ export function SessionActionsMenu({
     navigator.clipboard.writeText(cwd);
   };
 
+  const permissionMode = useConfigStore((s) => s.permissionMode);
+
   const handleCopyResumeCommand = () => {
-    const command = `cd ${cwd} && claude --resume ${sessionId}`;
+    const modeFlag = permissionMode !== "default" ? ` --permission-mode ${permissionMode}` : "";
+    const command = `cd ${cwd} && claude --resume ${sessionId}${modeFlag}`;
     log("copyResumeCommand: %s", command);
     navigator.clipboard.writeText(command);
   };
