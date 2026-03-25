@@ -22,7 +22,7 @@ import { ClawhubInstaller } from "./installers/clawhub";
 import { GitInstaller } from "./installers/git";
 import { NpmInstaller } from "./installers/npm";
 import { PrebuiltInstaller } from "./installers/prebuilt";
-import { scanInstalledSkills } from "./skill-utils";
+import { deriveInstallName, scanInstalledSkills } from "./skill-utils";
 
 const GLOBAL_SKILLS_DIR = path.join(homedir(), ".claude", "skills");
 const INSTALL_META_FILE = ".neovate-install.json";
@@ -137,7 +137,8 @@ export class SkillsService {
     if (!installer) throw new Error(`No installer found for source: ${sourceRef}`);
 
     await installer.install(sourceRef, skillName, targetDir);
-    await this.writeInstallMeta(path.join(targetDir, skillName), sourceRef);
+    const installedName = deriveInstallName(skillName, sourceRef);
+    await this.writeInstallMeta(path.join(targetDir, installedName), sourceRef, skillName);
   }
 
   async installFromPreview(
@@ -160,8 +161,10 @@ export class SkillsService {
           targetDir,
         );
         if (sourceRef) {
-          for (const name of installedNames) {
-            await this.writeInstallMeta(path.join(targetDir, name), sourceRef);
+          for (let i = 0; i < installedNames.length; i++) {
+            const name = installedNames[i]!;
+            const skillPath = selectedSkills[i];
+            await this.writeInstallMeta(path.join(targetDir, name), sourceRef, skillPath);
           }
         }
         this.previewSources.delete(previewId);
@@ -271,14 +274,49 @@ export class SkillsService {
     const metaContent = await readFile(metaPath, "utf-8");
     const meta: InstallMeta = JSON.parse(metaContent);
 
-    const targetDir = this.resolveSkillsDir(scope, projectPath);
-    await rm(skillDir, { recursive: true, force: true });
-
     const installer = this.findInstaller(meta.installedFrom);
     if (!installer) throw new Error(`No installer found for source: ${meta.installedFrom}`);
 
-    await installer.install(meta.installedFrom, dirName, targetDir);
-    await this.writeInstallMeta(path.join(targetDir, dirName), meta.installedFrom);
+    // Check if skill was disabled before update
+    const wasDisabled = !(await readFile(path.join(skillDir, "SKILL.md"), "utf-8").catch(
+      () => null,
+    ));
+
+    // Backup old skill instead of deleting — restore on failure
+    const backupDir = `${skillDir}.update-backup`;
+    await rm(backupDir, { recursive: true, force: true }).catch(() => {});
+    await rename(skillDir, backupDir);
+
+    const targetDir = this.resolveSkillsDir(scope, projectPath);
+    const skillPath = meta.skillPath ?? dirName;
+
+    try {
+      await installer.install(meta.installedFrom, skillPath, targetDir);
+
+      // The installer may install to a different dir name than dirName
+      const actualName = deriveInstallName(skillPath, meta.installedFrom);
+      if (actualName !== dirName) {
+        const actualDir = path.join(targetDir, actualName);
+        await rename(actualDir, skillDir);
+      }
+
+      await this.writeInstallMeta(skillDir, meta.installedFrom, skillPath);
+
+      // Preserve disabled state
+      if (wasDisabled) {
+        const enabledPath = path.join(skillDir, "SKILL.md");
+        const disabledPath = path.join(skillDir, "SKILL.md.disabled");
+        await rename(enabledPath, disabledPath).catch(() => {});
+      }
+
+      // Success — remove backup
+      await rm(backupDir, { recursive: true, force: true });
+    } catch (e) {
+      // Restore from backup
+      await rm(skillDir, { recursive: true, force: true }).catch(() => {});
+      await rename(backupDir, skillDir);
+      throw e;
+    }
   }
 
   // --- Registry fetching ---
@@ -359,7 +397,11 @@ export class SkillsService {
     return this.installers.find((i) => i.detect(sourceRef));
   }
 
-  private async writeInstallMeta(skillDir: string, sourceRef: string): Promise<void> {
+  private async writeInstallMeta(
+    skillDir: string,
+    sourceRef: string,
+    skillPath?: string,
+  ): Promise<void> {
     let source: SkillSource = "git";
     let normalizedRef = sourceRef;
     if (sourceRef.startsWith("prebuilt:")) source = "prebuilt";
@@ -378,6 +420,7 @@ export class SkillsService {
       version,
       source,
       installedAt: new Date().toISOString(),
+      skillPath,
     };
 
     await writeFile(path.join(skillDir, INSTALL_META_FILE), JSON.stringify(meta, null, 2));
