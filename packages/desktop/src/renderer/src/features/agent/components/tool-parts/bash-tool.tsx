@@ -16,7 +16,7 @@ export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
       <ToolHeader type="tool-Bash" state={state} title={input?.description} />
       <ToolContent>
         {terminalOutput ? (
-          <CodeBlock code={terminalOutput} language="bash" className="text-sm" />
+          <CodeBlock code={terminalOutput} language="bash" className="text-sm" maxLines={150} />
         ) : null}
       </ToolContent>
     </Tool>

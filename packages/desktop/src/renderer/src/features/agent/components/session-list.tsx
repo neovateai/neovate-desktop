@@ -1,6 +1,7 @@
 import debug from "debug";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
@@ -61,15 +62,23 @@ function MultiProjectSessionList() {
 
 const SingleProjectSessionList = memo(function SingleProjectSessionList() {
   const { t } = useTranslation();
-  const sessions = useAgentStore((s) => s.sessions);
-  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const { sessions, activeSessionId, agentSessions, sessionsLoaded } = useAgentStore(
+    useShallow((s) => ({
+      sessions: s.sessions,
+      activeSessionId: s.activeSessionId,
+      agentSessions: s.agentSessions,
+      sessionsLoaded: s.sessionsLoaded,
+    })),
+  );
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
-  const agentSessions = useAgentStore((s) => s.agentSessions);
-  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
 
-  const activeProject = useProjectStore((s) => s.activeProject);
-  const archivedSessions = useProjectStore((s) => s.archivedSessions);
-  const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
+  const { activeProject, archivedSessions, pinnedSessions } = useProjectStore(
+    useShallow((s) => ({
+      activeProject: s.activeProject,
+      archivedSessions: s.archivedSessions,
+      pinnedSessions: s.pinnedSessions,
+    })),
+  );
   const loadSessionPreferences = useProjectStore((s) => s.loadSessionPreferences);
 
   const [restoring, setRestoring] = useState<string | null>(null);

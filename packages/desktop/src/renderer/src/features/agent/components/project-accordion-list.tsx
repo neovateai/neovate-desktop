@@ -18,6 +18,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, TriangleAlertIcon } from "luci
 import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import type { ProjectInfo } from "../../../../../shared/features/project/types";
 
@@ -39,9 +40,13 @@ const DEFAULT_SESSION_LIMIT = 5;
 
 const ProjectSessions = memo(function ProjectSessions({ project }: { project: ProjectInfo }) {
   const { t } = useTranslation();
-  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const { activeSessionId, sessionsLoaded } = useAgentStore(
+    useShallow((s) => ({
+      activeSessionId: s.activeSessionId,
+      sessionsLoaded: s.sessionsLoaded,
+    })),
+  );
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
-  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
   const loadSession = useLoadSession(project.path);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(DEFAULT_SESSION_LIMIT);

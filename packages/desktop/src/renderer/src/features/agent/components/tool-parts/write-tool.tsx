@@ -25,7 +25,7 @@ export function WriteTool({ invocation }: { invocation: WriteUIToolInvocation })
             <span className="whitespace-pre-wrap">{errorText}</span>
           </div>
         ) : input?.content ? (
-          <CodeBlock code={input.content} language={language} className="text-xs" />
+          <CodeBlock code={input.content} language={language} className="text-xs" maxLines={150} />
         ) : null}
       </ToolContent>
     </Tool>

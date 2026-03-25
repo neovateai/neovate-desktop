@@ -91,6 +91,8 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string;
   language: BundledLanguage;
   showLineNumbers?: boolean;
+  /** Cap initial render to N lines with a "Show all" expand button */
+  maxLines?: number;
 };
 
 interface TokenizedCode {
@@ -396,17 +398,45 @@ export const CodeBlock = ({
   code,
   language,
   showLineNumbers = false,
+  maxLines,
   className,
   children,
   ...props
 }: CodeBlockProps) => {
+  const [expanded, setExpanded] = useState(false);
+  // Context always has the full code so copy button works correctly
   const contextValue = useMemo(() => ({ code }), [code]);
+
+  const { displayCode, totalLines, isTruncated } = useMemo(() => {
+    if (!maxLines || expanded) return { displayCode: code, totalLines: 0, isTruncated: false };
+    const lines = code.split("\n");
+    if (lines.length <= maxLines)
+      return { displayCode: code, totalLines: lines.length, isTruncated: false };
+    return {
+      displayCode: lines.slice(0, maxLines).join("\n"),
+      totalLines: lines.length,
+      isTruncated: true,
+    };
+  }, [code, maxLines, expanded]);
 
   return (
     <CodeBlockContext.Provider value={contextValue}>
       <CodeBlockContainer className={className} language={language} {...props}>
         {children}
-        <CodeBlockContent code={code} language={language} showLineNumbers={showLineNumbers} />
+        <CodeBlockContent
+          code={displayCode}
+          language={language}
+          showLineNumbers={showLineNumbers}
+        />
+        {isTruncated && (
+          <button
+            type="button"
+            className="w-full border-t border-border/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors cursor-pointer"
+            onClick={() => setExpanded(true)}
+          >
+            Show all ({totalLines} lines)
+          </button>
+        )}
       </CodeBlockContainer>
     </CodeBlockContext.Provider>
   );

@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
@@ -96,11 +97,15 @@ export function AgentChat() {
   const activeProjectPath = activeProject?.path ?? "";
   const [cwd, setCwd] = useState("");
 
-  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const { activeSessionId, sessions, sessionInitError } = useAgentStore(
+    useShallow((s) => ({
+      activeSessionId: s.activeSessionId,
+      sessions: s.sessions,
+      sessionInitError: s.sessionInitError,
+    })),
+  );
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const setAgentSessions = useAgentStore((s) => s.setAgentSessions);
-  const sessions = useAgentStore((s) => s.sessions);
-  const sessionInitError = useAgentStore((s) => s.sessionInitError);
   const setSessionInitError = useAgentStore((s) => s.setSessionInitError);
 
   const { createNewSession } = useNewSession();

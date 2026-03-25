@@ -1,6 +1,7 @@
 import debug from "debug";
 import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
@@ -15,13 +16,16 @@ const CHRONOLOGICAL_SESSION_LIMIT = 50;
 
 export const ChronologicalList = memo(function ChronologicalList() {
   const { t } = useTranslation();
-  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const { activeSessionId, sessionsLoaded } = useAgentStore(
+    useShallow((s) => ({
+      activeSessionId: s.activeSessionId,
+      sessionsLoaded: s.sessionsLoaded,
+    })),
+  );
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const loadSession = useLoadSession();
   const [restoring, setRestoring] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-
-  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
 
   const items = useFilteredSessions({ filter: "unpinned" });
 

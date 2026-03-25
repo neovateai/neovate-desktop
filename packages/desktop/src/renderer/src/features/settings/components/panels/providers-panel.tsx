@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import type { Provider, ProviderModelMap } from "../../../../../../shared/features/provider/types";
 
@@ -126,14 +127,18 @@ function builtInToForm(t: ProviderTemplate, lang: string): ProviderFormData {
 export const ProvidersPanel = () => {
   const { t, i18n } = useTranslation();
   const providerTemplates = useRendererApp().pluginManager.contributions.providerTemplates;
-  const providers = useProviderStore((s) => s.providers);
-  const loaded = useProviderStore((s) => s.loaded);
+  const { providers, loaded, modelTestResults, testingModels } = useProviderStore(
+    useShallow((s) => ({
+      providers: s.providers,
+      loaded: s.loaded,
+      modelTestResults: s.modelTestResults,
+      testingModels: s.testingModels,
+    })),
+  );
   const load = useProviderStore((s) => s.load);
   const addProvider = useProviderStore((s) => s.addProvider);
   const updateProvider = useProviderStore((s) => s.updateProvider);
   const removeProvider = useProviderStore((s) => s.removeProvider);
-  const modelTestResults = useProviderStore((s) => s.modelTestResults);
-  const testingModels = useProviderStore((s) => s.testingModels);
   const cancelTests = useProviderStore((s) => s.cancelTests);
   const clearTestResults = useProviderStore((s) => s.clearTestResults);
 

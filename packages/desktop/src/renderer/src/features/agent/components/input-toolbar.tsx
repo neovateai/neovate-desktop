@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 
 import type { ModelScope, PermissionMode } from "../../../../../shared/features/agent/types";
 import type { ClaudeCodeChatStoreState } from "../chat-state";
@@ -291,17 +292,23 @@ function ConnectedModelSelect({
   const { t } = useTranslation();
   const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
   const setModelScope = useAgentStore((s) => s.setModelScope);
-  const currentModel = useAgentStore((s) => s.sessions.get(activeSessionId)?.currentModel);
-  const modelScope = useAgentStore((s) => s.sessions.get(activeSessionId)?.modelScope);
-  const providerId = useAgentStore((s) => s.sessions.get(activeSessionId)?.providerId);
-  const hasMessages = useAgentStore(
-    (s) => (s.sessions.get(activeSessionId)?.messages.length ?? 0) > 0,
+  const { currentModel, modelScope, providerId, hasMessages } = useAgentStore(
+    useShallow((s) => {
+      const session = s.sessions.get(activeSessionId);
+      return {
+        currentModel: session?.currentModel,
+        modelScope: session?.modelScope,
+        providerId: session?.providerId,
+        hasMessages: (session?.messages.length ?? 0) > 0,
+      };
+    }),
   );
   const availableModels = useStore(chatStore, (state) => state.capabilities?.models);
 
   // Provider state
-  const providers = useProviderStore((s) => s.providers);
-  const loaded = useProviderStore((s) => s.loaded);
+  const { providers, loaded } = useProviderStore(
+    useShallow((s) => ({ providers: s.providers, loaded: s.loaded })),
+  );
   const loadProviders = useProviderStore((s) => s.load);
 
   useEffect(() => {
