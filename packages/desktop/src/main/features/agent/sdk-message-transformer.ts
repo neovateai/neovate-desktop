@@ -57,7 +57,7 @@ export class SDKMessageTransformer {
   private readonly agentToolPrompts = new Map<string, string>();
   private readonly contentBlocks = new Map<number, ActiveContentBlock>();
   private readonly activeParentTools = new Map<string, ParentToolState>();
-  private readonly toolCallNames = new Map<string, string>();
+  private readonly readToolCallIds = new Set<string>();
   private readonly rootParentToolUseId: string | null;
   private readonly rootToolPrompt: string | null;
 
@@ -510,7 +510,7 @@ export class SDKMessageTransformer {
         try {
           const parsedInput = JSON.parse(finalInput);
           this.rememberAgentToolPrompt(contentBlock.toolCallId, contentBlock.toolName, parsedInput);
-          this.toolCallNames.set(contentBlock.toolCallId, contentBlock.toolName);
+          if (contentBlock.toolName === "Read") this.readToolCallIds.add(contentBlock.toolCallId);
           yield {
             type: "tool-input-available",
             toolCallId: contentBlock.toolCallId,
@@ -571,7 +571,7 @@ export class SDKMessageTransformer {
         }
         case "tool_use": {
           this.rememberAgentToolPrompt(part.id, part.name, part.input);
-          this.toolCallNames.set(part.id, part.name);
+          if (part.name === "Read") this.readToolCallIds.add(part.id);
           yield {
             type: "tool-input-available",
             toolCallId: part.id,
@@ -616,8 +616,8 @@ export class SDKMessageTransformer {
             yield {
               type: "tool-output-available",
               toolCallId: part.tool_use_id,
-              output: this.shouldNormalizeOutput(part.tool_use_id)
-                ? this.normalizeToolOutput(part.content)
+              output: this.readToolCallIds.has(part.tool_use_id)
+                ? this.parseReadToolContent(part.content)
                 : part.content,
               providerExecuted: true,
             };
@@ -733,14 +733,7 @@ export class SDKMessageTransformer {
     return parts;
   }
 
-  private static readonly NORMALIZED_OUTPUT_TOOLS = new Set(["Read"]);
-
-  private shouldNormalizeOutput(toolCallId: string): boolean {
-    const toolName = this.toolCallNames.get(toolCallId);
-    return toolName != null && SDKMessageTransformer.NORMALIZED_OUTPUT_TOOLS.has(toolName);
-  }
-
-  private normalizeToolOutput(content: unknown): ReadToolOutput {
+  private parseReadToolContent(content: unknown): ReadToolOutput {
     if (typeof content === "string") return { text: content, images: [] };
     if (!Array.isArray(content))
       return { text: content != null ? JSON.stringify(content) : "", images: [] };
@@ -776,7 +769,7 @@ export class SDKMessageTransformer {
   }
 
   private extractImageParts(result: unknown): ClaudeCodeUIMessage["parts"] {
-    const { images } = this.normalizeToolOutput(result);
+    const { images } = this.parseReadToolContent(result);
     return images.map((img) => ({
       type: "file" as const,
       mediaType: img.mediaType,

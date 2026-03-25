@@ -6,7 +6,6 @@ import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/
 
 import { CodeBlock, CodeBlockCopyButton } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
-import { ToolOutputImage } from "./tool-output-image";
 
 export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
@@ -28,7 +27,18 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
           </div>
         ) : (
           <>
-            <ToolOutputImage images={output?.images} />
+            {output?.images?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {output.images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.url}
+                    alt={img.filename ?? "Tool output"}
+                    className="max-h-48 rounded-md"
+                  />
+                ))}
+              </div>
+            ) : null}
             {code ? (
               <CodeBlock code={code} language={language} className="text-xs">
                 <CodeBlockCopyButton />
