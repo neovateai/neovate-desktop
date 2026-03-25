@@ -6,6 +6,7 @@ import { app, ipcMain, BrowserWindow } from "electron";
 
 import type { AppContext } from "./router";
 
+import { APP_NAME } from "../shared/constants";
 import { MainApp } from "./app";
 import { ApplicationMenu } from "./core/menu";
 import { PowerBlockerService } from "./core/power-blocker-service";
@@ -84,7 +85,7 @@ const appContext: AppContext = {
 setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
 // ── Deeplink protocol registration ──
-const deeplinkScheme = is.dev ? "neovate-dev" : "neovate";
+const deeplinkScheme = `${APP_NAME.toLowerCase()}${is.dev ? "-dev" : ""}`;
 app.setAsDefaultProtocolClient(deeplinkScheme);
 
 function parseDeeplinkUrl(url: string): { sessionId: string; project: string } | null {
