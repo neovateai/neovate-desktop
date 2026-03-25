@@ -133,6 +133,10 @@ export default function TerminalView() {
 
     const { terminalFont: initFont, terminalFontSize: initFontSize } = useConfigStore.getState();
 
+    const openLink = (_event: MouseEvent, uri: string) => {
+      window.open(uri, "_blank");
+    };
+
     const xterm = new Terminal({
       allowProposedApi: true,
       cursorBlink: true,
@@ -143,19 +147,14 @@ export default function TerminalView() {
       fontSize: initFontSize,
       disableStdin: true,
       theme: isDark ? darkTheme : lightTheme,
+      linkHandler: { activate: openLink },
     });
     xtermRef.current = xterm;
 
     const fitAddon = new FitAddon();
     fitAddonRef.current = fitAddon;
     xterm.loadAddon(fitAddon);
-    xterm.loadAddon(
-      new WebLinksAddon((event, uri) => {
-        if (isMac ? event.metaKey : event.ctrlKey) {
-          window.open(uri, "_blank");
-        }
-      }),
-    );
+    xterm.loadAddon(new WebLinksAddon(openLink));
     xterm.open(container);
     fitAddon.fit();
 
