@@ -2,6 +2,7 @@ import type { GlobUIToolInvocation } from "../../../../../../shared/claude-code/
 
 import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import { ToolOutputImage } from "./tool-output-image";
 
 export function GlobTool({ invocation }: { invocation: GlobUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
@@ -21,7 +22,9 @@ export function GlobTool({ invocation }: { invocation: GlobUIToolInvocation }) {
       <ToolContent>
         {typeof output === "string" ? (
           <CodeBlock code={output} language="bash" className="text-sm" />
-        ) : null}
+        ) : (
+          <ToolOutputImage output={output} />
+        )}
       </ToolContent>
     </Tool>
   );

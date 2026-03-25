@@ -6,12 +6,13 @@ import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/
 
 import { CodeBlock, CodeBlockCopyButton } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import { ToolOutputImage } from "./tool-output-image";
 
 export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output, errorText } = invocation;
 
-  const code = output?.replace(/^\s*(\d+)→/gm, "");
+  const code = typeof output === "string" ? output.replace(/^\s*(\d+)→/gm, "") : undefined;
   const language = (input?.file_path?.match(/\.(\w+)$/)?.[1] ?? "typescript") as BundledLanguage;
   const title = input?.file_path ? `Read ${input.file_path}` : undefined;
   const hasError = state === "output-error";
@@ -25,11 +26,16 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="whitespace-pre-wrap">{errorText}</span>
           </div>
-        ) : code ? (
-          <CodeBlock code={code} language={language} className="text-xs">
-            <CodeBlockCopyButton />
-          </CodeBlock>
-        ) : null}
+        ) : (
+          <>
+            <ToolOutputImage output={output} />
+            {code ? (
+              <CodeBlock code={code} language={language} className="text-xs">
+                <CodeBlockCopyButton />
+              </CodeBlock>
+            ) : null}
+          </>
+        )}
       </ToolContent>
     </Tool>
   );

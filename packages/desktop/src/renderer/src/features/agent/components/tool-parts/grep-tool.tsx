@@ -2,6 +2,7 @@ import type { GrepUIToolInvocation } from "../../../../../../shared/claude-code/
 
 import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import { ToolOutputImage } from "./tool-output-image";
 
 export function GrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
@@ -21,7 +22,9 @@ export function GrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
       <ToolContent>
         {typeof output === "string" ? (
           <CodeBlock code={output} language="bash" className="text-sm" />
-        ) : null}
+        ) : (
+          <ToolOutputImage output={output} />
+        )}
       </ToolContent>
     </Tool>
   );

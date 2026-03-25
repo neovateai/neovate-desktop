@@ -706,11 +706,68 @@ export class SDKMessageTransformer {
   }
 
   private resultContentToMessageParts(result: unknown, isError: boolean) {
-    return this.resultContentToTexts(result, isError).map((text) => ({
-      type: "text" as const,
-      text,
-      state: "done" as const,
-    })) as ClaudeCodeUIMessage["parts"];
+    const parts: ClaudeCodeUIMessage["parts"] = [];
+
+    // Handle image outputs
+    const imageParts = this.extractImageParts(result);
+    for (const imagePart of imageParts) {
+      parts.push(imagePart);
+    }
+
+    // Handle text outputs
+    const texts = this.resultContentToTexts(result, isError);
+    for (const text of texts) {
+      parts.push({
+        type: "text" as const,
+        text,
+        state: "done" as const,
+      });
+    }
+
+    return parts;
+  }
+
+  private extractImageParts(result: unknown): ClaudeCodeUIMessage["parts"] {
+    const parts: ClaudeCodeUIMessage["parts"] = [];
+
+    if (Array.isArray(result)) {
+      for (const item of result) {
+        if (
+          item != null &&
+          typeof item === "object" &&
+          "type" in item &&
+          item.type === "image" &&
+          "source" in item &&
+          item.source != null
+        ) {
+          const source = item.source as {
+            type: string;
+            media_type?: string;
+            data?: string;
+            url?: string;
+          };
+          if (source.type === "base64" && source.data) {
+            const mimeType = source.media_type || "image/png";
+            const dataUrl = `data:${mimeType};base64,${source.data}`;
+            parts.push({
+              type: "file" as const,
+              mediaType: mimeType,
+              filename: item.filename,
+              url: dataUrl,
+            });
+          } else if (source.type === "url" && source.url) {
+            parts.push({
+              type: "file" as const,
+              mediaType: source.media_type || "image/png",
+              filename: item.filename,
+              url: source.url,
+            });
+          }
+        }
+      }
+    }
+
+    return parts;
   }
 
   private resultContentToText(result: unknown, isError: boolean) {
