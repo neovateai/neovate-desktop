@@ -8,6 +8,7 @@ import path from "node:path";
 import type { AppContext } from "../../router";
 
 import { projectContract } from "../../../shared/features/project/contract";
+import { openProjectByPath } from "./open-project";
 
 const log = debug("neovate:project");
 
@@ -61,24 +62,8 @@ export const projectRouter = os.project.router({
         message: `Directory does not exist: ${input.path}`,
       });
     }
-    const existing = context.projectStore.findByPath(input.path);
-    if (existing) {
-      log("project already exists, activating", { id: existing.id });
-      context.projectStore.update(existing.id, { lastAccessedAt: new Date().toISOString() });
-      context.projectStore.setActive(existing.id);
-      return { ...existing, lastAccessedAt: new Date().toISOString() };
-    }
-
-    const project = {
-      id: randomUUID(),
-      name: path.basename(input.path),
-      path: input.path,
-      createdAt: new Date().toISOString(),
-      lastAccessedAt: new Date().toISOString(),
-    };
-    log("adding and activating new project", { id: project.id, name: project.name });
-    context.projectStore.add(project);
-    context.projectStore.setActive(project.id);
+    const project = openProjectByPath(context.projectStore, input.path);
+    log("open project resolved", { id: project.id, name: project.name });
     return project;
   }),
 

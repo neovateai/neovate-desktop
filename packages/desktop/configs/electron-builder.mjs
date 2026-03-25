@@ -39,6 +39,12 @@ async function beforePack(context) {
 const config = {
   appId: isDev ? "com.neovateai.desktop.dev" : "com.neovateai.desktop",
   productName: isDev ? "Neovate Dev" : "Neovate",
+  protocols: [
+    {
+      name: isDev ? "Neovate Dev Deep Link" : "Neovate Deep Link",
+      schemes: ["neo"],
+    },
+  ],
 
   directories: {
     buildResources: "build",

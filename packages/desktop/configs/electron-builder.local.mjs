@@ -10,6 +10,12 @@ const signIdentity = process.env.LOCAL_UPDATE_SIGN_IDENTITY || "Neovate Local Co
 const config = {
   appId: "com.neovateai.desktop.dev",
   productName: "Neovate Dev",
+  protocols: [
+    {
+      name: "Neovate Dev Deep Link",
+      schemes: ["neo"],
+    },
+  ],
 
   directories: {
     buildResources: "build",

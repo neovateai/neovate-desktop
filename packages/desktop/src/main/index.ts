@@ -4,6 +4,7 @@ import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";
 import { app, ipcMain } from "electron";
 
+import type { DeepLinkProjectReadyAck } from "../shared/features/electron/deeplink";
 import type { AppContext } from "./router";
 
 import { MainApp } from "./app";
@@ -17,6 +18,8 @@ import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
+import { findDeepLink } from "./lib/deeplink";
+import { createDeepLinkManager } from "./lib/deeplink-manager";
 import changesPlugin from "./plugins/changes";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
@@ -25,6 +28,7 @@ import terminalPlugin from "./plugins/terminal";
 
 const log = debug("neovate:orpc");
 const startupLog = debug("neovate:startup");
+const deeplinkLog = debug("neovate:deeplink");
 const t0 = performance.now();
 const elapsed = () => `${Math.round(performance.now() - t0)}ms`;
 startupLog("main process module loaded %s", elapsed());
@@ -84,14 +88,46 @@ const appContext: AppContext = {
 setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
 let menu: ApplicationMenu | null = null;
+const deepLinkManager = createDeepLinkManager({
+  app,
+  mainApp,
+  projectStore,
+  log: (event, meta) => {
+    deeplinkLog("%s %O", event, meta ?? {});
+  },
+});
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
+app.on("second-instance", (_event, argv) => {
+  // Electron emits this on the primary instance when the OS tries to launch the app again.
+  // We use it to recover deep links that arrive via argv on platforms like Windows/Linux.
+  const deepLink = findDeepLink(argv);
+  if (deepLink) {
+    void deepLinkManager.receive(deepLink);
+    return;
+  }
+  deepLinkManager.ensureMainWindowVisible();
+});
+
+app.on("open-url", (event, urlText) => {
+  // macOS delivers registered custom URL schemes to the running app through this event.
+  event.preventDefault();
+  void deepLinkManager.receive(urlText);
+});
 
 startupLog("app.whenReady waiting %s", elapsed());
 app.whenReady().then(async () => {
   startupLog("app.whenReady fired %s", elapsed());
   electronApp.setAppUserModelId("com.neovateai.desktop");
+  deepLinkManager.registerProtocol();
 
   await mainApp.start();
   startupLog("mainApp.start done %s", elapsed());
+  await deepLinkManager.markReady();
   void updaterService.init();
 
   // Setup application menu (for menu items, shortcuts handled in renderer)
@@ -105,6 +141,9 @@ app.whenReady().then(async () => {
     handler.upgrade(serverPort, { context: appContext });
     serverPort.start();
   });
+  ipcMain.on("deeplink:project-ready", (_event, ack: DeepLinkProjectReadyAck) => {
+    deepLinkManager.confirmProjectReady(ack);
+  });
 
   app.on("activate", () => {
     const win = mainApp.windowManager.mainWindow;
@@ -115,6 +154,11 @@ app.whenReady().then(async () => {
     }
   });
 });
+
+const bootDeepLink = findDeepLink(process.argv);
+if (bootDeepLink) {
+  void deepLinkManager.receive(bootDeepLink);
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

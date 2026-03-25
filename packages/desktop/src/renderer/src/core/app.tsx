@@ -4,6 +4,7 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
 import ReactDOM from "react-dom/client";
 
+import type { DeepLinkOpenRequest } from "../../../shared/features/electron/deeplink";
 import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
@@ -239,6 +240,20 @@ export class RendererApp implements IRendererApp {
     startupLog("renderer windowContributions done %s", el());
 
     if (this.#windowType === "main") {
+      const handleDeepLinkOpenRequest = async (request: DeepLinkOpenRequest) => {
+        if (request.action !== "open") return;
+        const activeProject = await this.project.refresh();
+        if (activeProject?.path === request.projectPath) {
+          window.api.confirmDeepLinkProjectReady(request.id, request.projectPath);
+        }
+      };
+
+      this.subscriptions.push(
+        window.api.onDeepLinkOpenRequest((request) => {
+          void handleDeepLinkOpenRequest(request);
+        }),
+      );
+
       // Main window — full plugin UI
       await this.pluginManager.configContributions();
       startupLog("renderer pluginContributions done %s", el());
