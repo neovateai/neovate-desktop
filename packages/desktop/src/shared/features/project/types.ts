@@ -23,6 +23,8 @@ export type ProjectStore = {
   closedProjectAccordions: string[];
   /** projectPath → provider/model selection */
   providerSelections: Record<string, ProjectProviderConfig>;
+  /** sessionId → corrected createdAt ISO string (overrides file birthtime) */
+  sessionStartTimes: Record<string, string>;
   /** Consecutive crash count for crash-loop detection */
   crashCount: number;
   /** Timestamp of last crash (ms since epoch) */
