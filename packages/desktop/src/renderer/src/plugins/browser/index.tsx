@@ -1,18 +1,10 @@
 import { Globe } from "lucide-react";
+import { minimatch } from "minimatch";
 
 import type { RendererPlugin } from "../../core/plugin";
 import type { PluginContext } from "../../core/plugin/types";
 
 const NAME = "plugin-browser";
-
-function matchHost(hostname: string, pattern: string): boolean {
-  if (pattern === "*") return true;
-  if (pattern.startsWith("*.")) {
-    const suffix = pattern.slice(2);
-    return hostname === suffix || hostname.endsWith(`.${suffix}`);
-  }
-  return hostname === pattern;
-}
 
 interface BrowserPluginOptions {
   includeHosts?: string[];
@@ -54,7 +46,7 @@ export default function browserPlugin(options?: BrowserPluginOptions): RendererP
                 opener: {
                   async canOpenExternalUri(uri: URL) {
                     return options.includeHosts!.some((pattern) =>
-                      matchHost(uri.hostname, pattern),
+                      minimatch(uri.hostname, pattern),
                     );
                   },
                   async openExternalUri(resolvedUri: URL) {
