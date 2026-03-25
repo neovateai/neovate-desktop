@@ -54,11 +54,12 @@ export function createEditorRouter(
       log("open file", input);
       const {
         cwd = "",
-        filePath = "",
+        fullPath: filePath = "",
         line,
-      } = input as { cwd: string; filePath: string; line: number };
+        focus,
+      } = input as { cwd: string; fullPath: string; line: number; focus?: boolean };
       const res = await extBridge.send(
-        { operationType: "editor.open", params: { filePath, line } },
+        { operationType: "editor.open", params: { filePath, line, focus } },
         cwd,
       );
       return res;
@@ -85,7 +86,9 @@ export function createEditorRouter(
           "link.open",
           /** add to chat cmd, {type: 'file', data: File}, and support more types in future */
           "context.add",
-        ];
+          /** active editor tabs changed, {current: File, tabs: TabFile[]} */
+          "tabs.change",
+        ] as const;
         for (const e of editorEventWhiteList) {
           extBridge.register(e, async (params, _cwd) => {
             if (cwd !== _cwd) {
@@ -93,7 +96,7 @@ export function createEditorRouter(
             }
             publisher.publish("editor-event", {
               type: e,
-              detail: params,
+              detail: params as any,
             });
           });
         }

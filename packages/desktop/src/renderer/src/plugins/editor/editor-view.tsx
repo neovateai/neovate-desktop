@@ -4,13 +4,14 @@ import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
-const log = debug("neovate:editor:view");
-
-import { editorContract } from "../../../../shared/plugins/editor/contract";
+import { editorContract, EditorOpenOption } from "../../../../shared/plugins/editor/contract";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { ErrorState, LoadingState } from "./status";
 import { EditorStatus } from "./type";
+import { handleEditorEvents } from "./utils";
+
+const log = debug("neovate:editor:view");
 
 type EditorClient = ContractRouterClient<{ editor: typeof editorContract }>;
 
@@ -69,25 +70,8 @@ function EditorViewCore(props: { cwd: string }) {
   const initEditorEventHandlers = () => {
     const cancel = consumeEventIterator(client.editor.events({ cwd }), {
       onEvent: (e) => {
-        const { type, detail } = e || {};
         log("editor events received", e);
-        switch (type) {
-          case "context.add":
-            // add context [file]
-            if (detail?.type === "file" && !!detail?.data?.relPath) {
-              const filePath = detail.data.relPath;
-              window.dispatchEvent(
-                new CustomEvent("neovate:insert-chat", {
-                  detail: {
-                    mentions: [{ id: filePath, label: filePath }],
-                  },
-                }),
-              );
-            }
-            return;
-          default:
-            return;
-        }
+        handleEditorEvents(e);
       },
       onError: (e) => {
         log("editor events error", e);
@@ -100,12 +84,12 @@ function EditorViewCore(props: { cwd: string }) {
   /** receive `open-editor` event from other views and call extension to execute */
   const initFileOpener = () => {
     {
-      const openEditor = (fullPath: string, line: number) => {
+      const openEditor = (fullPath: string, line: number, focus?: boolean) => {
         if (!fullPath) {
           return;
         }
         log("opening file", { fullPath, line });
-        client.editor.open({ cwd, filePath: fullPath, line });
+        client.editor.open({ cwd, fullPath, line, focus });
         // @ts-ignore 清理
         window.pendingEditorRequest = undefined;
       };
@@ -120,9 +104,12 @@ function EditorViewCore(props: { cwd: string }) {
 
       // 连接成功后初始化插件可接受的操作事件响应函数
       const openEditorEvent = (e: Event) => {
-        const { fullPath = "", line = 1 } =
-          (e as CustomEvent<{ fullPath: string; line?: number }>)?.detail || {};
-        openEditor(fullPath, line);
+        const {
+          fullPath = "",
+          line = 1,
+          focus = false,
+        } = (e as CustomEvent<EditorOpenOption>)?.detail || {};
+        openEditor(fullPath, line, focus);
       };
       window.addEventListener("neovate:open-editor", openEditorEvent);
 
