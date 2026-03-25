@@ -65,6 +65,18 @@ export function useGlobalKeybindings(): void {
         return;
       }
 
+      // Toggle Pin Session (works everywhere, including settings)
+      if (matchesBinding(e, keybindings.togglePinSession)) {
+        e.preventDefault();
+        const agentState = useAgentStore.getState();
+        const sid = agentState.activeSessionId;
+        const projectPath = useProjectStore.getState().activeProject?.path;
+        if (sid && projectPath && !agentState.sessions.get(sid)?.isNew) {
+          useProjectStore.getState().togglePinSession(projectPath, sid);
+        }
+        return;
+      }
+
       // Don't handle other shortcuts when in settings
       if (showSettings) return;
 
@@ -93,18 +105,6 @@ export function useGlobalKeybindings(): void {
       if (matchesBinding(e, keybindings.toggleFiles)) {
         e.preventDefault();
         layoutStore.getState().setSecondarySidebarActiveView("files");
-        return;
-      }
-
-      // Toggle Pin Session
-      if (matchesBinding(e, keybindings.togglePinSession)) {
-        e.preventDefault();
-        const agentState = useAgentStore.getState();
-        const sid = agentState.activeSessionId;
-        const projectPath = useProjectStore.getState().activeProject?.path;
-        if (sid && projectPath && !agentState.sessions.get(sid)?.isNew) {
-          useProjectStore.getState().togglePinSession(projectPath, sid);
-        }
         return;
       }
 
