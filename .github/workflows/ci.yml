@@ -117,10 +117,62 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-win-dev:
+    needs: check
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build app
+        working-directory: packages/desktop
+        run: bun run build
+      - name: Package Windows installer
+        working-directory: packages/desktop
+        run: bunx electron-builder --win --x64 --config configs/electron-builder.mjs --publish=never
+        env:
+          BUILD_ENV: dev
+      - name: Calculate artifact sizes
+        id: sizes
+        working-directory: packages/desktop
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path release -Filter "*.exe" -Recurse | Select-Object -First 1
+          $sizeMB = if ($exe) { [math]::Round($exe.Length / 1MB, 2) } else { "N/A" }
+          New-Item -ItemType Directory -Force -Path size-info | Out-Null
+          "EXE: $sizeMB MB" | Out-File -FilePath size-info/win-x64-sizes.txt
+          Get-Content size-info/win-x64-sizes.txt
+      - name: Upload size info
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-info-win-x64
+          path: packages/desktop/size-info/win-x64-sizes.txt
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: neovate-dev-win-x64
+          path: packages/desktop/release/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
   comment:
-    needs: build-mac-dev
+    needs: [build-mac-dev, build-win-dev]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: always() && needs.build-mac-dev.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Download size info artifacts
         uses: actions/download-artifact@v4
@@ -139,8 +191,8 @@ jobs:
               try {
                 const sizeFile = path.join('size-info', `size-info-${arch}`, `${arch}-sizes.txt`);
                 const content = fs.readFileSync(sizeFile, 'utf8');
-                const zipLine = content.trim().split('\n').find(l => l.startsWith('ZIP:'));
-                return zipLine ? zipLine.split(':')[1].trim() : 'N/A';
+                const sizeLine = content.trim().split('\n').find(l => /^(ZIP|EXE):/.test(l));
+                return sizeLine ? sizeLine.split(':')[1].trim() : 'N/A';
               } catch (error) {
                 console.error(`Error reading size info for ${arch}:`, error);
                 return 'N/A';
@@ -149,6 +201,7 @@ jobs:
 
             const arm64Size = readSize('arm64');
             const x64Size = readSize('x64');
+            const winX64Size = readSize('win-x64');
 
             const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
@@ -158,6 +211,7 @@ jobs:
 
             const arm64 = artifacts.find(a => a.name === 'neovate-dev-arm64');
             const x64 = artifacts.find(a => a.name === 'neovate-dev-x64');
+            const winX64 = artifacts.find(a => a.name === 'neovate-dev-win-x64');
 
             const artifactUrl = (artifact) =>
               `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${artifact.id}`;
@@ -166,10 +220,11 @@ jobs:
               identifier,
               '## Build Ready',
               '',
-              '| Architecture | Download | Size |',
-              '|--------------|----------|------|',
-              `| Apple Silicon | ${arm64 ? `[Download](${artifactUrl(arm64)})` : 'N/A'} | ${arm64Size} |`,
-              `| Intel | ${x64 ? `[Download](${artifactUrl(x64)})` : 'N/A'} | ${x64Size} |`,
+              '| Platform | Architecture | Download | Size |',
+              '|----------|--------------|----------|------|',
+              `| macOS | Apple Silicon | ${arm64 ? `[Download](${artifactUrl(arm64)})` : 'N/A'} | ${arm64Size} |`,
+              `| macOS | Intel | ${x64 ? `[Download](${artifactUrl(x64)})` : 'N/A'} | ${x64Size} |`,
+              `| Windows | x64 | ${winX64 ? `[Download](${artifactUrl(winX64)})` : 'N/A'} | ${winX64Size} |`,
             ].join('\n');
 
             const { data: comments } = await github.rest.issues.listComments({

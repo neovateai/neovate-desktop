@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { isReasoningUIPart, isToolUIPart, type ToolUIPart } from "ai";
 import { CheckIcon, CopyIcon, ChevronDownIcon } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -28,6 +29,7 @@ import {
   CollapsibleTrigger,
 } from "../../../components/ui/collapsible";
 import { cn } from "../../../lib/utils";
+import { useMarkdownComponents } from "../hooks/use-markdown-components";
 import { useAssistantMessageSummaryCollapse } from "./use-assistant-message-summary-collapse";
 
 type RenderToolPart = (
@@ -173,6 +175,7 @@ export const MessagePartRenderer = memo(
     showActions?: boolean;
     isComplete?: boolean;
   }) => {
+    const markdownComponents = useMarkdownComponents();
     const lastTextIndex = message.parts.findLastIndex((p) => p.type === "text");
     return (
       <div className="flex flex-col gap-2 w-full">
@@ -182,9 +185,9 @@ export const MessagePartRenderer = memo(
               return null;
             }
             return (
-              <div key={part.toolCallId} data-key={part.toolCallId}>
-                {renderToolPart(message, part)}
-              </div>
+              <ErrorBoundary key={part.toolCallId} fallback={<ToolPartErrorFallback />}>
+                <div data-key={part.toolCallId}>{renderToolPart(message, part)}</div>
+              </ErrorBoundary>
             );
           }
 
@@ -204,7 +207,7 @@ export const MessagePartRenderer = memo(
                 >
                   <MessageContent>
                     {message.role === "assistant" ? (
-                      <MessageResponse>{part.text}</MessageResponse>
+                      <MessageResponse components={markdownComponents}>{part.text}</MessageResponse>
                     ) : (
                       <p className="m-0 whitespace-pre-wrap">{part.text}</p>
                     )}
@@ -254,3 +257,11 @@ export const MessagePartRenderer = memo(
 );
 
 MessagePartRenderer.displayName = "MessagePartRenderer";
+
+function ToolPartErrorFallback() {
+  return (
+    <div className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+      Failed to render tool output
+    </div>
+  );
+}

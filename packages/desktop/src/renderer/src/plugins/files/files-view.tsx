@@ -3,7 +3,7 @@ import type { ContractRouterClient } from "@orpc/contract";
 import { consumeEventIterator } from "@orpc/client";
 import debug from "debug";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Project } from "../../../../shared/features/project/types";
 
@@ -23,6 +23,8 @@ import {
 import { Button } from "../../components/ui/button";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { useOperationKeys } from "./hooks/useOperationKeys";
+import { useTreeUpdater } from "./hooks/useTreeUpdater";
 import { useFilesTranslation } from "./i18n";
 import { TreeNode } from "./tree-node";
 import { convertPathListDepth } from "./utils/sort";
@@ -41,16 +43,19 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const client = orpcClient as FilesClient;
 
   const [treeData, setTreeData] = useState<FileTreeItem[]>([]);
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
+  const expandedKeys = useOperationKeys();
+  const selectedKeys = useOperationKeys();
   const cwd = project?.path || "";
+  const { update: updateChildrenInTree, batchUpdate } = useTreeUpdater({
+    cwd,
+    setTreeData,
+  });
 
-  // Panel-aware visibility (Section 2a)
   const isVisible = useLayoutStore(
     (s) =>
       !s.panels.secondarySidebar?.collapsed && s.panels.secondarySidebar?.activeView === "files",
@@ -62,75 +67,44 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const refreshTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // --- Lazy tree loading (Section 3) ---
-  const fetchChildren = useCallback(
-    async (dir: string) => {
-      if (!cwd) return [];
-      try {
-        const { tree } = await client.files.tree({ cwd: dir, root: cwd });
-        return tree;
-      } catch (error) {
-        log("failed to fetch children", { dir, error });
-        return [];
-      }
-    },
-    [cwd, client],
-  );
-
-  // Insert children into the tree at the given path
-  const updateChildrenInTree = useCallback(
-    (parentPath: string, children: FileTreeItem[]) => {
-      setTreeData((prev) => {
-        // If this is the root, replace top-level
-        if (parentPath === cwd) return children;
-
-        // Recursively find and update the parent node
-        function updateNode(nodes: FileTreeItem[]): FileTreeItem[] {
-          return nodes.map((node) => {
-            if (node.fullPath === parentPath) {
-              return { ...node, children };
-            }
-            if (node.children && node.children.length > 0) {
-              return { ...node, children: updateNode(node.children) };
-            }
-            return node;
-          });
-        }
-        return updateNode(prev);
-      });
-    },
-    [cwd],
-  );
+  async function fetchChildren(dir: string) {
+    if (!cwd) return [];
+    try {
+      const { tree } = await client.files.tree({ cwd: dir, root: cwd });
+      return tree;
+    } catch (error) {
+      log("failed to fetch children", { dir, error });
+      return [];
+    }
+  }
 
   // --- Watcher management (Section 2b) ---
-  const startWatcher = useCallback(
-    (dir: string) => {
-      if (watchersRef.current.has(dir)) return;
-      log("starting watcher", { dir });
+  function startWatcher(dir: string) {
+    if (watchersRef.current.has(dir)) return;
+    log("starting watcher", { dir });
 
-      const cancel = consumeEventIterator(client.files.watch({ cwd: dir }), {
-        onEvent: () => {
-          // Debounce refresh per directory (Section 3d)
-          const existing = refreshTimersRef.current.get(dir);
-          if (existing) clearTimeout(existing);
-          refreshTimersRef.current.set(
-            dir,
-            setTimeout(async () => {
-              refreshTimersRef.current.delete(dir);
-              const children = await fetchChildren(dir);
-              updateChildrenInTree(dir, children);
-            }, 500),
-          );
-        },
-        onError: (e) => {
-          log("file watch error: consumeEventIterator", e);
-        },
-      });
-      watchersRef.current.set(dir, cancel);
-    },
-    [client, fetchChildren, updateChildrenInTree],
-  );
+    const cancel = consumeEventIterator(client.files.watch({ cwd: dir }), {
+      onEvent: () => {
+        // Debounce refresh per directory (Section 3d)
+        const existing = refreshTimersRef.current.get(dir);
+        if (existing) clearTimeout(existing);
+        refreshTimersRef.current.set(
+          dir,
+          setTimeout(async () => {
+            refreshTimersRef.current.delete(dir);
+            const children = await fetchChildren(dir);
+            updateChildrenInTree(dir, children);
+          }, 500),
+        );
+      },
+      onError: (e) => {
+        log("file watch error: consumeEventIterator", e);
+      },
+    });
+    watchersRef.current.set(dir, cancel);
+  }
 
-  const stopWatcher = useCallback((dir: string) => {
+  function stopWatcher(dir: string) {
     const cancel = watchersRef.current.get(dir);
     if (cancel) {
       log("stopping watcher", { dir });
@@ -142,9 +116,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
       clearTimeout(timer);
       refreshTimersRef.current.delete(dir);
     }
-  }, []);
+  }
 
-  const stopAllWatchers = useCallback(() => {
+  function stopAllWatchers() {
     log("stopping all watchers", { count: watchersRef.current.size });
     for (const cancel of watchersRef.current.values()) {
       cancel();
@@ -154,7 +128,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       clearTimeout(timer);
     }
     refreshTimersRef.current.clear();
-  }, []);
+  }
 
   // --- Lifecycle: start/stop watching based on visibility + cwd ---
   useEffect(() => {
@@ -162,8 +136,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
       stopAllWatchers();
       if (!cwd) {
         setTreeData([]);
-        setExpandedKeys(new Set());
-        setSelectedKey(null);
+        expandedKeys.reset();
+        selectedKeys.reset();
       }
       return;
     }
@@ -175,7 +149,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       setTreeData(children);
       setLoading(false);
       // After root is loaded, restore all expanded directories
-      restoreExpandedDirectories();
+      restoreExpandedDirectories(expandedKeys.keys);
     });
     startWatcher(cwd);
 
@@ -184,52 +158,74 @@ function FilesViewComponent({ project }: FilesViewProps) {
     };
   }, [cwd, isVisible]);
 
-  const restoreExpandedDirectories = useCallback(async () => {
-    if (!cwd || expandedKeys.size === 0) return;
-    log("restoring expanded directories", { count: expandedKeys.size });
-    // 按层级分批加载目录数据
-    const depthList = convertPathListDepth(expandedKeys, cwd);
+  const restoreExpandedDirectories = async (restoreKeys: Set<string>) => {
+    if (!cwd || restoreKeys.size === 0) return;
+    log("restoring expanded directories", { count: restoreKeys.size });
+
+    // 按层级分批加载目录数据（确保父级先加载）
+    const depthList = convertPathListDepth(restoreKeys, cwd);
+    const allUpdates: { parentPath: string; children: FileTreeItem[] }[] = [];
+    const dirsToWatch: string[] = [];
+
     for (let i = 0; i < depthList.length; i++) {
       const dirs = depthList[i];
       log(`loading depth ${i + 1} directories`, { dirs });
+
       // 同层级并行加载
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         dirs.map(async (key) => {
           try {
             const children = await fetchChildren(key);
-            updateChildrenInTree(key, children);
-            startWatcher(key);
+            return { parentPath: key, children };
           } catch (error) {
             log("failed to restore directory", { key, error });
+            return null;
           }
         }),
       );
-    }
-  }, [cwd, expandedKeys]);
 
-  // --- Expand/collapse with lazy loading + lazy watching ---
-  const handleToggleExpand = useCallback(
-    async (key: string) => {
-      setExpandedKeys((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(key)) {
-          newSet.delete(key);
-          stopWatcher(key);
-        } else {
-          newSet.add(key);
-          // Lazy load children on first expand
-          fetchChildren(key).then((children) => {
-            updateChildrenInTree(key, children);
-          });
-          if (isVisible) {
-            startWatcher(key);
-          }
+      // 收集本层级的更新
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value !== null) {
+          allUpdates.push(r.value);
+          dirsToWatch.push(r.value.parentPath);
         }
-        return newSet;
-      });
-    },
-    [fetchChildren, updateChildrenInTree, startWatcher, stopWatcher, isVisible],
-  );
+      }
+    }
+
+    // 所有层级加载完成后，一次性合并更新
+    if (allUpdates.length > 0) {
+      batchUpdate(allUpdates);
+      dirsToWatch.forEach((dir) => startWatcher(dir));
+    }
+  };
+
+  const getChildrenKeys = (parentPath: string, expandedSet: Set<string>) => {
+    const descendants: string[] = [];
+    for (const key of expandedSet) {
+      if (key.startsWith(parentPath + "/")) {
+        descendants.push(key);
+      }
+    }
+    return descendants;
+  };
+
+  const handleToggleExpand = async (key: string) => {
+    const isCurrentlyExpanded = expandedKeys.has(key);
+
+    if (isCurrentlyExpanded) {
+      // 关闭目录，清理下属的文件监听器。（展开状态仅修正当前节点）
+      expandedKeys.remove(key);
+      const subKeys = getChildrenKeys(key, expandedKeys.keys);
+      const keysToUnwatch = [key, ...subKeys];
+      for (const k of keysToUnwatch) {
+        stopWatcher(k);
+      }
+    } else {
+      const updated = expandedKeys.add(key);
+      restoreExpandedDirectories(updated); // 恢复打开的key 和其下级key 的数据和监听状态
+    }
+  };
 
   // --- Keyboard event listener: Enter key operation ---
   useEffect(() => {
@@ -279,7 +275,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   };
 
   const handleSelect = (item: FileTreeItem) => {
-    setSelectedKey(item.fullPath);
+    selectedKeys.only(item.fullPath);
 
     if (!item.isFolder && project) {
       log("open file path=%s", item.relPath);
@@ -301,18 +297,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
+    const targetPath = itemToDelete.fullPath;
     log("confirm delete", { path: itemToDelete.fullPath });
     try {
-      const result = await client.files.delete({ path: itemToDelete.fullPath });
+      const result = await client.files.delete({ path: targetPath });
       if (result.success) {
-        if (selectedKey === itemToDelete.fullPath) {
-          setSelectedKey(null);
+        if (selectedKeys.has(targetPath)) {
+          selectedKeys.remove(targetPath, true);
         }
-        setExpandedKeys((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(itemToDelete.fullPath);
-          return newSet;
-        });
+        if (expandedKeys.has(targetPath)) {
+          expandedKeys.remove(targetPath, true);
+        }
       } else {
         alert(t("error.deleteFailed", { error: result.error }));
       }
@@ -329,8 +324,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       const result = await client.files.rename({ oldPath, newPath });
       if (result.success) {
-        if (selectedKey === oldPath) {
-          setSelectedKey(newPath);
+        if (selectedKeys.has(oldPath)) {
+          selectedKeys.replace(oldPath, newPath); // rename 场景，保持原本对象的文件夹选中状态
         }
       } else {
         alert(t("error.renameFailed", { error: result.error }));
@@ -419,9 +414,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
                 key={item.fullPath}
                 item={item}
                 level={0}
-                expandedKeys={expandedKeys}
+                expandedKeys={expandedKeys.keys}
                 onToggleExpand={handleToggleExpand}
-                selectedKey={selectedKey}
+                selectedKeys={selectedKeys.keys}
                 onSelect={handleSelect}
                 onDelete={handleDelete}
                 onRename={handleRename}

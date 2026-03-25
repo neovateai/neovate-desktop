@@ -57,7 +57,7 @@ describe("sdkMessagesToUIMessage", () => {
     expect(message?.parts.find((part: any) => part.type === "tool-Read")).toMatchObject({
       toolCallId: "call-read",
       state: "output-available",
-      output: "export const ok = true;",
+      output: { text: "export const ok = true;", images: [] },
     });
   });
 });

@@ -5,6 +5,7 @@ import { MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { encodeProjectPath } from "../../../../../shared/claude-code/paths";
+import { APP_NAME } from "../../../../../shared/constants";
 import { Button } from "../../../components/ui/button";
 import {
   ContextMenu,
@@ -74,6 +75,13 @@ export function SessionActionsMenu({
     navigator.clipboard.writeText(command);
   };
 
+  const handleCopyDeeplink = () => {
+    const scheme = `${APP_NAME.toLowerCase()}${window.api.isDev ? "-dev" : ""}`;
+    const deeplink = `${scheme}://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
+    log("copyDeeplink: %s", deeplink);
+    navigator.clipboard.writeText(deeplink);
+  };
+
   const handleArchive = () => {
     const isActive = useAgentStore.getState().activeSessionId === sessionId;
     archiveSession(projectPath, sessionId, isActive);
@@ -108,6 +116,9 @@ export function SessionActionsMenu({
           </ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
             {t("session.copyResumeCommand")}
+          </ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleCopyDeeplink}>
+            {t("session.copyDeeplink")}
           </ContextMenuItem>
         </ContextMenuPopup>
       </ContextMenu>
@@ -145,6 +156,9 @@ export function SessionActionsMenu({
         </MenuItem>
         <MenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
           {t("session.copyResumeCommand")}
+        </MenuItem>
+        <MenuItem disabled={isNew} onClick={handleCopyDeeplink}>
+          {t("session.copyDeeplink")}
         </MenuItem>
       </MenuPopup>
     </Menu>

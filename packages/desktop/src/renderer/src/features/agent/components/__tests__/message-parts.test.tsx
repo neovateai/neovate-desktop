@@ -2,6 +2,13 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../../../orpc", () => ({ client: {} }));
+vi.mock("../../hooks/use-markdown-components", async () => {
+  const { markdownBaseComponents } =
+    await import("../../../../components/ai-elements/markdown-base-components");
+  return { useMarkdownComponents: () => markdownBaseComponents };
+});
+
 import { MessageParts } from "../message-parts";
 import { ClaudeCodeToolUIPart } from "../tool-parts";
 
