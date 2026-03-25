@@ -57,6 +57,7 @@ export class SDKMessageTransformer {
   private readonly agentToolPrompts = new Map<string, string>();
   private readonly contentBlocks = new Map<number, ActiveContentBlock>();
   private readonly activeParentTools = new Map<string, ParentToolState>();
+  private readonly toolCallNames = new Map<string, string>();
   private readonly rootParentToolUseId: string | null;
   private readonly rootToolPrompt: string | null;
 
@@ -509,6 +510,7 @@ export class SDKMessageTransformer {
         try {
           const parsedInput = JSON.parse(finalInput);
           this.rememberAgentToolPrompt(contentBlock.toolCallId, contentBlock.toolName, parsedInput);
+          this.toolCallNames.set(contentBlock.toolCallId, contentBlock.toolName);
           yield {
             type: "tool-input-available",
             toolCallId: contentBlock.toolCallId,
@@ -569,6 +571,7 @@ export class SDKMessageTransformer {
         }
         case "tool_use": {
           this.rememberAgentToolPrompt(part.id, part.name, part.input);
+          this.toolCallNames.set(part.id, part.name);
           yield {
             type: "tool-input-available",
             toolCallId: part.id,
@@ -613,7 +616,9 @@ export class SDKMessageTransformer {
             yield {
               type: "tool-output-available",
               toolCallId: part.tool_use_id,
-              output: this.normalizeToolOutput(part.content),
+              output: this.shouldNormalizeOutput(part.tool_use_id)
+                ? this.normalizeToolOutput(part.content)
+                : part.content,
               providerExecuted: true,
             };
           }
@@ -726,6 +731,19 @@ export class SDKMessageTransformer {
     }
 
     return parts;
+  }
+
+  private static readonly CUSTOM_OUTPUT_TOOLS = new Set([
+    "AskUserQuestion",
+    "TaskOutput",
+    "TaskStop",
+    "Agent",
+    "Task",
+  ]);
+
+  private shouldNormalizeOutput(toolCallId: string): boolean {
+    const toolName = this.toolCallNames.get(toolCallId);
+    return toolName == null || !SDKMessageTransformer.CUSTOM_OUTPUT_TOOLS.has(toolName);
   }
 
   private normalizeToolOutput(content: unknown): NormalizedToolOutput {

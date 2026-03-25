@@ -8,11 +8,9 @@ export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 
-  const terminalOutput = output?.text
-    ? input?.command
-      ? `$ ${input.command}\n${output.text}`
-      : output.text
-    : "";
+  const terminalOutput = input?.command
+    ? `$ ${input.command}${output?.text ? `\n${output.text}` : ""}`
+    : (output?.text ?? "");
 
   return (
     <Tool>
