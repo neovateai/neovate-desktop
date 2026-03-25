@@ -325,6 +325,8 @@
   "session.showLess": "Show less",
 
   "project.openProject": "Open Project",
+  "project.searchPlaceholder": "Search projects...",
+  "project.noResults": "No projects found",
   "project.selectProject": "Select a project...",
   "project.getStarted": "Open a project to get started",
   "project.pathMissing": "Directory not found",

@@ -327,6 +327,8 @@
   "session.showLess": "收起",
 
   "project.openProject": "打开项目",
+  "project.searchPlaceholder": "搜索项目...",
+  "project.noResults": "未找到项目",
   "project.selectProject": "选择项目...",
   "project.getStarted": "打开项目开始使用",
   "project.pathMissing": "目录未找到",
