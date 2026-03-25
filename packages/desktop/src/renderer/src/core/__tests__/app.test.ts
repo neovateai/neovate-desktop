@@ -2,10 +2,16 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("../../orpc", () => ({ client: {} }));
 
+import type { PluginContext } from "../plugin/types";
+
 import { computeTotalWidth } from "../../components/app-layout/layout-coordinator";
 import { layoutStore } from "../../components/app-layout/store";
 import { RendererApp } from "../app";
 import { toDisposable } from "../disposable";
+
+function makeCtx(app: RendererApp): PluginContext {
+  return { app, orpcClient: {} };
+}
 
 describe("RendererApp", () => {
   it("exposes pluginManager", () => {
@@ -22,7 +28,7 @@ describe("RendererApp", () => {
 
   it("exposes workbench layout and contentPanel after initWorkbench", async () => {
     const app = new RendererApp({ plugins: [] });
-    await app.pluginManager.configContributions();
+    await app.pluginManager.configContributions(makeCtx(app));
     app.initWorkbench();
     expect(app.workbench).toBeDefined();
     expect(app.workbench.layout).toBeDefined();
@@ -34,7 +40,7 @@ describe("RendererApp", () => {
 
   it("maximizes content panel via workbench layout API", async () => {
     const app = new RendererApp({ plugins: [] });
-    await app.pluginManager.configContributions();
+    await app.pluginManager.configContributions(makeCtx(app));
     app.initWorkbench();
 
     const previousPanels = layoutStore.getState().panels;
@@ -76,7 +82,7 @@ describe("RendererApp", () => {
 
   it("no-ops maximizePart when content panel is collapsed", async () => {
     const app = new RendererApp({ plugins: [] });
-    await app.pluginManager.configContributions();
+    await app.pluginManager.configContributions(makeCtx(app));
     app.initWorkbench();
 
     const previousPanels = layoutStore.getState().panels;
@@ -115,7 +121,7 @@ describe("RendererApp", () => {
     const app = new RendererApp({
       plugins: [{ name: "test", deactivate: deactivateFn }],
     });
-    await app.pluginManager.configContributions();
+    await app.pluginManager.configContributions(makeCtx(app));
     app.initWorkbench();
     app.subscriptions.push(toDisposable(disposeFn));
     await app.stop();
