@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
 import { editorContract, EditorOpenOption } from "../../../../shared/plugins/editor/contract";
+import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { ErrorState, LoadingState } from "./status";
@@ -84,24 +85,15 @@ function EditorViewCore(props: { cwd: string }) {
   /** receive `open-editor` event from other views and call extension to execute */
   const initFileOpener = () => {
     {
-      const openEditor = (fullPath: string, line: number, focus?: boolean) => {
-        if (!fullPath) {
-          return;
-        }
-        log("opening file", { fullPath, line });
-        client.editor.open({ cwd, fullPath, line, focus });
-        // @ts-ignore 清理
-        window.pendingEditorRequest = undefined;
-      };
       // @ts-ignore 避免初始化前未收到事件
-      const pendingEditorRequest = window.pendingEditorRequest as {
-        fullPath: string;
-        line?: number;
-      };
-      if (pendingEditorRequest?.fullPath) {
-        openEditor(pendingEditorRequest.fullPath, pendingEditorRequest.line || 1);
+      const pending = window.pendingEditorRequest as EditorOpenOption;
+      if (pending?.fullPath) {
+        openInEditor({
+          fullPath: pending.fullPath,
+          line: pending.line || 1,
+          focus: pending?.focus,
+        });
       }
-
       // 连接成功后初始化插件可接受的操作事件响应函数
       const openEditorEvent = (e: Event) => {
         const {
@@ -109,13 +101,32 @@ function EditorViewCore(props: { cwd: string }) {
           line = 1,
           focus = false,
         } = (e as CustomEvent<EditorOpenOption>)?.detail || {};
-        openEditor(fullPath, line, focus);
+        openInEditor({ fullPath, line, focus });
       };
       window.addEventListener("neovate:open-editor", openEditorEvent);
 
       return () => {
         window.addEventListener("neovate:open-editor", openEditorEvent);
       };
+    }
+  };
+
+  const openInEditor = async (opts: EditorOpenOption) => {
+    const { fullPath, line, focus } = opts || {};
+    if (!fullPath) {
+      return;
+    }
+    log("opening file", { fullPath, line });
+    // @ts-ignore 清理
+    window.pendingEditorRequest = undefined;
+    const res = await client.editor.open({ cwd, fullPath, line, focus });
+    if (res?.error) {
+      toastManager.add({
+        type: "warning",
+        title: "Editor warning",
+        description: res.error,
+        timeout: 8000,
+      });
     }
   };
 
