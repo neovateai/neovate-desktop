@@ -239,6 +239,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       }
 
       // Only handle when file tree panel is visible and has selection
+      const selectedKey = selectedKeys.keys.size > 0 ? [...selectedKeys.keys][0] : null;
       if (!isVisible || !selectedKey || editingKey) return;
 
       e.preventDefault();
@@ -255,7 +256,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isVisible, selectedKey, editingKey, treeData]);
+  }, [isVisible, selectedKeys.keys, editingKey, treeData]);
 
   // Helper function: find tree node by path
   const findItemByPath = (items: FileTreeItem[], path: string): FileTreeItem | null => {
