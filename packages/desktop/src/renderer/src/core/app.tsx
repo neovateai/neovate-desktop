@@ -1,4 +1,5 @@
 import debug from "debug";
+import i18n from "i18next";
 import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
 import ReactDOM from "react-dom/client";
@@ -11,7 +12,7 @@ const startupLog = debug("neovate:startup");
 
 import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
 import { layoutStore } from "../components/app-layout/store";
-import { ToastProvider } from "../components/ui/toast";
+import { ToastProvider, toastManager } from "../components/ui/toast";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
@@ -140,6 +141,7 @@ export class RendererApp implements IRendererApp {
         listener(state.activeProject);
       }),
     refresh: async () => {
+      const prevActive = useProjectStore.getState().activeProject;
       const [projects, activeProject] = await Promise.all([
         client.project.list(),
         client.project.getActive(),
@@ -147,6 +149,17 @@ export class RendererApp implements IRendererApp {
       const state = useProjectStore.getState();
       state.setProjects(projects);
       state.setActiveProject(activeProject);
+
+      // Notify user when their active project was cleared due to a missing path
+      if (prevActive && !activeProject && projects.length > 0) {
+        toastManager.add({
+          type: "warning",
+          title: i18n.t("project.unavailable", { name: prevActive.name }),
+          description: i18n.t("project.directoryNotFound", { path: prevActive.path }),
+          timeout: 8000,
+        });
+      }
+
       return activeProject;
     },
   };

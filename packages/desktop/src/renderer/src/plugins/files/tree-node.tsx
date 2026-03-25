@@ -38,6 +38,7 @@ function FileLangIcon(props: { path: string; size?: number }) {
     <div
       className="seti-icon"
       data-lang={suffix}
+      data-name={filename}
       style={{ fontSize: size, width: 12, height: 12, lineHeight: `12px` }}
     ></div>
   );

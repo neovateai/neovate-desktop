@@ -72,6 +72,11 @@ describe("SessionManager", () => {
       { get: vi.fn(() => undefined) } as unknown as ConfigStore,
       {} as ProjectStore,
       new RequestTracker(),
+      {
+        onTurnStart: vi.fn(),
+        onTurnEnd: vi.fn(),
+        onSessionClosed: vi.fn(),
+      } as unknown as import("../../../core/power-blocker-service").PowerBlockerService,
     );
   });
 
@@ -173,6 +178,10 @@ describe("SessionManager", () => {
     await expect(stream.next()).resolves.toMatchObject({
       done: false,
       value: { type: "finish" },
+    });
+    await expect(stream.next()).resolves.toMatchObject({
+      done: false,
+      value: { type: "data-result/success" },
     });
     await expect(stream.next()).resolves.toMatchObject({ done: true, value: undefined });
 

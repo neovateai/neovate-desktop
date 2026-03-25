@@ -43,10 +43,10 @@ All logs from both main and renderer processes are automatically written to a si
 
 ## UI Playground
 
-A dev-only playground with two tabs:
+A dev-only playground focused on **AI Elements**:
 
-- **AI Elements** — all `ai-elements` components rendered with sample data
-- **Chat** — `ClaudeCodeMessageParts` renderer with a real Claude Code session as mock data
+- **Chat** — `Conversation`, `MessageParts`, and nested tool renderers with isolated chat scenarios
+- **Tools** — every Claude Code tool renderer with per-tool state and scenario switching
 
 ```sh
 VITE_UI_PLAYGROUND=1 bun dev

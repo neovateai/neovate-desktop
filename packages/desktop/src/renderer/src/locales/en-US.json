@@ -1,4 +1,10 @@
 {
+  "chat.messages.summary": "{{toolCallCount}} tool calls, {{messageCount}} messages",
+  "chat.messages.summarySeparator": ", ",
+  "chat.messages.summaryToolsOnly": "{{toolCallCount}} tool calls",
+  "chat.messages.summaryMessagesOnly": "{{messageCount}} messages",
+  "chat.messages.summaryReasoningOnly": "{{reasoningCount}} thoughts",
+  "chat.messages.copyMarkdown": "Copy markdown",
   "settings.theme": "Theme",
   "settings.theme.description": "Select your preferred color scheme",
   "settings.theme.light": "Light",
@@ -52,9 +58,13 @@
   "settings.chat.permissionMode": "Permission Mode",
   "settings.chat.permissionMode.description": "Control how actions are approved",
   "settings.chat.permissionMode.default": "Default",
+  "settings.chat.permissionMode.default.desc": "Normal coding tasks, confirm each step",
   "settings.chat.permissionMode.acceptEdits": "Auto Edit",
+  "settings.chat.permissionMode.acceptEdits.desc": "Trusted code changes, auto-accept file edits",
   "settings.chat.permissionMode.bypassPermissions": "YOLO",
+  "settings.chat.permissionMode.bypassPermissions.desc": "Fast iteration, skip all permission checks",
   "settings.chat.permissionMode.plan": "Plan",
+  "settings.chat.permissionMode.plan.desc": "Complex tasks, plan before executing",
   "settings.chat.permissionMode.dontAsk": "Don't Ask",
   "settings.chat.notification": "Notification",
   "settings.chat.notification.description": "Sound notification when task completes",
@@ -68,6 +78,8 @@
   "settings.chat.tokenOptimization.description": "Reduce token usage by filtering command output (via RTK)",
   "settings.chat.networkInspector": "Network Inspector",
   "settings.chat.networkInspector.description": "Show API requests in the Network panel. Takes effect on new sessions.",
+  "settings.chat.keepAwake": "Keep Awake",
+  "settings.chat.keepAwake.description": "Prevent system sleep while a task is running",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
   "settings.chat.group.model": "Model",
@@ -117,7 +129,9 @@
   "settings.keybindings.toggleTerminal": "Toggle Terminal",
   "settings.keybindings.toggleBrowser": "Toggle Browser",
   "settings.keybindings.toggleFiles": "Toggle Files",
+  "settings.keybindings.toggleSidebar": "Toggle Sidebar",
   "settings.keybindings.toggleMultiProject": "Toggle Multi-Project Support",
+  "settings.keybindings.togglePinSession": "Toggle Pin Session",
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
   "settings.providers": "Providers",
@@ -289,6 +303,8 @@
   "sidebar.sortBy.created": "Created",
   "sidebar.sortBy.updated": "Updated",
   "sidebar.noProject": "No project",
+  "sidebar.noProjects": "No projects",
+  "sidebar.addFirstProject": "Click the + icon above to add your first project",
 
   "session.noConversations": "No conversations",
   "session.noConversationsYet": "No conversations yet",
@@ -299,6 +315,7 @@
   "session.pin": "Pin",
   "session.unpin": "Unpin",
   "session.archive": "Archive",
+  "session.archiveConfirm": "Confirm archive",
   "session.copyWorkingDirectory": "Copy working directory",
   "session.copySessionId": "Copy session ID",
   "session.copyJsonlPath": "Copy session JSONL path",
@@ -308,6 +325,14 @@
 
   "project.openProject": "Open Project",
   "project.selectProject": "Select a project...",
+  "project.getStarted": "Open a project to get started",
+  "project.pathMissing": "Directory not found",
+  "project.unavailable": "Project \"{{name}}\" unavailable",
+  "project.directoryNotFound": "Directory not found: {{path}}",
+  "project.cannotSwitch": "Cannot switch to \"{{name}}\"",
+  "project.directoryNoLongerExists": "Directory no longer exists",
+  "project.switchFailed": "Failed to switch project",
+  "project.switchFailedDescription": "An unexpected error occurred",
 
   "openIn.open": "Open",
   "openIn.noAppsDetected": "No apps detected",
@@ -333,6 +358,7 @@
 
   "error.somethingWentWrong": "Something went wrong",
   "error.tryAgain": "Try again",
+  "error.copyError": "Copy error",
 
   "chat.guideMessage": "Hi~  I'm {{APP_NAME}}, what shall we create today?",
   "chat.placeholder": "Type a message...",
@@ -343,6 +369,7 @@
   "chat.sendCmdEnter": "Send (⌘Enter)",
   "chat.planMode": "Plan mode",
   "chat.planModeExit": "Shift+Tab to exit",
+  "chat.suggestionSent": "Sent suggested follow-up",
   "chat.sdkDefault": "SDK Default",
   "chat.manageProviders": "Manage Providers...",
   "chat.setProjectDefault": "Set as project default",
@@ -353,5 +380,13 @@
   "chat.sessionInitializing": "Starting session...",
   "chat.sessionInitFailed": "Session failed to start",
   "chat.sessionInitRetry": "Retry",
-  "chat.sessionInitNetworkHint": "Try disabling Network Inspector in Settings and retry"
+  "chat.sessionInitNetworkHint": "Try disabling Network Inspector in Settings and retry",
+
+  "chat.tools.bashOutput.polling": "Polling background shell output",
+  "chat.tools.bashOutput.pollingFiltered": "Polling background shell output filtered by {{filter}}.",
+  "chat.tools.slashCommand.running": "Running the slash command and waiting for a response.",
+
+  "chat.context.title": "Context Window",
+  "chat.context.used": "Used",
+  "chat.context.total": "Total"
 }

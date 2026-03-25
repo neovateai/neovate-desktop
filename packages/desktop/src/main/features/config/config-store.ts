@@ -35,6 +35,7 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   notificationSound: "default",
   tokenOptimization: true,
   networkInspector: false,
+  keepAwake: false,
 
   // Keybindings
   keybindings: {},
@@ -71,6 +72,12 @@ export class ConfigStore {
 
   set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
     this.store.set(key, value);
+  }
+
+  onChange<K extends keyof AppConfig>(key: K, cb: (newValue: AppConfig[K]) => void): () => void {
+    return this.store.onDidChange(key, (newValue) => {
+      cb(newValue as AppConfig[K]);
+    });
   }
 
   // --- Provider methods ---

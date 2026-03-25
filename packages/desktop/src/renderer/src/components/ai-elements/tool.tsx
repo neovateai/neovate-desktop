@@ -49,6 +49,7 @@ const toolIconMap: Record<string, { icon: React.FC<LucideProps>; color: string }
 
   // System & Shell
   Bash: { icon: Terminal, color: "text-muted-foreground" },
+  BashOutput: { icon: Terminal, color: "text-muted-foreground" },
 
   // Search
   Glob: { icon: Search, color: "text-muted-foreground" },
@@ -70,6 +71,7 @@ const toolIconMap: Record<string, { icon: React.FC<LucideProps>; color: string }
   // Agent & Skills
   Agent: { icon: Bot, color: "text-muted-foreground" },
   Skill: { icon: Wand2, color: "text-muted-foreground" },
+  SlashCommand: { icon: Wand2, color: "text-muted-foreground" },
 
   // Plan mode
   EnterPlanMode: { icon: Map, color: "text-muted-foreground" },
@@ -174,42 +176,12 @@ export type ToolHeaderProps = {
 );
 
 // Status dot component
-const StatusDot = ({
-  state,
-  preliminary = false,
-}: {
-  state: ToolPart["state"];
-  preliminary?: boolean;
-}) => {
-  const isRunning =
-    state === "input-available" ||
-    state === "input-streaming" ||
-    (preliminary && state === "output-available");
-
-  const statusStyles = {
-    "approval-requested": "bg-yellow-500",
-    "approval-responded": "bg-muted-foreground/50",
-    "input-available": "bg-primary",
-    "input-streaming": "bg-primary",
-    "output-available": "bg-muted-foreground/50",
-    "output-denied": "bg-orange-500",
-    "output-error": "bg-red-500",
-  };
-
-  if (isRunning) {
-    return (
-      <span className="relative flex size-1.5">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-        <span className="relative inline-flex rounded-full size-1.5 bg-primary" />
-      </span>
-    );
+const StatusDot = ({ state }: { state: ToolPart["state"]; preliminary?: boolean }) => {
+  if (state !== "output-error") {
+    return null;
   }
 
-  return (
-    <span
-      className={cn("size-1.5 rounded-full shrink-0", statusStyles[state] || "bg-muted-foreground")}
-    />
-  );
+  return <span className="size-1.5 rounded-full shrink-0 bg-red-500" />;
 };
 
 export const ToolHeader = ({
@@ -242,48 +214,54 @@ export const ToolHeader = ({
     : actionName || displayName || derivedName;
 
   return (
-    <CollapsibleTrigger
-      className={cn(
-        "flex items-center gap-2 py-1 px-2 rounded-md",
-        "transition-colors cursor-pointer group w-full hover:bg-muted/50",
-        className,
-      )}
-      {...props}
-    >
-      <TooltipProvider>
-        {/* Icon */}
-        <div className="relative flex items-center justify-center size-5 rounded shrink-0">
-          <ToolIcon className={cn("size-3.5", iconColor)} />
-        </div>
-        <span className="text-sm text-foreground truncate">
-          {mainLabel}&nbsp;
-          {extra && <span className="text-muted-foreground"> {extra}</span>}
-          {/* Only show displayName separately when it's a file path */}
-          {hasFilePath && displayName && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span className="cursor-default">
-                    {extra ? "" : " "}
-                    <span className="text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                      {displayName}
+    <TooltipProvider>
+      <div
+        className={cn(
+          "flex items-center justify-start gap-2 text-left transition-colors",
+          className,
+        )}
+      >
+        <CollapsibleTrigger
+          className="inline-flex gap-2 flex-none w-max shrink-0 appearance-none items-center justify-start cursor-pointer bg-transparent p-0 m-0 border-0"
+          style={{ width: "max-content" }}
+          {...props}
+        >
+          <div className="relative flex size-4 shrink-0 items-center justify-center">
+            <ToolIcon
+              className={cn(
+                "absolute size-4 transition-opacity duration-150 group-hover/tool:opacity-0",
+                iconColor,
+              )}
+            />
+            <ChevronDown className="absolute size-4 -rotate-90 text-muted-foreground opacity-0 transition-all duration-150 group-hover/tool:opacity-100 group-data-[open]/tool:rotate-0" />
+          </div>
+
+          <span className="min-w-0 truncate text-sm text-foreground">
+            {mainLabel}&nbsp;
+            {extra && <span className="text-muted-foreground"> {extra}</span>}
+            {hasFilePath && displayName && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span className="cursor-default">
+                      {extra ? "" : " "}
+                      <span className="text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                        {displayName}
+                      </span>
                     </span>
-                  </span>
-                }
-              />
-              <TooltipContent side="top" align="start" className="max-w-md">
-                <p className="break-all">{fullPath}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </span>
-        <StatusDot state={state} preliminary={preliminary} />
-        {/* Micro chevron - shows on hover, starts pointing right (-rotate-90), rotates to down (0) when open */}
-        <div className="relative flex items-center justify-center size-4 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ChevronDown className="size-3 text-muted-foreground transition-transform -rotate-90 group-data-[open]/tool:rotate-0" />
-        </div>
-      </TooltipProvider>
-    </CollapsibleTrigger>
+                  }
+                />
+                <TooltipContent side="top" align="start" className="max-w-md">
+                  <p className="break-all">{fullPath}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </span>
+
+          <StatusDot state={state} preliminary={preliminary} />
+        </CollapsibleTrigger>
+      </div>
+    </TooltipProvider>
   );
 };
 
@@ -307,7 +285,7 @@ export const ToolContent = ({ className, children }: ToolContentProps) => (
           >
             <div
               className={cn(
-                "pl-7 space-y-2 py-1.5 pr-2 text-popover-foreground [--code-block-content-visibility:visible]",
+                "space-y-2 text-popover-foreground [--code-block-content-visibility:visible]",
                 className,
               )}
             >
@@ -325,11 +303,9 @@ export type ToolInputProps = ComponentProps<"div"> & {
 };
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-1", className)} {...props}>
-    <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
-      Input
-    </span>
-    <div className="rounded-lg overflow-hidden">
+  <div className={cn("space-y-1.5", className)} {...props}>
+    <span className="text-xs font-medium text-muted-foreground">Input</span>
+    <div className="rounded-md bg-muted/30 overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -354,17 +330,17 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   }
 
   return (
-    <div className={cn("space-y-1", className)} {...props}>
-      <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
+    <div className={cn("space-y-1.5", className)} {...props}>
+      <span className="text-xs font-medium text-muted-foreground">
         {errorText ? "Error" : "Output"}
       </span>
       <div
         className={cn(
-          "rounded-lg overflow-hidden",
-          errorText && "bg-destructive/10 text-destructive",
+          "rounded-md overflow-hidden",
+          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/30",
         )}
       >
-        {errorText && <div className="p-2.5 text-sm">{errorText}</div>}
+        {errorText && <div className="p-3 text-sm">{errorText}</div>}
         {Output}
       </div>
     </div>

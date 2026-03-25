@@ -1,24 +1,16 @@
-import { MultiFileDiff } from "@pierre/diffs/react";
+import { FileDiff, MultiFileDiff } from "@pierre/diffs/react";
 import debug from "debug";
 import { Columns2, AlignJustify, File, FilePlus, GitBranch, GitCommit } from "lucide-react";
 import { useTheme } from "next-themes";
-import { memo, useEffect, useMemo, useState } from "react";
-
-const log = debug("neovate:git:diff");
+import { memo, useEffect, useState } from "react";
 
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { useDiffData, useDiffStyle } from "./hooks/useDiff";
 import { Client } from "./hooks/useGit";
 import { useGitTranslation } from "./i18n";
 
-interface DiffData {
-  oldContent: string;
-  newContent: string;
-  fileName: string;
-  fileStatus?: string;
-}
-
-type DiffStyle = "unified" | "split";
+const log = debug("neovate:git:diff");
 
 export default memo(function GitDiffView() {
   const { t } = useGitTranslation();
@@ -29,30 +21,10 @@ export default memo(function GitDiffView() {
   const { resolvedTheme } = useTheme();
 
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
-  const [diffData, setDiffData] = useState<DiffData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [diffStyle, setDiffStyle] = useState<DiffStyle>("unified");
-
-  const diffOptions = useMemo(
-    () => ({
-      theme: resolvedTheme === "dark" ? "pierre-dark" : "pierre-light",
-      diffStyle,
-      expandUnchanged: false,
-      expansionLineCount: 20,
-      tokenizeMaxLineLength: 500,
-    }),
-    [resolvedTheme, diffStyle],
-  );
-
-  const oldFile = {
-    name: diffData?.fileName || "",
-    contents: diffData?.oldContent || "",
-  };
-  const newFile = {
-    name: diffData?.fileName || "",
-    contents: diffData?.newContent || "",
-  };
+  const { oldFile, newFile, fileDiff, diffLine, diffData, setDiffData } = useDiffData();
+  const { diffStyle, toggleDiffStyle, options: diffOptions } = useDiffStyle(resolvedTheme);
 
   useEffect(() => {
     const handleOpenGitDiff = (e: Event) => {
@@ -60,8 +32,9 @@ export default memo(function GitDiffView() {
         (e as CustomEvent<{ relPath: string; isStaged: boolean }>)?.detail || {};
       if (relPath) {
         log("handleOpenGitDiff", { relPath, isStaged });
+        const isSameFile = relPath === currentFilePath;
         setCurrentFilePath(relPath);
-        loadDiff(relPath, isStaged ? "staged" : "working");
+        loadDiff(relPath, isStaged ? "staged" : "working", isSameFile);
       }
     };
 
@@ -69,7 +42,7 @@ export default memo(function GitDiffView() {
     return () => {
       window.removeEventListener("neovate:open-git-diff", handleOpenGitDiff);
     };
-  }, [cwd]);
+  }, [cwd, currentFilePath]);
 
   const getFileDiff = async (file: string, type: "working" | "staged") => {
     try {
@@ -86,10 +59,12 @@ export default memo(function GitDiffView() {
     }
   };
 
-  const loadDiff = async (relPath: string, type: "working" | "staged") => {
+  const loadDiff = async (relPath: string, type: "working" | "staged", silent = false) => {
     if (!cwd) return;
-    log("loadDiff", { relPath, type });
-    setLoading(true);
+    log("loadDiff", { relPath, type, silent });
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -111,13 +86,24 @@ export default memo(function GitDiffView() {
       console.error("Failed to load diff:", err);
       setError(t("git.diff.loadFailed"));
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
-  const toggleDiffStyle = () => {
-    setDiffStyle((prev) => (prev === "split" ? "unified" : "split"));
+  const getFileIcon = (filePath: string) => {
+    const filename = filePath.split("/").pop() || filePath;
+    const suffix = filename.split(".").pop();
+    return <div className="seti-icon flex-shrink-0 w-3.5 h-3.5" data-lang={suffix}></div>;
   };
+
+  // 计算文件状态（需要在条件返回之前）
+  const hasOldContent = diffData?.oldContent && diffData.oldContent.trim().length > 0;
+  const hasNewContent = diffData?.newContent && diffData.newContent.trim().length > 0;
+  const isNewFile = !hasOldContent && hasNewContent;
+  const isDeletedFile = hasOldContent && !hasNewContent;
+  const isUntracked = diffData?.fileStatus === "untracked";
 
   if (!currentFilePath) {
     return (
@@ -158,18 +144,36 @@ export default memo(function GitDiffView() {
     );
   }
 
-  const hasOldContent = diffData.oldContent && diffData.oldContent.trim().length > 0;
-  const hasNewContent = diffData.newContent && diffData.newContent.trim().length > 0;
-  const isNewFile = !hasOldContent && hasNewContent;
-  const isDeletedFile = hasOldContent && !hasNewContent;
-
-  // 区分新文件的类型：未跟踪还是已暂存的
-  const isUntracked = diffData.fileStatus === "untracked";
-
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background border rounded-md mt-2">
       {/* Header bar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+        {currentFilePath && (
+          <>
+            {getFileIcon(currentFilePath)}
+            <span className="text-sm text-foreground flex-shrink-0" title={currentFilePath}>
+              {diffData?.fileName}
+            </span>
+            <span className="text-xs text-muted-foreground truncate" title={currentFilePath}>
+              {currentFilePath}
+            </span>
+            {/* 变更统计 */}
+            {(diffLine.additions > 0 || diffLine.deletions > 0) && (
+              <div className="flex items-center gap-1 ml-2 text-xs">
+                {diffLine.additions > 0 && (
+                  <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
+                    +{diffLine.additions}
+                  </span>
+                )}
+                {diffLine.deletions > 0 && (
+                  <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400">
+                    -{diffLine.deletions}
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        )}
         <div className="flex-1" />
 
         {/* Diff style toggle */}
@@ -231,7 +235,7 @@ export default memo(function GitDiffView() {
             options={diffOptions}
           />
         ) : (
-          <MultiFileDiff oldFile={oldFile} newFile={newFile} options={diffOptions} />
+          <FileDiff fileDiff={fileDiff} options={diffOptions} />
         )}
       </div>
     </div>

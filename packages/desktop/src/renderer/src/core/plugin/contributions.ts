@@ -39,6 +39,7 @@ export interface ContentPanelView {
   name: string | LocalizedString;
   icon?: React.ComponentType<{ className?: string }>;
   singleton?: boolean; // default true; per-project scope
+  persist?: boolean; // default true; whether the tab is persisted to storage
   deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
   component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }

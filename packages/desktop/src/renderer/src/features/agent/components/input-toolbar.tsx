@@ -12,7 +12,7 @@ import {
   Shield,
   Square,
 } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
@@ -35,6 +35,7 @@ import {
   MenuRadioItem,
 } from "../../../components/ui/menu";
 import { Spinner } from "../../../components/ui/spinner";
+import { cn } from "../../../lib/utils";
 import { client } from "../../../orpc";
 import { useConfigStore } from "../../config/store";
 import { useProviderStore } from "../../provider/store";
@@ -206,15 +207,39 @@ function ConnectedPermissionModeSelect({
         <span>{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
         <ChevronDown className="h-3 w-3 opacity-50" />
       </MenuTrigger>
-      <MenuPopup side="top" align="start">
+      <MenuPopup side="top" align="start" className="min-w-52">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
-          <MenuRadioItem value="default">{t("settings.chat.permissionMode.default")}</MenuRadioItem>
-          <MenuRadioItem value="acceptEdits">
-            {t("settings.chat.permissionMode.acceptEdits")}
+          <MenuRadioItem value="default" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.default")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.default.desc")}
+              </span>
+            </div>
           </MenuRadioItem>
-          <MenuRadioItem value="plan">{t("settings.chat.permissionMode.plan")}</MenuRadioItem>
-          <MenuRadioItem value="bypassPermissions">
-            {t("settings.chat.permissionMode.bypassPermissions")}
+          <MenuRadioItem value="acceptEdits" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.acceptEdits")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.acceptEdits.desc")}
+              </span>
+            </div>
+          </MenuRadioItem>
+          <MenuRadioItem value="plan" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.plan")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.plan.desc")}
+              </span>
+            </div>
+          </MenuRadioItem>
+          <MenuRadioItem value="bypassPermissions" className="items-start py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span>{t("settings.chat.permissionMode.bypassPermissions")}</span>
+              <span className="text-[10px] text-muted-foreground/80 font-normal">
+                {t("settings.chat.permissionMode.bypassPermissions.desc")}
+              </span>
+            </div>
           </MenuRadioItem>
         </MenuRadioGroup>
       </MenuPopup>
@@ -235,6 +260,7 @@ function ModelSelect({
   activeSessionId: string | null;
   disabled: boolean;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const chat = activeSessionId ? claudeCodeChatManager.getChat(activeSessionId) : undefined;
   if (!activeSessionId || !chat) return null;
 
@@ -243,6 +269,8 @@ function ModelSelect({
       activeSessionId={activeSessionId}
       chatStore={chat.store}
       disabled={disabled}
+      menuOpen={menuOpen}
+      setMenuOpen={setMenuOpen}
     />
   );
 }
@@ -251,10 +279,14 @@ function ConnectedModelSelect({
   activeSessionId,
   chatStore,
   disabled,
+  menuOpen,
+  setMenuOpen,
 }: {
   activeSessionId: string;
   chatStore: StoreApi<ClaudeCodeChatStoreState>;
   disabled: boolean;
+  menuOpen: boolean;
+  setMenuOpen: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
@@ -371,6 +403,9 @@ function ConnectedModelSelect({
         { commands, models, currentModel: cm, modelScope: ms, providerId: pid },
         true,
       );
+
+      // Keep menu open after provider switch
+      setMenuOpen(true);
     },
     [activeSessionId, providerId, hasMessages, sessionCwd],
   );
@@ -409,7 +444,7 @@ function ConnectedModelSelect({
   return (
     <ContextMenu>
       <ContextMenuTrigger className="inline-flex">
-        <Menu>
+        <Menu open={menuOpen} onOpenChange={setMenuOpen}>
           <MenuTrigger
             disabled={disabled}
             className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
@@ -418,77 +453,82 @@ function ConnectedModelSelect({
             <span className="max-w-[200px] truncate">{buttonLabel}</span>
             <ChevronDown className="h-3 w-3 opacity-50" />
           </MenuTrigger>
-          <MenuPopup side="top" align="start" className="max-h-80 overflow-y-auto">
+          <MenuPopup side="top" align="start" className="max-h-80 min-w-48 overflow-y-auto">
             {/* Provider groups — only show when providers exist */}
             {providers.filter((p) => p.enabled).length > 0 && (
               <>
                 {providers
                   .filter((p) => p.enabled)
-                  .map((p) => (
-                    <div key={p.id}>
-                      <button
-                        type="button"
-                        disabled={hasMessages && providerId !== p.id}
-                        className={`w-full text-left px-3 py-1.5 text-xs font-medium ${
-                          providerId === p.id
-                            ? "text-foreground"
-                            : hasMessages
-                              ? "text-muted-foreground/50 cursor-not-allowed"
-                              : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
-                        }`}
-                        title={
-                          hasMessages && providerId !== p.id
-                            ? t("chat.providerSwitchHint")
-                            : undefined
-                        }
-                        onClick={() => {
-                          if (providerId !== p.id && !hasMessages) {
-                            handleProviderSwitch(p.id);
-                          }
-                        }}
-                      >
-                        {providerId === p.id ? "\u2022 " : "\u25CB "}
-                        {p.name}
-                      </button>
-                      {providerId === p.id && (
-                        <MenuRadioGroup
-                          value={currentModel ?? ""}
-                          onValueChange={handleModelSelect}
+                  .map((p) => {
+                    const isActive = providerId === p.id;
+                    const isDisabled = hasMessages && !isActive;
+                    return (
+                      <div key={p.id} className="py-0.5">
+                        <button
+                          type="button"
+                          disabled={isDisabled}
+                          className={cn(
+                            "w-full text-left px-2 py-1.5 text-xs font-medium rounded-md mx-1 transition-colors",
+                            "w-[calc(100%-0.5rem)]",
+                            isActive
+                              ? "bg-accent text-accent-foreground"
+                              : isDisabled
+                                ? "text-muted-foreground/40 cursor-not-allowed"
+                                : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer",
+                          )}
+                          title={isDisabled ? t("chat.providerSwitchHint") : undefined}
+                          onClick={() => {
+                            if (!isActive && !hasMessages) {
+                              handleProviderSwitch(p.id);
+                            }
+                          }}
                         >
-                          {Object.entries(p.models).map(([key, entry]) => {
-                            const aliases: string[] = [];
-                            if (p.modelMap.model === key) aliases.push("default");
-                            if (p.modelMap.haiku === key) aliases.push("haiku");
-                            if (p.modelMap.opus === key) aliases.push("opus");
-                            if (p.modelMap.sonnet === key) aliases.push("sonnet");
-                            const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
-                            return (
-                              <MenuRadioItem key={key} value={key} className="pl-6">
-                                {(entry.displayName ?? key) + badge}
-                              </MenuRadioItem>
-                            );
-                          })}
-                        </MenuRadioGroup>
-                      )}
-                    </div>
-                  ))}
+                          {p.name}
+                        </button>
+                        {isActive && (
+                          <div className="mt-1 ml-2 pl-2 border-l-2 border-accent">
+                            <MenuRadioGroup
+                              value={currentModel ?? ""}
+                              onValueChange={handleModelSelect}
+                            >
+                              {Object.entries(p.models).map(([key, entry]) => {
+                                const aliases: string[] = [];
+                                if (p.modelMap.model === key) aliases.push("default");
+                                if (p.modelMap.haiku === key) aliases.push("haiku");
+                                if (p.modelMap.opus === key) aliases.push("opus");
+                                if (p.modelMap.sonnet === key) aliases.push("sonnet");
+                                const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
+                                return (
+                                  <MenuRadioItem key={key} value={key}>
+                                    {(entry.displayName ?? key) + badge}
+                                  </MenuRadioItem>
+                                );
+                              })}
+                            </MenuRadioGroup>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 <div className="h-px bg-border my-1" />
               </>
             )}
 
             {/* SDK Default section */}
-            <div>
+            <div className="py-0.5">
               {providers.filter((p) => p.enabled).length > 0 && (
                 <button
                   type="button"
                   disabled={hasMessages && !!providerId}
-                  className={`w-full text-left px-3 py-1.5 text-xs font-medium ${
+                  className={cn(
+                    "w-full text-left px-2 py-1.5 text-xs font-medium rounded-md mx-1 transition-colors",
+                    "w-[calc(100%-0.5rem)]",
                     !providerId
-                      ? "text-foreground"
-                      : hasMessages
-                        ? "text-muted-foreground/50 cursor-not-allowed"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
-                  }`}
+                      ? "bg-accent text-accent-foreground"
+                      : hasMessages && providerId
+                        ? "text-muted-foreground/40 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer",
+                  )}
                   title={hasMessages && providerId ? t("chat.providerSwitchHint") : undefined}
                   onClick={() => {
                     if (providerId && !hasMessages) {
@@ -496,32 +536,35 @@ function ConnectedModelSelect({
                     }
                   }}
                 >
-                  {!providerId ? "\u2022 " : "\u25CB "}
                   {t("chat.sdkDefault")}
                 </button>
               )}
               {!providerId && availableModels && (
-                <MenuRadioGroup
-                  value={currentModel ?? availableModels[0]?.value ?? ""}
-                  onValueChange={handleModelSelect}
+                <div
+                  className={
+                    providers.filter((p) => p.enabled).length > 0
+                      ? "mt-1 ml-2 pl-2 border-l-2 border-accent"
+                      : ""
+                  }
                 >
-                  {availableModels.map((m) => (
-                    <MenuRadioItem
-                      key={m.value}
-                      value={m.value}
-                      className={providers.filter((p) => p.enabled).length > 0 ? "pl-6" : ""}
-                    >
-                      {m.displayName}
-                    </MenuRadioItem>
-                  ))}
-                </MenuRadioGroup>
+                  <MenuRadioGroup
+                    value={currentModel ?? availableModels[0]?.value ?? ""}
+                    onValueChange={handleModelSelect}
+                  >
+                    {availableModels.map((m) => (
+                      <MenuRadioItem key={m.value} value={m.value}>
+                        {m.displayName}
+                      </MenuRadioItem>
+                    ))}
+                  </MenuRadioGroup>
+                </div>
               )}
             </div>
 
             {/* Manage Providers link */}
             {providers.length > 0 && <div className="h-px bg-border my-1" />}
             <button
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer rounded-md"
               onClick={() => {
                 useSettingsStore.getState().setActiveTab("providers");
                 useSettingsStore.getState().setShowSettings(true);

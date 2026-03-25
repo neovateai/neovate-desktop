@@ -4,6 +4,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import debug from "debug";
 import { Archive, Circle, Pin, PinOff } from "lucide-react";
 import { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { TurnResult } from "../store";
 
@@ -57,6 +58,7 @@ export const SessionItem = memo(function SessionItem({
   onClick,
   projectPath,
 }: SessionItemProps) {
+  const { t } = useTranslation();
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const renameSession = useAgentStore((s) => s.renameSession);
@@ -68,7 +70,7 @@ export const SessionItem = memo(function SessionItem({
   const [editingValue, setEditingValue] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const displayTitle = title || sessionId.slice(0, 8);
+  const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
   const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
 
@@ -219,7 +221,7 @@ export const SessionItem = memo(function SessionItem({
               className="text-xs text-destructive-foreground cursor-pointer rounded-md bg-destructive/10 px-2 py-0.5 hover:bg-destructive/20 transition-colors"
               onClick={(e) => handleArchive(e)}
             >
-              Confirm
+              {t("session.archiveConfirm")}
             </button>
           ) : (
             <button

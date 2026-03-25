@@ -1,7 +1,8 @@
-import { implement } from "@orpc/server";
+import { implement, ORPCError } from "@orpc/server";
 import debug from "debug";
 import { BrowserWindow, dialog } from "electron";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import type { AppContext } from "../../router";
@@ -10,11 +11,26 @@ import { projectContract } from "../../../shared/features/project/contract";
 
 const log = debug("neovate:project");
 
+/** Cached existsSync to avoid repeated filesystem checks on every list() call. */
+const pathCache = new Map<string, { exists: boolean; ts: number }>();
+const PATH_CACHE_TTL = 5_000;
+
+function pathExists(p: string): boolean {
+  const cached = pathCache.get(p);
+  if (cached && Date.now() - cached.ts < PATH_CACHE_TTL) return cached.exists;
+  const exists = existsSync(p);
+  pathCache.set(p, { exists, ts: Date.now() });
+  return exists;
+}
+
 const os = implement({ project: projectContract }).$context<AppContext>();
 
 export const projectRouter = os.project.router({
   list: os.project.list.handler(({ context }) => {
-    return context.projectStore.getAll();
+    return context.projectStore.getAll().map((p) => ({
+      ...p,
+      pathMissing: !pathExists(p.path),
+    }));
   }),
 
   create: os.project.create.handler(({ input, context }) => {
@@ -40,6 +56,11 @@ export const projectRouter = os.project.router({
 
   open: os.project.open.handler(({ input, context }) => {
     log("open project", { path: input.path });
+    if (!existsSync(input.path)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Directory does not exist: ${input.path}`,
+      });
+    }
     const existing = context.projectStore.findByPath(input.path);
     if (existing) {
       log("project already exists, activating", { id: existing.id });
@@ -68,17 +89,33 @@ export const projectRouter = os.project.router({
 
   setActive: os.project.setActive.handler(({ input, context }) => {
     log("set active project", { id: input.id });
+    if (input.id !== null) {
+      const project = context.projectStore.get(input.id);
+      if (project && !existsSync(project.path)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `Project directory does not exist: ${project.path}`,
+        });
+      }
+    }
     context.projectStore.setActive(input.id);
   }),
 
   getActive: os.project.getActive.handler(({ context }) => {
-    return context.projectStore.getActive();
+    const project = context.projectStore.getActive();
+    if (project && !existsSync(project.path)) {
+      log("active project path missing, clearing: %s", project.path);
+      context.projectStore.setActive(null);
+      return null;
+    }
+    return project;
   }),
 
   pickDirectory: os.project.pickDirectory.handler(async () => {
     log("opening directory picker");
     const win = BrowserWindow.getFocusedWindow();
-    const options: Electron.OpenDialogOptions = { properties: ["openDirectory"] };
+    const options: Electron.OpenDialogOptions = {
+      properties: ["openDirectory", "createDirectory"],
+    };
     const result = win
       ? await dialog.showOpenDialog(win, options)
       : await dialog.showOpenDialog(options);

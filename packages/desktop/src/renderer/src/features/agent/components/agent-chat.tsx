@@ -5,6 +5,7 @@ import { ArrowDown01Icon, ArrowUp01Icon, Copy01Icon, Tick01Icon } from "@hugeico
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { ImageAttachment } from "../../../../../shared/features/agent/types";
 
@@ -45,6 +46,7 @@ import { ClaudeCodeToolUIPart } from "./tool-parts";
 import { WelcomePanel } from "./welcome-panel";
 
 function ChatError({ message }: { message: string }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const firstLine = message.split("\n")[0];
@@ -61,7 +63,7 @@ function ChatError({ message }: { message: string }) {
       <div className="flex items-start gap-2">
         <span className="min-w-0 flex-1 break-words">{firstLine}</span>
         <div className="flex shrink-0 items-center gap-0.5">
-          <Button variant="ghost" size="icon-xs" onClick={handleCopy} title="Copy error">
+          <Button variant="ghost" size="icon-xs" onClick={handleCopy} title={t("error.copyError")}>
             {copied ? (
               <HugeiconsIcon icon={Tick01Icon} size={14} strokeWidth={1.5} />
             ) : (
@@ -151,6 +153,25 @@ export function AgentChat() {
       return;
     }
 
+    // If the user explicitly clicked a session belonging to this project,
+    // don't overwrite their selection with a new empty session.
+    // In multi-project mode, switching via project selector keeps activeSessionId
+    // pointing to the old project's session (cwd won't match), so auto-create
+    // correctly proceeds for that case.
+    const { activeSessionId: currentId, sessions: currentSessions } = useAgentStore.getState();
+    if (currentId) {
+      const session = currentSessions.get(currentId);
+      if (session && session.cwd === activeProjectPath && !session.isNew) {
+        chatLog(
+          "effect[auto-create]: skipping, active session %s already in project %s",
+          currentId,
+          activeProjectPath,
+        );
+        initializedPathRef.current = activeProjectPath;
+        return;
+      }
+    }
+
     initializedPathRef.current = activeProjectPath;
     chatLog("effect[auto-create]: creating new session for %s", activeProjectPath);
     createNewSession(activeProjectPath)
@@ -195,11 +216,20 @@ export function AgentChat() {
     });
   }, [activeProjectPath, createNewSession, setSessionInitError]);
 
-  // State 1: No session yet (or new empty session) — show welcome panel with input
+  // State 1: No project selected — show welcome panel without input
+  if (!activeProjectPath) {
+    return (
+      <div className="flex h-full flex-col">
+        <WelcomePanel hasProject={false} />
+      </div>
+    );
+  }
+
+  // State 2: No session yet (or new empty session) — show welcome panel with input
   if (!activeSession || activeSession.isNew) {
     return (
       <div className="flex h-full flex-col">
-        <WelcomePanel />
+        <WelcomePanel hasProject />
         <MessageInput
           onSend={handleSend}
           onCancel={() => {}}
@@ -219,7 +249,7 @@ export function AgentChat() {
     );
   }
 
-  // State 2: Active session — full chat
+  // State 3: Active session — full chat
   return (
     <AgentChatSession
       key={activeSessionId}
@@ -274,10 +304,13 @@ function AgentChatSession({
     <div className="flex h-full flex-col">
       <Conversation contextRef={conversationContextRef} initial={initialScrollBehavior}>
         <ConversationContent>
-          {messages.map((message) => (
+          {messages.map((message, i) => (
             <MessageParts
               key={message.id}
               message={message}
+              isComplete={
+                (status !== "streaming" && status !== "submitted") || i !== messages.length - 1
+              }
               renderToolPart={(_partMessage, part) => <ClaudeCodeToolUIPart part={part} />}
             />
           ))}

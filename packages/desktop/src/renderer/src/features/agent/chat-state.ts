@@ -29,6 +29,9 @@ export interface ClaudeCodeChatStoreState {
   capabilities: ClaudeCodeChatCapabilities | null;
   pendingContextClear?: PendingContextClear;
 
+  // Prompt suggestion (follow-up)
+  promptSuggestion: string | null;
+
   // Query status timing
   turnStartedAt: number | null;
   thinkingStartedAt: number | null;
@@ -47,6 +50,7 @@ export class ClaudeCodeChatState implements ChatState<ClaudeCodeUIMessage> {
       eventError: undefined,
       pendingRequests: [],
       capabilities: null,
+      promptSuggestion: null,
       turnStartedAt: null,
       thinkingStartedAt: null,
       thinkingDuration: null,

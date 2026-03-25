@@ -42,6 +42,7 @@ const DEFAULT_CONFIG: AppConfig = {
   notificationSound: "default",
   tokenOptimization: true,
   networkInspector: false,
+  keepAwake: false,
 
   // Keybindings
   keybindings: {},

@@ -37,6 +37,12 @@ const OVERRIDE_SETTINGS = {
   "window.autoDetectColorScheme": false,
   /** 拒绝插件推荐 */
   "extensions.ignoreRecommendations": true,
+  /** 禁用遥测 */
+  "telemetry.telemetryLevel": "off",
+  /** 禁用扩展自动更新检查 */
+  "extensions.autoCheckUpdates": false,
+  /** 禁用默认git集成 */
+  "git.enabled": false,
   // 'workbench.editor.showTabs': 'multiple',
   // 'workbench.editor.editorActionsLocation': 'hidden',
   // 'breadcrumbs.enabled': false,
@@ -45,7 +51,6 @@ const OVERRIDE_SETTINGS = {
   //   "JetBrains Mono, Menlo, Monaco, 'Courier New', monospace",
   // 'editor.fontSize': 13,
   // 'editor.lineHeight': 1.4,
-  // 'telemetry.telemetryLevel': 'off',
   /** 不生效的属性 */
   // 'window.customTitleBarVisibility': 'hidden',
   // 'workbench.sideBar.visible': false,

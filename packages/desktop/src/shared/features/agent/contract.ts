@@ -22,6 +22,10 @@ export const agentContract = {
     .input(z.object({ sessionId: z.string(), title: z.string() }))
     .output(type<void>()),
 
+  updateSessionStartTime: oc
+    .input(z.object({ sessionId: z.string(), createdAt: z.string() }))
+    .output(type<void>()),
+
   claudeCode: {
     createSession: oc
       .input(

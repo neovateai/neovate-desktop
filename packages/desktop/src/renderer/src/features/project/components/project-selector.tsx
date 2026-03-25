@@ -2,7 +2,7 @@ import type React from "react";
 
 import { Delete02Icon, FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, TriangleAlertIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../../../components/ui/menu";
@@ -45,18 +45,24 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
             <MenuSeparator />
             {projects.map((project) => {
               const isActive = activeProject?.id === project.id;
+              const isStale = project.pathMissing;
 
               return (
                 <MenuItem
                   key={project.id}
-                  onClick={() => switchProject(project.id)}
-                  className="group"
+                  onClick={() => !isStale && switchProject(project.id)}
+                  className={`group ${isStale ? "opacity-50" : ""}`}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className={`truncate ${isActive ? "font-medium" : ""}`}>
-                      {project.name}
+                    <div
+                      className={`flex items-center gap-1.5 truncate ${isActive ? "font-medium" : ""}`}
+                    >
+                      {isStale && <TriangleAlertIcon size={14} className="shrink-0 text-warning" />}
+                      <span className="truncate">{project.name}</span>
                     </div>
-                    <div className="truncate text-xs text-muted-foreground">{project.path}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {isStale ? t("project.pathMissing") : project.path}
+                    </div>
                   </div>
                   {isActive && (
                     <div className="p-1">
@@ -65,7 +71,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
                   )}
                   {!isActive && (
                     <button
-                      className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+                      className={`rounded p-1 transition-opacity hover:bg-destructive/10 ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         removeProject(project.id);

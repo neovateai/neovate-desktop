@@ -1,4 +1,10 @@
 {
+  "chat.messages.summary": "{{toolCallCount}} 次工具调用，{{messageCount}} 条消息",
+  "chat.messages.summarySeparator": "，",
+  "chat.messages.summaryToolsOnly": "{{toolCallCount}} 次工具调用",
+  "chat.messages.summaryMessagesOnly": "{{messageCount}} 条消息",
+  "chat.messages.summaryReasoningOnly": "{{reasoningCount}} 次思考",
+  "chat.messages.copyMarkdown": "复制 Markdown",
   "settings.theme": "主题",
   "settings.theme.description": "选择您喜欢的配色方案",
   "settings.theme.light": "浅色",
@@ -52,9 +58,13 @@
   "settings.chat.permissionMode": "权限模式",
   "settings.chat.permissionMode.description": "控制操作审批方式",
   "settings.chat.permissionMode.default": "默认",
+  "settings.chat.permissionMode.default.desc": "常规编码任务，每步操作需确认",
   "settings.chat.permissionMode.acceptEdits": "自动编辑",
+  "settings.chat.permissionMode.acceptEdits.desc": "信任的代码修改，自动接受文件编辑",
   "settings.chat.permissionMode.bypassPermissions": "全自动",
+  "settings.chat.permissionMode.bypassPermissions.desc": "快速迭代，跳过所有权限确认",
   "settings.chat.permissionMode.plan": "计划",
+  "settings.chat.permissionMode.plan.desc": "复杂任务，先规划再执行",
   "settings.chat.permissionMode.dontAsk": "免打扰",
   "settings.chat.notification": "通知",
   "settings.chat.notification.description": "任务完成时声音通知",
@@ -68,6 +78,8 @@
   "settings.chat.tokenOptimization.description": "通过过滤命令输出减少 Token 用量（基于 RTK）",
   "settings.chat.networkInspector": "网络检查器",
   "settings.chat.networkInspector.description": "在网络面板中显示 API 请求。在新会话中生效。",
+  "settings.chat.keepAwake": "保持唤醒",
+  "settings.chat.keepAwake.description": "在任务运行时防止系统进入睡眠状态",
   "settings.chat.sendMessage": "发送消息",
   "settings.chat.sendMessage.description": "发送消息的键盘快捷键",
   "settings.chat.group.model": "模型",
@@ -117,7 +129,9 @@
   "settings.keybindings.toggleTerminal": "切换终端",
   "settings.keybindings.toggleBrowser": "切换浏览器",
   "settings.keybindings.toggleFiles": "切换文件",
+  "settings.keybindings.toggleSidebar": "切换侧边栏",
   "settings.keybindings.toggleMultiProject": "切换多项目支持",
+  "settings.keybindings.togglePinSession": "切换置顶会话",
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 
   "settings.providers": "服务商",
@@ -291,6 +305,8 @@
   "sidebar.sortBy.created": "创建时间",
   "sidebar.sortBy.updated": "更新时间",
   "sidebar.noProject": "无项目",
+  "sidebar.noProjects": "暂无项目",
+  "sidebar.addFirstProject": "点击上方 + 图标添加您的第一个项目",
 
   "session.noConversations": "暂无会话",
   "session.noConversationsYet": "暂无会话",
@@ -301,6 +317,7 @@
   "session.pin": "置顶",
   "session.unpin": "取消置顶",
   "session.archive": "归档",
+  "session.archiveConfirm": "确认归档",
   "session.copyWorkingDirectory": "复制工作目录",
   "session.copySessionId": "复制会话 ID",
   "session.copyJsonlPath": "复制会话 JSONL 路径",
@@ -310,6 +327,14 @@
 
   "project.openProject": "打开项目",
   "project.selectProject": "选择项目...",
+  "project.getStarted": "打开项目开始使用",
+  "project.pathMissing": "目录未找到",
+  "project.unavailable": "项目「{{name}}」不可用",
+  "project.directoryNotFound": "目录未找到：{{path}}",
+  "project.cannotSwitch": "无法切换到「{{name}}」",
+  "project.directoryNoLongerExists": "目录已不存在",
+  "project.switchFailed": "切换项目失败",
+  "project.switchFailedDescription": "发生意外错误",
 
   "openIn.open": "打开",
   "openIn.noAppsDetected": "未检测到应用",
@@ -335,6 +360,7 @@
 
   "error.somethingWentWrong": "出错了",
   "error.tryAgain": "重试",
+  "error.copyError": "复制错误",
 
   "chat.guideMessage": "嗨~  我是 {{APP_NAME}}，今天我们一起创造点什么？",
   "chat.placeholder": "输入消息...",
@@ -345,6 +371,7 @@
   "chat.sendCmdEnter": "发送 (⌘Enter)",
   "chat.planMode": "计划模式",
   "chat.planModeExit": "Shift+Tab 退出",
+  "chat.suggestionSent": "已发送建议的后续消息",
   "chat.sdkDefault": "SDK 默认",
   "chat.manageProviders": "管理服务商...",
   "chat.setProjectDefault": "设为项目默认",
@@ -355,5 +382,13 @@
   "chat.sessionInitializing": "正在启动会话...",
   "chat.sessionInitFailed": "会话启动失败",
   "chat.sessionInitRetry": "重试",
-  "chat.sessionInitNetworkHint": "尝试在设置中关闭网络检查器后重试"
+  "chat.sessionInitNetworkHint": "尝试在设置中关闭网络检查器后重试",
+
+  "chat.tools.bashOutput.polling": "正在轮询后台 Shell 输出",
+  "chat.tools.bashOutput.pollingFiltered": "正在轮询后台 Shell 输出，过滤条件：{{filter}}。",
+  "chat.tools.slashCommand.running": "正在运行斜杠命令并等待响应。",
+
+  "chat.context.title": "上下文窗口",
+  "chat.context.used": "已使用",
+  "chat.context.total": "总容量"
 }

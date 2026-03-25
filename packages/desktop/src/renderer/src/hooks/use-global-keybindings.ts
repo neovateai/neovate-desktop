@@ -5,6 +5,7 @@ import { layoutStore } from "../components/app-layout/store";
 import { toastManager } from "../components/ui/toast";
 import { useRendererApp } from "../core/app";
 import { useNewSession } from "../features/agent/hooks/use-new-session";
+import { useAgentStore } from "../features/agent/store";
 import { useConfigStore } from "../features/config/store";
 import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
@@ -54,6 +55,25 @@ export function useGlobalKeybindings(): void {
         e.preventDefault();
         const { multiProjectSupport, setConfig } = useConfigStore.getState();
         setConfig("multiProjectSupport", !multiProjectSupport);
+        return;
+      }
+
+      // Toggle Sidebar
+      if (matchesBinding(e, keybindings.toggleSidebar)) {
+        e.preventDefault();
+        layoutStore.getState().togglePanel("primarySidebar");
+        return;
+      }
+
+      // Toggle Pin Session (works everywhere, including settings)
+      if (matchesBinding(e, keybindings.togglePinSession)) {
+        e.preventDefault();
+        const agentState = useAgentStore.getState();
+        const sid = agentState.activeSessionId;
+        const projectPath = useProjectStore.getState().activeProject?.path;
+        if (sid && projectPath && !agentState.sessions.get(sid)?.isNew) {
+          useProjectStore.getState().togglePinSession(projectPath, sid);
+        }
         return;
       }
 

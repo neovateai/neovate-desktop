@@ -94,6 +94,7 @@ export class ExtensionBridgeServer extends EventEmitter {
                 success: false,
                 error: "Invalid JSON format",
               });
+              log("Invalid bridge data", error, raw);
               socket.write(Buffer.from(response));
             }
           });

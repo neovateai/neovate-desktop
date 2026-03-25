@@ -38,12 +38,12 @@ export class ContentPanel {
   async hydrate(): Promise<void> {
     log("hydrating");
     const data = await this.options.load();
-    if (data && typeof data === "object" && !Array.isArray(data)) {
-      const projectCount = Object.keys(data).length;
-      log("hydrated", { projectCount });
-      this.store.setState({ projects: data });
-    }
     this.observe();
+    if (data && typeof data === "object" && !Array.isArray(data) && Object.keys(data).length > 0) {
+      const filtered = this.filterPersistable(data);
+      log("hydrated", { projectCount: Object.keys(filtered).length });
+      this.store.setState({ projects: filtered });
+    }
   }
 
   /** Returns the set of registered view types. */
@@ -60,13 +60,32 @@ export class ContentPanel {
     });
   }
 
+  /** Strip non-persistable tabs. Pure — does not mutate input. */
+  private filterPersistable(
+    projects: Record<string, ProjectTabState>,
+  ): Record<string, ProjectTabState> {
+    const nonPersist = new Set(
+      this.views.filter((v) => v.persist === false).map((v) => v.viewType),
+    );
+    if (nonPersist.size === 0) return projects;
+
+    const result: Record<string, ProjectTabState> = {};
+    for (const [path, project] of Object.entries(projects)) {
+      const tabs = project.tabs.filter((t) => !nonPersist.has(t.viewType));
+      const lost = project.activeTabId != null && !tabs.some((t) => t.id === project.activeTabId);
+      const activeTabId = lost ? (tabs[0]?.id ?? null) : project.activeTabId;
+      result[path] = { tabs, activeTabId };
+    }
+    return result;
+  }
+
   private flush(): void {
     this.flushTimer = null;
     if (this.dirty) {
       this.dirty = false;
       log("flushing state to storage");
       const { projects } = this.store.getState();
-      Promise.resolve(this.options.save(projects)).catch(console.error);
+      Promise.resolve(this.options.save(this.filterPersistable(projects))).catch(console.error);
     }
   }
 

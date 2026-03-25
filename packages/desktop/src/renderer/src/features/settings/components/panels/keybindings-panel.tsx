@@ -20,11 +20,13 @@ const log = debug("neovate:settings:keybindings");
 const KEYBINDING_ACTIONS: KeybindingAction[] = [
   "openSettings",
   "newChat",
+  "toggleSidebar",
   "toggleChanges",
   "toggleTerminal",
   "toggleBrowser",
   "toggleFiles",
   "toggleMultiProject",
+  "togglePinSession",
   "prevSession",
   "nextSession",
   "copyPath",

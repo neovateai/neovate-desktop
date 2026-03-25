@@ -1,12 +1,16 @@
+import { ORPCError } from "@orpc/client";
 import debug from "debug";
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
+import { toastManager } from "../../../components/ui/toast";
 import { client } from "../../../orpc";
 import { useProjectStore } from "../store";
 
 const log = debug("neovate:project");
 
 export function useProject() {
+  const { t } = useTranslation();
   const { projects, activeProject, loading, setProjects, setActiveProject, setLoading } =
     useProjectStore();
 
@@ -64,10 +68,26 @@ export function useProject() {
   const switchProject = useCallback(
     async (id: string | null) => {
       log("switch project", { id });
-      await client.project.setActive({ id });
+      try {
+        await client.project.setActive({ id });
+      } catch (error) {
+        const project = useProjectStore.getState().projects.find((p) => p.id === id);
+        const name = project?.name ?? "project";
+        const isStale = error instanceof ORPCError && error.code === "BAD_REQUEST";
+        toastManager.add({
+          type: "warning",
+          title: isStale ? t("project.cannotSwitch", { name }) : t("project.switchFailed"),
+          description: isStale
+            ? t("project.directoryNoLongerExists")
+            : t("project.switchFailedDescription"),
+          timeout: 5000,
+        });
+        if (isStale) await fetchProjects();
+        return;
+      }
       await fetchProjects();
     },
-    [fetchProjects],
+    [fetchProjects, t],
   );
 
   return {

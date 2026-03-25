@@ -1,4 +1,4 @@
-import { Maximize2, RefreshCw, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Lightbulb, Maximize2, RefreshCw, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,6 +6,7 @@ import type { ActiveSessionInfo } from "../../../../shared/features/agent/types"
 
 import { Button } from "../../components/ui/button";
 import { useRendererApp } from "../../core/app";
+import { claudeCodeChatManager } from "../../features/agent/chat-manager";
 import { useAgentStore } from "../../features/agent/store";
 import { useProjectStore } from "../../features/project/store";
 import { client } from "../../orpc";
@@ -101,6 +102,20 @@ export default function DebugView() {
     void app.workbench.layout.maximizePart("contentPanel");
   };
 
+  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+  const handleSimulateSuggestion = () => {
+    if (!activeSessionId) return;
+    const store = claudeCodeChatManager.getChat(activeSessionId)?.store;
+    if (!store) return;
+    const suggestions = [
+      "run the tests",
+      "now refactor the authentication module to use the new token validation strategy we discussed and make sure all edge cases are covered",
+    ];
+    const current = store.getState().promptSuggestion;
+    const next = current === suggestions[0] ? suggestions[1] : suggestions[0];
+    store.setState({ promptSuggestion: next });
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
@@ -108,6 +123,15 @@ export default function DebugView() {
           {t("debug.activeSessions")}
         </span>
         <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleSimulateSuggestion}
+            title="Simulate prompt suggestion"
+            className="size-5"
+          >
+            <Lightbulb className="size-3" />
+          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
