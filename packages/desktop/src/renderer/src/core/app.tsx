@@ -101,7 +101,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   filesPlugin,
   gitPlugin,
   terminalPlugin,
-  browserPlugin,
+  browserPlugin({ includeHosts: ["*"] }),
   searchPlugin,
   editorPlugin,
   changesPlugin,
