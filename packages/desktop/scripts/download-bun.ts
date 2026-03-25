@@ -8,15 +8,18 @@
 import { chmodSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
+import { extractZip } from "./extract-zip";
+
 const SCRIPT_DIR = import.meta.dirname!;
 const DESKTOP_DIR = join(SCRIPT_DIR, "..");
 const ROOT_PACKAGE_JSON = join(DESKTOP_DIR, "..", "..", "package.json");
 const VENDOR_DIR = join(DESKTOP_DIR, "vendor", "bun");
-const BUN_PATH = join(VENDOR_DIR, "bun");
 
-const BUN_TARGETS = {
+const BUN_TARGETS: Record<string, Record<string, string>> = {
   darwin: { arm64: "bun-darwin-aarch64", x64: "bun-darwin-x64" },
-} as const;
+  win32: { x64: "bun-windows-x64" },
+  linux: { arm64: "bun-linux-aarch64", x64: "bun-linux-x64" },
+};
 
 function readFlag(args: string[], flag: string, fallback: string): string {
   const index = args.indexOf(flag);
@@ -60,19 +63,21 @@ function verifyBun(binaryPath: string, expectedVersion?: string): string {
 
 async function main() {
   const { platform, arch } = parseArgs();
-  const target =
-    platform === "darwin" ? BUN_TARGETS.darwin[arch as keyof typeof BUN_TARGETS.darwin] : undefined;
+  const isWin = platform === "win32";
+  const binName = isWin ? "bun.exe" : "bun";
+  const bunPath = join(VENDOR_DIR, binName);
+  const target = BUN_TARGETS[platform]?.[arch];
   if (!target) throw new Error(`Unsupported platform/arch: ${platform}/${arch}`);
 
   const version = await getBunVersion();
 
-  if (await Bun.file(BUN_PATH).exists()) {
-    const existingVersion = verifyBun(BUN_PATH);
+  if (await Bun.file(bunPath).exists()) {
+    const existingVersion = verifyBun(bunPath);
     if (existingVersion === version) {
-      console.log(`bun ${version} already exists at ${BUN_PATH}, skipping download`);
+      console.log(`bun ${version} already exists at ${bunPath}, skipping download`);
       return;
     }
-    console.log(`bun ${existingVersion} exists at ${BUN_PATH}, replacing with ${version}`);
+    console.log(`bun ${existingVersion} exists at ${bunPath}, replacing with ${version}`);
   }
 
   const zipName = `${target}.zip`;
@@ -111,24 +116,21 @@ async function main() {
   await Bun.write(tmpZip, zipBuffer);
 
   try {
-    const proc = Bun.spawnSync(["unzip", "-o", "-j", tmpZip, `${target}/bun`, "-d", VENDOR_DIR]);
-    if (proc.exitCode !== 0) {
-      throw new Error(
-        `unzip failed: ${proc.stderr.toString().trim() || proc.stdout.toString().trim()}`,
-      );
-    }
+    extractZip(tmpZip, VENDOR_DIR, `${target}/${binName}`);
   } finally {
     rmSync(tmpZip, { force: true });
   }
 
-  chmodSync(BUN_PATH, 0o755);
+  if (!isWin) {
+    chmodSync(bunPath, 0o755);
+  }
 
   // Only verify when building for the current architecture (cross-compile can't run foreign binaries)
   if (platform === process.platform && arch === process.arch) {
-    verifyBun(BUN_PATH, version);
+    verifyBun(bunPath, version);
   }
 
-  console.log(`  Done: ${BUN_PATH}`);
+  console.log(`  Done: ${bunPath}`);
 }
 
 main().catch((err) => {

@@ -4,6 +4,8 @@ import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import { EXE_EXT } from "../../../shared/platform";
+
 const require = createRequire(import.meta.url);
 
 /**
@@ -29,8 +31,8 @@ export function resolveSDKCliPath(): string {
  * for each SDK subprocess (macOS identifies GUI apps by .app bundle path).
  */
 export function resolveBunPath(): string {
-  if (is.dev) return "bun";
-  return path.join(process.resourcesPath, "bun", "bun");
+  if (is.dev) return `bun${EXE_EXT}`;
+  return path.join(process.resourcesPath, "bun", `bun${EXE_EXT}`);
 }
 
 /**
@@ -40,8 +42,8 @@ export function resolveBunPath(): string {
  * In production, uses the rtk binary bundled via electron-builder extraResources.
  */
 export function resolveRtkPath(): string {
-  if (is.dev) return "rtk";
-  return path.join(process.resourcesPath, "rtk", "rtk");
+  if (is.dev) return `rtk${EXE_EXT}`;
+  return path.join(process.resourcesPath, "rtk", `rtk${EXE_EXT}`);
 }
 
 /**

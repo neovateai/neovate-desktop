@@ -387,7 +387,7 @@ export class SessionManager {
     const bunDir = bunPath !== "bun" ? path.dirname(bunPath) : undefined;
     const rtkPath = resolveRtkPath();
     const rtkDir = rtkPath !== "rtk" ? path.dirname(rtkPath) : undefined;
-    const mergedPath = [rtkDir, bunDir, shellEnv.PATH].filter(Boolean).join(":");
+    const mergedPath = [rtkDir, bunDir, shellEnv.PATH].filter(Boolean).join(path.delimiter);
     const env: Record<string, string | undefined> = {
       ...shellEnv,
       PATH: mergedPath,
