@@ -1,13 +1,6 @@
 import { create } from "zustand";
 
-export type SettingsMenuId =
-  | "general"
-  | "chat"
-  | "rules"
-  | "skills"
-  | "keybindings"
-  | "providers"
-  | "about";
+export type SettingsMenuId = "general" | "chat" | "rules" | "keybindings" | "providers" | "about";
 
 interface SettingsUIState {
   showSettings: boolean;

@@ -6,7 +6,6 @@ import {
   MessageSquare,
   Server,
   Bolt,
-  Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -25,7 +24,6 @@ const menuItems: MenuItem[] = [
   { id: "chat", icon: MessageSquare },
   { id: "providers", icon: Server },
   { id: "rules", icon: BookOpen },
-  { id: "skills", icon: Wand2 },
   { id: "keybindings", icon: Keyboard },
   { id: "about", icon: HelpCircle },
 ];
@@ -35,7 +33,6 @@ const MENU_LABEL_KEYS = {
   chat: "settings.chat",
   providers: "settings.providers",
   rules: "settings.rules",
-  skills: "settings.skills",
   keybindings: "settings.keybindings",
   about: "settings.about",
 } as const satisfies Record<SettingsMenuId, string>;

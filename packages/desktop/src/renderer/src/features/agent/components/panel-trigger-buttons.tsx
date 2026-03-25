@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 
-import { PanelRight, SquarePen } from "lucide-react";
+import { SquarePen, Wand2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { useLayoutStore } from "../../../components/app-layout/store";
+import { layoutStore, useLayoutStore } from "../../../components/app-layout/store";
 import { useNewSession } from "../hooks/use-new-session";
 
 function SidebarActionButton({
@@ -50,10 +50,14 @@ export function PanelTriggerGroup({ projectPath }: { projectPath?: string }) {
         disabled={!projectPath}
       />
       <SidebarActionButton
-        icon={PanelRight}
-        label="test-full-right-panel"
-        onClick={() => openFullRightPanel("test")}
-        active={fullRightPanelId === "test"}
+        icon={Wand2}
+        label={t("settings.skills")}
+        onClick={() =>
+          fullRightPanelId === "skills"
+            ? layoutStore.getState().closeFullRightPanel()
+            : openFullRightPanel("skills")
+        }
+        active={fullRightPanelId === "skills"}
       />
       <div className="mt-2.5 mx-2 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
     </div>
