@@ -322,10 +322,13 @@
   "session.copySessionId": "复制会话 ID",
   "session.copyJsonlPath": "复制会话 JSONL 路径",
   "session.copyResumeCommand": "复制 Claude Code 恢复命令",
+  "session.copyDeeplink": "复制深度链接",
   "session.showMore": "显示更多 {{count}}/{{total}}",
   "session.showLess": "收起",
 
   "project.openProject": "打开项目",
+  "project.searchPlaceholder": "搜索项目...",
+  "project.noResults": "未找到项目",
   "project.selectProject": "选择项目...",
   "project.getStarted": "打开项目开始使用",
   "project.pathMissing": "目录未找到",
@@ -341,6 +344,10 @@
   "openIn.copyPath": "复制路径",
 
   "status.ready": "就绪",
+
+  "deeplink.projectNotFound": "项目未找到",
+  "deeplink.sessionNotFound": "会话未找到",
+  "deeplink.sessionLoadFailed": "加载会话失败",
 
   "debug.activeSessions": "活跃会话",
   "debug.closeSession": "关闭会话",

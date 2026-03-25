@@ -16,9 +16,16 @@ window.addEventListener("message", (event) => {
 // API for renderer process (menu commands, etc.)
 const api = {
   homedir: homedir(),
+  isDev: !!process.defaultApp,
   onOpenSettings: (callback: () => void) => {
     ipcRenderer.on("menu:open-settings", callback);
     return () => ipcRenderer.removeListener("menu:open-settings", callback);
+  },
+  onDeeplink: (callback: (data: { sessionId: string; project: string }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: { sessionId: string; project: string }) =>
+      callback(data);
+    ipcRenderer.on("deeplink", handler);
+    return () => ipcRenderer.removeListener("deeplink", handler);
   },
 };
 

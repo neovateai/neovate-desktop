@@ -32,9 +32,12 @@ const outputAvailableInvocation = {
   toolCallId: "read-tool-output-available",
   state: "output-available",
   input: baseInput,
-  output: `1→import type { ReactNode } from "react";
+  output: {
+    text: `1→import type { ReactNode } from "react";
 2→
 3→import { isToolUIPart, type ToolUIPart } from "ai";`,
+    images: [],
+  },
   providerExecuted: true,
 } as any;
 

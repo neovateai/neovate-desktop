@@ -61,9 +61,9 @@ export class PluginManager {
   // TODO: preserve plugin origin (plugin.name) per contribution item,
   // so NLS markers like %key% can auto-resolve to %namespace:key% without
   // plugins having to write the namespace prefix themselves.
-  async configContributions(): Promise<void> {
+  async configContributions(ctx: PluginContext): Promise<void> {
     log("configContributions", { pluginCount: this.#plugins.length });
-    const results = await this.applyParallel("configContributions");
+    const results = await this.applyParallel("configContributions", ctx);
     this.contributions = buildContributions(results);
   }
 

@@ -56,6 +56,7 @@ export class SDKMessageTransformer {
   private readonly agentToolPrompts = new Map<string, string>();
   private readonly contentBlocks = new Map<number, ActiveContentBlock>();
   private readonly activeParentTools = new Map<string, ParentToolState>();
+  private readonly readToolCallIds = new Set<string>();
   private readonly rootParentToolUseId: string | null;
   private readonly rootToolPrompt: string | null;
 
@@ -508,6 +509,7 @@ export class SDKMessageTransformer {
         try {
           const parsedInput = JSON.parse(finalInput);
           this.rememberAgentToolPrompt(contentBlock.toolCallId, contentBlock.toolName, parsedInput);
+          if (contentBlock.toolName === "Read") this.readToolCallIds.add(contentBlock.toolCallId);
           yield {
             type: "tool-input-available",
             toolCallId: contentBlock.toolCallId,
@@ -568,6 +570,7 @@ export class SDKMessageTransformer {
         }
         case "tool_use": {
           this.rememberAgentToolPrompt(part.id, part.name, part.input);
+          if (part.name === "Read") this.readToolCallIds.add(part.id);
           yield {
             type: "tool-input-available",
             toolCallId: part.id,
@@ -612,7 +615,9 @@ export class SDKMessageTransformer {
             yield {
               type: "tool-output-available",
               toolCallId: part.tool_use_id,
-              output: part.content,
+              output: this.readToolCallIds.has(part.tool_use_id)
+                ? this.parseReadToolContent(part.content)
+                : part.content,
               providerExecuted: true,
             };
           }
@@ -706,11 +711,70 @@ export class SDKMessageTransformer {
   }
 
   private resultContentToMessageParts(result: unknown, isError: boolean) {
-    return this.resultContentToTexts(result, isError).map((text) => ({
-      type: "text" as const,
-      text,
-      state: "done" as const,
-    })) as ClaudeCodeUIMessage["parts"];
+    const parts: ClaudeCodeUIMessage["parts"] = [];
+
+    // Handle image outputs
+    const imageParts = this.extractImageParts(result);
+    for (const imagePart of imageParts) {
+      parts.push(imagePart);
+    }
+
+    // Handle text outputs
+    const texts = this.resultContentToTexts(result, isError);
+    for (const text of texts) {
+      parts.push({
+        type: "text" as const,
+        text,
+        state: "done" as const,
+      });
+    }
+
+    return parts;
+  }
+
+  private parseReadToolContent(content: unknown) {
+    if (typeof content === "string") return { text: content, images: [] };
+    if (!Array.isArray(content))
+      return { text: content != null ? JSON.stringify(content) : "", images: [] };
+
+    const texts: string[] = [];
+    const images: { url: string; mediaType: string; filename?: string }[] = [];
+    for (const block of content) {
+      if (block?.type === "text" && typeof block.text === "string") {
+        texts.push(block.text);
+      } else if (block?.type === "image" && block.source) {
+        const src = block.source as {
+          type: string;
+          media_type?: string;
+          data?: string;
+          url?: string;
+        };
+        if (src.type === "base64" && src.data) {
+          images.push({
+            url: `data:${src.media_type || "image/png"};base64,${src.data}`,
+            mediaType: src.media_type || "image/png",
+            filename: block.filename,
+          });
+        } else if (src.type === "url" && src.url) {
+          images.push({
+            url: src.url,
+            mediaType: src.media_type || "image/png",
+            filename: block.filename,
+          });
+        }
+      }
+    }
+    return { text: texts.join("\n"), images };
+  }
+
+  private extractImageParts(result: unknown): ClaudeCodeUIMessage["parts"] {
+    const { images } = this.parseReadToolContent(result);
+    return images.map((img) => ({
+      type: "file" as const,
+      mediaType: img.mediaType,
+      url: img.url,
+      filename: img.filename,
+    }));
   }
 
   private resultContentToText(result: unknown, isError: boolean) {

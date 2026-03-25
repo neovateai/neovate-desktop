@@ -64,7 +64,7 @@ describe("PluginManager", () => {
         },
       ];
       const pm = new PluginManager(plugins);
-      await pm.configContributions();
+      await pm.configContributions(makeCtx());
       expect(pm.contributions.secondarySidebarViews).toHaveLength(2);
     });
 
@@ -93,14 +93,14 @@ describe("PluginManager", () => {
           }),
         },
       ]);
-      await pm.configContributions();
+      await pm.configContributions(makeCtx());
       expect(pm.contributions.activityBarItems[0].id).toBe("a");
       expect(pm.contributions.activityBarItems[1].id).toBe("z");
     });
 
     it("returns empty contributions when no plugins", async () => {
       const pm = new PluginManager([]);
-      await pm.configContributions();
+      await pm.configContributions(makeCtx());
       expect(pm.contributions.activityBarItems).toEqual([]);
       expect(pm.contributions.secondarySidebarViews).toEqual([]);
       expect(pm.contributions.contentPanelViews).toEqual([]);
@@ -116,7 +116,7 @@ describe("PluginManager", () => {
           }),
         },
       ]);
-      await pm.configContributions();
+      await pm.configContributions(makeCtx());
       expect(pm.contributions.contentPanelViews).toHaveLength(1);
     });
   });

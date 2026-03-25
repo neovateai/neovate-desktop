@@ -320,10 +320,13 @@
   "session.copySessionId": "Copy session ID",
   "session.copyJsonlPath": "Copy session JSONL path",
   "session.copyResumeCommand": "Copy Claude Code resume command",
+  "session.copyDeeplink": "Copy deeplink",
   "session.showMore": "Show {{count}} more of {{total}}",
   "session.showLess": "Show less",
 
   "project.openProject": "Open Project",
+  "project.searchPlaceholder": "Search projects...",
+  "project.noResults": "No projects found",
   "project.selectProject": "Select a project...",
   "project.getStarted": "Open a project to get started",
   "project.pathMissing": "Directory not found",
@@ -339,6 +342,10 @@
   "openIn.copyPath": "Copy path",
 
   "status.ready": "Ready",
+
+  "deeplink.projectNotFound": "Project not found",
+  "deeplink.sessionNotFound": "Session not found",
+  "deeplink.sessionLoadFailed": "Failed to load session",
 
   "debug.activeSessions": "Active Sessions",
   "debug.closeSession": "Close session",

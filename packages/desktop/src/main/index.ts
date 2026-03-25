@@ -2,10 +2,11 @@ import "./core/logger";
 import { electronApp, is } from "@electron-toolkit/utils";
 import { RPCHandler } from "@orpc/server/message-port";
 import debug from "debug";
-import { app, ipcMain } from "electron";
+import { app, ipcMain, BrowserWindow } from "electron";
 
 import type { AppContext } from "./router";
 
+import { APP_NAME } from "../shared/constants";
 import { MainApp } from "./app";
 import { ApplicationMenu } from "./core/menu";
 import { PowerBlockerService } from "./core/power-blocker-service";
@@ -83,6 +84,42 @@ const appContext: AppContext = {
 // Reset crash counter after 30s of stable uptime
 setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
+// ── Deeplink protocol registration ──
+const deeplinkScheme = `${APP_NAME.toLowerCase()}${is.dev ? "-dev" : ""}`;
+app.setAsDefaultProtocolClient(deeplinkScheme);
+
+function parseDeeplinkUrl(url: string): { sessionId: string; project: string } | null {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/^\/?\/?session\/(.+)/);
+    if (!match) return null;
+    const sessionId = match[1];
+    const project = parsed.searchParams.get("project");
+    if (!sessionId || !project) return null;
+    return { sessionId, project: decodeURIComponent(project) };
+  } catch {
+    return null;
+  }
+}
+
+let pendingDeeplink: { sessionId: string; project: string } | null = null;
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  const parsed = parseDeeplinkUrl(url);
+  if (!parsed) return;
+  startupLog("open-url: %o", parsed);
+
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) {
+    win.show();
+    win.focus();
+    win.webContents.send("deeplink", parsed);
+  } else {
+    pendingDeeplink = parsed;
+  }
+});
+
 let menu: ApplicationMenu | null = null;
 
 startupLog("app.whenReady waiting %s", elapsed());
@@ -105,6 +142,19 @@ app.whenReady().then(async () => {
     handler.upgrade(serverPort, { context: appContext });
     serverPort.start();
   });
+
+  // Flush any buffered deeplink once renderer is ready
+  if (pendingDeeplink) {
+    const win = mainApp.windowManager.mainWindow;
+    if (win) {
+      win.webContents.once("did-finish-load", () => {
+        if (pendingDeeplink) {
+          win.webContents.send("deeplink", pendingDeeplink);
+          pendingDeeplink = null;
+        }
+      });
+    }
+  }
 
   app.on("activate", () => {
     const win = mainApp.windowManager.mainWindow;
