@@ -102,7 +102,6 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   filesPlugin,
   gitPlugin,
   terminalPlugin,
-  browserPlugin({ includeHosts: ["*"] }),
   searchPlugin,
   editorPlugin,
   changesPlugin,
@@ -169,7 +168,11 @@ export class RendererApp implements IRendererApp {
     const { windowType, windowId } = this.#resolveWindowParams();
     this.#windowType = windowType;
     this.#windowId = windowId;
-    this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
+    this.pluginManager = new PluginManager([
+      ...BUILTIN_PLUGINS,
+      browserPlugin({ includeHosts: ["*.google.com"] }),
+      ...(options.plugins ?? []),
+    ]);
     this.i18nManager = new I18nManager();
   }
 
