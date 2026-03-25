@@ -3,27 +3,33 @@ import type { Components } from "streamdown";
 import { useMemo } from "react";
 
 import { useRendererApp } from "../../core/app";
+import { cn } from "../../lib/utils";
 import { markdownBaseComponents } from "./markdown-base-components";
 
 export function useMarkdownComponents(): Components {
   const app = useRendererApp();
-  const BaseLink = markdownBaseComponents.a!;
 
   return useMemo(
     () => ({
       ...markdownBaseComponents,
-      a: (props: React.ComponentProps<"a">) => (
-        <BaseLink
+      a: ({ className, children, ...props }: React.ComponentProps<"a">) => (
+        <a
+          className={cn(
+            "text-primary transition-colors underline-offset-2 hover:underline",
+            className,
+          )}
           {...props}
-          onClick={(e: React.MouseEvent) => {
+          onClick={(e) => {
             if (props.href) {
               e.preventDefault();
               app.opener.open(props.href);
             }
           }}
-        />
+        >
+          {children}
+        </a>
       ),
     }),
-    [app.opener, BaseLink],
+    [app.opener],
   );
 }
