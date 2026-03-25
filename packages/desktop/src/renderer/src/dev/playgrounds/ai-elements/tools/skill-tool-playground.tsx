@@ -21,10 +21,8 @@ const outputAvailableInvocation = {
   toolCallId: "skill-tool-output-available",
   state: "output-available",
   input: inputAvailableInvocation.input,
-  output: {
-    text: "Loaded /frontend-design. Keep the chrome consistent and make the scenario toggles feel native.",
-    images: [],
-  },
+  output:
+    "Loaded /frontend-design. Keep the chrome consistent and make the scenario toggles feel native.",
   providerExecuted: true,
 } as any;
 

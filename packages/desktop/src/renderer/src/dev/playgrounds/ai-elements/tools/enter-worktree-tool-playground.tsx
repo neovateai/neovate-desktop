@@ -22,10 +22,7 @@ const outputAvailableInvocation = {
   toolCallId: "enter-worktree-output-available",
   state: "output-available",
   input: baseInput,
-  output: {
-    text: "Created .worktrees/feat-playground-state-debugging and switched the task into it.",
-    images: [],
-  },
+  output: "Created .worktrees/feat-playground-state-debugging and switched the task into it.",
   providerExecuted: true,
 } as any;
 
@@ -34,7 +31,7 @@ const outputErrorInvocation = {
   toolCallId: "enter-worktree-output-error",
   state: "output-error",
   input: baseInput,
-  output: { text: "A worktree with that name already exists.", images: [] },
+  output: "A worktree with that name already exists.",
   providerExecuted: true,
 } as any;
 

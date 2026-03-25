@@ -21,7 +21,7 @@ const outputAvailableInvocation = {
   toolCallId: "bash-output-tool-output-available",
   state: "output-available",
   input: inputAvailableInvocation.input,
-  output: { text: "WARN retrying request\nERROR registry timed out", images: [] },
+  output: "WARN retrying request\nERROR registry timed out",
   providerExecuted: true,
 } as any;
 

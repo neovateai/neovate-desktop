@@ -733,17 +733,11 @@ export class SDKMessageTransformer {
     return parts;
   }
 
-  private static readonly CUSTOM_OUTPUT_TOOLS = new Set([
-    "AskUserQuestion",
-    "TaskOutput",
-    "TaskStop",
-    "Agent",
-    "Task",
-  ]);
+  private static readonly NORMALIZED_OUTPUT_TOOLS = new Set(["Bash", "Read", "Glob", "Grep"]);
 
   private shouldNormalizeOutput(toolCallId: string): boolean {
     const toolName = this.toolCallNames.get(toolCallId);
-    return toolName == null || !SDKMessageTransformer.CUSTOM_OUTPUT_TOOLS.has(toolName);
+    return toolName != null && SDKMessageTransformer.NORMALIZED_OUTPUT_TOOLS.has(toolName);
   }
 
   private normalizeToolOutput(content: unknown): NormalizedToolOutput {

@@ -12,9 +12,7 @@ export function WebSearchTool({ invocation }: { invocation: WebSearchUIToolInvoc
   return (
     <Tool>
       <ToolHeader type="tool-WebSearch" state={state} title={title} />
-      <ToolContent>
-        {output?.text ? <MessageResponse>{output.text}</MessageResponse> : null}
-      </ToolContent>
+      <ToolContent>{output ? <MessageResponse>{output}</MessageResponse> : null}</ToolContent>
     </Tool>
   );
 }

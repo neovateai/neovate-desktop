@@ -1,8 +1,6 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-import { normalizedToolOutputSchema } from "./normalized-output";
-
 export const BashOutput = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bashoutput
   inputSchema: z.object({
@@ -15,7 +13,8 @@ export const BashOutput = tool({
      */
     filter: z.string().optional(),
   }),
-  outputSchema: normalizedToolOutputSchema,
+  // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bashoutput-2
+  outputSchema: z.string(),
 });
 
 export type BashOutputUIToolInvocation = UIToolInvocation<typeof BashOutput>;

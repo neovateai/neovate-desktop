@@ -11,7 +11,7 @@ export function EnterWorktreeTool({ invocation }: { invocation: EnterWorktreeUIT
     <Tool>
       <ToolHeader type="tool-EnterWorktree" state={state} title="Enter Worktree" />
       <ToolContent>
-        {output?.text ? <MessageResponse>{output.text}</MessageResponse> : null}
+        {typeof output === "string" && output ? <MessageResponse>{output}</MessageResponse> : null}
       </ToolContent>
     </Tool>
   );

@@ -24,7 +24,7 @@ const outputAvailableInvocation = {
   toolCallId: "exit-plan-mode-output-available",
   state: "output-available",
   input: baseInput,
-  output: { text: "Plan approved. Returning to implementation mode.", images: [] },
+  output: "Plan approved. Returning to implementation mode.",
   providerExecuted: true,
 } as any;
 
@@ -33,7 +33,7 @@ const outputDeniedInvocation = {
   toolCallId: "exit-plan-mode-output-denied",
   state: "output-denied",
   input: baseInput,
-  output: { text: "Plan revision requested before leaving plan mode.", images: [] },
+  output: "Plan revision requested before leaving plan mode.",
   providerExecuted: true,
 } as any;
 

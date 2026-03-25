@@ -16,8 +16,8 @@ export function BashOutputTool({ invocation }: { invocation: BashOutputUIToolInv
     <Tool>
       <ToolHeader type="tool-BashOutput" state={state} title={title} />
       <ToolContent>
-        {output?.text ? (
-          <CodeBlock code={output.text} language="bash" className="text-sm" />
+        {typeof output === "string" && output ? (
+          <CodeBlock code={output} language="bash" className="text-sm" />
         ) : (
           <p className="text-sm text-muted-foreground">
             {input?.filter

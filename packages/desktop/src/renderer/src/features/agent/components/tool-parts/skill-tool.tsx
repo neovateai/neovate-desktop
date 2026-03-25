@@ -13,7 +13,7 @@ export function SkillTool({ invocation }: { invocation: SkillUIToolInvocation })
     <Tool>
       <ToolHeader type="tool-Skill" state={state} title={title} />
       <ToolContent>
-        {output?.text ? <MessageResponse>{output.text}</MessageResponse> : null}
+        {typeof output === "string" && output ? <MessageResponse>{output}</MessageResponse> : null}
       </ToolContent>
     </Tool>
   );

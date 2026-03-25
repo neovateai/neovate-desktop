@@ -323,6 +323,16 @@ describe("SDKMessageTransformer", () => {
   });
 
   describe("normalizeToolOutput (via tool-output-available)", () => {
+    const registerReadTool = () => {
+      collect(
+        t.transform(
+          makeAssistantMsg("msg-reg", [
+            { type: "tool_use", id: "tc-norm", name: "Read", input: { file_path: "/tmp" } },
+          ]) as any,
+        ),
+      );
+    };
+
     const makeToolResultMsg = (content: unknown) => ({
       type: "user" as const,
       uuid: "u",
@@ -335,12 +345,14 @@ describe("SDKMessageTransformer", () => {
     });
 
     it("string content → { text, images: [] }", () => {
+      registerReadTool();
       const chunks = collect(t.transform(makeToolResultMsg("hello") as any));
       const out = chunks.find((c: any) => c.type === "tool-output-available");
       expect(out.output).toEqual({ text: "hello", images: [] });
     });
 
     it("array with text blocks → joined text, empty images", () => {
+      registerReadTool();
       const chunks = collect(
         t.transform(
           makeToolResultMsg([
@@ -354,6 +366,7 @@ describe("SDKMessageTransformer", () => {
     });
 
     it("array with image block (base64) → empty text, image with data URL", () => {
+      registerReadTool();
       const chunks = collect(
         t.transform(
           makeToolResultMsg([
@@ -379,6 +392,7 @@ describe("SDKMessageTransformer", () => {
     });
 
     it("mixed text + image → both populated", () => {
+      registerReadTool();
       const chunks = collect(
         t.transform(
           makeToolResultMsg([
@@ -397,6 +411,7 @@ describe("SDKMessageTransformer", () => {
     });
 
     it("null/undefined → { text: '', images: [] }", () => {
+      registerReadTool();
       const chunksNull = collect(t.transform(makeToolResultMsg(null) as any));
       const outNull = chunksNull.find((c: any) => c.type === "tool-output-available");
       expect(outNull.output).toEqual({ text: "", images: [] });

@@ -21,10 +21,8 @@ const outputAvailableInvocation = {
   toolCallId: "web-fetch-output-available",
   state: "output-available",
   input: inputAvailableInvocation.input,
-  output: {
-    text: "Claude Code tools arrive as typed UI invocations with `input`, `output`, `state`, and `toolCallId` fields.",
-    images: [],
-  },
+  output:
+    "Claude Code tools arrive as typed UI invocations with `input`, `output`, `state`, and `toolCallId` fields.",
   providerExecuted: true,
 } as any;
 

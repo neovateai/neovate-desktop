@@ -1,14 +1,12 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-import { normalizedToolOutputSchema } from "./normalized-output";
-
 export const Skill = tool({
   inputSchema: z.object({
     skill: z.string(),
     args: z.string().optional(),
   }),
-  outputSchema: normalizedToolOutputSchema,
+  outputSchema: z.string(),
 });
 
 /** Fully typed tool invocation for the Skill tool. */

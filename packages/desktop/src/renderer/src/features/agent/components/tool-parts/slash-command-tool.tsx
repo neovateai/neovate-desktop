@@ -18,8 +18,8 @@ export function SlashCommandTool({ invocation }: { invocation: SlashCommandUIToo
       <ToolContent>
         {errorText ? (
           <p className="text-sm text-destructive">{errorText}</p>
-        ) : output?.text ? (
-          <MessageResponse>{output.text}</MessageResponse>
+        ) : typeof output === "string" && output ? (
+          <MessageResponse>{output}</MessageResponse>
         ) : (
           <p className="text-sm text-muted-foreground">{t("chat.tools.slashCommand.running")}</p>
         )}

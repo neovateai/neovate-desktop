@@ -18,7 +18,7 @@ export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToo
     <Tool>
       <ToolHeader type="tool-ExitPlanMode" state={state} title="Exit Plan Mode" />
       <ToolContent>
-        <p className="text-sm text-muted-foreground">{output.text}</p>
+        <p className="text-sm text-muted-foreground">{output}</p>
       </ToolContent>
     </Tool>
   );
