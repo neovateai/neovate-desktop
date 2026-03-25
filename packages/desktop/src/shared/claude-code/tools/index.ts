@@ -1,5 +1,6 @@
 import type { InferUITools, ToolSet } from "ai";
 
+export { normalizedToolOutputSchema, type NormalizedToolOutput } from "./normalized-output";
 export { Bash, type BashUIToolInvocation } from "./bash";
 export { Agent, type AgentUIToolInvocation } from "./agent";
 export { Task, type TaskUIToolInvocation } from "./task";

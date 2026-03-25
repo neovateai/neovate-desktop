@@ -8,12 +8,11 @@ export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 
-  const terminalOutput =
-    typeof output === "string"
-      ? input?.command
-        ? `$ ${input.command}${output ? `\n${output}` : ""}`
-        : output
-      : "";
+  const terminalOutput = output?.text
+    ? input?.command
+      ? `$ ${input.command}\n${output.text}`
+      : output.text
+    : "";
 
   return (
     <Tool>
@@ -21,9 +20,8 @@ export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
       <ToolContent>
         {terminalOutput ? (
           <CodeBlock code={terminalOutput} language="bash" className="text-sm" />
-        ) : (
-          <ToolOutputImage output={output} />
-        )}
+        ) : null}
+        <ToolOutputImage images={output?.images} />
       </ToolContent>
     </Tool>
   );

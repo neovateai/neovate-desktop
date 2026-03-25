@@ -1,6 +1,8 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
+import { normalizedToolOutputSchema } from "./normalized-output";
+
 export const WebSearch = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#websearch
   inputSchema: z.object({
@@ -17,8 +19,7 @@ export const WebSearch = tool({
      */
     blocked_domains: z.array(z.string()).optional(),
   }),
-  // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#websearch-2
-  outputSchema: z.string(),
+  outputSchema: normalizedToolOutputSchema,
 });
 
 export type WebSearchUIToolInvocation = UIToolInvocation<typeof WebSearch>;

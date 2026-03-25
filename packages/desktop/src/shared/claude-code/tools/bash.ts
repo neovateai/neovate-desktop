@@ -1,6 +1,8 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
+import { normalizedToolOutputSchema } from "./normalized-output";
+
 export const Bash = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bash
   inputSchema: z.object({
@@ -22,8 +24,7 @@ export const Bash = tool({
     run_in_background: z.boolean().optional(),
   }),
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#bash-2
-  // TODO real output is content string, but doc define is object
-  outputSchema: z.string(),
+  outputSchema: normalizedToolOutputSchema,
 });
 
 export type BashUIToolInvocation = UIToolInvocation<typeof Bash>;

@@ -22,12 +22,12 @@ export function WebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocat
             <CodeBlock code={input.prompt} language="markdown" className="text-sm" />
           </div>
         ) : null}
-        {output ? (
+        {output?.text ? (
           <div className="space-y-1">
             <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               Result
             </h4>
-            <MessageResponse>{output}</MessageResponse>
+            <MessageResponse>{output.text}</MessageResponse>
           </div>
         ) : null}
       </ToolContent>

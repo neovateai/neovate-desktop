@@ -1,6 +1,8 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
+import { normalizedToolOutputSchema } from "./normalized-output";
+
 export const Read = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#read
   inputSchema: z.object({
@@ -17,8 +19,7 @@ export const Read = tool({
      */
     limit: z.number().optional(),
   }),
-  // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#read-2
-  outputSchema: z.string(),
+  outputSchema: normalizedToolOutputSchema,
 });
 
 export type ReadUIToolInvocation = UIToolInvocation<typeof Read>;

@@ -23,6 +23,9 @@
     "ready": "bun scripts/ready.ts",
     "prepare": "husky"
   },
+  "dependencies": {
+    "react-error-boundary": "^6.1.1"
+  },
   "devDependencies": {
     "@types/bun": "^1.3.10",
     "@typescript/native-preview": "7.0.0-dev.20260314.1",

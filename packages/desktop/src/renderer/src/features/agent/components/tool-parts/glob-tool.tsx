@@ -20,11 +20,8 @@ export function GlobTool({ invocation }: { invocation: GlobUIToolInvocation }) {
     <Tool>
       <ToolHeader type="tool-Glob" state={state} title={title} />
       <ToolContent>
-        {typeof output === "string" ? (
-          <CodeBlock code={output} language="bash" className="text-sm" />
-        ) : (
-          <ToolOutputImage output={output} />
-        )}
+        {output?.text ? <CodeBlock code={output.text} language="bash" className="text-sm" /> : null}
+        <ToolOutputImage images={output?.images} />
       </ToolContent>
     </Tool>
   );

@@ -12,7 +12,7 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output, errorText } = invocation;
 
-  const code = typeof output === "string" ? output.replace(/^\s*(\d+)→/gm, "") : undefined;
+  const code = output?.text ? output.text.replace(/^\s*(\d+)→/gm, "") : undefined;
   const language = (input?.file_path?.match(/\.(\w+)$/)?.[1] ?? "typescript") as BundledLanguage;
   const title = input?.file_path ? `Read ${input.file_path}` : undefined;
   const hasError = state === "output-error";
@@ -28,7 +28,7 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
           </div>
         ) : (
           <>
-            <ToolOutputImage output={output} />
+            <ToolOutputImage images={output?.images} />
             {code ? (
               <CodeBlock code={code} language={language} className="text-xs">
                 <CodeBlockCopyButton />

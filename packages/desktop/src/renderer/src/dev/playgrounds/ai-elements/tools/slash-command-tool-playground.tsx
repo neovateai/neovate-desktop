@@ -22,7 +22,7 @@ const outputAvailableInvocation = {
   toolCallId: "slash-command-output-available",
   state: "output-available",
   input: baseInput,
-  output: "Compacted the current conversation context.",
+  output: { text: "Compacted the current conversation context.", images: [] },
   providerExecuted: true,
 } as any;
 

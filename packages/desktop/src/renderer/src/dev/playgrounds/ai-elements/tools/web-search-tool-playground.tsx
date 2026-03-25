@@ -21,7 +21,10 @@ const outputAvailableInvocation = {
   toolCallId: "web-search-output-available",
   state: "output-available",
   input: inputAvailableInvocation.input,
-  output: "Found official Claude Code docs covering tool inputs, outputs, and approval states.",
+  output: {
+    text: "Found official Claude Code docs covering tool inputs, outputs, and approval states.",
+    images: [],
+  },
   providerExecuted: true,
 } as any;
 

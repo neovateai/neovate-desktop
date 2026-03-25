@@ -1,6 +1,8 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
+import { normalizedToolOutputSchema } from "./normalized-output";
+
 export const SlashCommand = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/slash-commands
   inputSchema: z.object({
@@ -9,8 +11,7 @@ export const SlashCommand = tool({
      */
     command: z.string(),
   }),
-  // Docs: https://docs.claude.com/en/docs/claude-code/slash-commands
-  outputSchema: z.string(),
+  outputSchema: normalizedToolOutputSchema,
 });
 
 export type SlashCommandUIToolInvocation = UIToolInvocation<typeof SlashCommand>;

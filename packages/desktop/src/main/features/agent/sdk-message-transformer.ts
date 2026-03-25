@@ -9,6 +9,7 @@ import type {
 
 import { createUIMessageStream, readUIMessageStream } from "ai";
 
+import type { NormalizedToolOutput } from "../../../shared/claude-code/tools/normalized-output";
 import type {
   ClaudeCodeUIMessage,
   ClaudeCodeUIMessageChunk,
@@ -612,7 +613,7 @@ export class SDKMessageTransformer {
             yield {
               type: "tool-output-available",
               toolCallId: part.tool_use_id,
-              output: part.content,
+              output: this.normalizeToolOutput(part.content),
               providerExecuted: true,
             };
           }
@@ -727,47 +728,49 @@ export class SDKMessageTransformer {
     return parts;
   }
 
-  private extractImageParts(result: unknown): ClaudeCodeUIMessage["parts"] {
-    const parts: ClaudeCodeUIMessage["parts"] = [];
+  private normalizeToolOutput(content: unknown): NormalizedToolOutput {
+    if (typeof content === "string") return { text: content, images: [] };
+    if (!Array.isArray(content))
+      return { text: content != null ? JSON.stringify(content) : "", images: [] };
 
-    if (Array.isArray(result)) {
-      for (const item of result) {
-        if (
-          item != null &&
-          typeof item === "object" &&
-          "type" in item &&
-          item.type === "image" &&
-          "source" in item &&
-          item.source != null
-        ) {
-          const source = item.source as {
-            type: string;
-            media_type?: string;
-            data?: string;
-            url?: string;
-          };
-          if (source.type === "base64" && source.data) {
-            const mimeType = source.media_type || "image/png";
-            const dataUrl = `data:${mimeType};base64,${source.data}`;
-            parts.push({
-              type: "file" as const,
-              mediaType: mimeType,
-              filename: item.filename,
-              url: dataUrl,
-            });
-          } else if (source.type === "url" && source.url) {
-            parts.push({
-              type: "file" as const,
-              mediaType: source.media_type || "image/png",
-              filename: item.filename,
-              url: source.url,
-            });
-          }
+    const texts: string[] = [];
+    const images: NormalizedToolOutput["images"] = [];
+    for (const block of content) {
+      if (block?.type === "text" && typeof block.text === "string") {
+        texts.push(block.text);
+      } else if (block?.type === "image" && block.source) {
+        const src = block.source as {
+          type: string;
+          media_type?: string;
+          data?: string;
+          url?: string;
+        };
+        if (src.type === "base64" && src.data) {
+          images.push({
+            url: `data:${src.media_type || "image/png"};base64,${src.data}`,
+            mediaType: src.media_type || "image/png",
+            filename: block.filename,
+          });
+        } else if (src.type === "url" && src.url) {
+          images.push({
+            url: src.url,
+            mediaType: src.media_type || "image/png",
+            filename: block.filename,
+          });
         }
       }
     }
+    return { text: texts.join("\n"), images };
+  }
 
-    return parts;
+  private extractImageParts(result: unknown): ClaudeCodeUIMessage["parts"] {
+    const { images } = this.normalizeToolOutput(result);
+    return images.map((img) => ({
+      type: "file" as const,
+      mediaType: img.mediaType,
+      url: img.url,
+      filename: img.filename,
+    }));
   }
 
   private resultContentToText(result: unknown, isError: boolean) {

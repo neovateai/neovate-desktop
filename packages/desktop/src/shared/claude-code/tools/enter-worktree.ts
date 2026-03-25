@@ -1,11 +1,13 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
+import { normalizedToolOutputSchema } from "./normalized-output";
+
 export const EnterWorktree = tool({
   inputSchema: z.object({
     name: z.string().optional(),
   }),
-  outputSchema: z.string(),
+  outputSchema: normalizedToolOutputSchema,
 });
 
 /** Fully typed tool invocation for the EnterWorktree tool. */

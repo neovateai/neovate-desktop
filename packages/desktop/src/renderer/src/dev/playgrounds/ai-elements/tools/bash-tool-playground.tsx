@@ -31,7 +31,7 @@ const outputAvailableInvocation = {
   toolCallId: "bash-tool-output-available",
   state: "output-available",
   input: baseInput,
-  output: "Starting development server...\n✓ Ready on http://localhost:5173",
+  output: { text: "Starting development server...\n✓ Ready on http://localhost:5173", images: [] },
   providerExecuted: true,
 } as any;
 
@@ -40,7 +40,7 @@ const outputErrorInvocation = {
   toolCallId: "bash-tool-output-error",
   state: "output-error",
   input: baseInput,
-  output: "error: port 5173 is already in use",
+  output: { text: "error: port 5173 is already in use", images: [] },
   providerExecuted: true,
 } as any;
 

@@ -22,8 +22,11 @@ const outputAvailableInvocation = {
   toolCallId: "grep-tool-output-available",
   state: "output-available",
   input: inputAvailableInvocation.input,
-  output: `read-tool.tsx:21:      <ToolHeader type="tool-Read" state={state} title={title} />
+  output: {
+    text: `read-tool.tsx:21:      <ToolHeader type="tool-Read" state={state} title={title} />
 write-tool.tsx:20:      <ToolHeader type="tool-Write" state={state} title={title} />`,
+    images: [],
+  },
   providerExecuted: true,
 } as any;
 

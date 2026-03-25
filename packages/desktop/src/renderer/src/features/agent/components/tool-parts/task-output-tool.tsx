@@ -2,7 +2,6 @@ import type { TaskOutputUIToolInvocation } from "../../../../../../shared/claude
 
 import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
-import { ToolOutputImage } from "./tool-output-image";
 
 export function TaskOutputTool({ invocation }: { invocation: TaskOutputUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
@@ -16,9 +15,7 @@ export function TaskOutputTool({ invocation }: { invocation: TaskOutputUIToolInv
       <ToolContent>
         {typeof output === "string" && output ? (
           <CodeBlock code={output} language="bash" className="text-sm" />
-        ) : (
-          <ToolOutputImage output={output} />
-        )}
+        ) : null}
       </ToolContent>
     </Tool>
   );
