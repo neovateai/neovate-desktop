@@ -5,6 +5,7 @@ import type { PluginContext } from "../../core/plugin/types";
 
 const NAME = "plugin-browser";
 
+/** Localhost variants opened in built-in browser by default (matches VS Code simple-browser) */
 const DEFAULT_HOSTS = new Set([
   "localhost",
   "127.0.0.1",
@@ -16,6 +17,13 @@ const DEFAULT_HOSTS = new Set([
 ]);
 
 interface BrowserPluginOptions {
+  /**
+   * Additional hostnames to open in the built-in browser (exact match).
+   * Merged with DEFAULT_HOSTS (localhost variants).
+   *
+   * @example
+   * browserPlugin({ includeHosts: ["docs.example.com", "preview.dev"] })
+   */
   includeHosts?: string[];
 }
 
