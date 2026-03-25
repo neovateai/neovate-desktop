@@ -18,7 +18,6 @@ import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
-import browserPlugin from "../plugins/browser";
 import changesPlugin from "../plugins/changes";
 import debugPlugin from "../plugins/debug";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
@@ -168,11 +167,7 @@ export class RendererApp implements IRendererApp {
     const { windowType, windowId } = this.#resolveWindowParams();
     this.#windowType = windowType;
     this.#windowId = windowId;
-    this.pluginManager = new PluginManager([
-      ...BUILTIN_PLUGINS,
-      browserPlugin({ includeHosts: ["*.google.com"] }),
-      ...(options.plugins ?? []),
-    ]);
+    this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
     this.i18nManager = new I18nManager();
   }
 
