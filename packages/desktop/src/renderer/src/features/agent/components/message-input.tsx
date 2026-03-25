@@ -290,6 +290,21 @@ export function MessageInput({
         class:
           "tiptap min-h-[76px] max-h-[240px] overflow-y-auto px-3 py-2 text-sm outline-none bg-background-secondary",
       },
+      transformPastedHTML(html) {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const text = doc.body.innerText || "";
+        return text
+          .split("\n")
+          .map((line) => {
+            if (!line) return "<p></p>";
+            const escaped = line
+              .replaceAll("&", "&amp;")
+              .replaceAll("<", "&lt;")
+              .replaceAll(">", "&gt;");
+            return `<p>${escaped}</p>`;
+          })
+          .join("");
+      },
     },
     editable: !disabled && !streaming,
     autofocus: "end",
