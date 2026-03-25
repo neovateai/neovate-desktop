@@ -71,7 +71,14 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     });
 
     win.webContents.setWindowOpenHandler((details) => {
-      shell.openExternal(details.url);
+      const url = details.url;
+      if (/^https?:\/\//.test(url)) {
+        shell.openExternal(url).catch((err) => {
+          log.warn("Failed to open external URL: %s %O", url, err);
+        });
+      } else {
+        log.debug("Blocked non-http URL from opening externally: %s", url);
+      }
       return { action: "deny" };
     });
 
