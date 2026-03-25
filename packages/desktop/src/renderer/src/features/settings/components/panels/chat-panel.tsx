@@ -186,6 +186,13 @@ export const ChatPanel = () => {
           </SettingsRow>
 
           <SettingsRow
+            title={t("settings.chat.keepAwake")}
+            description={t("settings.chat.keepAwake.description")}
+          >
+            <Switch checked={config.keepAwake} onCheckedChange={(v) => setConfig("keepAwake", v)} />
+          </SettingsRow>
+
+          <SettingsRow
             title={t("settings.chat.sendMessage")}
             description={t("settings.chat.sendMessage.description")}
           >

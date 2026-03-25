@@ -77,6 +77,8 @@
   "settings.chat.tokenOptimization.description": "通过过滤命令输出减少 Token 用量（基于 RTK）",
   "settings.chat.networkInspector": "网络检查器",
   "settings.chat.networkInspector.description": "在网络面板中显示 API 请求。在新会话中生效。",
+  "settings.chat.keepAwake": "保持唤醒",
+  "settings.chat.keepAwake.description": "在任务运行时防止系统进入睡眠状态",
   "settings.chat.sendMessage": "发送消息",
   "settings.chat.sendMessage.description": "发送消息的键盘快捷键",
   "settings.chat.group.model": "模型",

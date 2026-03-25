@@ -77,6 +77,8 @@
   "settings.chat.tokenOptimization.description": "Reduce token usage by filtering command output (via RTK)",
   "settings.chat.networkInspector": "Network Inspector",
   "settings.chat.networkInspector.description": "Show API requests in the Network panel. Takes effect on new sessions.",
+  "settings.chat.keepAwake": "Keep Awake",
+  "settings.chat.keepAwake.description": "Prevent system sleep while a task is running",
   "settings.chat.sendMessage": "Send Message",
   "settings.chat.sendMessage.description": "Keyboard shortcut to send messages",
   "settings.chat.group.model": "Model",
