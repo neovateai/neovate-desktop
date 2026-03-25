@@ -12,8 +12,6 @@ const readOutputSchema = z.object({
   ),
 });
 
-export type ReadToolOutput = z.infer<typeof readOutputSchema>;
-
 export const Read = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#read
   inputSchema: z.object({

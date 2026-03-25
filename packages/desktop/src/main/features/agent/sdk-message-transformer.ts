@@ -9,7 +9,6 @@ import type {
 
 import { createUIMessageStream, readUIMessageStream } from "ai";
 
-import type { ReadToolOutput } from "../../../shared/claude-code/tools/read";
 import type {
   ClaudeCodeUIMessage,
   ClaudeCodeUIMessageChunk,
@@ -733,13 +732,13 @@ export class SDKMessageTransformer {
     return parts;
   }
 
-  private parseReadToolContent(content: unknown): ReadToolOutput {
+  private parseReadToolContent(content: unknown) {
     if (typeof content === "string") return { text: content, images: [] };
     if (!Array.isArray(content))
       return { text: content != null ? JSON.stringify(content) : "", images: [] };
 
     const texts: string[] = [];
-    const images: ReadToolOutput["images"] = [];
+    const images: { url: string; mediaType: string; filename?: string }[] = [];
     for (const block of content) {
       if (block?.type === "text" && typeof block.text === "string") {
         texts.push(block.text);

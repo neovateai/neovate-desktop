@@ -5,7 +5,7 @@ export { Agent, type AgentUIToolInvocation } from "./agent";
 export { Task, type TaskUIToolInvocation } from "./task";
 export { TaskOutput, type TaskOutputUIToolInvocation } from "./task-output";
 export { TaskStop, type TaskStopUIToolInvocation } from "./task-stop";
-export { Read, type ReadUIToolInvocation, type ReadToolOutput } from "./read";
+export { Read, type ReadUIToolInvocation } from "./read";
 export { Edit, type EditUIToolInvocation } from "./edit";
 export { MultiEdit, type MultiEditUIToolInvocation } from "./multi-edit";
 export { Write, type WriteUIToolInvocation } from "./write";
