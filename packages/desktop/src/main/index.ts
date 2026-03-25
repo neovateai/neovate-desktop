@@ -8,6 +8,7 @@ import type { AppContext } from "./router";
 
 import { MainApp } from "./app";
 import { ApplicationMenu } from "./core/menu";
+import { PowerBlockerService } from "./core/power-blocker-service";
 import { shellEnvService } from "./core/shell-service";
 import { RequestTracker } from "./features/agent/request-tracker";
 import { SessionManager } from "./features/agent/session-manager";
@@ -57,7 +58,8 @@ process.on("unhandledRejection", (reason) => {
   process.exit(1);
 });
 const requestTracker = new RequestTracker();
-const sessionManager = new SessionManager(configStore, projectStore, requestTracker);
+const powerBlocker = new PowerBlockerService(configStore);
+const sessionManager = new SessionManager(configStore, projectStore, requestTracker, powerBlocker);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
@@ -121,6 +123,7 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   menu?.dispose();
   updaterService.dispose();
+  powerBlocker.dispose();
   void sessionManager.closeAll();
   void mainApp.stop();
 });

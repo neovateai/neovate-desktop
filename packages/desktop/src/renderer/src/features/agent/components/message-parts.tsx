@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { isReasoningUIPart, isToolUIPart, type ToolUIPart } from "ai";
-import { ChevronDownIcon } from "lucide-react";
-import { memo } from "react";
+import { CheckIcon, CopyIcon, ChevronDownIcon } from "lucide-react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useTranslation } from "react-i18next";
 
@@ -11,7 +11,13 @@ import type {
   ClaudeCodeUITools,
 } from "../../../../../shared/claude-code/types";
 
-import { Message, MessageContent, MessageResponse } from "../../../components/ai-elements/message";
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+  MessageResponse,
+} from "../../../components/ai-elements/message";
 import {
   Reasoning,
   ReasoningContent,
@@ -23,6 +29,7 @@ import {
   CollapsibleTrigger,
 } from "../../../components/ui/collapsible";
 import { cn } from "../../../lib/utils";
+import { useMarkdownComponents } from "../hooks/use-markdown-components";
 import { useAssistantMessageSummaryCollapse } from "./use-assistant-message-summary-collapse";
 
 type RenderToolPart = (
@@ -33,23 +40,33 @@ type RenderToolPart = (
 export function MessageParts({
   message,
   renderToolPart,
+  isComplete = true,
 }: {
   message: ClaudeCodeUIMessage;
   renderToolPart: RenderToolPart;
+  isComplete?: boolean;
 }) {
   if (message.role !== "assistant") {
     return <MessagePartRenderer message={message} renderToolPart={renderToolPart} />;
   }
 
-  return <AssistantMessageParts message={message} renderToolPart={renderToolPart} />;
+  return (
+    <AssistantMessageParts
+      message={message}
+      renderToolPart={renderToolPart}
+      isComplete={isComplete}
+    />
+  );
 }
 
 function AssistantMessageParts({
   message,
   renderToolPart,
+  isComplete = true,
 }: {
   message: ClaudeCodeUIMessage;
   renderToolPart: RenderToolPart;
+  isComplete?: boolean;
 }) {
   const {
     collapseMode,
@@ -73,7 +90,13 @@ function AssistantMessageParts({
     .join(t("chat.messages.summarySeparator"));
 
   if (!isCollapsible || trailingMessage == null) {
-    return <MessagePartRenderer message={message} renderToolPart={renderToolPart} />;
+    return (
+      <MessagePartRenderer
+        message={message}
+        renderToolPart={renderToolPart}
+        isComplete={isComplete}
+      />
+    );
   }
 
   return (
@@ -95,13 +118,48 @@ function AssistantMessageParts({
           <span>{triggerLabel}</span>
         </CollapsibleTrigger>
         <CollapsibleContent className={cn(collapseMode === "prepare" ? "mt-0" : "mt-2")}>
-          <MessagePartRenderer message={collapsibleMessage} renderToolPart={renderToolPart} />
+          <MessagePartRenderer
+            message={collapsibleMessage}
+            renderToolPart={renderToolPart}
+            showActions={false}
+          />
         </CollapsibleContent>
       </Collapsible>
       {trailingMessage ? (
-        <MessagePartRenderer message={trailingMessage} renderToolPart={renderToolPart} />
+        <MessagePartRenderer
+          message={trailingMessage}
+          renderToolPart={renderToolPart}
+          isComplete={isComplete}
+        />
       ) : null}
     </div>
+  );
+}
+
+function CopyMarkdownButton({ text }: { text: string }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    timeoutRef.current = setTimeout(() => {
+      setCopied(false);
+      timeoutRef.current = null;
+    }, 2000);
+  }, [text]);
+
+  return (
+    <MessageAction tooltip={t("chat.messages.copyMarkdown")} onClick={handleCopy} size="icon-xs">
+      {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+    </MessageAction>
   );
 }
 
@@ -109,10 +167,16 @@ export const MessagePartRenderer = memo(
   ({
     message,
     renderToolPart,
+    showActions = true,
+    isComplete = true,
   }: {
     message: ClaudeCodeUIMessage;
     renderToolPart: RenderToolPart;
+    showActions?: boolean;
+    isComplete?: boolean;
   }) => {
+    const markdownComponents = useMarkdownComponents();
+    const lastTextIndex = message.parts.findLastIndex((p) => p.type === "text");
     return (
       <div className="flex flex-col gap-2 w-full">
         {message.parts.map((part, index) => {
@@ -128,7 +192,13 @@ export const MessagePartRenderer = memo(
           }
 
           switch (part.type) {
-            case "text":
+            case "text": {
+              const canShowActions =
+                message.role === "assistant" &&
+                showActions &&
+                isComplete &&
+                index === lastTextIndex &&
+                !!part.text.trim();
               return (
                 <Message
                   key={`${message.id}-${index}`}
@@ -137,13 +207,19 @@ export const MessagePartRenderer = memo(
                 >
                   <MessageContent>
                     {message.role === "assistant" ? (
-                      <MessageResponse>{part.text}</MessageResponse>
+                      <MessageResponse components={markdownComponents}>{part.text}</MessageResponse>
                     ) : (
                       <p className="m-0 whitespace-pre-wrap">{part.text}</p>
                     )}
                   </MessageContent>
+                  {canShowActions && (
+                    <MessageActions className="mt-2">
+                      <CopyMarkdownButton text={part.text} />
+                    </MessageActions>
+                  )}
                 </Message>
               );
+            }
             case "reasoning":
               if (!isReasoningUIPart(part)) {
                 return null;

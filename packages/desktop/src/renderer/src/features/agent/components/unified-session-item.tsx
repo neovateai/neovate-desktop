@@ -3,6 +3,7 @@ import { memo, useCallback } from "react";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
 import type { TurnResult } from "../store";
 
+import { layoutStore } from "../../../components/app-layout/store";
 import { useSessionChatStatus } from "../hooks/use-session-chat-status";
 import { useAgentStore } from "../store";
 import { SessionItem } from "./session-item";
@@ -37,6 +38,7 @@ export const UnifiedSessionItem = memo(
     const isRestoring = item.kind === "persisted" && restoring === sessionId;
 
     const handleClick = useCallback(() => {
+      layoutStore.getState().closeFullRightPanel();
       if (item.kind === "memory") {
         onActivate(sessionId, item.projectPath);
       } else {

@@ -110,7 +110,7 @@ type AgentState = {
 };
 
 export const useAgentStore = create<AgentState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     sessions: new Map(),
     activeSessionId: null,
     agentSessions: [],
@@ -201,11 +201,18 @@ export const useAgentStore = create<AgentState>()(
 
     addUserMessage: (sessionId, content) => {
       storeLog("addUserMessage: sid=%s len=%d", sessionId, content.length);
+      const wasNew = get().sessions.get(sessionId)?.isNew;
+      const createdAt = wasNew ? new Date().toISOString() : undefined;
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (!session) {
           storeLog("addUserMessage: WARNING session not found sid=%s", sessionId);
           return;
+        }
+        if (createdAt) {
+          session.createdAt = createdAt;
+          const info = state.agentSessions.find((s) => s.sessionId === sessionId);
+          if (info) info.createdAt = createdAt;
         }
         session.isNew = false;
         if (!session.title) {
@@ -223,6 +230,9 @@ export const useAgentStore = create<AgentState>()(
           state._nextMessageId,
         );
       });
+      if (createdAt) {
+        client.agent.updateSessionStartTime({ sessionId, createdAt }).catch(() => {});
+      }
     },
 
     setAvailableCommands: (sessionId, commands) => {

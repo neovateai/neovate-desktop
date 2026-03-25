@@ -104,7 +104,10 @@ export class ContentPanel {
     this.projectPath = path;
   }
 
-  openView(viewType: string, options?: { activate?: boolean }): string {
+  openView(
+    viewType: string,
+    options?: { activate?: boolean; state?: Record<string, unknown> },
+  ): string {
     log("open view", { viewType, options });
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) throw new Error(`Unknown view: ${viewType}`);
@@ -127,7 +130,7 @@ export class ContentPanel {
     const tab: Tab = {
       id: crypto.randomUUID(),
       viewType,
-      state: {},
+      state: options?.state ?? {},
     };
 
     log("opening new tab", { tabId: tab.id, viewType, activate });

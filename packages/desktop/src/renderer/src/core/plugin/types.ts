@@ -9,7 +9,7 @@ export interface PluginContext {
 
 export interface RendererPluginHooks {
   /** Return UI contributions — collected and merged before render */
-  configContributions(): PluginContributions;
+  configContributions(ctx: PluginContext): PluginContributions;
 
   /** Return window type contributions — custom window root components */
   configWindowContributions(): WindowContribution[];

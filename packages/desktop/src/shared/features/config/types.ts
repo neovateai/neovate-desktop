@@ -28,6 +28,7 @@ export type AppConfig = {
   notificationSound: NotificationSound;
   tokenOptimization: boolean;
   networkInspector: boolean;
+  keepAwake: boolean;
 
   // Keybindings
   keybindings: Record<string, string>;

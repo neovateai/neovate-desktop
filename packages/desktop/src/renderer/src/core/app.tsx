@@ -18,7 +18,6 @@ import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
-import browserPlugin from "../plugins/browser";
 import changesPlugin from "../plugins/changes";
 import debugPlugin from "../plugins/debug";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
@@ -31,7 +30,9 @@ import { providersPlugin } from "../plugins/providers";
 import searchPlugin from "../plugins/search";
 import terminalPlugin from "../plugins/terminal";
 import { DisposableStore } from "./disposable";
+import { ExternalUriOpenerService } from "./external-uri-opener";
 import { I18nManager } from "./i18n";
+import { OpenerService } from "./opener";
 import { PluginManager } from "./plugin";
 import { WorkbenchLayoutService } from "./workbench/layout";
 
@@ -100,7 +101,6 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   filesPlugin,
   gitPlugin,
   terminalPlugin,
-  browserPlugin,
   searchPlugin,
   editorPlugin,
   changesPlugin,
@@ -119,6 +119,7 @@ export interface RendererAppOptions {
 export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
+  readonly opener = new OpenerService();
   readonly #windowType: string;
   // @ts-expect-error reserved for future use
   readonly #windowId: string;
@@ -204,6 +205,15 @@ export class RendererApp implements IRendererApp {
         layoutStore.setState({ panels: resolved });
       },
     });
+    // Wire plugin-contributed openers into the opener system
+    const externalUriOpenerService = new ExternalUriOpenerService(this.opener);
+    for (const { id, opener: uriOpener, metadata } of this.pluginManager.contributions
+      .externalUriOpeners) {
+      this.subscriptions.push(
+        externalUriOpenerService.registerExternalUriOpener(id, uriOpener, metadata),
+      );
+    }
+
     this.workbench = {
       layout,
       contentPanel: new ContentPanel({
@@ -240,7 +250,7 @@ export class RendererApp implements IRendererApp {
 
     if (this.#windowType === "main") {
       // Main window — full plugin UI
-      await this.pluginManager.configContributions();
+      await this.pluginManager.configContributions(ctx);
       startupLog("renderer pluginContributions done %s", el());
       this.initWorkbench();
       await this.workbench.contentPanel.hydrate();

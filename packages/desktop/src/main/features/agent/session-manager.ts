@@ -36,6 +36,7 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { RequestTracker } from "./request-tracker";
 
+import { PowerBlockerService } from "../../core/power-blocker-service";
 import { shellEnvService } from "../../core/shell-service";
 import {
   resolveBunPath,
@@ -124,6 +125,7 @@ export class SessionManager {
     private configStore: ConfigStore,
     private projectStore: ProjectStore,
     private requestTracker: RequestTracker,
+    private powerBlocker: PowerBlockerService,
   ) {}
 
   /** Return all in-memory (active) sessions. */
@@ -687,6 +689,7 @@ export class SessionManager {
     }
     this.sessions.delete(sessionId);
     this.requestTracker.clearSession(sessionId);
+    this.powerBlocker.onSessionClosed(sessionId);
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);
   }
 
@@ -829,6 +832,7 @@ export class SessionManager {
     session.lastUserMessageId = userMessageId;
 
     this.requestTracker.startTurn(sessionId);
+    this.powerBlocker.onTurnStart(sessionId);
     session.input.push({
       type: "user",
       message: { role: "user", content },
@@ -840,59 +844,63 @@ export class SessionManager {
     // Track the latest top-level message_start usage to compute context window fill
     let lastInputTokens = 0;
 
-    while (true) {
-      const { value, done } = await session.query.next();
-      if (done || !value) break;
+    try {
+      while (true) {
+        const { value, done } = await session.query.next();
+        if (done || !value) break;
 
-      // Track context window usage from top-level message_start events
-      if (
-        value.type === "stream_event" &&
-        value.event.type === "message_start" &&
-        value.parent_tool_use_id === null
-      ) {
-        const usage = value.event.message.usage;
-        lastInputTokens =
-          (usage.input_tokens ?? 0) +
-          (usage.cache_creation_input_tokens ?? 0) +
-          (usage.cache_read_input_tokens ?? 0);
+        // Track context window usage from top-level message_start events
+        if (
+          value.type === "stream_event" &&
+          value.event.type === "message_start" &&
+          value.parent_tool_use_id === null
+        ) {
+          const usage = value.event.message.usage;
+          lastInputTokens =
+            (usage.input_tokens ?? 0) +
+            (usage.cache_creation_input_tokens ?? 0) +
+            (usage.cache_read_input_tokens ?? 0);
+        }
+
+        // Publish to subscribe stream (result event included — carries cost/usage/stop_reason)
+        const event = toUIEvent(value);
+        if (event) {
+          this.eventPublisher.publish(sessionId, event);
+        }
+
+        // On result, publish context_usage event with computed remaining %
+        if (value.type === "result") {
+          const modelEntries = Object.values(value.modelUsage ?? {});
+          const contextWindowSize = modelEntries[0]?.contextWindow ?? 0;
+          const remainingPct =
+            contextWindowSize > 0
+              ? Math.max(
+                  0,
+                  Math.min(100, Math.round((1 - lastInputTokens / contextWindowSize) * 100)),
+                )
+              : 0;
+          this.eventPublisher.publish(sessionId, {
+            kind: "event",
+            event: {
+              id: randomUUID(),
+              type: "context_usage",
+              contextWindowSize,
+              usedTokens: lastInputTokens,
+              remainingPct,
+            },
+          });
+        }
+
+        // Route to message stream (result → finish-step + finish, error → error chunk)
+        for await (const chunk of transformer.transformWithAggregation(value)) {
+          yield chunk;
+        }
+
+        // Break AFTER transformer so finish/finish-step chunks are sent before closing the stream
+        if (value.type === "result") break;
       }
-
-      // Publish to subscribe stream (result event included — carries cost/usage/stop_reason)
-      const event = toUIEvent(value);
-      if (event) {
-        this.eventPublisher.publish(sessionId, event);
-      }
-
-      // On result, publish context_usage event with computed remaining %
-      if (value.type === "result") {
-        const modelEntries = Object.values(value.modelUsage ?? {});
-        const contextWindowSize = modelEntries[0]?.contextWindow ?? 0;
-        const remainingPct =
-          contextWindowSize > 0
-            ? Math.max(
-                0,
-                Math.min(100, Math.round((1 - lastInputTokens / contextWindowSize) * 100)),
-              )
-            : 0;
-        this.eventPublisher.publish(sessionId, {
-          kind: "event",
-          event: {
-            id: randomUUID(),
-            type: "context_usage",
-            contextWindowSize,
-            usedTokens: lastInputTokens,
-            remainingPct,
-          },
-        });
-      }
-
-      // Route to message stream (result → finish-step + finish, error → error chunk)
-      for await (const chunk of transformer.transformWithAggregation(value)) {
-        yield chunk;
-      }
-
-      // Break AFTER transformer so finish/finish-step chunks are sent before closing the stream
-      if (value.type === "result") break;
+    } finally {
+      this.powerBlocker.onTurnEnd(sessionId);
     }
   }
 

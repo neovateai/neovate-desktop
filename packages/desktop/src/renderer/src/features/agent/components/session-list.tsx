@@ -12,7 +12,7 @@ import { useLoadSession } from "../hooks/use-load-session";
 import { useAgentStore } from "../store";
 import { ChronologicalList } from "./chronological-list";
 import { EmptySessionState } from "./empty-session-state";
-import { NewChatButton } from "./new-chat-button";
+import { PanelTriggerGroup } from "./panel-trigger-buttons";
 import { PinnedSessionList } from "./pinned-session-list";
 import { ProjectAccordionList } from "./project-accordion-list";
 import { SidebarTitleBar } from "./sidebar-title-bar";
@@ -49,7 +49,7 @@ function MultiProjectSessionList() {
 
   return (
     <div className="flex flex-1 flex-col pt-2">
-      <NewChatButton projectPath={activeProject?.path} />
+      <PanelTriggerGroup projectPath={activeProject?.path} />
       <PinnedSessionList />
       <SidebarTitleBar />
       {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
@@ -160,7 +160,7 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
 
   return (
     <div className="flex flex-1 flex-col gap-1 pt-2">
-      <NewChatButton projectPath={projectPath} />
+      <PanelTriggerGroup projectPath={projectPath} />
       {pinnedItems.length === 0 && regularItems.length === 0 ? (
         sessionsLoaded ? (
           <EmptySessionState />

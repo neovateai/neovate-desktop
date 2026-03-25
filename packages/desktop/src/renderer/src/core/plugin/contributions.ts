@@ -4,6 +4,7 @@ import debug from "debug";
 
 import type { ProviderTemplate } from "../../../../shared/features/provider/built-in";
 import type { LocalizedString } from "../../../../shared/i18n";
+import type { ExternalUriOpenerContribution } from "../external-uri-opener";
 
 const log = debug("neovate:plugin");
 
@@ -16,6 +17,7 @@ export interface PluginContributions {
   primaryTitlebarItems?: TitlebarItem[];
   secondaryTitlebarItems?: TitlebarItem[];
   providerTemplates?: ProviderTemplate[];
+  externalUriOpeners?: ExternalUriOpenerContribution[];
 }
 export interface ActivityBarItem {
   id: string;
@@ -87,5 +89,6 @@ export function buildContributions(
     primaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.primaryTitlebarItems ?? [])),
     secondaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.secondaryTitlebarItems ?? [])),
     providerTemplates: deduplicateTemplates(valid.flatMap((r) => r.providerTemplates ?? [])),
+    externalUriOpeners: valid.flatMap((r) => r.externalUriOpeners ?? []),
   };
 }

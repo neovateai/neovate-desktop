@@ -1,6 +1,7 @@
 import debug from "debug";
 import { useCallback } from "react";
 
+import { layoutStore } from "../../../components/app-layout/store";
 import { useProjectStore } from "../../project/store";
 import { claudeCodeChatManager } from "../chat-manager";
 import { findPreWarmedSession, registerSessionInStore } from "../session-utils";
@@ -14,6 +15,7 @@ export function useNewSession() {
 
   const createNewSession = useCallback(
     async (cwd: string) => {
+      layoutStore.getState().closeFullRightPanel();
       // Dedup guard: if any in-memory session is already new (empty), activate it
       const projectPath = cwd || useProjectStore.getState().activeProject?.path;
       if (!projectPath) return;

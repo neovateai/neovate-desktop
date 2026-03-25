@@ -39,7 +39,12 @@ export interface EditorOpenOption {
 export const editorContract = {
   start: oc.input(type<void>()).output(type<{ url: string; error?: string }>()),
   connect: oc.input(type<void>()).output(type<{}>()),
-  open: oc.input(type<{ cwd: string } & EditorOpenOption>()).output(type<{}>()),
+  open: oc.input(type<{ cwd: string } & EditorOpenOption>()).output(
+    type<{
+      success: boolean;
+      error?: string;
+    }>(),
+  ),
   setTheme: oc.input(type<{ cwd: string; theme: string }>()).output(type<{}>()),
   events: oc.input(type<{ cwd: string }>()).output(eventIterator(type<EditorEvent>())),
 };

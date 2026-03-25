@@ -72,6 +72,11 @@ describe("SessionManager", () => {
       { get: vi.fn(() => undefined) } as unknown as ConfigStore,
       {} as ProjectStore,
       new RequestTracker(),
+      {
+        onTurnStart: vi.fn(),
+        onTurnEnd: vi.fn(),
+        onSessionClosed: vi.fn(),
+      } as unknown as import("../../../core/power-blocker-service").PowerBlockerService,
     );
   });
 

@@ -61,6 +61,12 @@ describe("openView", () => {
     expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(1);
   });
 
+  it("passes initial state to new tab", () => {
+    const id = panel.openView("terminal", { state: { url: "https://example.com" } });
+    const state = panel.getViewState(id);
+    expect(state).toEqual({ url: "https://example.com" });
+  });
+
   it("expands contentPanel before opening a view", () => {
     panel.openView("terminal");
     expect(options.layout.expandPart).toHaveBeenCalledWith("contentPanel");
