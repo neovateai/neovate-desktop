@@ -7,6 +7,7 @@ import { app, ipcMain, BrowserWindow } from "electron";
 import type { AppContext } from "./router";
 
 import { APP_NAME } from "../shared/constants";
+import { isMac } from "../shared/platform";
 import { MainApp } from "./app";
 import { ApplicationMenu } from "./core/menu";
 import { PowerBlockerService } from "./core/power-blocker-service";
@@ -88,6 +89,16 @@ setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 const deeplinkScheme = `${APP_NAME.toLowerCase()}${is.dev ? "-dev" : ""}`;
 app.setAsDefaultProtocolClient(deeplinkScheme);
 
+// Single-instance lock: required on Windows for deeplinks (second-instance event),
+// and generally good practice to prevent duplicate instances on non-macOS.
+// macOS handles multi-instance via open-url and Dock, so skip the lock there.
+if (!isMac) {
+  const gotLock = app.requestSingleInstanceLock();
+  if (!gotLock) {
+    app.quit();
+  }
+}
+
 function parseDeeplinkUrl(url: string): { sessionId: string; project: string } | null {
   try {
     const parsed = new URL(url);
@@ -104,11 +115,10 @@ function parseDeeplinkUrl(url: string): { sessionId: string; project: string } |
 
 let pendingDeeplink: { sessionId: string; project: string } | null = null;
 
-app.on("open-url", (event, url) => {
-  event.preventDefault();
+function handleDeeplinkUrl(url: string): void {
   const parsed = parseDeeplinkUrl(url);
   if (!parsed) return;
-  startupLog("open-url: %o", parsed);
+  startupLog("deeplink: %o", parsed);
 
   const win = BrowserWindow.getAllWindows()[0];
   if (win) {
@@ -118,6 +128,18 @@ app.on("open-url", (event, url) => {
   } else {
     pendingDeeplink = parsed;
   }
+}
+
+// macOS/Linux: deeplinks arrive via open-url
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  handleDeeplinkUrl(url);
+});
+
+// Windows: deeplinks arrive via second-instance (argv contains the URL)
+app.on("second-instance", (_event, argv) => {
+  const url = argv.find((arg) => arg.startsWith(`${deeplinkScheme}://`));
+  if (url) handleDeeplinkUrl(url);
 });
 
 let menu: ApplicationMenu | null = null;
@@ -167,7 +189,7 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (!isMac) app.quit();
 });
 
 app.on("before-quit", () => {

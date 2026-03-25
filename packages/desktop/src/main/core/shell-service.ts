@@ -4,9 +4,15 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
+import { isWindows } from "../../shared/platform";
+
 const log = debug("neovate:shell-env");
 
-function getSystemShell(): string {
+export function getSystemShell(): string {
+  if (isWindows) {
+    return process.env["COMSPEC"] || "cmd.exe";
+  }
+
   let shell: string | undefined | null = process.env["SHELL"];
 
   if (!shell) {
@@ -31,6 +37,12 @@ function getSystemShell(): string {
 function resolveShellEnv(): Promise<Record<string, string>> {
   if (process.env["__RESOLVING_SHELL_ENVIRONMENT"]) {
     log("already inside a resolving shell — returning process.env");
+    return Promise.resolve(process.env as Record<string, string>);
+  }
+
+  // On Windows, the environment is already inherited — no login-shell trick needed
+  if (isWindows) {
+    log("win32: returning process.env directly");
     return Promise.resolve(process.env as Record<string, string>);
   }
 
