@@ -29,10 +29,13 @@ type ResizeState = {
 type LayoutStore = {
   panels: Record<PanelId, PanelState>;
   resizing: ResizeState | null;
+  fullRightPanelId: string | null;
   togglePanel: (id: PanelId) => Promise<void> | void;
   startResize: (separatorIndex: number, clientX: number) => void;
   stopResize: () => void;
   setSecondarySidebarActiveView: (viewId: string) => Promise<void> | void;
+  openFullRightPanel: (id: string) => void;
+  closeFullRightPanel: () => void;
 };
 
 const DEFAULT_PANELS: Record<PanelId, PanelState> = {
@@ -83,6 +86,7 @@ const layoutStore = createStore<LayoutStore>()(
       (set, get) => ({
         panels: DEFAULT_PANELS,
         resizing: null,
+        fullRightPanelId: null,
 
         togglePanel: async (id) => {
           const { panels } = get();
@@ -121,6 +125,17 @@ const layoutStore = createStore<LayoutStore>()(
           }),
 
         stopResize: () => set({ resizing: null }),
+
+        openFullRightPanel: (id) => {
+          log("open full right panel", { id });
+          set({ fullRightPanelId: id });
+        },
+
+        closeFullRightPanel: () => {
+          if (!get().fullRightPanelId) return;
+          log("close full right panel");
+          set({ fullRightPanelId: null });
+        },
 
         setSecondarySidebarActiveView: async (viewId) => {
           const { panels } = get();
@@ -163,7 +178,7 @@ const layoutStore = createStore<LayoutStore>()(
       }),
       {
         name: "neovate-layout",
-        partialize: (state) => ({ panels: state.panels }),
+        partialize: ({ panels }) => ({ panels }),
         merge: (persisted, current) => mergePersisted(persisted, current),
       },
     ),
