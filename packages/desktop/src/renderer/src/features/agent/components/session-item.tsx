@@ -5,6 +5,7 @@ import debug from "debug";
 import { Archive, Circle, Pin, PinOff } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import type { TurnResult } from "../store";
 
@@ -62,9 +63,13 @@ export const SessionItem = memo(function SessionItem({
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const renameSession = useAgentStore((s) => s.renameSession);
-  const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
-  const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
-  const developerMode = useConfigStore((s) => s.developerMode);
+  const { multiProjectSupport, sidebarOrganize, developerMode } = useConfigStore(
+    useShallow((s) => ({
+      multiProjectSupport: s.multiProjectSupport,
+      sidebarOrganize: s.sidebarOrganize,
+      developerMode: s.developerMode,
+    })),
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");

@@ -20,7 +20,7 @@ export function GrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
       <ToolHeader type="tool-Grep" state={state} title={title} />
       <ToolContent>
         {typeof output === "string" ? (
-          <CodeBlock code={output} language="bash" className="text-sm" />
+          <CodeBlock code={output} language="bash" className="text-sm" maxLines={150} />
         ) : null}
       </ToolContent>
     </Tool>

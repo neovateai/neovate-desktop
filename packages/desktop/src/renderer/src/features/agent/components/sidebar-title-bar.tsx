@@ -4,6 +4,7 @@ import debug from "debug";
 import { CheckIcon, Plus } from "lucide-react";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import type { SidebarOrganize, SidebarSortBy } from "../../../../../shared/features/config/types";
 
@@ -26,8 +27,12 @@ const log = debug("neovate:sidebar-title-bar");
 
 export const SidebarTitleBar = memo(function SidebarTitleBar() {
   const { t } = useTranslation();
-  const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
-  const sidebarSortBy = useConfigStore((s) => s.sidebarSortBy);
+  const { sidebarOrganize, sidebarSortBy } = useConfigStore(
+    useShallow((s) => ({
+      sidebarOrganize: s.sidebarOrganize,
+      sidebarSortBy: s.sidebarSortBy,
+    })),
+  );
   const setConfig = useConfigStore((s) => s.setConfig);
   const activeProject = useProjectStore((s) => s.activeProject);
   const { openProject } = useProject();

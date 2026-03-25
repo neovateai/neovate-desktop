@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import type { RequestDetail } from "../../../../shared/features/agent/request-types";
 
@@ -10,11 +11,16 @@ type DetailTab = "headers" | "request" | "response";
 
 export default function NetworkView() {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
-  const inspectorState = useNetworkStore((s) => s.inspectorState);
-  const requestOrder = useNetworkStore((s) => s.requestOrder);
-  const requests = useNetworkStore((s) => s.requests);
-  const selectedRequestId = useNetworkStore((s) => s.selectedRequestId);
-  const selectedDetail = useNetworkStore((s) => s.selectedDetail);
+  const { inspectorState, requestOrder, requests, selectedRequestId, selectedDetail } =
+    useNetworkStore(
+      useShallow((s) => ({
+        inspectorState: s.inspectorState,
+        requestOrder: s.requestOrder,
+        requests: s.requests,
+        selectedRequestId: s.selectedRequestId,
+        selectedDetail: s.selectedDetail,
+      })),
+    );
   const loadSession = useNetworkStore((s) => s.loadSession);
   const onSummary = useNetworkStore((s) => s.onSummary);
   const selectRequest = useNetworkStore((s) => s.selectRequest);

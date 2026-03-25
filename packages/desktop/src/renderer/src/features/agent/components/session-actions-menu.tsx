@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from "react";
 import debug from "debug";
 import { MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import { encodeProjectPath } from "../../../../../shared/claude-code/paths";
 import { Button } from "../../../components/ui/button";
@@ -42,8 +43,12 @@ export function SessionActionsMenu({
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
   const isPinned = (pinnedSessions[projectPath] ?? []).includes(sessionId);
 
-  const sessionCwd = useAgentStore((s) => s.sessions.get(sessionId)?.cwd);
-  const sessionIsNew = useAgentStore((s) => s.sessions.get(sessionId)?.isNew);
+  const { sessionCwd, sessionIsNew } = useAgentStore(
+    useShallow((s) => {
+      const session = s.sessions.get(sessionId);
+      return { sessionCwd: session?.cwd, sessionIsNew: session?.isNew };
+    }),
+  );
   const cwd = sessionCwd ?? projectPath;
   const isNew = sessionIsNew ?? false;
 

@@ -12,9 +12,28 @@ export default defineConfig({
     define: appDefine,
     build: {
       outDir: "dist/main",
-      // TODO: fix this
       externalizeDeps: {
-        exclude: ["electron-store"],
+        // Bundle all pure-JS deps into the main process output.
+        // Only node-pty (native), claude-agent-sdk (vendored binaries),
+        // and electron-updater (reads app metadata) stay external.
+        exclude: [
+          "@anthropic-ai/sdk",
+          "@electron-toolkit/utils",
+          "@orpc/contract",
+          "@orpc/server",
+          "adm-zip",
+          "ai",
+          "chokidar",
+          "debug",
+          "electron-log",
+          "electron-store",
+          "fuse.js",
+          "get-port",
+          "minimatch",
+          "simple-git",
+          "tar",
+          "zod",
+        ],
       },
     },
   },

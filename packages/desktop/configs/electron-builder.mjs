@@ -73,7 +73,16 @@ const config = {
 
   files: [
     "dist/**/*",
-    "node_modules/**/*",
+
+    // ── Only ship node_modules that aren't bundled into dist/main ──
+    // Pure-JS deps are bundled by electron-vite; only native/binary deps remain.
+    "node_modules/node-pty/**/*",
+    "node_modules/@anthropic-ai/claude-agent-sdk/**/*",
+    "node_modules/electron-updater/**/*",
+    // electron-updater runtime deps
+    "node_modules/semver/**/*",
+    "node_modules/builder-util-runtime/**/*",
+
     "!**/.vscode/*",
     "!src/*",
     "!electron.vite.config.{js,ts,mjs,cjs}",

@@ -2,6 +2,7 @@ import debug from "debug";
 import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 
 import { client } from "../../../orpc";
 import { useProjectStore } from "../../project/store";
@@ -12,8 +13,12 @@ const log = debug("neovate:session-info-bar");
 
 export function SessionInfoBar() {
   const { t } = useTranslation();
-  const activeSessionId = useAgentStore((s) => s.activeSessionId);
-  const sessions = useAgentStore((s) => s.sessions);
+  const { activeSessionId, sessions } = useAgentStore(
+    useShallow((s) => ({
+      activeSessionId: s.activeSessionId,
+      sessions: s.sessions,
+    })),
+  );
   const renameSession = useAgentStore((s) => s.renameSession);
   const activeProject = useProjectStore((s) => s.activeProject);
 

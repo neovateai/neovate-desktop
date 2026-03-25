@@ -26,7 +26,7 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
             <span className="whitespace-pre-wrap">{errorText}</span>
           </div>
         ) : code ? (
-          <CodeBlock code={code} language={language} className="text-xs">
+          <CodeBlock code={code} language={language} className="text-xs" maxLines={150}>
             <CodeBlockCopyButton />
           </CodeBlock>
         ) : null}
