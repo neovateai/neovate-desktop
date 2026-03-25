@@ -191,6 +191,20 @@
 }
 
 /* ========================================
+   Theme Style: Default (explicit selector for preview isolation)
+   ======================================== */
+[data-style="default"] {
+  --primary: #b83b5e;
+  --background: #f5f7fa;
+  --sidebar: #fafafa;
+}
+[data-style="default"].dark {
+  --primary: #eb6b8e;
+  --background: #0a0a0a;
+  --sidebar: #141414;
+}
+
+/* ========================================
    Theme Style: Claude (Warm, humanistic)
    ======================================== */
 [data-style="claude"] {

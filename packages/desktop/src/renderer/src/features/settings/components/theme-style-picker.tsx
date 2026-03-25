@@ -5,49 +5,12 @@ import type { ThemeStyle } from "../../../../../shared/features/config/types";
 
 import { cn } from "../../../lib/utils";
 
-interface ThemeStyleOption {
-  value: ThemeStyle;
-  labelKey: string;
-  colors: {
-    light: { primary: string; background: string; sidebar: string };
-    dark: { primary: string; background: string; sidebar: string };
-  };
-}
-
 const THEME_STYLES = [
-  {
-    value: "default" as const,
-    labelKey: "settings.themeStyle.default" as const,
-    colors: {
-      light: { primary: "#b83b5e", background: "#f5f7fa", sidebar: "#fafafa" },
-      dark: { primary: "#eb6b8e", background: "#0a0a0a", sidebar: "#141414" },
-    },
-  },
-  {
-    value: "claude" as const,
-    labelKey: "settings.themeStyle.claude" as const,
-    colors: {
-      light: { primary: "#da7756", background: "#faf8f5", sidebar: "#f5f0e8" },
-      dark: { primary: "#e8a88a", background: "#1a1816", sidebar: "#1e1c1a" },
-    },
-  },
-  {
-    value: "codex" as const,
-    labelKey: "settings.themeStyle.codex" as const,
-    colors: {
-      light: { primary: "#10a37f", background: "#ffffff", sidebar: "#f7f7f8" },
-      dark: { primary: "#19c37d", background: "#202123", sidebar: "#202123" },
-    },
-  },
-  {
-    value: "nord" as const,
-    labelKey: "settings.themeStyle.nord" as const,
-    colors: {
-      light: { primary: "#5e81ac", background: "#eceff4", sidebar: "#e5e9f0" },
-      dark: { primary: "#88c0d0", background: "#2e3440", sidebar: "#2e3440" },
-    },
-  },
-] satisfies ThemeStyleOption[];
+  { value: "default" as const, labelKey: "settings.themeStyle.default" as const },
+  { value: "claude" as const, labelKey: "settings.themeStyle.claude" as const },
+  { value: "codex" as const, labelKey: "settings.themeStyle.codex" as const },
+  { value: "nord" as const, labelKey: "settings.themeStyle.nord" as const },
+];
 
 interface ThemeStylePickerProps {
   value: ThemeStyle;
@@ -62,7 +25,6 @@ export function ThemeStylePicker({ value, onChange }: ThemeStylePickerProps) {
   return (
     <div className="flex gap-3">
       {THEME_STYLES.map((style) => {
-        const colors = isDark ? style.colors.dark : style.colors.light;
         const isSelected = value === style.value;
 
         return (
@@ -78,17 +40,21 @@ export function ThemeStylePicker({ value, onChange }: ThemeStylePickerProps) {
                 : "border-border hover:border-muted-foreground/30",
             )}
           >
-            {/* Color preview area */}
-            <div className="relative h-12 w-full" style={{ backgroundColor: colors.background }}>
+            {/* Color preview — data-style scopes CSS vars so each swatch shows its own palette */}
+            <div
+              data-style={style.value}
+              className={cn("relative h-12 w-full", isDark && "dark")}
+              style={{ backgroundColor: "var(--background)" }}
+            >
               {/* Sidebar strip */}
               <div
                 className="absolute left-0 top-0 h-full w-3"
-                style={{ backgroundColor: colors.sidebar }}
+                style={{ backgroundColor: "var(--sidebar)" }}
               />
               {/* Primary accent circle */}
               <div
                 className="absolute right-2 top-1/2 -translate-y-1/2 size-4 rounded-full"
-                style={{ backgroundColor: colors.primary }}
+                style={{ backgroundColor: "var(--primary)" }}
               />
             </div>
 

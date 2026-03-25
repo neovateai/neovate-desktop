@@ -85,15 +85,32 @@ function ThemeSync() {
 function StyleSync() {
   const themeStyle = useConfigStore((s) => s.themeStyle);
   const loaded = useConfigStore((s) => s.loaded);
+  const initialized = useRef(false);
 
   useEffect(() => {
     if (!loaded) return;
     const html = document.documentElement;
-    if (themeStyle === "default") {
-      // Remove data-style attribute for default theme (uses :root and .dark selectors)
-      delete html.dataset.style;
+
+    const apply = () => {
+      if (themeStyle === "default") {
+        delete html.dataset.style;
+      } else {
+        html.dataset.style = themeStyle;
+      }
+    };
+
+    // Skip transition on initial load
+    if (!initialized.current) {
+      initialized.current = true;
+      apply();
+      return;
+    }
+
+    // Smooth crossfade when user switches style
+    if (document.startViewTransition) {
+      document.startViewTransition(apply);
     } else {
-      html.dataset.style = themeStyle;
+      apply();
     }
   }, [themeStyle, loaded]);
 
