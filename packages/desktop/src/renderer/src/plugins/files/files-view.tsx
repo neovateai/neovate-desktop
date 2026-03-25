@@ -46,6 +46,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [loading, setLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
   const cwd = project?.path || "";
 
@@ -230,12 +231,60 @@ function FilesViewComponent({ project }: FilesViewProps) {
     [fetchChildren, updateChildrenInTree, startWatcher, stopWatcher, isVisible],
   );
 
+  // --- Keyboard event listener: Enter key operation ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+
+      // Skip if currently editing an input field (let the input handle it)
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return;
+      }
+
+      // Only handle when file tree panel is visible and has selection
+      if (!isVisible || !selectedKey || editingKey) return;
+
+      e.preventDefault();
+      const selectedItem = findItemByPath(treeData, selectedKey);
+      if (!selectedItem) return;
+
+      // Press Enter to enter rename mode
+      if (selectedItem.relPath !== "") {
+        setEditingKey(selectedKey);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isVisible, selectedKey, editingKey, treeData]);
+
+  // Helper function: find tree node by path
+  const findItemByPath = (items: FileTreeItem[], path: string): FileTreeItem | null => {
+    for (const item of items) {
+      if (item.fullPath === path) return item;
+      if (item.children) {
+        const found = findItemByPath(item.children, path);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Handle start editing
+  const handleStartEdit = (key: string | null) => {
+    setEditingKey(key);
+  };
+
   const handleSelect = (item: FileTreeItem) => {
     setSelectedKey(item.fullPath);
 
     if (!item.isFolder && project) {
       log("open file path=%s", item.relPath);
-      app.workbench.contentPanel.openView("editor");
+      // Use activate: false to avoid auto-focusing the editor
+      app.workbench.contentPanel.openView("editor", { activate: false });
       window.dispatchEvent(
         new CustomEvent("neovate:open-editor", {
           detail: { fullPath: item.fullPath },
@@ -379,6 +428,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
                 onCreateFile={handleCreateFile}
                 onCreateFolder={handleCreateFolder}
                 onAdd={handleAddContext}
+                editingKey={editingKey}
+                onStartEdit={handleStartEdit}
               />
             ))}
           </div>

@@ -1,7 +1,7 @@
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronRight, ChevronDown, FilePlus, FolderPlus, Edit, Trash2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import type { FileTreeItem } from "../../../../shared/plugins/files/contract";
 
@@ -27,6 +27,9 @@ interface TreeNodeProps {
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
   onAdd?: (item: FileTreeItem) => void;
+  // External control of editing state
+  editingKey?: string | null;
+  onStartEdit?: (key: string | null) => void;
 }
 
 function FileLangIcon(props: { path: string; size?: number }) {
@@ -38,7 +41,6 @@ function FileLangIcon(props: { path: string; size?: number }) {
     <div
       className="seti-icon"
       data-lang={suffix}
-      data-name={filename}
       style={{ fontSize: size, width: 12, height: 12, lineHeight: `12px` }}
     ></div>
   );
@@ -56,10 +58,13 @@ export function TreeNode({
   onCreateFile,
   onCreateFolder,
   onAdd,
+  editingKey,
+  onStartEdit,
 }: TreeNodeProps) {
   const { t } = useFilesTranslation();
   const { fileName = "" } = item || {};
-  const [isEditing, setIsEditing] = useState(false);
+  // Externally controlled editing state
+  const isEditing = editingKey === item.fullPath;
   const [editingName, setEditingName] = useState(fileName);
   const [isCreating, setIsCreating] = useState(false);
   const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
@@ -68,6 +73,13 @@ export function TreeNode({
 
   const isExpanded = expandedKeys.has(item.fullPath);
   const isSelected = selectedKey === item.fullPath;
+
+  // Reset editing name when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      setEditingName(fileName);
+    }
+  }, [isEditing, fileName]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -123,7 +135,9 @@ export function TreeNode({
   ];
 
   const handleStartRename = () => {
-    setIsEditing(true);
+    if (onStartEdit) {
+      onStartEdit(item.fullPath);
+    }
     setEditingName(fileName);
   };
 
@@ -133,11 +147,11 @@ export function TreeNode({
       const newPath = parentPath + editingName;
       onRename(item.fullPath, newPath);
     }
-    setIsEditing(false);
+    onStartEdit?.(null);
   };
 
   const handleCancelRename = () => {
-    setIsEditing(false);
+    onStartEdit?.(null);
     setEditingName(fileName);
   };
 
@@ -218,6 +232,7 @@ export function TreeNode({
                 }}
                 className="flex-1 text-sm bg-background border border-border rounded px-2 py-1 ml-2"
                 autoFocus
+                onFocus={(e) => e.currentTarget.select()}
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
@@ -296,6 +311,8 @@ export function TreeNode({
               onCreateFile={onCreateFile}
               onCreateFolder={onCreateFolder}
               onAdd={onAdd}
+              editingKey={editingKey}
+              onStartEdit={onStartEdit}
             />
           ))}
         </div>
