@@ -88,6 +88,8 @@ const config = {
     "!**/node_modules/node-pty/prebuilds/win32-*/**",
   ],
 
+  protocols: [{ name: "Neovate", schemes: [isDev ? "neovate-dev" : "neovate"] }],
+
   compression: isDev ? "normal" : "maximum",
 
   mac: {

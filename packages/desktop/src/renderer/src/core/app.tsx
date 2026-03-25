@@ -8,11 +8,16 @@ import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+const deeplinkLog = debug("neovate:deeplink");
+
 const startupLog = debug("neovate:startup");
 
 import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
 import { layoutStore } from "../components/app-layout/store";
 import { ToastProvider, toastManager } from "../components/ui/toast";
+import { claudeCodeChatManager } from "../features/agent/chat-manager";
+import { registerSessionInStore } from "../features/agent/session-utils";
+import { useAgentStore } from "../features/agent/store";
 import { useConfigStore } from "../features/config/store";
 import { ContentPanel } from "../features/content-panel";
 import { useProjectStore } from "../features/project/store";
@@ -92,6 +97,95 @@ function MenuCommandHandler() {
       cleanupOpenSettings();
     };
   }, [showSettings, setShowSettings]);
+
+  return null;
+}
+
+function resolveDeeplinkSession(sessionId: string, project: string) {
+  const { sessions, agentSessions } = useAgentStore.getState();
+
+  // Already in memory — just switch
+  if (sessions.has(sessionId)) {
+    deeplinkLog("session in memory, activating: %s", sessionId.slice(0, 8));
+    useAgentStore.getState().setActiveSession(sessionId);
+    return;
+  }
+
+  // Check if it exists in persisted sessions
+  const info = agentSessions.find((s) => s.sessionId === sessionId);
+  if (!info) {
+    deeplinkLog("session not found: %s", sessionId.slice(0, 8));
+    toastManager.add({
+      type: "warning",
+      title: i18n.t("deeplink.sessionNotFound"),
+    });
+    return;
+  }
+
+  // Load the persisted session
+  deeplinkLog("loading persisted session: %s", sessionId.slice(0, 8));
+  claudeCodeChatManager
+    .loadSession(sessionId, info.cwd ?? project)
+    .then(({ commands, models, currentModel, modelScope, providerId }) => {
+      registerSessionInStore(
+        sessionId,
+        project,
+        { commands, models, currentModel, modelScope, providerId },
+        true,
+      );
+    })
+    .catch(() => {
+      toastManager.add({
+        type: "warning",
+        title: i18n.t("deeplink.sessionLoadFailed"),
+      });
+    });
+}
+
+/** Handle deeplinks from main process */
+function DeeplinkHandler() {
+  const sessionsLoaded = useAgentStore((s) => s.sessionsLoaded);
+  const pendingDeeplink = useAgentStore((s) => s.pendingDeeplink);
+
+  // Listen for incoming deeplinks
+  useEffect(() => {
+    const cleanup = window.api.onDeeplink(({ sessionId, project }) => {
+      deeplinkLog("received deeplink: sessionId=%s project=%s", sessionId.slice(0, 8), project);
+      const projectStore = useProjectStore.getState();
+
+      // Validate project exists in project list
+      const targetProject = projectStore.projects.find((p) => p.path === project);
+      if (!targetProject || targetProject.pathMissing) {
+        deeplinkLog("project not found: %s", project);
+        toastManager.add({
+          type: "warning",
+          title: i18n.t("deeplink.projectNotFound"),
+        });
+        return;
+      }
+
+      // Check if we need to switch projects
+      if (projectStore.activeProject?.path !== project) {
+        deeplinkLog("switching project: %s", project);
+        useAgentStore.getState().setPendingDeeplink({ sessionId, project });
+        projectStore.switchToProjectByPath(project);
+        return;
+      }
+
+      // Same project — resolve directly
+      resolveDeeplinkSession(sessionId, project);
+    });
+    return cleanup;
+  }, []);
+
+  // Resolve pending deeplink after sessions load from project switch
+  useEffect(() => {
+    if (pendingDeeplink && sessionsLoaded) {
+      deeplinkLog("resolving pending deeplink: %s", pendingDeeplink.sessionId.slice(0, 8));
+      resolveDeeplinkSession(pendingDeeplink.sessionId, pendingDeeplink.project);
+      useAgentStore.getState().setPendingDeeplink(null);
+    }
+  }, [sessionsLoaded, pendingDeeplink]);
 
   return null;
 }
@@ -282,6 +376,7 @@ export class RendererApp implements IRendererApp {
                 <ToastProvider>
                   <ThemeSync />
                   <MenuCommandHandler />
+                  <DeeplinkHandler />
                   <Suspense
                     fallback={
                       <div className="flex h-screen items-center justify-center">

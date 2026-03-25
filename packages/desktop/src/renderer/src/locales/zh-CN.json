@@ -343,6 +343,10 @@
 
   "status.ready": "就绪",
 
+  "deeplink.projectNotFound": "项目未找到",
+  "deeplink.sessionNotFound": "会话未找到",
+  "deeplink.sessionLoadFailed": "加载会话失败",
+
   "debug.activeSessions": "活跃会话",
   "debug.closeSession": "关闭会话",
   "debug.maximizePanel": "最大化内容面板",

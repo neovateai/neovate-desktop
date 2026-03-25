@@ -341,6 +341,10 @@
 
   "status.ready": "Ready",
 
+  "deeplink.projectNotFound": "Project not found",
+  "deeplink.sessionNotFound": "Session not found",
+  "deeplink.sessionLoadFailed": "Failed to load session",
+
   "debug.activeSessions": "Active Sessions",
   "debug.closeSession": "Close session",
   "debug.maximizePanel": "Maximize content panel",

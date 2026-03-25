@@ -71,7 +71,8 @@ export function SessionActionsMenu({
   };
 
   const handleCopyDeeplink = () => {
-    const deeplink = `neovate://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
+    const scheme = window.api.isDev ? "neovate-dev" : "neovate";
+    const deeplink = `${scheme}://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
     log("copyDeeplink: %s", deeplink);
     navigator.clipboard.writeText(deeplink);
   };
