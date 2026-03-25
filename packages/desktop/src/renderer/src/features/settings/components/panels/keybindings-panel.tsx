@@ -26,6 +26,7 @@ const KEYBINDING_ACTIONS: KeybindingAction[] = [
   "toggleBrowser",
   "toggleFiles",
   "toggleMultiProject",
+  "togglePinSession",
   "prevSession",
   "nextSession",
   "copyPath",
