@@ -1,11 +1,11 @@
 import type { Disposable } from "./disposable";
 
 export interface IOpener {
-  open(resource: URL): boolean;
+  open(resource: URL): boolean | Promise<boolean>;
 }
 
 export interface IExternalOpener {
-  openExternal(href: string, ctx: { sourceUri: string }): boolean;
+  openExternal(href: string, ctx: { sourceUri: string }): boolean | Promise<boolean>;
 }
 
 export class OpenerService {
@@ -31,15 +31,18 @@ export class OpenerService {
     };
   }
 
-  open(resource: string): boolean {
+  async open(resource: string): Promise<boolean> {
     const uri = this.normalize(resource);
     if (!uri) return false;
 
     for (const opener of this.openers) {
-      if (opener.open(uri)) return true;
+      if (await opener.open(uri)) return true;
     }
 
-    if (this.externalOpener?.openExternal(uri.toString(), { sourceUri: resource })) {
+    if (
+      this.externalOpener &&
+      (await this.externalOpener.openExternal(uri.toString(), { sourceUri: resource }))
+    ) {
       return true;
     }
 

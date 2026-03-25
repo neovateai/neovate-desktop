@@ -2,8 +2,8 @@ import type { Disposable } from "./disposable";
 import type { IExternalOpener, OpenerService } from "./opener";
 
 export interface ExternalUriOpener {
-  canOpenExternalUri(uri: URL): boolean;
-  openExternalUri(resolvedUri: URL, ctx: OpenExternalUriContext): boolean;
+  canOpenExternalUri(uri: URL): boolean | Promise<boolean>;
+  openExternalUri(resolvedUri: URL, ctx: OpenExternalUriContext): boolean | Promise<boolean>;
 }
 
 export interface OpenExternalUriContext {
@@ -40,7 +40,7 @@ export class ExternalUriOpenerService implements IExternalOpener {
     return { dispose: () => this.openers.delete(id) };
   }
 
-  openExternal(href: string, ctx: { sourceUri: string }): boolean {
+  async openExternal(href: string, ctx: { sourceUri: string }): Promise<boolean> {
     let uri: URL;
     try {
       uri = new URL(href);
@@ -53,8 +53,8 @@ export class ExternalUriOpenerService implements IExternalOpener {
 
     for (const [, { opener, metadata }] of this.openers) {
       if (!metadata.schemes.includes(scheme)) continue;
-      if (opener.canOpenExternalUri(uri)) {
-        if (opener.openExternalUri(uri, openCtx)) return true;
+      if (await opener.canOpenExternalUri(uri)) {
+        if (await opener.openExternalUri(uri, openCtx)) return true;
       }
     }
 

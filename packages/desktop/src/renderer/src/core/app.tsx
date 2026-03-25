@@ -209,7 +209,9 @@ export class RendererApp implements IRendererApp {
     const externalUriOpenerService = new ExternalUriOpenerService(this.opener);
     for (const { id, opener: uriOpener, metadata } of this.pluginManager.contributions
       .externalUriOpeners) {
-      externalUriOpenerService.registerExternalUriOpener(id, uriOpener, metadata);
+      this.subscriptions.push(
+        externalUriOpenerService.registerExternalUriOpener(id, uriOpener, metadata),
+      );
     }
 
     this.workbench = {

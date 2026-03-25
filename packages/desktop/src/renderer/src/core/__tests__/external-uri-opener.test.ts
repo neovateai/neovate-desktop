@@ -30,17 +30,17 @@ function makeMetadata(overrides?: Partial<ExternalUriOpenerMetadata>): ExternalU
 }
 
 describe("ExternalUriOpenerService", () => {
-  it("registers itself as external opener in OpenerService", () => {
+  it("registers itself as external opener in OpenerService", async () => {
     const opener = makeOpener();
     externalService.registerExternalUriOpener("test", opener, makeMetadata());
 
     // Trigger via OpenerService — should reach ExternalUriOpenerService
-    const result = openerService.open("https://example.com");
+    const result = await openerService.open("https://example.com");
     expect(result).toBe(true);
     expect(opener.openExternalUri).toHaveBeenCalled();
   });
 
-  it("filters openers by scheme", () => {
+  it("filters openers by scheme", async () => {
     const httpOpener = makeOpener();
     const fileOpener = makeOpener();
 
@@ -55,20 +55,20 @@ describe("ExternalUriOpenerService", () => {
       makeMetadata({ schemes: ["file"] }),
     );
 
-    openerService.open("https://example.com");
+    await openerService.open("https://example.com");
 
     expect(httpOpener.canOpenExternalUri).toHaveBeenCalled();
     expect(fileOpener.canOpenExternalUri).not.toHaveBeenCalled();
   });
 
-  it("calls canOpenExternalUri before openExternalUri", () => {
+  it("calls canOpenExternalUri before openExternalUri", async () => {
     const opener = makeOpener({ canOpenExternalUri: vi.fn(() => false) });
     externalService.registerExternalUriOpener("test", opener, makeMetadata());
 
     // Stub window.open to prevent fallback side effects
     vi.stubGlobal("window", { open: vi.fn() });
 
-    openerService.open("https://example.com");
+    await openerService.open("https://example.com");
 
     expect(opener.canOpenExternalUri).toHaveBeenCalled();
     expect(opener.openExternalUri).not.toHaveBeenCalled();
@@ -76,20 +76,20 @@ describe("ExternalUriOpenerService", () => {
     vi.unstubAllGlobals();
   });
 
-  it("tries next opener when canOpenExternalUri returns false", () => {
+  it("tries next opener when canOpenExternalUri returns false", async () => {
     const declining = makeOpener({ canOpenExternalUri: vi.fn(() => false) });
     const accepting = makeOpener();
 
     externalService.registerExternalUriOpener("declining", declining, makeMetadata());
     externalService.registerExternalUriOpener("accepting", accepting, makeMetadata());
 
-    openerService.open("https://example.com");
+    await openerService.open("https://example.com");
 
     expect(declining.canOpenExternalUri).toHaveBeenCalled();
     expect(accepting.openExternalUri).toHaveBeenCalled();
   });
 
-  it("returns false when no opener handles the URI", () => {
+  it("returns false when no opener handles the URI", async () => {
     const declining = makeOpener({
       canOpenExternalUri: vi.fn(() => false),
     });
@@ -99,7 +99,7 @@ describe("ExternalUriOpenerService", () => {
     const windowOpenSpy = vi.fn();
     vi.stubGlobal("window", { open: windowOpenSpy });
 
-    openerService.open("https://example.com");
+    await openerService.open("https://example.com");
 
     // ExternalUriOpenerService declined, so OpenerService falls back to window.open
     expect(windowOpenSpy).toHaveBeenCalled();
@@ -107,11 +107,11 @@ describe("ExternalUriOpenerService", () => {
     vi.unstubAllGlobals();
   });
 
-  it("passes OpenExternalUriContext with sourceUri", () => {
+  it("passes OpenExternalUriContext with sourceUri", async () => {
     const opener = makeOpener();
     externalService.registerExternalUriOpener("test", opener, makeMetadata());
 
-    openerService.open("https://example.com");
+    await openerService.open("https://example.com");
 
     expect(opener.openExternalUri).toHaveBeenCalledWith(
       expect.any(URL),
@@ -120,14 +120,14 @@ describe("ExternalUriOpenerService", () => {
   });
 
   describe("dispose", () => {
-    it("removes opener on dispose", () => {
+    it("removes opener on dispose", async () => {
       const opener = makeOpener();
       const disposable = externalService.registerExternalUriOpener("test", opener, makeMetadata());
 
       disposable.dispose();
 
       vi.stubGlobal("window", { open: vi.fn() });
-      openerService.open("https://example.com");
+      await openerService.open("https://example.com");
 
       expect(opener.canOpenExternalUri).not.toHaveBeenCalled();
 

@@ -20,8 +20,11 @@ export function useMarkdownComponents(): Components {
           )}
           {...props}
           onClick={(e) => {
-            if (props.href && app.opener.open(props.href)) {
+            if (props.href) {
               e.preventDefault();
+              app.opener.open(props.href).then((handled) => {
+                if (!handled) window.open(props.href);
+              });
             }
           }}
         >
