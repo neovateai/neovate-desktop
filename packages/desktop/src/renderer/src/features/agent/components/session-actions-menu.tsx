@@ -70,6 +70,12 @@ export function SessionActionsMenu({
     navigator.clipboard.writeText(command);
   };
 
+  const handleCopyDeeplink = () => {
+    const deeplink = `neovate://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
+    log("copyDeeplink: %s", deeplink);
+    navigator.clipboard.writeText(deeplink);
+  };
+
   const handleArchive = () => {
     const isActive = useAgentStore.getState().activeSessionId === sessionId;
     archiveSession(projectPath, sessionId, isActive);
@@ -104,6 +110,9 @@ export function SessionActionsMenu({
           </ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
             {t("session.copyResumeCommand")}
+          </ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleCopyDeeplink}>
+            {t("session.copyDeeplink")}
           </ContextMenuItem>
         </ContextMenuPopup>
       </ContextMenu>
@@ -141,6 +150,9 @@ export function SessionActionsMenu({
         </MenuItem>
         <MenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
           {t("session.copyResumeCommand")}
+        </MenuItem>
+        <MenuItem disabled={isNew} onClick={handleCopyDeeplink}>
+          {t("session.copyDeeplink")}
         </MenuItem>
       </MenuPopup>
     </Menu>
