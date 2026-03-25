@@ -4,6 +4,6 @@ import { RendererApp } from "./core";
 import browserPlugin from "./plugins/browser";
 
 const app = new RendererApp({
-  plugins: [browserPlugin({ includeHosts: ["*.google.com"] })],
+  plugins: [browserPlugin({ includeHosts: ["*"] })],
 });
 app.start();
