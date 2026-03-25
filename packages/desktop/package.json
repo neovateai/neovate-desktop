@@ -43,6 +43,7 @@
     "get-port": "^7.1.0",
     "minimatch": "^10.2.4",
     "node-pty": "^1.1.0",
+    "react-error-boundary": "^6.1.1",
     "simple-git": "^3.32.3",
     "tar": "^7.5.10",
     "zod": "^4.3.6"

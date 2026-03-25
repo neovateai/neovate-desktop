@@ -24,6 +24,7 @@ interface ConfigState extends AppConfig {
 const DEFAULT_CONFIG: AppConfig = {
   // General Settings
   theme: "system",
+  themeStyle: "default",
   locale: "en-US",
   runOnStartup: false,
   multiProjectSupport: false,

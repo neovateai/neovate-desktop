@@ -81,6 +81,25 @@ function ThemeSync() {
   return null;
 }
 
+/** Syncs themeStyle to document.documentElement.dataset.style */
+function StyleSync() {
+  const themeStyle = useConfigStore((s) => s.themeStyle);
+  const loaded = useConfigStore((s) => s.loaded);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const html = document.documentElement;
+    if (themeStyle === "default") {
+      // Remove data-style attribute for default theme (uses :root and .dark selectors)
+      delete html.dataset.style;
+    } else {
+      html.dataset.style = themeStyle;
+    }
+  }, [themeStyle, loaded]);
+
+  return null;
+}
+
 /** Handle menu commands from main process (only for menu item clicks, not shortcuts) */
 function MenuCommandHandler() {
   const showSettings = useSettingsStore((s) => s.showSettings);
@@ -385,6 +404,7 @@ export class RendererApp implements IRendererApp {
               >
                 <ToastProvider>
                   <ThemeSync />
+                  <StyleSync />
                   <MenuCommandHandler />
                   <DeeplinkHandler />
                   <Suspense

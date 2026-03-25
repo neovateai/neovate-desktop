@@ -95,6 +95,10 @@
   --color-chat: #f5f7fa;
   --color-chat-foreground: var(--color-neutral-800);
 
+  /* Scrollbar - neutral colors, not affected by theme style */
+  --scrollbar-thumb: --alpha(var(--color-black) / 15%);
+  --scrollbar-thumb-hover: --alpha(var(--color-black) / 30%);
+
   /* Glass system */
   --glass-tint: var(--color-white);
   --glass-border: --alpha(var(--color-black) / 6%);
@@ -159,6 +163,10 @@
   --color-chat: #161616;
   --color-chat-foreground: var(--color-neutral-100);
 
+  /* Scrollbar - neutral colors, not affected by theme style */
+  --scrollbar-thumb: --alpha(var(--color-white) / 15%);
+  --scrollbar-thumb-hover: --alpha(var(--color-white) / 30%);
+
   /* Glass system (Dark) */
   --glass-tint: #1e1e1e;
   --glass-border: --alpha(var(--color-white) / 10%);
@@ -181,6 +189,129 @@
   --skill-foreground: #c4b5fd;
   --skill-bg: --alpha(#b06dff / 15%);
 }
+
+/* ========================================
+   Theme Style: Claude (Warm, humanistic)
+   ======================================== */
+[data-style="claude"] {
+  --primary: #da7756;
+  --primary-foreground: var(--color-white);
+  --ring: #da7756;
+  --background: #faf8f5;
+  --background-secondary: var(--color-white);
+  --card: var(--color-white);
+  --card-foreground: var(--color-neutral-800);
+  --sidebar: #f5f0e8;
+  --sidebar-foreground: color-mix(in srgb, var(--color-neutral-800) 64%, var(--sidebar));
+  --sidebar-ring: #da7756;
+  --color-chat: #faf8f5;
+  --color-chat-foreground: var(--color-neutral-800);
+
+  /* Glass system - warm tint */
+  --glass-tint: #fdfbf8;
+}
+[data-style="claude"].dark {
+  --primary: #e8a88a;
+  --primary-foreground: var(--color-white);
+  --ring: #e8a88a;
+  --background: #1a1816;
+  --background-secondary: #1a1816;
+  --card: #242220;
+  --card-foreground: var(--color-neutral-100);
+  --popover: #242220;
+  --popover-foreground: var(--color-neutral-100);
+  --sidebar: #1e1c1a;
+  --sidebar-foreground: color-mix(in srgb, var(--color-neutral-100) 72%, var(--sidebar));
+  --sidebar-ring: #e8a88a;
+  --color-chat: #1e1c1a;
+  --color-chat-foreground: var(--color-neutral-100);
+
+  /* Glass system - warm dark tint */
+  --glass-tint: #242220;
+}
+
+/* ========================================
+   Theme Style: Codex (ChatGPT-like, clean tech)
+   ======================================== */
+[data-style="codex"] {
+  --primary: #10a37f;
+  --primary-foreground: var(--color-white);
+  --ring: #10a37f;
+  --background: var(--color-white);
+  --background-secondary: var(--color-white);
+  --card: #f7f7f8;
+  --card-foreground: var(--color-neutral-800);
+  --sidebar: #f7f7f8;
+  --sidebar-foreground: color-mix(in srgb, var(--color-neutral-800) 64%, var(--sidebar));
+  --sidebar-ring: #10a37f;
+  --color-chat: var(--color-white);
+  --color-chat-foreground: var(--color-neutral-800);
+
+  /* Glass system */
+  --glass-tint: var(--color-white);
+}
+[data-style="codex"].dark {
+  --primary: #19c37d;
+  --primary-foreground: var(--color-white);
+  --ring: #19c37d;
+  --background: #202123;
+  --background-secondary: #202123;
+  --card: #343541;
+  --card-foreground: var(--color-neutral-100);
+  --popover: #343541;
+  --popover-foreground: var(--color-neutral-100);
+  --sidebar: #202123;
+  --sidebar-foreground: color-mix(in srgb, var(--color-neutral-100) 72%, var(--sidebar));
+  --sidebar-ring: #19c37d;
+  --color-chat: #343541;
+  --color-chat-foreground: var(--color-neutral-100);
+
+  /* Glass system */
+  --glass-tint: #343541;
+}
+
+/* ========================================
+   Theme Style: Nord (Nordic, aurora-inspired)
+   ======================================== */
+[data-style="nord"] {
+  --primary: #5e81ac;
+  --primary-foreground: var(--color-white);
+  --ring: #5e81ac;
+  --background: #eceff4;
+  --background-secondary: var(--color-white);
+  --card: var(--color-white);
+  --card-foreground: #2e3440;
+  --foreground: #2e3440;
+  --sidebar: #e5e9f0;
+  --sidebar-foreground: color-mix(in srgb, #2e3440 64%, var(--sidebar));
+  --sidebar-ring: #5e81ac;
+  --color-chat: #eceff4;
+  --color-chat-foreground: #2e3440;
+
+  /* Glass system - cool tint */
+  --glass-tint: #eceff4;
+}
+[data-style="nord"].dark {
+  --primary: #88c0d0;
+  --primary-foreground: #2e3440;
+  --ring: #88c0d0;
+  --background: #2e3440;
+  --background-secondary: #2e3440;
+  --card: #3b4252;
+  --card-foreground: #eceff4;
+  --foreground: #eceff4;
+  --popover: #3b4252;
+  --popover-foreground: #eceff4;
+  --sidebar: #2e3440;
+  --sidebar-foreground: color-mix(in srgb, #eceff4 72%, var(--sidebar));
+  --sidebar-ring: #88c0d0;
+  --color-chat: #3b4252;
+  --color-chat-foreground: #eceff4;
+
+  /* Glass system - nord dark tint */
+  --glass-tint: #3b4252;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -196,11 +327,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: var(--scrollbar-thumb);
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--ring);
+    background: var(--scrollbar-thumb-hover);
   }
 
   /* Tiptap editor styles */
