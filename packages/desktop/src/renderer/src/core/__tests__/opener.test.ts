@@ -18,14 +18,14 @@ beforeEach(() => {
 describe("OpenerService", () => {
   describe("normalize", () => {
     it("passes through valid URLs", async () => {
-      const spy = vi.fn(() => true);
+      const spy = vi.fn(async () => true);
       opener.registerOpener({ open: spy });
       await opener.open("https://example.com");
       expect(spy).toHaveBeenCalledWith(expect.objectContaining({ href: "https://example.com/" }));
     });
 
     it("converts bare paths to file:// URLs", async () => {
-      const spy = vi.fn((_url: URL) => true);
+      const spy = vi.fn(async (_url: URL) => true);
       opener.registerOpener({ open: spy });
       await opener.open("/src/main.ts");
       const url = spy.mock.calls[0][0];
@@ -34,7 +34,7 @@ describe("OpenerService", () => {
     });
 
     it("converts path:line to file:// URL with hash fragment", async () => {
-      const spy = vi.fn((_url: URL) => true);
+      const spy = vi.fn(async (_url: URL) => true);
       opener.registerOpener({ open: spy });
       await opener.open("/src/main.ts:42");
       const url = spy.mock.calls[0][0];
@@ -44,7 +44,7 @@ describe("OpenerService", () => {
     });
 
     it("encodes spaces in path segments", async () => {
-      const spy = vi.fn((_url: URL) => true);
+      const spy = vi.fn(async (_url: URL) => true);
       opener.registerOpener({ open: spy });
       await opener.open("/my project/file name.ts");
       const url = spy.mock.calls[0][0];
@@ -53,7 +53,7 @@ describe("OpenerService", () => {
     });
 
     it("encodes # in path segments so it is not parsed as fragment", async () => {
-      const spy = vi.fn((_url: URL) => true);
+      const spy = vi.fn(async (_url: URL) => true);
       opener.registerOpener({ open: spy });
       await opener.open("/path/to/#readme.md");
       const url = spy.mock.calls[0][0];
@@ -69,8 +69,8 @@ describe("OpenerService", () => {
 
   describe("resolution chain", () => {
     it("tries built-in openers in registration order", async () => {
-      const first: IOpener = { open: vi.fn(() => false) };
-      const second: IOpener = { open: vi.fn(() => true) };
+      const first: IOpener = { open: vi.fn(async () => false) };
+      const second: IOpener = { open: vi.fn(async () => true) };
       opener.registerOpener(first);
       opener.registerOpener(second);
 
@@ -81,8 +81,8 @@ describe("OpenerService", () => {
     });
 
     it("stops at first opener that returns true", async () => {
-      const first: IOpener = { open: vi.fn(() => true) };
-      const second: IOpener = { open: vi.fn(() => true) };
+      const first: IOpener = { open: vi.fn(async () => true) };
+      const second: IOpener = { open: vi.fn(async () => true) };
       opener.registerOpener(first);
       opener.registerOpener(second);
 
@@ -93,7 +93,7 @@ describe("OpenerService", () => {
     });
 
     it("delegates to external opener when built-in openers decline", async () => {
-      const external: IExternalOpener = { openExternal: vi.fn(() => true) };
+      const external: IExternalOpener = { openExternal: vi.fn(async () => true) };
       opener.registerExternalOpener(external);
 
       await opener.open("https://example.com");
@@ -116,7 +116,7 @@ describe("OpenerService", () => {
 
   describe("registerOpener dispose", () => {
     it("removes opener on dispose", async () => {
-      const mock: IOpener = { open: vi.fn(() => true) };
+      const mock: IOpener = { open: vi.fn(async () => true) };
       const disposable = opener.registerOpener(mock);
 
       disposable.dispose();
@@ -128,7 +128,7 @@ describe("OpenerService", () => {
 
   describe("registerExternalOpener dispose", () => {
     it("clears external opener on dispose", async () => {
-      const external: IExternalOpener = { openExternal: vi.fn(() => true) };
+      const external: IExternalOpener = { openExternal: vi.fn(async () => true) };
       const disposable = opener.registerExternalOpener(external);
 
       disposable.dispose();

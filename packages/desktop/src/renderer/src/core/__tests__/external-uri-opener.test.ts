@@ -91,7 +91,7 @@ describe("ExternalUriOpenerService", () => {
 
   it("returns false when no opener handles the URI", async () => {
     const declining = makeOpener({
-      canOpenExternalUri: vi.fn(() => false),
+      canOpenExternalUri: vi.fn(async () => false),
     });
     externalService.registerExternalUriOpener("test", declining, makeMetadata());
 
