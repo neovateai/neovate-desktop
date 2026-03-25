@@ -1,4 +1,5 @@
 import debug from "debug";
+import i18n from "i18next";
 import { ThemeProvider, useTheme } from "next-themes";
 import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
 import ReactDOM from "react-dom/client";
@@ -150,8 +151,8 @@ export class RendererApp implements IRendererApp {
       if (prevActive && !activeProject && projects.length > 0) {
         toastManager.add({
           type: "warning",
-          title: `Project "${prevActive.name}" unavailable`,
-          description: `Directory not found: ${prevActive.path}`,
+          title: i18n.t("project.unavailable", { name: prevActive.name }),
+          description: i18n.t("project.directoryNotFound", { path: prevActive.path }),
           timeout: 8000,
         });
       }

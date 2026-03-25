@@ -162,25 +162,32 @@ const SortableProjectItem = memo(function SortableProjectItem({
           {...attributes}
           {...listeners}
         >
-          <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2.5 text-left max-w-[calc(100%)]">
-            <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
-              {isStale ? (
+          {isStale ? (
+            <div className="flex items-center gap-2.5 text-left max-w-[calc(100%)]">
+              <div className="flex size-5 flex-shrink-0 items-center justify-center">
                 <TriangleAlertIcon size={16} className="text-warning" />
-              ) : (
+              </div>
+              <span className="flex-1 truncate text-sm font-medium max-w-[calc(100%)]">
+                {project.name}
+              </span>
+            </div>
+          ) : (
+            <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2.5 text-left max-w-[calc(100%)]">
+              <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
                 <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
-              )}
-            </div>
-            <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
-              {!closedSet.has(project.id) ? (
-                <ChevronDown size={16} strokeWidth={1.5} />
-              ) : (
-                <ChevronRight size={16} strokeWidth={1.5} />
-              )}
-            </div>
-            <span className="flex-1 truncate text-sm font-medium max-w-[calc(100%)]">
-              {project.name}
-            </span>
-          </AccordionPrimitive.Trigger>
+              </div>
+              <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
+                {!closedSet.has(project.id) ? (
+                  <ChevronDown size={16} strokeWidth={1.5} />
+                ) : (
+                  <ChevronRight size={16} strokeWidth={1.5} />
+                )}
+              </div>
+              <span className="flex-1 truncate text-sm font-medium max-w-[calc(100%)]">
+                {project.name}
+              </span>
+            </AccordionPrimitive.Trigger>
+          )}
         </div>
         <div className="flex items-center gap-1 pr-1">
           <button

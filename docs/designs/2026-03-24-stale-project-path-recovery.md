@@ -54,6 +54,21 @@ Current state: `getActive()` returns the persisted active project without valida
 - Options: A) Click removes the project - B) Click is a no-op, delete button always visible
 - Decision: **B) No-op + visible delete** -- Clicking a stale row to remove it is destructive and surprising. Instead, the row click is disabled for stale projects and the delete icon is always visible (not just on hover), making the action explicit.
 
+**9. Should toast messages be i18n'd?**
+
+- Options: A) Hardcoded English - B) Use i18n keys
+- Decision: **B) i18n keys** -- All other UI text uses `react-i18next`. Toast messages in `app.tsx` (class context) use `i18n.t()` directly from i18next; toast messages in hooks use `useTranslation()`.
+
+**10. Should switchProject distinguish stale-path errors from other failures?**
+
+- Options: A) Catch all errors with same message - B) Check error type and show specific message
+- Decision: **B) Check error type** -- Use `instanceof ORPCError` + `code === "BAD_REQUEST"` to identify stale-path errors. Show "Directory no longer exists" for stale paths, "An unexpected error occurred" for other failures. Also refresh the project list after a stale-path error so the UI immediately reflects the stale state.
+
+**11. Should stale accordion items have a collapsible trigger?**
+
+- Options: A) Keep trigger (expand/collapse does nothing visible) - B) Replace trigger with static element
+- Decision: **B) Static element** -- Since the sessions panel is hidden for stale projects, the accordion trigger toggles nothing. Replace `AccordionPrimitive.Trigger` with a plain `div` for stale items to avoid the confusing empty-toggle interaction.
+
 ## 4. Design
 
 ### Shared types
@@ -80,10 +95,10 @@ export type ProjectInfo = Project & {
 ### Renderer changes
 
 - **`project/store.ts`**: `projects` typed as `ProjectInfo[]`. `switchToProjectByPath` guards against stale projects (`project.pathMissing`) and reverts optimistic state on setActive failure.
-- **`core/app.tsx`**: `project.refresh()` detects stale clearing (prevActive non-null, newActive null) and shows warning toast via `toastManager.add()`.
-- **`use-project.ts`**: `switchProject` catches setActive errors and shows warning toast.
+- **`core/app.tsx`**: `project.refresh()` detects stale clearing (prevActive non-null, newActive null) and shows i18n'd warning toast via `i18n.t()` + `toastManager.add()`.
+- **`use-project.ts`**: `switchProject` catches setActive errors, distinguishes stale-path (`ORPCError` with `BAD_REQUEST`) from other failures, shows appropriate i18n'd toast. Refreshes project list after stale-path errors.
 - **`project-selector.tsx`**: Stale projects rendered with `opacity-50`, `TriangleAlertIcon`, "Directory not found" subtitle. Row click disabled for stale projects. Delete icon always visible for stale rows.
-- **`project-accordion-list.tsx`**: Stale accordion items show warning icon replacing folder icon, `opacity-50`, delete button always visible, "new session" button hidden, sessions panel hidden.
+- **`project-accordion-list.tsx`**: Stale accordion items show warning icon replacing folder icon, `opacity-50`, delete button always visible, "new session" button hidden, sessions panel hidden. Accordion trigger replaced with static element for stale items (no expand/collapse).
 
 ### Data flow
 
@@ -116,7 +131,7 @@ Session click in stale project accordion
 - `src/renderer/src/features/project/hooks/use-project.ts` -- Catch setActive errors, show toast
 - `src/renderer/src/features/project/components/project-selector.tsx` -- Visual stale indicator, non-destructive click
 - `src/renderer/src/features/agent/components/project-accordion-list.tsx` -- Stale indicators in multi-project accordion
-- `src/renderer/src/locales/en-US.json` -- Add i18n string
+- `src/renderer/src/locales/en-US.json` -- Add i18n strings for stale project toasts
 
 ## 6. Verification
 
