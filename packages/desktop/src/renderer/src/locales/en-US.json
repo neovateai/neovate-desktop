@@ -4,6 +4,7 @@
   "chat.messages.summaryToolsOnly": "{{toolCallCount}} tool calls",
   "chat.messages.summaryMessagesOnly": "{{messageCount}} messages",
   "chat.messages.summaryReasoningOnly": "{{reasoningCount}} thoughts",
+  "chat.messages.copyMarkdown": "Copy markdown",
   "settings.theme": "Theme",
   "settings.theme.description": "Select your preferred color scheme",
   "settings.theme.light": "Light",

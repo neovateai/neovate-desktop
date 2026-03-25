@@ -304,10 +304,13 @@ function AgentChatSession({
     <div className="flex h-full flex-col">
       <Conversation contextRef={conversationContextRef} initial={initialScrollBehavior}>
         <ConversationContent>
-          {messages.map((message) => (
+          {messages.map((message, i) => (
             <MessageParts
               key={message.id}
               message={message}
+              isComplete={
+                (status !== "streaming" && status !== "submitted") || i !== messages.length - 1
+              }
               renderToolPart={(_partMessage, part) => <ClaudeCodeToolUIPart part={part} />}
             />
           ))}
