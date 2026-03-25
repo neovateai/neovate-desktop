@@ -200,7 +200,7 @@
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--ring);
+    background: --alpha(var(--foreground) / 20%);
   }
 
   /* Tiptap editor styles */

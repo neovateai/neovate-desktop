@@ -50,7 +50,7 @@ function ScrollBar({
       {...props}
     >
       <ScrollAreaPrimitive.Thumb
-        className="relative flex-1 rounded-full bg-foreground/20"
+        className="relative flex-1 rounded-full bg-foreground/15 transition-colors hover:bg-foreground/25"
         data-slot="scroll-area-thumb"
       />
     </ScrollAreaPrimitive.Scrollbar>
