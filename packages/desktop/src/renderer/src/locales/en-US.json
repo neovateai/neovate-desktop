@@ -128,6 +128,7 @@
   "settings.keybindings.toggleFiles": "Toggle Files",
   "settings.keybindings.toggleSidebar": "Toggle Sidebar",
   "settings.keybindings.toggleMultiProject": "Toggle Multi-Project Support",
+  "settings.keybindings.togglePinSession": "Toggle Pin Session",
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
   "settings.providers": "Providers",

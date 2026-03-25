@@ -135,7 +135,8 @@ export type KeybindingAction =
   | "toggleBrowser"
   | "toggleFiles"
   | "toggleMultiProject"
-  | "toggleSidebar";
+  | "toggleSidebar"
+  | "togglePinSession";
 
 /**
  * Actions that are read-only (not customizable by user)
@@ -165,6 +166,7 @@ export const KEYBINDING_LABEL_KEYS = {
   toggleFiles: "settings.keybindings.toggleFiles",
   toggleMultiProject: "settings.keybindings.toggleMultiProject",
   toggleSidebar: "settings.keybindings.toggleSidebar",
+  togglePinSession: "settings.keybindings.togglePinSession",
 } as const satisfies Record<KeybindingAction, string>;
 
 /**
@@ -185,6 +187,7 @@ export const KEYBINDING_LABELS: Record<KeybindingAction, string> = {
   toggleFiles: "Toggle Files",
   toggleMultiProject: "Toggle Multi-Project Support",
   toggleSidebar: "Toggle Sidebar",
+  togglePinSession: "Toggle Pin Session",
 };
 
 /**
@@ -205,4 +208,5 @@ export const DEFAULT_KEYBINDINGS: Record<KeybindingAction, string> = {
   toggleFiles: "Cmd+G",
   toggleMultiProject: "Cmd+Shift+E",
   toggleSidebar: "Cmd+B",
+  togglePinSession: "Cmd+D",
 };

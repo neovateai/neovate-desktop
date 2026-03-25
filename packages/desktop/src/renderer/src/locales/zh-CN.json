@@ -128,6 +128,7 @@
   "settings.keybindings.toggleFiles": "切换文件",
   "settings.keybindings.toggleSidebar": "切换侧边栏",
   "settings.keybindings.toggleMultiProject": "切换多项目支持",
+  "settings.keybindings.togglePinSession": "切换置顶会话",
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 
   "settings.providers": "服务商",
