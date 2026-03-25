@@ -8,6 +8,8 @@ import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+import { SplashScreen } from "../components/splash-screen";
+
 const startupLog = debug("neovate:startup");
 
 import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
@@ -282,15 +284,17 @@ export class RendererApp implements IRendererApp {
                 <ToastProvider>
                   <ThemeSync />
                   <MenuCommandHandler />
-                  <Suspense
-                    fallback={
-                      <div className="flex h-screen items-center justify-center">
-                        <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
-                      </div>
-                    }
-                  >
-                    <AppComponent />
-                  </Suspense>
+                  <SplashScreen>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-screen items-center justify-center">
+                          <div className="animate-spin size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full" />
+                        </div>
+                      }
+                    >
+                      <AppComponent />
+                    </Suspense>
+                  </SplashScreen>
                 </ToastProvider>
               </ThemeProvider>
             </PluginContextReact.Provider>
