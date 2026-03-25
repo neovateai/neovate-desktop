@@ -2,8 +2,8 @@ import type { Disposable } from "./disposable";
 import type { IExternalOpener, OpenerService } from "./opener";
 
 export interface ExternalUriOpener {
-  canOpenExternalUri(uri: URL): boolean | Promise<boolean>;
-  openExternalUri(resolvedUri: URL, ctx: OpenExternalUriContext): boolean | Promise<boolean>;
+  canOpenExternalUri(uri: URL): Promise<boolean>;
+  openExternalUri(resolvedUri: URL, ctx: OpenExternalUriContext): Promise<boolean>;
 }
 
 export interface OpenExternalUriContext {

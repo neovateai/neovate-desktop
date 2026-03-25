@@ -15,8 +15,8 @@ beforeEach(() => {
 
 function makeOpener(overrides?: Partial<ExternalUriOpener>): ExternalUriOpener {
   return {
-    canOpenExternalUri: vi.fn(() => true),
-    openExternalUri: vi.fn(() => true),
+    canOpenExternalUri: vi.fn(async () => true),
+    openExternalUri: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -62,7 +62,7 @@ describe("ExternalUriOpenerService", () => {
   });
 
   it("calls canOpenExternalUri before openExternalUri", async () => {
-    const opener = makeOpener({ canOpenExternalUri: vi.fn(() => false) });
+    const opener = makeOpener({ canOpenExternalUri: vi.fn(async () => false) });
     externalService.registerExternalUriOpener("test", opener, makeMetadata());
 
     // Stub window.open to prevent fallback side effects
@@ -77,7 +77,7 @@ describe("ExternalUriOpenerService", () => {
   });
 
   it("tries next opener when canOpenExternalUri returns false", async () => {
-    const declining = makeOpener({ canOpenExternalUri: vi.fn(() => false) });
+    const declining = makeOpener({ canOpenExternalUri: vi.fn(async () => false) });
     const accepting = makeOpener();
 
     externalService.registerExternalUriOpener("declining", declining, makeMetadata());
