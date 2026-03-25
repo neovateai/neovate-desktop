@@ -1,6 +1,6 @@
-import type { NormalizedToolOutput } from "../../../../../../shared/claude-code/types";
+import type { ReadToolOutput } from "../../../../../../shared/claude-code/types";
 
-export function ToolOutputImage({ images }: { images?: NormalizedToolOutput["images"] }) {
+export function ToolOutputImage({ images }: { images?: ReadToolOutput["images"] }) {
   if (!images?.length) return null;
 
   return (

@@ -1,8 +1,6 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-import { normalizedToolOutputSchema } from "./normalized-output";
-
 export const Glob = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#glob
   inputSchema: z.object({
@@ -15,7 +13,8 @@ export const Glob = tool({
      */
     path: z.string().optional(),
   }),
-  outputSchema: normalizedToolOutputSchema,
+  // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#glob-2
+  outputSchema: z.string(),
 });
 
 export type GlobUIToolInvocation = UIToolInvocation<typeof Glob>;

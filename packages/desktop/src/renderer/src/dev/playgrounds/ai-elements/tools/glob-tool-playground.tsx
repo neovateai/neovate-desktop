@@ -21,12 +21,9 @@ const outputAvailableInvocation = {
   toolCallId: "glob-tool-output-available",
   state: "output-available",
   input: inputAvailableInvocation.input,
-  output: {
-    text: `agent-tool.tsx
+  output: `agent-tool.tsx
 bash-tool.tsx
 write-tool.tsx`,
-    images: [],
-  },
   providerExecuted: true,
 } as any;
 

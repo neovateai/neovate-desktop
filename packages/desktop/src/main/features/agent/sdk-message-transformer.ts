@@ -9,7 +9,7 @@ import type {
 
 import { createUIMessageStream, readUIMessageStream } from "ai";
 
-import type { NormalizedToolOutput } from "../../../shared/claude-code/tools/normalized-output";
+import type { ReadToolOutput } from "../../../shared/claude-code/tools/read";
 import type {
   ClaudeCodeUIMessage,
   ClaudeCodeUIMessageChunk,
@@ -733,20 +733,20 @@ export class SDKMessageTransformer {
     return parts;
   }
 
-  private static readonly NORMALIZED_OUTPUT_TOOLS = new Set(["Bash", "Read", "Glob", "Grep"]);
+  private static readonly NORMALIZED_OUTPUT_TOOLS = new Set(["Read"]);
 
   private shouldNormalizeOutput(toolCallId: string): boolean {
     const toolName = this.toolCallNames.get(toolCallId);
     return toolName != null && SDKMessageTransformer.NORMALIZED_OUTPUT_TOOLS.has(toolName);
   }
 
-  private normalizeToolOutput(content: unknown): NormalizedToolOutput {
+  private normalizeToolOutput(content: unknown): ReadToolOutput {
     if (typeof content === "string") return { text: content, images: [] };
     if (!Array.isArray(content))
       return { text: content != null ? JSON.stringify(content) : "", images: [] };
 
     const texts: string[] = [];
-    const images: NormalizedToolOutput["images"] = [];
+    const images: ReadToolOutput["images"] = [];
     for (const block of content) {
       if (block?.type === "text" && typeof block.text === "string") {
         texts.push(block.text);

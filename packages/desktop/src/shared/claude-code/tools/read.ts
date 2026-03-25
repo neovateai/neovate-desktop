@@ -1,7 +1,18 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-import { normalizedToolOutputSchema } from "./normalized-output";
+const readOutputSchema = z.object({
+  text: z.string(),
+  images: z.array(
+    z.object({
+      url: z.string(),
+      mediaType: z.string(),
+      filename: z.string().optional(),
+    }),
+  ),
+});
+
+export type ReadToolOutput = z.infer<typeof readOutputSchema>;
 
 export const Read = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#read
@@ -19,7 +30,7 @@ export const Read = tool({
      */
     limit: z.number().optional(),
   }),
-  outputSchema: normalizedToolOutputSchema,
+  outputSchema: readOutputSchema,
 });
 
 export type ReadUIToolInvocation = UIToolInvocation<typeof Read>;

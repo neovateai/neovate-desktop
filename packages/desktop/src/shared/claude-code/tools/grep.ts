@@ -1,8 +1,6 @@
 import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
-import { normalizedToolOutputSchema } from "./normalized-output";
-
 export const Grep = tool({
   // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#grep
   inputSchema: z.object({
@@ -55,7 +53,8 @@ export const Grep = tool({
      */
     multiline: z.boolean().optional(),
   }),
-  outputSchema: normalizedToolOutputSchema,
+  // Docs: https://docs.claude.com/en/docs/claude-code/sdk/sdk-typescript#grep-2
+  outputSchema: z.string(),
 });
 
 export type GrepUIToolInvocation = UIToolInvocation<typeof Grep>;
