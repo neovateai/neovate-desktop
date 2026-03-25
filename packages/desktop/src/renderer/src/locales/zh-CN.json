@@ -324,6 +324,13 @@
   "project.openProject": "打开项目",
   "project.selectProject": "选择项目...",
   "project.getStarted": "打开项目开始使用",
+  "project.pathMissing": "目录未找到",
+  "project.unavailable": "项目「{{name}}」不可用",
+  "project.directoryNotFound": "目录未找到：{{path}}",
+  "project.cannotSwitch": "无法切换到「{{name}}」",
+  "project.directoryNoLongerExists": "目录已不存在",
+  "project.switchFailed": "切换项目失败",
+  "project.switchFailedDescription": "发生意外错误",
 
   "openIn.open": "打开",
   "openIn.noAppsDetected": "未检测到应用",
