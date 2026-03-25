@@ -380,5 +380,9 @@
 
   "chat.tools.bashOutput.polling": "Polling background shell output",
   "chat.tools.bashOutput.pollingFiltered": "Polling background shell output filtered by {{filter}}.",
-  "chat.tools.slashCommand.running": "Running the slash command and waiting for a response."
+  "chat.tools.slashCommand.running": "Running the slash command and waiting for a response.",
+
+  "chat.context.title": "Context Window",
+  "chat.context.used": "Used",
+  "chat.context.total": "Total"
 }

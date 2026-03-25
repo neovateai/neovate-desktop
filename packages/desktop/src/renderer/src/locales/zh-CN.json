@@ -382,5 +382,9 @@
 
   "chat.tools.bashOutput.polling": "正在轮询后台 Shell 输出",
   "chat.tools.bashOutput.pollingFiltered": "正在轮询后台 Shell 输出，过滤条件：{{filter}}。",
-  "chat.tools.slashCommand.running": "正在运行斜杠命令并等待响应。"
+  "chat.tools.slashCommand.running": "正在运行斜杠命令并等待响应。",
+
+  "chat.context.title": "上下文窗口",
+  "chat.context.used": "已使用",
+  "chat.context.total": "总容量"
 }
