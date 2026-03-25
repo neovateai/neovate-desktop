@@ -1,16 +1,27 @@
 import { Globe } from "lucide-react";
-import { minimatch } from "minimatch";
 
 import type { RendererPlugin } from "../../core/plugin";
 import type { PluginContext } from "../../core/plugin/types";
 
 const NAME = "plugin-browser";
 
+const DEFAULT_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  "[0:0:0:0:0:0:0:1]",
+  "0.0.0.0",
+  "[::]",
+  "[0:0:0:0:0:0:0:0]",
+]);
+
 interface BrowserPluginOptions {
   includeHosts?: string[];
 }
 
 export default function browserPlugin(options?: BrowserPluginOptions): RendererPlugin {
+  const enabledHosts = new Set([...DEFAULT_HOSTS, ...(options?.includeHosts ?? [])]);
+
   return {
     name: NAME,
 
@@ -39,30 +50,26 @@ export default function browserPlugin(options?: BrowserPluginOptions): RendererP
             component: () => import("./browser-view"),
           },
         ],
-        externalUriOpeners: options?.includeHosts
-          ? [
-              {
-                id: "browser.preview",
-                opener: {
-                  async canOpenExternalUri(uri: URL) {
-                    return options.includeHosts!.some((pattern) =>
-                      minimatch(uri.hostname, pattern),
-                    );
-                  },
-                  async openExternalUri(resolvedUri: URL) {
-                    ctx.app.workbench.contentPanel.openView("browser", {
-                      state: { url: resolvedUri.toString() },
-                    });
-                    return true;
-                  },
-                },
-                metadata: {
-                  schemes: ["http", "https"],
-                  label: "Open in browser preview",
-                },
+        externalUriOpeners: [
+          {
+            id: "browser.preview",
+            opener: {
+              async canOpenExternalUri(uri: URL) {
+                return enabledHosts.has(uri.hostname);
               },
-            ]
-          : [],
+              async openExternalUri(resolvedUri: URL) {
+                ctx.app.workbench.contentPanel.openView("browser", {
+                  state: { url: resolvedUri.toString() },
+                });
+                return true;
+              },
+            },
+            metadata: {
+              schemes: ["http", "https"],
+              label: "Open in browser preview",
+            },
+          },
+        ],
       };
     },
   };
