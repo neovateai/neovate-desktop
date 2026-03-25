@@ -4,7 +4,6 @@ import type { Components, ExtraProps } from "streamdown";
 
 import { Children, isValidElement } from "react";
 
-import { useRendererApp } from "../../core/app";
 import { cn } from "../../lib/utils";
 import { CodeBlock } from "./code-block";
 
@@ -43,17 +42,10 @@ const extractCodeContent = (children: ReactNode): string => {
 };
 
 function MarkdownLink({ className, children, ...props }: MarkdownAnchorProps) {
-  const app = useRendererApp();
   return (
     <a
       className={cn("text-primary transition-colors underline-offset-2 hover:underline", className)}
       {...props}
-      onClick={(e) => {
-        if (props.href) {
-          e.preventDefault();
-          app.opener.open(props.href);
-        }
-      }}
     >
       {children}
     </a>

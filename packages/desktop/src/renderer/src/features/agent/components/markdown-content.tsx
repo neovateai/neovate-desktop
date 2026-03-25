@@ -1,15 +1,16 @@
 import { Streamdown } from "streamdown";
 
-import { markdownBaseComponents } from "../../../components/ai-elements/markdown-base-components";
+import { useMarkdownComponents } from "../../../components/ai-elements/use-markdown-components";
 import { markdownPlugins } from "../../../lib/markdown";
 
 type Props = { content: string; streaming?: boolean };
 
 export function MarkdownContent({ content, streaming }: Props) {
+  const components = useMarkdownComponents();
   return (
     <Streamdown
       className="markdown-root"
-      components={markdownBaseComponents}
+      components={components}
       mode={streaming ? "streaming" : "static"}
       isAnimating={streaming}
       plugins={markdownPlugins}

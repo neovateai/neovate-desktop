@@ -2,6 +2,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../orpc", () => ({ client: {} }));
+vi.mock("../../../../components/ai-elements/use-markdown-components", async () => {
+  const { markdownBaseComponents } =
+    await import("../../../../components/ai-elements/markdown-base-components");
+  return { useMarkdownComponents: () => markdownBaseComponents };
+});
 
 import { MessageParts } from "../message-parts";
 import { ClaudeCodeToolUIPart } from "../tool-parts";
