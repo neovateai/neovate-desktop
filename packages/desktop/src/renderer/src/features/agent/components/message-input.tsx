@@ -415,12 +415,24 @@ export function MessageInput({
         aria-label={t("chat.attachImages")}
         onChange={handleFileSelect}
       />
-      <div className="input-box-outer rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
+      <div
+        className="rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+        style={{
+          border: "3px solid transparent",
+          background:
+            "linear-gradient(var(--color-background), var(--color-background)) padding-box, linear-gradient(180deg, var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
+        }}
+      >
         <div
           className={cn(
-            "input-box-inner overflow-hidden transition-all duration-200",
+            "overflow-hidden transition-all duration-200",
             dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
           )}
+          style={{
+            border: "2px solid transparent",
+            background:
+              "linear-gradient(var(--background-secondary), var(--background-secondary)) padding-box, linear-gradient(0deg, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 80%) border-box",
+          }}
         >
           <AnimatePresence>
             {permissionMode === "plan" && (
