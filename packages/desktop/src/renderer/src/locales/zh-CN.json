@@ -42,6 +42,8 @@
   "settings.general.runOnStartup.description": "登录时自动启动应用",
   "settings.general.multiProjectSupport": "多项目支持",
   "settings.general.multiProjectSupport.description": "启用多项目任务列表支持",
+  "settings.general.appFontSize": "应用字体大小",
+  "settings.general.appFontSize.description": "整个应用的基础字体大小（12-20px）",
   "settings.general.terminalFontSize": "终端字体大小",
   "settings.general.terminalFontSize.description": "集成终端的字体大小",
   "settings.general.terminalFont": "终端字体",

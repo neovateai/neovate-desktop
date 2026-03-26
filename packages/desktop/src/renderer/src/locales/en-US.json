@@ -42,6 +42,8 @@
   "settings.general.runOnStartup.description": "Automatically launch the app when you log in",
   "settings.general.multiProjectSupport": "Multi-Project Support",
   "settings.general.multiProjectSupport.description": "Enable support for multiple project task lists",
+  "settings.general.appFontSize": "App Font Size",
+  "settings.general.appFontSize.description": "Base font size for the entire application (12-20px)",
   "settings.general.terminalFontSize": "Terminal Font Size",
   "settings.general.terminalFontSize.description": "Font size for the integrated terminal",
   "settings.general.terminalFont": "Terminal Font",
