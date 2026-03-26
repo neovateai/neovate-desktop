@@ -20,6 +20,8 @@ import type {
   SDKAuthStatusMessage,
   SDKRateLimitEvent,
   SDKPromptSuggestionMessage,
+  SDKAPIRetryMessage,
+  SDKSessionStateChangedMessage,
   SDKResultSuccess,
   SDKResultError,
 } from "@anthropic-ai/claude-agent-sdk";
@@ -86,6 +88,8 @@ export type ClaudeCodeUIEventPart =
   | SDKAuthStatusMessage
   | SDKRateLimitEvent
   | SDKPromptSuggestionMessage
+  | SDKAPIRetryMessage
+  | SDKSessionStateChangedMessage
   | ContextUsageEvent;
 
 export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
