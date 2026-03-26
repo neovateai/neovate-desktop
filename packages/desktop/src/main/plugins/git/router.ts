@@ -25,7 +25,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
       const { cwd } = input as { cwd: string };
       log("files: fetching working and staged files", { cwd });
       try {
-        const [working, staged] = await Promise.all([getWorkingFiles(cwd), getStagedFiles(cwd)]);
+        const { working, staged } = await getFiles(cwd);
         log("files: done", { working: working.length, staged: staged.length });
         return { success: true, data: { working, staged } };
       } catch (error) {
@@ -233,33 +233,73 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
   });
 }
 
-async function getWorkingFiles(cwd: string) {
+/**
+ * Get both working and staged files in a single git status call.
+ * Uses status.files which contains:
+ * - index: staged status (M=modified, A=added, D=deleted, R=renamed, C=copied)
+ * - working_dir: working tree status (M=modified, D=deleted, ?=untracked)
+ */
+async function getFiles(cwd: string) {
   const gitClient = git(cwd);
   const status = await gitClient.status();
 
-  const modifiedFiles = status.modified
-    .filter((file) => !status.staged.includes(file))
-    .map((file) => ({
-      ...str2file(cwd, file),
-      status: "modified",
-    }));
+  const working: Array<ReturnType<typeof str2file> & { status: string }> = [];
+  const staged: Array<ReturnType<typeof str2file> & { status: string; staged: true }> = [];
+  const seenWorking = new Set<string>();
+  const seenStaged = new Set<string>();
 
-  const deletedFiles = status.deleted
-    .filter((file) => !status.staged.includes(file))
-    .map((file) => ({
-      ...str2file(cwd, file),
-      status: "deleted",
-    }));
+  for (const file of status.files) {
+    const indexStatus = file.index;
+    const workTreeStatus = file.working_dir;
+    const filePath = file.path;
 
-  const untrackedFiles = status.not_added
-    .filter((file) => !status.staged.includes(file))
-    .map((file) => ({
-      ...str2file(cwd, file),
-      status: "untracked",
-    }));
+    // Handle staged files (index status)
+    if (indexStatus !== " " && indexStatus !== "?") {
+      if (!seenStaged.has(filePath)) {
+        seenStaged.add(filePath);
+        let st: string;
+        if (indexStatus === "A") st = "added";
+        else if (indexStatus === "D") st = "deleted";
+        else if (indexStatus === "R" || indexStatus === "C") st = "added";
+        else st = "modified";
 
-  const allFiles = [...modifiedFiles, ...deletedFiles, ...untrackedFiles];
-  return allFiles;
+        staged.push({
+          ...str2file(cwd, filePath),
+          status: st,
+          staged: true as const,
+        });
+      }
+    }
+
+    // Handle working tree files (working_dir status)
+    // A file can be both staged AND have working changes
+    if (workTreeStatus !== " " && workTreeStatus !== "?") {
+      if (!seenWorking.has(filePath)) {
+        seenWorking.add(filePath);
+        let st: string;
+        if (workTreeStatus === "D") st = "deleted";
+        else st = "modified";
+
+        working.push({
+          ...str2file(cwd, filePath),
+          status: st,
+        });
+      }
+    }
+
+    // Handle untracked files (workTreeStatus = "?")
+    if (workTreeStatus === "?") {
+      if (!seenWorking.has(filePath)) {
+        seenWorking.add(filePath);
+        working.push({
+          ...str2file(cwd, filePath),
+          status: "untracked",
+        });
+      }
+    }
+  }
+
+  return { working, staged };
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -539,38 +579,4 @@ async function getBranchFileDiff(cwd: string, file: string) {
       fileStatus: oldContent === "" ? "added" : newContent === "" ? "deleted" : "modified",
     },
   };
-}
-
-async function getStagedFiles(cwd: string) {
-  const gitClient = git(cwd);
-  const status = await gitClient.status();
-
-  // 获取已暂存的文件，区分新增、修改、删除状态
-  const stagedAdded = status.created
-    .filter((file) => status.staged.includes(file))
-    .map((file) => ({
-      ...str2file(cwd, file),
-      status: "added",
-      staged: true,
-    }));
-
-  const stagedModified = status.modified
-    .filter((file) => status.staged.includes(file))
-    .map((file) => ({
-      ...str2file(cwd, file),
-      status: "modified",
-      staged: true,
-    }));
-
-  const stagedDeleted = status.deleted
-    .filter((file) => status.staged.includes(file))
-    .map((file) => ({
-      ...str2file(cwd, file),
-      status: "deleted",
-      staged: true,
-    }));
-
-  const allStagedFiles = [...stagedAdded, ...stagedModified, ...stagedDeleted];
-
-  return allStagedFiles;
 }
