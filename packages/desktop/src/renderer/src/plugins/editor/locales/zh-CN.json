@@ -1,1 +1,5 @@
-{}
+{
+  "contextMenu": {
+    "addToChat": "添加到对话"
+  }
+}
