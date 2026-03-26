@@ -117,6 +117,19 @@ function StyleSync() {
   return null;
 }
 
+/** Syncs appFontSize to document.documentElement.style.fontSize */
+function FontSizeSync() {
+  const appFontSize = useConfigStore((s) => s.appFontSize);
+  const loaded = useConfigStore((s) => s.loaded);
+
+  useEffect(() => {
+    if (!loaded) return;
+    document.documentElement.style.fontSize = `${appFontSize}px`;
+  }, [appFontSize, loaded]);
+
+  return null;
+}
+
 /** Handle menu commands from main process (only for menu item clicks, not shortcuts) */
 function MenuCommandHandler() {
   const showSettings = useSettingsStore((s) => s.showSettings);
@@ -422,6 +435,7 @@ export class RendererApp implements IRendererApp {
                 <ToastProvider>
                   <ThemeSync />
                   <StyleSync />
+                  <FontSizeSync />
                   <MenuCommandHandler />
                   <DeeplinkHandler />
                   <Suspense

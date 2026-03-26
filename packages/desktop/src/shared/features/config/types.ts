@@ -15,6 +15,7 @@ export type AppConfig = {
   locale: Locales;
   runOnStartup: boolean;
   multiProjectSupport: boolean;
+  appFontSize: number;
   terminalFontSize: number;
   terminalFont: string;
   developerMode: boolean;

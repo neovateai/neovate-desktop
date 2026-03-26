@@ -32,6 +32,7 @@ export const GeneralPanel = () => {
     locale,
     runOnStartup,
     multiProjectSupport,
+    appFontSize,
     terminalFontSize,
     terminalFont,
     developerMode,
@@ -42,6 +43,7 @@ export const GeneralPanel = () => {
       locale: s.locale,
       runOnStartup: s.runOnStartup,
       multiProjectSupport: s.multiProjectSupport,
+      appFontSize: s.appFontSize,
       terminalFontSize: s.terminalFontSize,
       terminalFont: s.terminalFont,
       developerMode: s.developerMode,
@@ -137,6 +139,20 @@ export const GeneralPanel = () => {
             description={t("settings.themeStyle.description")}
           >
             <ThemeStylePicker value={themeStyle} onChange={handleThemeStyleChange} />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.appFontSize")}
+            description={t("settings.general.appFontSize.description")}
+          >
+            <Input
+              type="number"
+              min={12}
+              max={20}
+              value={appFontSize}
+              onChange={(e) => setConfig("appFontSize", Number(e.target.value))}
+              className="w-24"
+            />
           </SettingsRow>
         </SettingsGroup>
 
