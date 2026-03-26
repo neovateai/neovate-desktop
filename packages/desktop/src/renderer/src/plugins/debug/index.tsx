@@ -12,7 +12,7 @@ const DebugIcon = ({ className }: { className?: string }) => (
 const plugin: RendererPlugin = {
   name: "plugin-debug",
 
-  configContributions() {
+  configViewContributions() {
     const { developerMode } = useConfigStore.getState();
     if (!developerMode) return {};
 

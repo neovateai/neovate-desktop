@@ -54,4 +54,5 @@ export interface InstallMeta {
   version: string;
   source: SkillSource;
   installedAt: string;
+  skillPath?: string;
 }

@@ -17,7 +17,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
     } as unknown as SessionManager,
     requestTracker: new RequestTracker(),
     configStore: {} as any,
-    projectStore: {} as any,
+    projectStore: { getSessionStartTimes: vi.fn().mockReturnValue({}) } as any,
     mainApp: { windowManager: { mainWindow: null } } as any,
     storage: {} as any,
     skillsService: {} as any,

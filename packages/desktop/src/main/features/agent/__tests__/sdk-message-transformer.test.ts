@@ -322,6 +322,106 @@ describe("SDKMessageTransformer", () => {
     });
   });
 
+  describe("normalizeToolOutput (via tool-output-available)", () => {
+    const registerReadTool = () => {
+      collect(
+        t.transform(
+          makeAssistantMsg("msg-reg", [
+            { type: "tool_use", id: "tc-norm", name: "Read", input: { file_path: "/tmp" } },
+          ]) as any,
+        ),
+      );
+    };
+
+    const makeToolResultMsg = (content: unknown) => ({
+      type: "user" as const,
+      uuid: "u",
+      session_id: "s",
+      parent_tool_use_id: null,
+      message: {
+        role: "user" as const,
+        content: [{ type: "tool_result", tool_use_id: "tc-norm", content, is_error: false }],
+      },
+    });
+
+    it("string content → { text, images: [] }", () => {
+      registerReadTool();
+      const chunks = collect(t.transform(makeToolResultMsg("hello") as any));
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output).toEqual({ text: "hello", images: [] });
+    });
+
+    it("array with text blocks → joined text, empty images", () => {
+      registerReadTool();
+      const chunks = collect(
+        t.transform(
+          makeToolResultMsg([
+            { type: "text", text: "line 1" },
+            { type: "text", text: "line 2" },
+          ]) as any,
+        ),
+      );
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output).toEqual({ text: "line 1\nline 2", images: [] });
+    });
+
+    it("array with image block (base64) → empty text, image with data URL", () => {
+      registerReadTool();
+      const chunks = collect(
+        t.transform(
+          makeToolResultMsg([
+            {
+              type: "image",
+              source: { type: "base64", media_type: "image/png", data: "abc123" },
+              filename: "screenshot.png",
+            },
+          ]) as any,
+        ),
+      );
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output).toEqual({
+        text: "",
+        images: [
+          {
+            url: "data:image/png;base64,abc123",
+            mediaType: "image/png",
+            filename: "screenshot.png",
+          },
+        ],
+      });
+    });
+
+    it("mixed text + image → both populated", () => {
+      registerReadTool();
+      const chunks = collect(
+        t.transform(
+          makeToolResultMsg([
+            { type: "text", text: "File contents" },
+            {
+              type: "image",
+              source: { type: "url", url: "https://example.com/img.png", media_type: "image/png" },
+            },
+          ]) as any,
+        ),
+      );
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output.text).toBe("File contents");
+      expect(out.output.images).toHaveLength(1);
+      expect(out.output.images[0].url).toBe("https://example.com/img.png");
+    });
+
+    it("null/undefined → { text: '', images: [] }", () => {
+      registerReadTool();
+      const chunksNull = collect(t.transform(makeToolResultMsg(null) as any));
+      const outNull = chunksNull.find((c: any) => c.type === "tool-output-available");
+      expect(outNull.output).toEqual({ text: "", images: [] });
+
+      const chunksUndefined = collect(t.transform(makeToolResultMsg(undefined) as any));
+      const outUndefined = chunksUndefined.find((c: any) => c.type === "tool-output-available");
+      expect(outUndefined.output).toEqual({ text: "", images: [] });
+    });
+  });
+
   it("user tool_result is_error → tool-output-error", () => {
     const msg = {
       type: "user" as const,

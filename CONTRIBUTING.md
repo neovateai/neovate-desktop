@@ -105,3 +105,30 @@ These commands auto-gather git context, batch questions, and create the issue vi
 1. Create a branch on origin following the naming convention above.
 2. Make your changes and ensure `bun check` passes.
 3. Open a PR against `master`.
+
+## Releasing
+
+```sh
+bun release
+```
+
+This runs `bumpp` which interactively:
+
+1. Prompts for the new version (patch / minor / major / custom)
+2. Updates `packages/desktop/package.json`
+3. Commits, tags `vX.Y.Z`, and pushes to origin
+
+The `v*` tag push triggers the **Release macOS** CI workflow (`publish.yml`), which:
+
+1. Verifies the tag is on `master` and matches `package.json` version
+2. Builds for both Apple Silicon and Intel
+3. Code-signs with Developer ID and notarizes with Apple
+4. Creates a **draft** GitHub Release with `.dmg` and `.zip` artifacts
+
+To publish the release:
+
+1. Go to [GitHub Releases](https://github.com/neovateai/neovate-desktop/releases)
+2. Review the draft release and artifacts
+3. Click **Publish release**
+
+Once published, installed apps will detect the update automatically (checks every 60 minutes) or users can check manually via the app menu or Settings > About.

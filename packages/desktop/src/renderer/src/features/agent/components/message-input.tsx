@@ -153,6 +153,12 @@ export function MessageInput({
         bulletList: false,
         orderedList: false,
         blockquote: false,
+        bold: false,
+        italic: false,
+        code: false,
+        codeBlock: false,
+        strike: false,
+        horizontalRule: false,
       }),
       Placeholder.configure({
         placeholder: () => {
@@ -355,6 +361,16 @@ export function MessageInput({
       document.querySelectorAll("[data-suggestion-popup]").forEach((el) => el.remove());
     }
   }, [showSettings]);
+
+  // Focus editor when project is switched
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      editor.commands.focus("end");
+    };
+    window.addEventListener("neovate:focus-input", handler);
+    return () => window.removeEventListener("neovate:focus-input", handler);
+  }, [editor]);
 
   // Listen for insert-chat events from file tree and other entry points
   useEffect(() => {

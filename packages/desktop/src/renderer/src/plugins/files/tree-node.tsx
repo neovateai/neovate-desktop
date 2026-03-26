@@ -20,7 +20,7 @@ interface TreeNodeProps {
   level: number;
   expandedKeys: Set<string>;
   onToggleExpand: (key: string) => void;
-  selectedKey?: string | null;
+  selectedKeys: Set<string>;
   onSelect?: (item: FileTreeItem) => void;
   onDelete?: (item: FileTreeItem) => void;
   onRename?: (oldPath: string, newPath: string) => void;
@@ -38,6 +38,7 @@ function FileLangIcon(props: { path: string; size?: number }) {
     <div
       className="seti-icon"
       data-lang={suffix}
+      data-name={filename}
       style={{ fontSize: size, width: 12, height: 12, lineHeight: `12px` }}
     ></div>
   );
@@ -48,7 +49,7 @@ export function TreeNode({
   level,
   expandedKeys,
   onToggleExpand,
-  selectedKey,
+  selectedKeys,
   onSelect,
   onDelete,
   onRename,
@@ -66,7 +67,7 @@ export function TreeNode({
   const [isHovered, setIsHovered] = useState(false);
 
   const isExpanded = expandedKeys.has(item.fullPath);
-  const isSelected = selectedKey === item.fullPath;
+  const isSelected = selectedKeys.has(item.fullPath);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -288,7 +289,7 @@ export function TreeNode({
               level={level + 1}
               expandedKeys={expandedKeys}
               onToggleExpand={onToggleExpand}
-              selectedKey={selectedKey}
+              selectedKeys={selectedKeys}
               onSelect={onSelect}
               onDelete={onDelete}
               onRename={onRename}

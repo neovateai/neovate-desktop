@@ -1,4 +1,5 @@
 export type Theme = "system" | "light" | "dark";
+export type ThemeStyle = "default" | "claude" | "codex" | "nord";
 export type SendMessageWith = "enter" | "cmdEnter";
 export type Locales = "en-US" | "zh-CN";
 export type ConfigPermissionMode = "default" | "acceptEdits" | "bypassPermissions";
@@ -10,9 +11,11 @@ export type SidebarSortBy = "created" | "updated";
 export type AppConfig = {
   // General Settings
   theme: Theme;
+  themeStyle: ThemeStyle;
   locale: Locales;
   runOnStartup: boolean;
   multiProjectSupport: boolean;
+  appFontSize: number;
   terminalFontSize: number;
   terminalFont: string;
   developerMode: boolean;

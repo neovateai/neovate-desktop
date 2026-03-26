@@ -57,12 +57,24 @@ export function createEditorRouter(
         fullPath: filePath = "",
         line,
         focus,
-      } = input as { cwd: string; fullPath: string; line: number; focus?: boolean };
-      const res = await extBridge.send(
-        { operationType: "editor.open", params: { filePath, line, focus } },
-        cwd,
-      );
-      return res;
+      } = input as {
+        cwd: string;
+        fullPath: string;
+        line: number;
+        focus?: boolean;
+      };
+      try {
+        const res = await extBridge.send(
+          { operationType: "editor.open", params: { filePath, line, focus } },
+          cwd,
+        );
+        return res;
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     }),
     setTheme: orpcServer.handler(async ({ input }) => {
       log("set theme", input);

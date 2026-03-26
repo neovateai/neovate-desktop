@@ -5,6 +5,7 @@ import { MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { encodeProjectPath } from "../../../../../shared/claude-code/paths";
+import { APP_NAME } from "../../../../../shared/constants";
 import { Button } from "../../../components/ui/button";
 import {
   ContextMenu,
@@ -14,6 +15,7 @@ import {
   ContextMenuTrigger,
 } from "../../../components/ui/context-menu";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../../../components/ui/menu";
+import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
 
@@ -64,10 +66,20 @@ export function SessionActionsMenu({
     navigator.clipboard.writeText(cwd);
   };
 
+  const permissionMode = useConfigStore((s) => s.permissionMode);
+
   const handleCopyResumeCommand = () => {
-    const command = `cd ${cwd} && claude --resume ${sessionId}`;
+    const modeFlag = permissionMode !== "default" ? ` --permission-mode ${permissionMode}` : "";
+    const command = `cd ${cwd} && claude --resume ${sessionId}${modeFlag}`;
     log("copyResumeCommand: %s", command);
     navigator.clipboard.writeText(command);
+  };
+
+  const handleCopyDeeplink = () => {
+    const scheme = `${APP_NAME.toLowerCase()}${window.api.isDev ? "-dev" : ""}`;
+    const deeplink = `${scheme}://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
+    log("copyDeeplink: %s", deeplink);
+    navigator.clipboard.writeText(deeplink);
   };
 
   const handleArchive = () => {
@@ -105,6 +117,9 @@ export function SessionActionsMenu({
           <ContextMenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
             {t("session.copyResumeCommand")}
           </ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleCopyDeeplink}>
+            {t("session.copyDeeplink")}
+          </ContextMenuItem>
         </ContextMenuPopup>
       </ContextMenu>
     );
@@ -141,6 +156,9 @@ export function SessionActionsMenu({
         </MenuItem>
         <MenuItem disabled={isNew} onClick={handleCopyResumeCommand}>
           {t("session.copyResumeCommand")}
+        </MenuItem>
+        <MenuItem disabled={isNew} onClick={handleCopyDeeplink}>
+          {t("session.copyDeeplink")}
         </MenuItem>
       </MenuPopup>
     </Menu>

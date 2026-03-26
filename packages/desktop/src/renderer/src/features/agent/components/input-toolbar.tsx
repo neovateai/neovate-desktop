@@ -4,13 +4,17 @@ import debug from "debug";
 import {
   ArrowUp,
   ChevronDown,
+  Code,
+  ClipboardList,
   FolderOpen,
   Globe,
+  Hand,
   Paperclip,
   RotateCw,
   Settings,
   Shield,
   Square,
+  TriangleAlert,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -209,36 +213,62 @@ function ConnectedPermissionModeSelect({
       </MenuTrigger>
       <MenuPopup side="top" align="start" className="min-w-52">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
-          <MenuRadioItem value="default" className="items-start py-1.5">
-            <div className="flex flex-col gap-0.5">
-              <span>{t("settings.chat.permissionMode.default")}</span>
-              <span className="text-[10px] text-muted-foreground/80 font-normal">
-                {t("settings.chat.permissionMode.default.desc")}
-              </span>
+          <MenuRadioItem
+            value="default"
+            className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+          >
+            <div className="flex items-start gap-2">
+              <Hand className="size-3.5 mt-px shrink-0 opacity-60" />
+              <div className="flex flex-col">
+                <span className="text-xs">{t("settings.chat.permissionMode.default")}</span>
+                <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                  {t("settings.chat.permissionMode.default.desc")}
+                </span>
+              </div>
             </div>
           </MenuRadioItem>
-          <MenuRadioItem value="acceptEdits" className="items-start py-1.5">
-            <div className="flex flex-col gap-0.5">
-              <span>{t("settings.chat.permissionMode.acceptEdits")}</span>
-              <span className="text-[10px] text-muted-foreground/80 font-normal">
-                {t("settings.chat.permissionMode.acceptEdits.desc")}
-              </span>
+          <MenuRadioItem
+            value="acceptEdits"
+            className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+          >
+            <div className="flex items-start gap-2">
+              <Code className="size-3.5 mt-px shrink-0 opacity-60" />
+              <div className="flex flex-col">
+                <span className="text-xs">{t("settings.chat.permissionMode.acceptEdits")}</span>
+                <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                  {t("settings.chat.permissionMode.acceptEdits.desc")}
+                </span>
+              </div>
             </div>
           </MenuRadioItem>
-          <MenuRadioItem value="plan" className="items-start py-1.5">
-            <div className="flex flex-col gap-0.5">
-              <span>{t("settings.chat.permissionMode.plan")}</span>
-              <span className="text-[10px] text-muted-foreground/80 font-normal">
-                {t("settings.chat.permissionMode.plan.desc")}
-              </span>
+          <MenuRadioItem
+            value="plan"
+            className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+          >
+            <div className="flex items-start gap-2">
+              <ClipboardList className="size-3.5 mt-px shrink-0 opacity-60" />
+              <div className="flex flex-col">
+                <span className="text-xs">{t("settings.chat.permissionMode.plan")}</span>
+                <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                  {t("settings.chat.permissionMode.plan.desc")}
+                </span>
+              </div>
             </div>
           </MenuRadioItem>
-          <MenuRadioItem value="bypassPermissions" className="items-start py-1.5">
-            <div className="flex flex-col gap-0.5">
-              <span>{t("settings.chat.permissionMode.bypassPermissions")}</span>
-              <span className="text-[10px] text-muted-foreground/80 font-normal">
-                {t("settings.chat.permissionMode.bypassPermissions.desc")}
-              </span>
+          <MenuRadioItem
+            value="bypassPermissions"
+            className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+          >
+            <div className="flex items-start gap-2">
+              <TriangleAlert className="size-3.5 mt-px shrink-0 opacity-60" />
+              <div className="flex flex-col">
+                <span className="text-xs">
+                  {t("settings.chat.permissionMode.bypassPermissions")}
+                </span>
+                <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                  {t("settings.chat.permissionMode.bypassPermissions.desc")}
+                </span>
+              </div>
             </div>
           </MenuRadioItem>
         </MenuRadioGroup>

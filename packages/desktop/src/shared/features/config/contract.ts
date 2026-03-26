@@ -5,7 +5,9 @@ import type { AppConfig } from "./types";
 
 // Value schemas for each key
 const themeValueSchema = z.enum(["system", "light", "dark"]);
+const themeStyleValueSchema = z.enum(["default", "claude", "codex", "nord"]);
 const sendMessageWithValueSchema = z.enum(["enter", "cmdEnter"]);
+const appFontSizeValueSchema = z.number().min(12).max(20);
 const terminalFontSizeValueSchema = z.number().min(8).max(32);
 const terminalFontValueSchema = z.string();
 const booleanValueSchema = z.boolean();
@@ -42,9 +44,11 @@ export const configContract = {
     .input(
       z.union([
         z.object({ key: z.literal("theme"), value: themeValueSchema }),
+        z.object({ key: z.literal("themeStyle"), value: themeStyleValueSchema }),
         z.object({ key: z.literal("locale"), value: localeValueSchema }),
         z.object({ key: z.literal("runOnStartup"), value: booleanValueSchema }),
         z.object({ key: z.literal("multiProjectSupport"), value: booleanValueSchema }),
+        z.object({ key: z.literal("appFontSize"), value: appFontSizeValueSchema }),
         z.object({ key: z.literal("terminalFontSize"), value: terminalFontSizeValueSchema }),
         z.object({ key: z.literal("terminalFont"), value: terminalFontValueSchema }),
         z.object({ key: z.literal("developerMode"), value: booleanValueSchema }),

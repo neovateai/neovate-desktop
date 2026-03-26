@@ -13,6 +13,7 @@ import {
   AppLayoutTitleBar,
   AppLayoutTrafficLights,
 } from "./components/app-layout";
+import { FullRightPanel } from "./components/app-layout/full-right-panel";
 import { AgentChat, SessionList } from "./features/agent";
 import { useConfigStore } from "./features/config/store";
 import { ContentPanelRenderer } from "./features/content-panel";
@@ -87,6 +88,7 @@ export default function App() {
 
         <AppLayoutSecondarySidebar />
         <AppLayoutActivityBar />
+        <FullRightPanel />
         <UpdaterToast />
       </AppLayoutRoot>
 

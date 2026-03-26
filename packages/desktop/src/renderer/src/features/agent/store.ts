@@ -105,17 +105,20 @@ type AgentState = {
     usage: { contextWindowSize: number; usedTokens: number; remainingPct: number },
   ) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
+  pendingDeeplink: { sessionId: string; project: string } | null;
+  setPendingDeeplink: (dl: { sessionId: string; project: string } | null) => void;
   sessionInitError: string | null;
   setSessionInitError: (error: string | null) => void;
 };
 
 export const useAgentStore = create<AgentState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     sessions: new Map(),
     activeSessionId: null,
     agentSessions: [],
     sessionsLoaded: false,
     unseenTurnResults: new Map(),
+    pendingDeeplink: null,
     sessionInitError: null,
     _nextMessageId: 0,
 
@@ -201,11 +204,18 @@ export const useAgentStore = create<AgentState>()(
 
     addUserMessage: (sessionId, content) => {
       storeLog("addUserMessage: sid=%s len=%d", sessionId, content.length);
+      const wasNew = get().sessions.get(sessionId)?.isNew;
+      const createdAt = wasNew ? new Date().toISOString() : undefined;
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (!session) {
           storeLog("addUserMessage: WARNING session not found sid=%s", sessionId);
           return;
+        }
+        if (createdAt) {
+          session.createdAt = createdAt;
+          const info = state.agentSessions.find((s) => s.sessionId === sessionId);
+          if (info) info.createdAt = createdAt;
         }
         session.isNew = false;
         if (!session.title) {
@@ -223,6 +233,9 @@ export const useAgentStore = create<AgentState>()(
           state._nextMessageId,
         );
       });
+      if (createdAt) {
+        client.agent.updateSessionStartTime({ sessionId, createdAt }).catch(() => {});
+      }
     },
 
     setAvailableCommands: (sessionId, commands) => {
@@ -297,6 +310,11 @@ export const useAgentStore = create<AgentState>()(
           remainingPct: usage.remainingPct,
         };
       });
+    },
+
+    setPendingDeeplink: (dl) => {
+      storeLog("setPendingDeeplink: %o", dl);
+      set({ pendingDeeplink: dl });
     },
 
     setSessionInitError: (error) => {

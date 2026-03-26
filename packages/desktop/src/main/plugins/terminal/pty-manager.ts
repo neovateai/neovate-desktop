@@ -3,8 +3,11 @@ import type { IPty } from "node-pty";
 import { EventPublisher } from "@orpc/server";
 import debug from "debug";
 import * as pty from "node-pty";
+import { homedir } from "node:os";
 
 import type { PluginContext } from "../../core/plugin/types";
+
+import { getSystemShell } from "../../core/shell-service";
 
 const log = debug("neovate:terminal:pty");
 
@@ -27,12 +30,12 @@ export class PtyManager {
     const cols = Math.max(1, opts.cols);
     const rows = Math.max(1, opts.rows);
     const env = await this.#shell.getEnv();
-    const shell = env.SHELL ?? "/bin/bash";
+    const shell = env.SHELL ?? getSystemShell();
 
     const publisher = new EventPublisher<{ data: string }>();
     const exitController = new AbortController();
 
-    const cwd = opts.cwd ?? process.env.HOME;
+    const cwd = opts.cwd ?? homedir();
     log("spawning pty", { shell, cwd, cols, rows });
 
     const term = pty.spawn(shell, [], {

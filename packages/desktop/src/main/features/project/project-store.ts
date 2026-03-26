@@ -25,6 +25,7 @@ export class ProjectStore {
         pinnedSessions: {},
         closedProjectAccordions: [],
         providerSelections: {},
+        sessionStartTimes: {},
         crashCount: 0,
         lastCrashTs: 0,
       },
@@ -166,6 +167,17 @@ export class ProjectStore {
   clearCrashCounter(): void {
     this.store.set("crashCount", 0);
     this.store.set("lastCrashTs", 0);
+  }
+
+  getSessionStartTimes(): Record<string, string> {
+    return this.store.get("sessionStartTimes");
+  }
+
+  setSessionStartTime(sessionId: string, createdAt: string): void {
+    log("setSessionStartTime: sessionId=%s createdAt=%s", sessionId, createdAt);
+    const times = this.store.get("sessionStartTimes");
+    times[sessionId] = createdAt;
+    this.store.set("sessionStartTimes", times);
   }
 
   setProjectSelection(cwd: string, provider?: string | null, model?: string | null): void {

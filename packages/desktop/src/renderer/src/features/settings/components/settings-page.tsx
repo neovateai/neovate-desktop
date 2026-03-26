@@ -9,7 +9,6 @@ import { GeneralPanel } from "./panels/general-panel";
 import { KeybindingsPanel } from "./panels/keybindings-panel";
 import { ProvidersPanel } from "./panels/providers-panel";
 import { RulesPanel } from "./panels/rules-panel";
-import { SkillsPanel } from "./panels/skills-panel";
 import { SettingsMenu } from "./settings-menu";
 
 export const SettingsPage = () => {
@@ -58,7 +57,6 @@ export const SettingsPage = () => {
           {activeMenu === "general" && <GeneralPanel />}
           {activeMenu === "keybindings" && <KeybindingsPanel />}
           {activeMenu === "providers" && <ProvidersPanel />}
-          {activeMenu === "skills" && <SkillsPanel />}
           {activeMenu === "about" && <AboutPanel />}
         </div>
       </div>

@@ -1,6 +1,10 @@
 import type { I18nContributions } from "../i18n/i18next";
 import type { IRendererApp } from "../types";
-import type { PluginContributions, WindowContribution } from "./contributions";
+import type {
+  PluginContributions,
+  PluginViewContributions,
+  WindowContribution,
+} from "./contributions";
 
 export interface PluginContext {
   app: IRendererApp;
@@ -8,8 +12,11 @@ export interface PluginContext {
 }
 
 export interface RendererPluginHooks {
-  /** Return UI contributions — collected and merged before render */
-  configContributions(): PluginContributions;
+  /** Return view/UI contributions — activity bar, sidebar, content panel, titlebar */
+  configViewContributions(): PluginViewContributions;
+
+  /** Return data contributions — provider templates, future commands/keybindings */
+  configContributions(ctx: PluginContext): PluginContributions;
 
   /** Return window type contributions — custom window root components */
   configWindowContributions(): WindowContribution[];

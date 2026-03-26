@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
+import type { ThemeStyle } from "../../../../../../shared/features/config/types";
+
 import { Input } from "../../../../components/ui/input";
 import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
@@ -15,6 +17,7 @@ import { client } from "../../../../orpc";
 import { useConfigStore } from "../../../config/store";
 import { SettingsGroup } from "../settings-group";
 import { SettingsRow } from "../settings-row";
+import { ThemeStylePicker } from "../theme-style-picker";
 
 const log = createDebug("neovate:settings");
 
@@ -25,18 +28,22 @@ export const GeneralPanel = () => {
 
   const {
     theme,
+    themeStyle,
     locale,
     runOnStartup,
     multiProjectSupport,
+    appFontSize,
     terminalFontSize,
     terminalFont,
     developerMode,
   } = useConfigStore(
     useShallow((s) => ({
       theme: s.theme,
+      themeStyle: s.themeStyle,
       locale: s.locale,
       runOnStartup: s.runOnStartup,
       multiProjectSupport: s.multiProjectSupport,
+      appFontSize: s.appFontSize,
       terminalFontSize: s.terminalFontSize,
       terminalFont: s.terminalFont,
       developerMode: s.developerMode,
@@ -54,6 +61,11 @@ export const GeneralPanel = () => {
   const handleLocaleChange = (newLocale: string) => {
     setConfig("locale", newLocale as Locales);
     app.i18nManager.applyUILocale(newLocale as Locales);
+  };
+
+  const handleThemeStyleChange = (newStyle: ThemeStyle) => {
+    if (newStyle === themeStyle) return;
+    setConfig("themeStyle", newStyle);
   };
 
   // Debounced terminal font input
@@ -121,6 +133,31 @@ export const GeneralPanel = () => {
               ]}
             />
           </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.themeStyle")}
+            description={t("settings.themeStyle.description")}
+          >
+            <ThemeStylePicker value={themeStyle} onChange={handleThemeStyleChange} />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.appFontSize")}
+            description={t("settings.general.appFontSize.description")}
+          >
+            <Input
+              type="number"
+              min={12}
+              max={20}
+              value={appFontSize}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                if (Number.isNaN(n) || n < 12 || n > 20) return;
+                setConfig("appFontSize", n);
+              }}
+              className="w-24"
+            />
+          </SettingsRow>
         </SettingsGroup>
 
         {/* Terminal */}
@@ -134,7 +171,11 @@ export const GeneralPanel = () => {
               min={8}
               max={32}
               value={terminalFontSize}
-              onChange={(e) => setConfig("terminalFontSize", Number(e.target.value))}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                if (Number.isNaN(n) || n < 8 || n > 32) return;
+                setConfig("terminalFontSize", n);
+              }}
               className="w-24"
             />
           </SettingsRow>

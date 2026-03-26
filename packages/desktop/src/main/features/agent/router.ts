@@ -19,12 +19,22 @@ export const agentRouter = os.agent.router({
   }),
 
   listSessions: os.agent.listSessions.handler(async ({ input, context }) => {
-    return context.sessionManager.listSessions(input.cwd);
+    const sessions = await context.sessionManager.listSessions(input.cwd);
+    const startTimes = context.projectStore.getSessionStartTimes();
+    for (const s of sessions) {
+      const override = startTimes[s.sessionId];
+      if (override) s.createdAt = override;
+    }
+    return sessions;
   }),
 
   renameSession: os.agent.renameSession.handler(async ({ input, context }) => {
     agentLog("renameSession: sessionId=%s title=%s", input.sessionId, input.title);
     await context.sessionManager.renameSession(input.sessionId, input.title);
+  }),
+
+  updateSessionStartTime: os.agent.updateSessionStartTime.handler(({ input, context }) => {
+    context.projectStore.setSessionStartTime(input.sessionId, input.createdAt);
   }),
 
   claudeCode: os.agent.claudeCode.router({

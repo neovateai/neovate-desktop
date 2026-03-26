@@ -17,19 +17,26 @@ async function beforePack(context) {
   const arch = archMap[context.arch];
   if (!arch) throw new Error(`Unsupported arch: ${context.arch}`);
 
-  const bunBin = path.join(projectDir, "vendor", "bun", "bun");
+  // Map electron-builder platform name to Node.js process.platform values
+  const platformNameMap = { mac: "darwin", linux: "linux", windows: "win32" };
+  const platform =
+    platformNameMap[context.packager.platform.name] || context.packager.platform.name;
+  const isWin = platform === "win32";
+  const binExt = isWin ? ".exe" : "";
+
+  const bunBin = path.join(projectDir, "vendor", "bun", `bun${binExt}`);
   if (!existsSync(bunBin)) {
-    console.log(`  • downloading bun for ${context.packager.platform.name}/${arch}...`);
-    execSync(`bun scripts/download-bun.ts --platform darwin --arch ${arch}`, {
+    console.log(`  • downloading bun for ${platform}/${arch}...`);
+    execSync(`bun scripts/download-bun.ts --platform ${platform} --arch ${arch}`, {
       cwd: projectDir,
       stdio: "inherit",
     });
   }
 
-  const rtkBin = path.join(projectDir, "vendor", "rtk", "rtk");
+  const rtkBin = path.join(projectDir, "vendor", "rtk", `rtk${binExt}`);
   if (!existsSync(rtkBin)) {
-    console.log(`  • downloading rtk for ${context.packager.platform.name}/${arch}...`);
-    execSync(`bun scripts/download-rtk.ts --platform darwin --arch ${arch}`, {
+    console.log(`  • downloading rtk for ${platform}/${arch}...`);
+    execSync(`bun scripts/download-rtk.ts --platform ${platform} --arch ${arch}`, {
       cwd: projectDir,
       stdio: "inherit",
     });
@@ -66,8 +73,8 @@ const config = {
   beforePack,
 
   extraResources: [
-    { from: "vendor/bun", to: "bun", filter: ["bun"] },
-    { from: "vendor/rtk", to: "rtk", filter: ["rtk"] },
+    { from: "vendor/bun", to: "bun", filter: ["bun", "bun.exe"] },
+    { from: "vendor/rtk", to: "rtk", filter: ["rtk", "rtk.exe"] },
     { from: "resources/fetch-interceptor.js", to: "fetch-interceptor.js" },
   ],
 
@@ -80,37 +87,9 @@ const config = {
     "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}",
     "!{.env,.env.*,.npmrc,pnpm-lock.yaml}",
     "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
-
-    // ── Unused dependencies ──
-    "!**/node_modules/@img/sharp-libvips*/**",
-    "!**/node_modules/framer-motion/**",
-
-    // ── Renderer-only deps (already bundled into dist/renderer/ by Vite) ──
-    "!**/node_modules/date-fns/**",
-    "!**/node_modules/mermaid/**",
-    "!**/node_modules/@mermaid-js/**",
-    "!**/node_modules/cytoscape/**",
-    "!**/node_modules/cytoscape-*/**",
-    "!**/node_modules/langium/**",
-    "!**/node_modules/shiki/**",
-    "!**/node_modules/@shikijs/**",
-    "!**/node_modules/@tiptap/**",
-    "!**/node_modules/@pierre/**",
-    "!**/node_modules/@streamdown/**",
-    "!**/node_modules/katex/**",
-    "!**/node_modules/lodash-es/**",
-    "!**/node_modules/motion-dom/**",
-    "!**/node_modules/d3-*/**",
-    "!**/node_modules/dompurify/**",
-    "!**/node_modules/chevrotain/**",
-    "!**/node_modules/@chevrotain/**",
-
-    // ── claude-agent-sdk: strip non-macOS ripgrep binaries ──
-    "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-linux/**",
-
-    // ── node-pty: strip non-macOS prebuilds ──
-    "!**/node_modules/node-pty/prebuilds/win32-*/**",
   ],
+
+  protocols: [{ name: "Neovate", schemes: [isDev ? "neovate-dev" : "neovate"] }],
 
   compression: isDev ? "normal" : "maximum",
 
@@ -120,17 +99,42 @@ const config = {
     hardenedRuntime: true,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
-    target: [
-      {
-        target: "dmg",
-        arch: ["arm64", "x64"],
-      },
-      {
-        target: "zip",
-        arch: ["arm64", "x64"],
-      },
-    ],
+    target: ["dmg", "zip"],
     notarize: !!(process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD),
+    files: [
+      "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-linux/**",
+      "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-win32/**",
+      "!**/node_modules/node-pty/prebuilds/win32-*/**",
+      "!**/node_modules/node-pty/prebuilds/linux-*/**",
+    ],
+  },
+
+  win: {
+    icon: isDev ? "build/icons/dev/icon.png" : "build/icons/prod/icon.png",
+    target: [{ target: "nsis", arch: ["x64"] }],
+    files: [
+      "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-linux/**",
+      "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-darwin/**",
+      "!**/node_modules/node-pty/prebuilds/darwin-*/**",
+      "!**/node_modules/node-pty/prebuilds/linux-*/**",
+    ],
+  },
+
+  linux: {
+    icon: isDev ? "build/icons/dev" : "build/icons/prod",
+    category: "Development",
+    target: [{ target: "AppImage", arch: ["x64"] }],
+    files: [
+      "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-darwin/**",
+      "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-win32/**",
+      "!**/node_modules/node-pty/prebuilds/darwin-*/**",
+      "!**/node_modules/node-pty/prebuilds/win32-*/**",
+    ],
+  },
+
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
   },
 
   npmRebuild: false,
