@@ -29,7 +29,7 @@ const plugin: RendererPlugin = {
     };
   },
 
-  configContributions() {
+  configViewContributions() {
     return {
       contentPanelViews: [
         {

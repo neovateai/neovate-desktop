@@ -45,7 +45,7 @@ export default function browserPlugin(options?: BrowserPluginOptions): RendererP
       };
     },
 
-    configContributions(ctx: PluginContext) {
+    configViewContributions() {
       return {
         contentPanelViews: [
           {
@@ -57,6 +57,11 @@ export default function browserPlugin(options?: BrowserPluginOptions): RendererP
             component: () => import("./browser-view"),
           },
         ],
+      };
+    },
+
+    configContributions(ctx: PluginContext) {
+      return {
         externalUriOpeners: [
           {
             id: "browser.preview",

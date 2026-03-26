@@ -10,7 +10,7 @@ const NetworkIcon = ({ className }: { className?: string }) => (
 const plugin: RendererPlugin = {
   name: "plugin-network",
 
-  configContributions() {
+  configViewContributions() {
     return {
       contentPanelViews: [
         {

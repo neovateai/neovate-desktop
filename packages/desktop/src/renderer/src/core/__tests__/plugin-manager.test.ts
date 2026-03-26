@@ -47,25 +47,25 @@ describe("PluginManager", () => {
     });
   });
 
-  describe("configContributions", () => {
-    it("merges contributions from all plugins", async () => {
+  describe("configViewContributions", () => {
+    it("merges view contributions from all plugins", async () => {
       const plugins: RendererPlugin[] = [
         {
           name: "a",
-          configContributions: () => ({
+          configViewContributions: () => ({
             secondarySidebarViews: [{ id: "a", title: "A", component: mockComponent }],
           }),
         },
         {
           name: "b",
-          configContributions: () => ({
+          configViewContributions: () => ({
             secondarySidebarViews: [{ id: "b", title: "B", component: mockComponent }],
           }),
         },
       ];
       const pm = new PluginManager(plugins);
-      await pm.configContributions(makeCtx());
-      expect(pm.contributions.secondarySidebarViews).toHaveLength(2);
+      await pm.configViewContributions();
+      expect(pm.viewContributions.secondarySidebarViews).toHaveLength(2);
     });
 
     it("sorts activityBarItems by order", async () => {
@@ -73,7 +73,7 @@ describe("PluginManager", () => {
       const pm = new PluginManager([
         {
           name: "test",
-          configContributions: () => ({
+          configViewContributions: () => ({
             activityBarItems: [
               {
                 id: "z",
@@ -93,31 +93,31 @@ describe("PluginManager", () => {
           }),
         },
       ]);
-      await pm.configContributions(makeCtx());
-      expect(pm.contributions.activityBarItems[0].id).toBe("a");
-      expect(pm.contributions.activityBarItems[1].id).toBe("z");
+      await pm.configViewContributions();
+      expect(pm.viewContributions.activityBarItems[0].id).toBe("a");
+      expect(pm.viewContributions.activityBarItems[1].id).toBe("z");
     });
 
-    it("returns empty contributions when no plugins", async () => {
+    it("returns empty view contributions when no plugins", async () => {
       const pm = new PluginManager([]);
-      await pm.configContributions(makeCtx());
-      expect(pm.contributions.activityBarItems).toEqual([]);
-      expect(pm.contributions.secondarySidebarViews).toEqual([]);
-      expect(pm.contributions.contentPanelViews).toEqual([]);
+      await pm.configViewContributions();
+      expect(pm.viewContributions.activityBarItems).toEqual([]);
+      expect(pm.viewContributions.secondarySidebarViews).toEqual([]);
+      expect(pm.viewContributions.contentPanelViews).toEqual([]);
     });
 
-    it("skips plugins without configContributions", async () => {
+    it("skips plugins without configViewContributions", async () => {
       const pm = new PluginManager([
         { name: "no-hook" },
         {
           name: "has-hook",
-          configContributions: () => ({
+          configViewContributions: () => ({
             contentPanelViews: [{ viewType: "p", name: "P", component: mockContentComponent }],
           }),
         },
       ]);
-      await pm.configContributions(makeCtx());
-      expect(pm.contributions.contentPanelViews).toHaveLength(1);
+      await pm.configViewContributions();
+      expect(pm.viewContributions.contentPanelViews).toHaveLength(1);
     });
   });
 

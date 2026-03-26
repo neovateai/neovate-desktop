@@ -338,7 +338,7 @@ export class RendererApp implements IRendererApp {
   }
 
   initWorkbench(): void {
-    const views = this.pluginManager.contributions.contentPanelViews;
+    const views = this.pluginManager.viewContributions.contentPanelViews;
     // TODO: Move app-layout UI to consume app.workbench.layout directly, then
     // transfer store ownership from components/app-layout/store into
     // WorkbenchLayoutService.
@@ -402,6 +402,8 @@ export class RendererApp implements IRendererApp {
 
     if (this.#windowType === "main") {
       // Main window — full plugin UI
+      await this.pluginManager.configViewContributions();
+      startupLog("renderer viewContributions done %s", el());
       await this.pluginManager.configContributions(ctx);
       startupLog("renderer pluginContributions done %s", el());
       this.initWorkbench();

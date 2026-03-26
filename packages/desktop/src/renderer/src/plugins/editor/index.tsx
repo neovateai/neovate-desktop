@@ -104,7 +104,8 @@ const plugin: RendererPlugin = {
     }>;
     client.editor.start();
   },
-  configContributions(ctx: PluginContext) {
+
+  configViewContributions() {
     return {
       contentPanelViews: [
         {
@@ -116,6 +117,11 @@ const plugin: RendererPlugin = {
           component: () => import("./editor-view"),
         },
       ],
+    };
+  },
+
+  configContributions(ctx: PluginContext) {
+    return {
       externalUriOpeners: [
         {
           id: "editor.file",
