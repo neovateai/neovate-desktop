@@ -1,7 +1,16 @@
 import debug from "debug";
 import i18n from "i18next";
 import { ThemeProvider, useTheme } from "next-themes";
-import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
+import {
+  StrictMode,
+  Suspense,
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  lazy,
+} from "react";
 import ReactDOM from "react-dom/client";
 
 import type { ProjectTabState } from "../features/content-panel";
@@ -122,7 +131,7 @@ function FontSizeSync() {
   const appFontSize = useConfigStore((s) => s.appFontSize);
   const loaded = useConfigStore((s) => s.loaded);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!loaded) return;
     document.documentElement.style.fontSize = `${appFontSize}px`;
   }, [appFontSize, loaded]);
