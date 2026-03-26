@@ -1,7 +1,7 @@
 import type { PanelId, SeparatorId } from "./types";
 
 /** Minimum width of the chat panel */
-export const APP_LAYOUT_CHAT_PANEL_MIN_WIDTH = 460;
+export const APP_LAYOUT_CHAT_PANEL_MIN_WIDTH = 320;
 /** Width of the activity bar on the right edge */
 export const APP_LAYOUT_ACTIVITY_BAR_WIDTH = 40;
 /** Spacing between the window edge and the primary sidebar */
