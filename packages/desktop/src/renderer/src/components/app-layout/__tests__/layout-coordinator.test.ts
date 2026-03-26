@@ -79,8 +79,8 @@ describe("computeMinWindowWidth", () => {
   it("sums min widths of expanded panels plus fixed elements and handles", () => {
     const panels = makePanels();
     const minWidth = computeMinWindowWidth(panels);
-    // fixed(48) + primary(250) + chat(460) + 1 handle between them(5) = 763
-    expect(minWidth).toBe(763);
+    // fixed(48) + primary(250) + chat(340) + 1 handle between them(5) = 643
+    expect(minWidth).toBe(643);
   });
 
   it("counts handles correctly with all panels expanded", () => {
@@ -89,8 +89,8 @@ describe("computeMinWindowWidth", () => {
       secondarySidebar: { width: 240, collapsed: false },
     });
     const minWidth = computeMinWindowWidth(panels);
-    // fixed(48) + primary(250) + chat(460) + content(300) + secondary(240) + 3 handles(15) = 1313
-    expect(minWidth).toBe(1313);
+    // fixed(48) + primary(250) + chat(340) + content(300) + secondary(240) + 3 handles(15) = 1193
+    expect(minWidth).toBe(1193);
   });
 });
 
@@ -98,8 +98,8 @@ describe("applyDelta", () => {
   it("drag right: grows left panel, shrinks right panel", () => {
     const panels = makePanels();
     const result = applyDelta(panels, 0, 50);
-    expect(result.primarySidebar.width).toBe(340);
-    expect(result.chatPanel.width).toBe(460);
+    expect(result.primarySidebar.width).toBe(350); // 300 + 50
+    expect(result.chatPanel.width).toBe(450); // 500 - 50
   });
 
   it("drag left: grows right panel, shrinks left panel", () => {
@@ -116,13 +116,13 @@ describe("applyDelta", () => {
       secondarySidebar: { width: 300, collapsed: false },
     });
     // separator 0: drag right 600 — capped by primarySidebar max (600-300=300 room)
-    // shrink: chat gives 80, content gives 50, secondary gives 60 = 190 available
-    // but grow room is 300, so cap is min(600, 300) = 300, but only 190 shrinkable
+    // shrink: content gives 50, secondary gives 60, chat gives 190 = 300 total
+    // Shrink order: contentPanel first (buffer to protect chat), then secondary, then chat
     const result = applyDelta(panels, 0, 600);
-    expect(result.chatPanel.width).toBe(460); // at min
+    expect(result.chatPanel.width).toBe(350); // gave 190
     expect(result.contentPanel.width).toBe(300); // at min
     expect(result.secondarySidebar.width).toBe(240); // at min
-    expect(result.primarySidebar.width).toBe(300 + 190); // grew by consumed
+    expect(result.primarySidebar.width).toBe(600); // at max
   });
 
   it("bulldozes through multiple panels when dragging left", () => {
@@ -131,11 +131,11 @@ describe("applyDelta", () => {
       contentPanel: { width: 350, collapsed: false },
     });
     // separator 1: drag left 500 — contentPanel max is Infinity, so no cap from grow side
-    // shrink: chat gives 80, primary gives 50 = 130 total
+    // shrink: chat gives 200 (540-340), primary gives 50 = 250 total
     const result = applyDelta(panels, 1, -500);
-    expect(result.chatPanel.width).toBe(460); // at min
+    expect(result.chatPanel.width).toBe(340); // at min
     expect(result.primarySidebar.width).toBe(250); // at min
-    expect(result.contentPanel.width).toBe(350 + 130); // grew by consumed
+    expect(result.contentPanel.width).toBe(350 + 250); // grew by consumed
   });
 
   it("skips collapsed panels", () => {
@@ -198,10 +198,11 @@ describe("applyDelta", () => {
       secondarySidebar: { width: 300, collapsed: false },
     });
     // sep 2, drag left grows secondarySidebar, shrinks chatPanel first, then primarySidebar
+    // chatPanel at 500, min 340, can give 160, which is enough for 50
     const result = applyDelta(panels, 2, -50);
-    expect(result.primarySidebar.width).toBe(290);
+    expect(result.primarySidebar.width).toBe(300); // unchanged (chatPanel absorbed all)
     expect(result.secondarySidebar.width).toBe(350);
-    expect(result.chatPanel.width).toBe(460);
+    expect(result.chatPanel.width).toBe(450); // gave 50
     expect(result.contentPanel.width).toBe(350); // unchanged
   });
 });
@@ -249,9 +250,9 @@ describe("computeMinWindowWidth with non-adjacent panels", () => {
     });
     // primary(exp), chat(exp), content(col), secondary(exp)
     // 2 visible handles: primary↔chat, chat↔secondary (across collapsed content)
-    // fixed(48) + primary(250) + chat(460) + secondary(240) + 2 handles(10) = 1008
+    // fixed(48) + primary(250) + chat(340) + secondary(240) + 2 handles(10) = 888
     const minWidth = computeMinWindowWidth(panels);
-    expect(minWidth).toBe(1008);
+    expect(minWidth).toBe(888);
   });
 });
 
@@ -268,7 +269,7 @@ describe("maximize convergence", () => {
     expect(Number.isFinite(resolved.contentPanel.width)).toBe(true);
     expect(computeTotalWidth(resolved)).toBeLessThanOrEqual(1400);
     expect(resolved.primarySidebar.width).toBeGreaterThanOrEqual(250);
-    expect(resolved.chatPanel.width).toBeGreaterThanOrEqual(460);
+    expect(resolved.chatPanel.width).toBeGreaterThanOrEqual(340);
     expect(resolved.contentPanel.width).toBeGreaterThanOrEqual(300);
     expect(resolved.secondarySidebar.width).toBeGreaterThanOrEqual(240);
   });

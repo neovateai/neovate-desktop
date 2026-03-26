@@ -30,8 +30,8 @@ describe("resize flow integration", () => {
       secondarySidebar: { width: 240, collapsed: true },
     };
     const minWidth = computeMinWindowWidth(panels);
-    // fixed(48) + primary(250) + chat(460) + 1 handle(5) = 763
-    expect(minWidth).toBe(763);
+    // fixed(48) + primary(250) + chat(340) + 1 handle(5) = 643
+    expect(minWidth).toBe(643);
   });
 
   it("computeMinWindowWidth grows when more panels are expanded", () => {
