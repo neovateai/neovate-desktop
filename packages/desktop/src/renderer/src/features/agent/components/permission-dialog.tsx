@@ -170,7 +170,7 @@ export function PermissionDialog({ sessionId }: Props) {
   }
 
   return (
-    <div className="relative z-10 mx-4 min-w-0 max-w-full">
+    <div className="relative z-10 mx-4 min-w-0 max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
       <div className="input-box-outer rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
         <div className="input-box-inner overflow-hidden rounded-lg">{content}</div>
       </div>
