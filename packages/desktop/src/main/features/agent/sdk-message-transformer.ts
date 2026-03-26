@@ -113,6 +113,8 @@ export class SDKMessageTransformer {
       }
 
       case "user": {
+        // Skip synthetic messages injected by the SDK (e.g. skill prompt expansions)
+        if ("isSynthetic" in msg && msg.isSynthetic) break;
         yield* this.transformUser(msg);
         break;
       }
