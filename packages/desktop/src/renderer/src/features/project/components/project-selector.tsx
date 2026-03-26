@@ -65,6 +65,9 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
         if (project && !project.pathMissing) {
           switchProject(project.id);
           setOpen(false);
+          requestAnimationFrame(() => {
+            window.dispatchEvent(new CustomEvent("neovate:focus-input"));
+          });
         }
       }
     },
@@ -146,7 +149,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
                     <button
                       key={project.id}
                       data-index={i}
-                      className={`group flex min-h-7 w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-sm outline-none ${
+                      className={`group flex min-h-7 w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-left text-sm outline-none ${
                         highlightIndex === i
                           ? "bg-accent text-accent-foreground"
                           : "text-foreground hover:bg-accent"
@@ -155,6 +158,9 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
                         if (!isStale) {
                           switchProject(project.id);
                           setOpen(false);
+                          requestAnimationFrame(() => {
+                            window.dispatchEvent(new CustomEvent("neovate:focus-input"));
+                          });
                         }
                       }}
                     >

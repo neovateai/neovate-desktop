@@ -362,6 +362,16 @@ export function MessageInput({
     }
   }, [showSettings]);
 
+  // Focus editor when project is switched
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      editor.commands.focus("end");
+    };
+    window.addEventListener("neovate:focus-input", handler);
+    return () => window.removeEventListener("neovate:focus-input", handler);
+  }, [editor]);
+
   // Listen for insert-chat events from file tree and other entry points
   useEffect(() => {
     if (!editor) return;
