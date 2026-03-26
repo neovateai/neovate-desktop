@@ -39,6 +39,7 @@ export interface ContentPanelView {
   singleton?: boolean; // default true; per-project scope
   persist?: boolean; // default true; whether the tab is persisted to storage
   deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
+  showInNewTabMenu?: boolean; // default true; whether to show in new tab dropdown menu
   component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }
 
