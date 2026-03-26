@@ -208,17 +208,17 @@
    Theme Style: Claude (Warm, humanistic)
    ======================================== */
 [data-style="claude"] {
-  --primary: #da7756;
+  --primary: #d87656;
   --primary-foreground: var(--color-white);
-  --ring: #da7756;
-  --background: #faf8f5;
+  --ring: #d87656;
+  --background: #faf9f5;
   --background-secondary: var(--color-white);
   --card: var(--color-white);
   --card-foreground: var(--color-neutral-800);
   --sidebar: #f5f0e8;
   --sidebar-foreground: color-mix(in srgb, var(--color-neutral-800) 64%, var(--sidebar));
-  --sidebar-ring: #da7756;
-  --color-chat: #faf8f5;
+  --sidebar-ring: #d87656;
+  --color-chat: #faf9f5;
   --color-chat-foreground: var(--color-neutral-800);
 
   /* Glass system - warm tint */
