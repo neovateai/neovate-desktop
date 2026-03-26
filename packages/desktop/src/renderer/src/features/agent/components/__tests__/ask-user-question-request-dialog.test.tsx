@@ -40,7 +40,7 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    expect(screen.getByText("Type your own answer")).toBeTruthy();
+    expect(screen.getByText("Other")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Dismiss" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
     expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", false);
@@ -49,7 +49,7 @@ describe("AskUserQuestionRequestDialog", () => {
       screen.queryByText("Enter a custom response instead of choosing only predefined options."),
     ).toBeNull();
 
-    fireEvent.click(screen.getByText("Type your own answer"));
+    fireEvent.click(screen.getByText("Other"));
     expect(screen.queryByText("Your custom answer")).toBeNull();
     const firstCustomAnswer = screen.getByPlaceholderText(
       "Type your answer...",
@@ -127,7 +127,7 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Type your own answer"));
+    fireEvent.click(screen.getByText("Other"));
     expect(screen.queryByText("Your custom answer")).toBeNull();
     const savedCustomAnswer = screen.getByPlaceholderText(
       "Type your answer...",
