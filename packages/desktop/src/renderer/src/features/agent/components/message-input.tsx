@@ -312,7 +312,7 @@ export function MessageInput({
           .join("");
       },
     },
-    editable: !disabled && !streaming,
+    editable: !disabled,
     autofocus: "end",
   });
 
@@ -345,8 +345,8 @@ export function MessageInput({
 
   // Keep editable in sync with props
   useEffect(() => {
-    editor?.setEditable(!disabled && !streaming);
-  }, [editor, disabled, streaming]);
+    editor?.setEditable(!disabled);
+  }, [editor, disabled]);
 
   // Force placeholder re-render when suggestion changes
   useEffect(() => {
