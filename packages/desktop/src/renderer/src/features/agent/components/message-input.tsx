@@ -153,6 +153,12 @@ export function MessageInput({
         bulletList: false,
         orderedList: false,
         blockquote: false,
+        bold: false,
+        italic: false,
+        code: false,
+        codeBlock: false,
+        strike: false,
+        horizontalRule: false,
       }),
       Placeholder.configure({
         placeholder: () => {
