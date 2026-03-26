@@ -236,7 +236,7 @@ export function PermissionRequestDialog({
             type="button"
             className={cn(
               "flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-left text-sm transition-colors",
-              "hover:bg-muted/80 active:bg-muted",
+              "hover:bg-muted/80 active:bg-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
               option.value === "no-feedback" && feedbackExpanded && "bg-muted/50",
             )}
             onClick={() => handleOptionClick(option.value)}
