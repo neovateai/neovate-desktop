@@ -195,7 +195,7 @@ export function PermissionRequestDialog({
     <div
       ref={containerRef}
       tabIndex={-1}
-      className="relative min-w-0 max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200 rounded-xl border border-border/80 bg-background px-4 py-2 outline-none"
+      className="relative min-w-0 max-w-full bg-background-secondary px-4 py-2 outline-none"
     >
       {/* Header: Tool name + pending count */}
       <div className="mb-2 flex min-w-0 items-center gap-2">

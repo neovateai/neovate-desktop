@@ -86,7 +86,7 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
   };
 
   return (
-    <div className="relative rounded-xl border border-border/80 bg-background">
+    <div className="relative bg-background-secondary">
       <Plan defaultOpen>
         <PlanHeader>
           <PlanTitle>Plan to implement</PlanTitle>

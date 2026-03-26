@@ -99,7 +99,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
   const isLastQuestion = activeQuestionIndex === input.questions.length - 1;
 
   return (
-    <div className="relative rounded-xl border border-border/80 bg-background px-4 py-2">
+    <div className="relative bg-background-secondary px-4 py-2">
       {activeQuestion && (
         <div className="space-y-6">
           <div className="space-y-4">
