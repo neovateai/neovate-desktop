@@ -176,7 +176,7 @@ export function PermissionDialog({ sessionId }: Props) {
         style={{
           border: "3px solid transparent",
           background:
-            "linear-gradient(var(--color-background), var(--color-background)) padding-box, linear-gradient(180deg, var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
+            "linear-gradient(var(--color-background), var(--color-background)) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
         }}
       >
         <div
@@ -187,7 +187,7 @@ export function PermissionDialog({ sessionId }: Props) {
             color: "var(--foreground)",
             transition: "all .2s",
             background:
-              "linear-gradient(var(--background-secondary), var(--background-secondary)) padding-box, linear-gradient(0deg, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 80%) border-box",
+              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 30%, transparent) 0,transparent 80%,transparent)border-box",
           }}
         >
           {content}
