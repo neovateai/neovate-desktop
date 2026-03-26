@@ -21,15 +21,19 @@ function SidebarActionButton({
 }) {
   return (
     <button
-      className={`group flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-all ${
-        active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent/50"
+      className={`group flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-colors ${
+        active
+          ? "bg-accent text-accent-foreground"
+          : "text-sidebar-foreground/80 hover:bg-accent/50 hover:text-foreground"
       } disabled:pointer-events-none disabled:opacity-40`}
       onClick={onClick}
       disabled={disabled}
     >
-      <span className="flex size-5 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-        <Icon size={12} strokeWidth={2} />
-      </span>
+      <Icon
+        size={16}
+        strokeWidth={1.75}
+        className={`shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`}
+      />
       <span>{label}</span>
     </button>
   );
@@ -42,7 +46,7 @@ export function PanelTriggerGroup({ projectPath }: { projectPath?: string }) {
   const openFullRightPanel = useLayoutStore((s) => s.openFullRightPanel);
 
   return (
-    <div className="mb-2.5">
+    <div className="mb-2.5 flex flex-col gap-0.5">
       <SidebarActionButton
         icon={SquarePen}
         label={t("session.newChat")}
@@ -59,7 +63,7 @@ export function PanelTriggerGroup({ projectPath }: { projectPath?: string }) {
         }
         active={fullRightPanelId === "skills"}
       />
-      <div className="mt-2.5 mx-2 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+      <div className="mt-2 mx-3 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
     </div>
   );
 }
