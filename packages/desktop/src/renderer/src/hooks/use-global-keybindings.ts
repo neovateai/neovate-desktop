@@ -5,6 +5,7 @@ import { layoutStore } from "../components/app-layout/store";
 import { toastManager } from "../components/ui/toast";
 import { useRendererApp } from "../core/app";
 import { useNewSession } from "../features/agent/hooks/use-new-session";
+import { navigateSession } from "../features/agent/navigate-session";
 import { useAgentStore } from "../features/agent/store";
 import { useConfigStore } from "../features/config/store";
 import { useProjectStore } from "../features/project/store";
@@ -105,6 +106,20 @@ export function useGlobalKeybindings(): void {
       if (matchesBinding(e, keybindings.toggleFiles)) {
         e.preventDefault();
         layoutStore.getState().setSecondarySidebarActiveView("files");
+        return;
+      }
+
+      // Previous Session
+      if (matchesBinding(e, keybindings.prevSession)) {
+        e.preventDefault();
+        navigateSession("prev");
+        return;
+      }
+
+      // Next Session
+      if (matchesBinding(e, keybindings.nextSession)) {
+        e.preventDefault();
+        navigateSession("next");
         return;
       }
 

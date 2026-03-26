@@ -127,7 +127,7 @@ export const SessionItem = memo(function SessionItem({
   };
 
   return (
-    <li>
+    <li data-session-id={sessionId}>
       <SessionActionsMenu
         variant="context"
         sessionId={sessionId}
