@@ -78,6 +78,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
+      - name: Cache Electron
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/electron
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/desktop/package.json') }}
+          restore-keys: |
+            electron-${{ runner.os }}-${{ runner.arch }}-
       - name: Cache bun dependencies
         uses: actions/cache@v4
         with:

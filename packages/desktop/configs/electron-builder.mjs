@@ -99,16 +99,7 @@ const config = {
     hardenedRuntime: true,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
-    target: [
-      {
-        target: "dmg",
-        arch: ["arm64", "x64"],
-      },
-      {
-        target: "zip",
-        arch: ["arm64", "x64"],
-      },
-    ],
+    target: ["dmg", "zip"],
     notarize: !!(process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD),
     files: [
       "!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/ripgrep/*-linux/**",
