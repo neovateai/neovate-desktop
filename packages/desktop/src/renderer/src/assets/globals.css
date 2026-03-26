@@ -251,14 +251,14 @@
   --primary: #10a37f;
   --primary-foreground: var(--color-white);
   --ring: #10a37f;
-  --background: var(--color-white);
-  --background-secondary: var(--color-white);
-  --card: #f7f7f8;
+  --background: #f7f7f8;
+  --background-secondary: #f7f7f8;
+  --card: var(--color-white);
   --card-foreground: var(--color-neutral-800);
-  --sidebar: #f7f7f8;
+  --sidebar: #ececf1;
   --sidebar-foreground: color-mix(in srgb, var(--color-neutral-800) 64%, var(--sidebar));
   --sidebar-ring: #10a37f;
-  --color-chat: var(--color-white);
+  --color-chat: #f7f7f8;
   --color-chat-foreground: var(--color-neutral-800);
 
   /* Glass system */
