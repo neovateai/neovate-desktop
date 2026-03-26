@@ -1,24 +1,48 @@
 import type { BundledLanguage } from "shiki";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
+import { useCallback } from "react";
 
 import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { CodeBlock, CodeBlockCopyButton } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import { useRendererApp } from "../../../../core/app";
 
 export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
+  const app = useRendererApp();
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output, errorText } = invocation;
 
   const code = output?.text ? output.text.replace(/^\s*(\d+)→/gm, "") : undefined;
   const language = (input?.file_path?.match(/\.(\w+)$/)?.[1] ?? "typescript") as BundledLanguage;
-  const title = input?.file_path ? `Read ${input.file_path}` : undefined;
+  const filePath = input?.file_path;
+  const title = filePath ? `Read ${filePath}` : undefined;
   const hasError = state === "output-error";
+
+  const handleOpenInEditor = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (filePath) app.opener.open(filePath);
+    },
+    [app, filePath],
+  );
 
   return (
     <Tool>
-      <ToolHeader type="tool-Read" state={state} title={title} />
+      <div className="flex items-center gap-1">
+        <ToolHeader type="tool-Read" state={state} title={title} />
+        {filePath && (
+          <button
+            type="button"
+            className="shrink-0 p-0.5 rounded text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+            onClick={handleOpenInEditor}
+            title="Open in editor"
+          >
+            <ExternalLink className="size-3" />
+          </button>
+        )}
+      </div>
       <ToolContent>
         {hasError && errorText ? (
           <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
