@@ -4,6 +4,7 @@ import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type { z } from "zod";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { AskUserQuestionInputSchema } from "../../../../../shared/claude-code/tools/ask-user-question";
 import { Button } from "../../../components/ui/button";
@@ -19,6 +20,7 @@ type Props = {
 const CUSTOM_ANSWER_OPTION = "__custom_answer__";
 
 export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
+  const { t } = useTranslation();
   const [selections, setSelections] = useState<Record<number, string | string[]>>({});
   const [customAnswers, setCustomAnswers] = useState<Record<number, string>>({});
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
@@ -115,7 +117,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
               )}
             </div>
             {activeQuestion.multiSelect && (
-              <p className="text-xs text-muted-foreground">Select multiple</p>
+              <p className="text-xs text-muted-foreground">{t("question.selectMultiple")}</p>
             )}
           </div>
 
@@ -184,9 +186,9 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                     }}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground">Other</p>
+                    <p className="text-sm text-foreground">{t("question.other")}</p>
                     <textarea
-                      placeholder="Type your answer..."
+                      placeholder={t("question.typeAnswer")}
                       rows={1}
                       style={{ resize: "none" }}
                       className="mt-1.5 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
@@ -233,9 +235,9 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                 <Label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-2.5 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50">
                   <Radio value={CUSTOM_ANSWER_OPTION} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground">Other</p>
+                    <p className="text-sm text-foreground">{t("question.other")}</p>
                     <textarea
-                      placeholder="Type your answer..."
+                      placeholder={t("question.typeAnswer")}
                       rows={1}
                       style={{ resize: "none" }}
                       className="mt-1.5 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
@@ -264,7 +266,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
 
       {selectedPreview && (
         <div className="mt-2 rounded-md bg-muted/50 p-2">
-          <p className="mb-1 text-xs font-medium text-muted-foreground">Preview</p>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">{t("question.preview")}</p>
           <pre className="overflow-auto whitespace-pre-wrap text-xs text-foreground">
             {selectedPreview}
           </pre>
@@ -284,7 +286,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
             })
           }
         >
-          Dismiss
+          {t("question.dismiss")}
         </Button>
         <div className="flex items-center gap-2">
           {activeQuestionIndex > 0 && (
@@ -293,7 +295,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
               variant="outline"
               onClick={() => setActiveQuestionIndex((current) => Math.max(0, current - 1))}
             >
-              Back
+              {t("question.back")}
             </Button>
           )}
           {!isLastQuestion ? (
@@ -306,7 +308,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                 )
               }
             >
-              Next
+              {t("question.next")}
             </Button>
           ) : (
             <Button
@@ -329,7 +331,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                 });
               }}
             >
-              Submit
+              {t("question.submit")}
             </Button>
           )}
         </div>
