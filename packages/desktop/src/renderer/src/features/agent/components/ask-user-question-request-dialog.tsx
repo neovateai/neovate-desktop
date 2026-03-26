@@ -99,52 +99,53 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
   const isLastQuestion = activeQuestionIndex === input.questions.length - 1;
 
   return (
-    <div className="relative bg-background-secondary px-4 py-2">
+    <div className="relative bg-background-secondary px-4 py-3">
       {activeQuestion && (
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">
-                  {activeQuestionIndex + 1} of {input.questions.length} questions
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {input.questions.map((question, index) => {
-                  const isAnswered = !!getQuestionAnswer(index);
-                  const isActive = index === activeQuestionIndex;
-
-                  return (
-                    <button
-                      key={`${question.header}-${index}`}
-                      onClick={() => setActiveQuestionIndex(index)}
-                      className={`h-1.5 rounded-full transition-all ${
-                        isActive
-                          ? "w-6 bg-foreground"
-                          : isAnswered
-                            ? "w-4 bg-foreground/45"
-                            : "w-4 bg-border"
-                      }`}
-                      aria-label={`Go to question ${index + 1}`}
-                      type="button"
-                    >
-                      <span className="sr-only">{question.header}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="whitespace-pre-wrap text-lg font-semibold text-foreground">
+        <div className="space-y-3">
+          {/* Header: Question text + progress indicator */}
+          <div className="space-y-1">
+            <div className="flex items-start justify-between gap-3">
+              <p className="whitespace-pre-wrap text-sm font-medium text-foreground">
                 {activeQuestion.question}
               </p>
-              <p className="text-sm text-muted-foreground">
-                {activeQuestion.multiSelect ? "Select all answers that apply" : "Select one answer"}
-              </p>
+              {input.questions.length > 1 && (
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {activeQuestionIndex + 1}/{input.questions.length}
+                </span>
+              )}
             </div>
+            {activeQuestion.multiSelect && (
+              <p className="text-xs text-muted-foreground">Select multiple</p>
+            )}
           </div>
 
+          {/* Progress dots - only show for multiple questions */}
+          {input.questions.length > 1 && (
+            <div className="flex items-center gap-1.5">
+              {input.questions.map((question, index) => {
+                const isAnswered = !!getQuestionAnswer(index);
+                const isActive = index === activeQuestionIndex;
+
+                return (
+                  <button
+                    key={`${question.header}-${index}`}
+                    onClick={() => setActiveQuestionIndex(index)}
+                    className={`h-1 rounded-full transition-all ${
+                      isActive
+                        ? "w-4 bg-primary"
+                        : isAnswered
+                          ? "w-2 bg-primary/50"
+                          : "w-2 bg-border"
+                    }`}
+                    aria-label={`Go to question ${index + 1}`}
+                    type="button"
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Options */}
           <div className="max-h-[40vh] space-y-1 overflow-y-auto">
             {activeQuestion.multiSelect ? (
               <div className="space-y-1">
@@ -154,7 +155,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                   return (
                     <Label
                       key={option.label}
-                      className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-3 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50"
+                      className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-2.5 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50"
                     >
                       <Checkbox
                         checked={current.includes(option.label)}
@@ -162,14 +163,16 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                           handleMultiSelect(activeQuestionIndex, option.label, value as boolean)
                         }
                       />
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col">
                         <p className="text-sm text-foreground">{option.label}</p>
-                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                        {option.description && (
+                          <p className="text-xs text-muted-foreground">{option.description}</p>
+                        )}
                       </div>
                     </Label>
                   );
                 })}
-                <Label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-3 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50">
+                <Label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-2.5 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50">
                   <Checkbox
                     checked={customAnswerSelected}
                     onCheckedChange={(value) => {
@@ -181,14 +184,12 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                     }}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm text-foreground">Type your own answer</p>
-                    </div>
+                    <p className="text-sm text-foreground">Other</p>
                     <textarea
                       placeholder="Type your answer..."
                       rows={1}
                       style={{ resize: "none" }}
-                      className="mt-2 block w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
+                      className="mt-1.5 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
                       value={customAnswerValue}
                       ref={autoResizeTextarea}
                       onChange={(event) => {
@@ -217,27 +218,27 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                   return (
                     <Label
                       key={option.label}
-                      className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-3 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50"
+                      className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-2.5 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50"
                     >
                       <Radio value={option.label} />
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col">
                         <p className="text-sm text-foreground">{option.label}</p>
-                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                        {option.description && (
+                          <p className="text-xs text-muted-foreground">{option.description}</p>
+                        )}
                       </div>
                     </Label>
                   );
                 })}
-                <Label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-3 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50">
+                <Label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 p-2.5 hover:bg-accent/50 has-data-checked:border-primary/48 has-data-checked:bg-accent/50">
                   <Radio value={CUSTOM_ANSWER_OPTION} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm text-foreground">Type your own answer</p>
-                    </div>
+                    <p className="text-sm text-foreground">Other</p>
                     <textarea
                       placeholder="Type your answer..."
                       rows={1}
                       style={{ resize: "none" }}
-                      className="mt-2 block w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
+                      className="mt-1.5 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
                       value={customAnswerValue}
                       ref={autoResizeTextarea}
                       onChange={(event) => {
@@ -262,18 +263,20 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
       )}
 
       {selectedPreview && (
-        <div className="rounded-md bg-muted/50 p-3">
-          <p className="mb-2 text-xs font-medium text-foreground">Preview</p>
-          <pre className="overflow-auto whitespace-pre-wrap text-xs text-muted-foreground">
+        <div className="mt-2 rounded-md bg-muted/50 p-2">
+          <p className="mb-1 text-xs font-medium text-muted-foreground">Preview</p>
+          <pre className="overflow-auto whitespace-pre-wrap text-xs text-foreground">
             {selectedPreview}
           </pre>
         </div>
       )}
 
-      <div className="mt-2 flex items-center justify-between gap-2 bg-muted/10">
+      {/* Footer */}
+      <div className="mt-3 flex items-center justify-between">
         <Button
           size="sm"
           variant="ghost"
+          className="text-muted-foreground"
           onClick={() =>
             onResolve({
               behavior: "deny",
@@ -296,12 +299,12 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
           {!isLastQuestion ? (
             <Button
               size="sm"
+              variant="outline"
               onClick={() =>
                 setActiveQuestionIndex((current) =>
                   Math.min(input.questions.length - 1, current + 1),
                 )
               }
-              variant="outline"
             >
               Next
             </Button>
@@ -325,7 +328,6 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                   },
                 });
               }}
-              disabled={!isLastQuestion}
             >
               Submit
             </Button>
