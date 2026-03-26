@@ -132,7 +132,7 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
                   placeholder="What should Claude change about this plan?"
                   rows={2}
                   style={{ resize: "none" }}
-                  className="mt-2 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
+                  className="mt-1.5 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   onClick={(e) => e.stopPropagation()}

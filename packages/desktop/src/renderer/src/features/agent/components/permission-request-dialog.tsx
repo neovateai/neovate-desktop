@@ -195,7 +195,7 @@ export function PermissionRequestDialog({
     <div
       ref={containerRef}
       tabIndex={-1}
-      className="relative min-w-0 max-w-full bg-background-secondary px-4 py-2 outline-none"
+      className="relative min-w-0 max-w-full bg-background-secondary px-4 py-3 outline-none"
     >
       {/* Header: Tool name + pending count */}
       <div className="mb-2 flex min-w-0 items-center gap-2">
@@ -254,11 +254,11 @@ export function PermissionRequestDialog({
 
       {/* Feedback input */}
       {feedbackExpanded && (
-        <div className="mt-2 pl-3">
+        <div className="mt-1.5 pl-3">
           <input
             ref={feedbackRef}
             type="text"
-            className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none ring-ring focus:ring-1"
+            className="w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 ring-ring focus:ring-1"
             placeholder={t("permission.feedbackPlaceholder")}
             value={feedbackText}
             onChange={(e) => setFeedbackText(e.target.value)}
