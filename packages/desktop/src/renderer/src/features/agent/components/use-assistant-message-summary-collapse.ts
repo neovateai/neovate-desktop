@@ -155,7 +155,7 @@ export function useAssistantMessageSummaryCollapse(message: ClaudeCodeUIMessage)
       hasRestoredProcessContent
         ? lastSummaryPartIndex
         : -1;
-    const hasSummaryContent = toolCallCount > 0 || messageCount > 0 || reasoningCount > 0;
+    const hasSummaryContent = toolCallCount > 0 || reasoningCount > 0;
     const collapseKind = getCollapseKind({
       deliveryMode,
       hasInit,
