@@ -22,7 +22,7 @@ const IGNORED_PATTERNS = [
   "**/.DS_Store",
   "**/.cache/**",
   "**/coverage/**",
-  /.*\.(jpg|jpeg|png|gif|svg|mp4|mp3)$/i, // media files
+  // /.*\.(jpg|jpeg|png|gif|svg|mp4|mp3)$/i, // media files
   /\.node\//, // .node directories (native bindings)
 ];
 
