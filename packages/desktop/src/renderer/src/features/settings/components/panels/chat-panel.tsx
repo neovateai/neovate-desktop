@@ -1,5 +1,5 @@
 import debug from "debug";
-import { ChevronDown, MessageSquare } from "lucide-react";
+import { ChevronDown, Code, Hand, MessageSquare, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -137,28 +137,50 @@ export const ChatPanel = () => {
                 <SelectValue>{t(permissionModeKeys[config.permissionMode])}</SelectValue>
               </SelectTrigger>
               <SelectPopup className="min-w-52">
-                <SelectItem value="default" className="items-start py-2">
-                  <div className="flex flex-col gap-0.5">
-                    <span>{t("settings.chat.permissionMode.default")}</span>
-                    <span className="text-[10px] text-muted-foreground/80 font-normal">
-                      {t("settings.chat.permissionMode.default.desc")}
-                    </span>
+                <SelectItem
+                  value="default"
+                  className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+                >
+                  <div className="flex items-start gap-2">
+                    <Hand className="size-3.5 mt-px shrink-0 opacity-60" />
+                    <div className="flex flex-col">
+                      <span className="text-xs">{t("settings.chat.permissionMode.default")}</span>
+                      <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                        {t("settings.chat.permissionMode.default.desc")}
+                      </span>
+                    </div>
                   </div>
                 </SelectItem>
-                <SelectItem value="acceptEdits" className="items-start py-2">
-                  <div className="flex flex-col gap-0.5">
-                    <span>{t("settings.chat.permissionMode.acceptEdits")}</span>
-                    <span className="text-[10px] text-muted-foreground/80 font-normal">
-                      {t("settings.chat.permissionMode.acceptEdits.desc")}
-                    </span>
+                <SelectItem
+                  value="acceptEdits"
+                  className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+                >
+                  <div className="flex items-start gap-2">
+                    <Code className="size-3.5 mt-px shrink-0 opacity-60" />
+                    <div className="flex flex-col">
+                      <span className="text-xs">
+                        {t("settings.chat.permissionMode.acceptEdits")}
+                      </span>
+                      <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                        {t("settings.chat.permissionMode.acceptEdits.desc")}
+                      </span>
+                    </div>
                   </div>
                 </SelectItem>
-                <SelectItem value="bypassPermissions" className="items-start py-2">
-                  <div className="flex flex-col gap-0.5">
-                    <span>{t("settings.chat.permissionMode.bypassPermissions")}</span>
-                    <span className="text-[10px] text-muted-foreground/80 font-normal">
-                      {t("settings.chat.permissionMode.bypassPermissions.desc")}
-                    </span>
+                <SelectItem
+                  value="bypassPermissions"
+                  className="items-start py-1 grid-cols-[1fr_auto] pe-2 [&>:first-child]:col-start-2 [&>:first-child]:row-start-1 [&>:last-child]:col-start-1"
+                >
+                  <div className="flex items-start gap-2">
+                    <TriangleAlert className="size-3.5 mt-px shrink-0 opacity-60" />
+                    <div className="flex flex-col">
+                      <span className="text-xs">
+                        {t("settings.chat.permissionMode.bypassPermissions")}
+                      </span>
+                      <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
+                        {t("settings.chat.permissionMode.bypassPermissions.desc")}
+                      </span>
+                    </div>
                   </div>
                 </SelectItem>
               </SelectPopup>
