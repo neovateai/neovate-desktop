@@ -33,7 +33,25 @@ import { useChangesTranslation } from "./i18n";
 type DiffStyle = "unified" | "split";
 
 const FILE_SIZE_LIMIT = 1_000_000; // 1MB
+const LARGE_DIFF_THRESHOLD = 200_000; // 200KB — soft gate for large diffs
 const HIGH_FILE_COUNT = 200;
+
+const GENERATED_FILES = new Set([
+  "package-lock.json",
+  "yarn.lock",
+  "pnpm-lock.yaml",
+  "bun.lock",
+  "bun.lockb",
+  "Cargo.lock",
+  "Gemfile.lock",
+  "poetry.lock",
+  "composer.lock",
+  "go.sum",
+  "Pipfile.lock",
+  "pdm.lock",
+  "flake.lock",
+]);
+const isGenerated = (fileName: string) => GENERATED_FILES.has(fileName);
 
 // L3: Viewport-aware diff rendering — only mounts MultiFileDiff when visible
 function LazyDiffContent({
@@ -95,6 +113,7 @@ export default memo(function ChangesView() {
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
   const [forceVisibleFiles, setForceVisibleFiles] = useState<Set<string>>(new Set());
   const [diffHeights, setDiffHeights] = useState<Record<string, number>>({});
+  const [forceShownFiles, setForceShownFiles] = useState<Set<string>>(new Set());
 
   const { files, loading, error, branchInfo, diffs, loadingDiffs, refresh, loadDiff } =
     useChanges(category);
@@ -147,6 +166,7 @@ export default memo(function ChangesView() {
   const handleCategoryChange = (value: ChangesCategory) => {
     setCategory(value);
     setExpandedFiles(new Set());
+    setForceShownFiles(new Set());
     persistState({ category: value });
   };
 
@@ -162,14 +182,16 @@ export default memo(function ChangesView() {
     persistState({ showFileTree: next });
   };
 
-  const toggleFile = (relPath: string) => {
+  const toggleFile = (file: ChangesFile) => {
     setExpandedFiles((prev) => {
       const next = new Set(prev);
-      if (next.has(relPath)) {
-        next.delete(relPath);
+      if (next.has(file.relPath)) {
+        next.delete(file.relPath);
       } else {
-        next.add(relPath);
-        loadDiff(relPath);
+        next.add(file.relPath);
+        if (!isGenerated(file.fileName) || forceShownFiles.has(file.relPath)) {
+          loadDiff(file.relPath);
+        }
       }
       return next;
     });
@@ -181,7 +203,11 @@ export default memo(function ChangesView() {
       if (!window.confirm(t("review.expandAllConfirm", { count: files.length }))) return;
     }
 
-    const ordered = files.map((f) => f.relPath);
+    const nonGenerated = files.filter((f) => !isGenerated(f.fileName));
+    const ordered = nonGenerated.map((f) => f.relPath);
+
+    // Expand all files (including generated), but only load diffs for non-generated
+    setExpandedFiles(new Set(files.map((f) => f.relPath)));
     let idx = 0;
 
     const expandBatch = () => {
@@ -189,13 +215,7 @@ export default memo(function ChangesView() {
       if (batch.length === 0) return;
       idx += batch.length;
 
-      setExpandedFiles((prev) => {
-        const next = new Set(prev);
-        for (const p of batch) next.add(p);
-        return next;
-      });
-
-      // 5 concurrent loadDiff per batch
+      // 5 concurrent loadDiff per batch (generated files already excluded)
       let loadIdx = 0;
       const loadNext = () => {
         if (loadIdx >= batch.length) return;
@@ -245,18 +265,18 @@ export default memo(function ChangesView() {
 
   // Scroll to file from file tree — force visible to bypass intersection observer
   const diffContainerRef = useRef<HTMLDivElement>(null);
-  const scrollToFile = (relPath: string) => {
+  const scrollToFile = (file: ChangesFile) => {
     setForceVisibleFiles((prev) => {
       const next = new Set(prev);
-      next.add(relPath);
+      next.add(file.relPath);
       return next;
     });
-    if (!expandedFiles.has(relPath)) {
-      toggleFile(relPath);
+    if (!expandedFiles.has(file.relPath)) {
+      toggleFile(file);
     }
     setTimeout(() => {
       const el = diffContainerRef.current?.querySelector(
-        `[data-file-path="${CSS.escape(relPath)}"]`,
+        `[data-file-path="${CSS.escape(file.relPath)}"]`,
       );
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
@@ -340,6 +360,8 @@ export default memo(function ChangesView() {
   const isBinary = (content: string) => content.slice(0, 8192).includes("\0");
   const isFileTooLarge = (diff: { oldContent: string; newContent: string }) =>
     diff.oldContent.length + diff.newContent.length > FILE_SIZE_LIMIT;
+  const isLargeDiff = (diff: { oldContent: string; newContent: string }) =>
+    diff.oldContent.length + diff.newContent.length > LARGE_DIFF_THRESHOLD;
 
   const renderFileDiff = (file: ChangesFile) => {
     const isExpanded = expandedFiles.has(file.relPath);
@@ -354,7 +376,7 @@ export default memo(function ChangesView() {
       >
         <div
           className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 cursor-pointer hover:bg-muted select-none"
-          onClick={() => toggleFile(file.relPath)}
+          onClick={() => toggleFile(file)}
         >
           {isExpanded ? (
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -367,11 +389,39 @@ export default memo(function ChangesView() {
             style={{ fontSize: 14 }}
           />
           <span className="text-sm truncate flex-1">{file.relPath}</span>
+          {(file.insertions != null || file.deletions != null) && (
+            <span className="flex items-center gap-1 text-xs shrink-0">
+              {file.insertions != null && file.insertions > 0 && (
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  +{file.insertions.toLocaleString()}
+                </span>
+              )}
+              {file.deletions != null && file.deletions > 0 && (
+                <span className="text-rose-600 dark:text-rose-400">
+                  -{file.deletions.toLocaleString()}
+                </span>
+              )}
+            </span>
+          )}
           {getStatusBadge(file.status)}
         </div>
         {isExpanded && (
           <div className="overflow-auto">
-            {isLoadingDiff ? (
+            {isGenerated(file.fileName) && !forceShownFiles.has(file.relPath) ? (
+              <div className="py-6 flex flex-col items-center gap-2">
+                <p className="text-sm text-muted-foreground">{t("review.generatedFile")}</p>
+                <button
+                  className="text-xs text-primary hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setForceShownFiles((prev) => new Set(prev).add(file.relPath));
+                    loadDiff(file.relPath);
+                  }}
+                >
+                  {t("review.showDiff")}
+                </button>
+              </div>
+            ) : isLoadingDiff ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
@@ -383,6 +433,19 @@ export default memo(function ChangesView() {
               ) : isFileTooLarge(diff) ? (
                 <div className="py-4 text-center text-sm text-muted-foreground">
                   {t("review.fileTooLarge")}
+                </div>
+              ) : isLargeDiff(diff) && !forceShownFiles.has(file.relPath) ? (
+                <div className="py-6 flex flex-col items-center gap-2">
+                  <p className="text-sm text-muted-foreground">{t("review.largeDiff")}</p>
+                  <button
+                    className="text-xs text-primary hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setForceShownFiles((prev) => new Set(prev).add(file.relPath));
+                    }}
+                  >
+                    {t("review.showDiff")}
+                  </button>
                 </div>
               ) : diff.oldContent === "" && diff.newContent === "" ? (
                 <div className="py-4 text-center text-sm text-muted-foreground">
@@ -580,7 +643,7 @@ export default memo(function ChangesView() {
                   expandedFiles.has(file.relPath) ? "bg-accent/30" : ""
                 }`}
                 title={file.relPath}
-                onClick={() => scrollToFile(file.relPath)}
+                onClick={() => scrollToFile(file)}
               >
                 <div
                   className="seti-icon shrink-0"

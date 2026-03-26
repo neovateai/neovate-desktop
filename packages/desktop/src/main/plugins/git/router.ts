@@ -10,6 +10,18 @@ const log = debug("neovate:git");
 
 const GIT_TIMEOUT_MS = 10_000;
 
+function parseNumstat(output: string): Map<string, { insertions: number; deletions: number }> {
+  const stats = new Map<string, { insertions: number; deletions: number }>();
+  for (const line of output.trim().split("\n")) {
+    if (!line) continue;
+    const [ins, del, ...parts] = line.split("\t");
+    const file = parts.join("\t");
+    if (!file || ins === "-") continue; // skip binary files
+    stats.set(file, { insertions: Number(ins), deletions: Number(del) });
+  }
+  return stats;
+}
+
 function str2file(cwd: string, file: string) {
   return {
     fullPath: path.resolve(cwd, file),
@@ -241,10 +253,25 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
  */
 async function getFiles(cwd: string) {
   const gitClient = git(cwd);
-  const status = await gitClient.status();
+  const [status, numstatWorkingRaw, numstatStagedRaw] = await Promise.all([
+    gitClient.status(),
+    gitClient.raw(["diff", "--numstat"]).catch(() => ""),
+    gitClient.raw(["diff", "--cached", "--numstat"]).catch(() => ""),
+  ]);
+  const workingStats = parseNumstat(numstatWorkingRaw);
+  const stagedStats = parseNumstat(numstatStagedRaw);
 
-  const working: Array<ReturnType<typeof str2file> & { status: string }> = [];
-  const staged: Array<ReturnType<typeof str2file> & { status: string; staged: true }> = [];
+  const working: Array<
+    ReturnType<typeof str2file> & { status: string; insertions?: number; deletions?: number }
+  > = [];
+  const staged: Array<
+    ReturnType<typeof str2file> & {
+      status: string;
+      staged: true;
+      insertions?: number;
+      deletions?: number;
+    }
+  > = [];
   const seenWorking = new Set<string>();
   const seenStaged = new Set<string>();
 
@@ -263,10 +290,12 @@ async function getFiles(cwd: string) {
         else if (indexStatus === "R" || indexStatus === "C") st = "added";
         else st = "modified";
 
+        const ss = stagedStats.get(filePath);
         staged.push({
           ...str2file(cwd, filePath),
           status: st,
           staged: true as const,
+          ...(ss && { insertions: ss.insertions, deletions: ss.deletions }),
         });
       }
     }
@@ -280,9 +309,11 @@ async function getFiles(cwd: string) {
         if (workTreeStatus === "D") st = "deleted";
         else st = "modified";
 
+        const ws = workingStats.get(filePath);
         working.push({
           ...str2file(cwd, filePath),
           status: st,
+          ...(ws && { insertions: ws.insertions, deletions: ws.deletions }),
         });
       }
     }
@@ -291,9 +322,11 @@ async function getFiles(cwd: string) {
     if (workTreeStatus === "?") {
       if (!seenWorking.has(filePath)) {
         seenWorking.add(filePath);
+        const us = workingStats.get(filePath);
         working.push({
           ...str2file(cwd, filePath),
           status: "untracked",
+          ...(us && { insertions: us.insertions, deletions: us.deletions }),
         });
       }
     }
@@ -512,7 +545,11 @@ async function getBranchFiles(cwd: string) {
   // Get changed files (merge-base vs working tree)
   const files: GitBranchFile[] = [];
   try {
-    const nameStatus = await gitClient.raw(["diff", "--name-status", mergeBase]);
+    const [nameStatus, numstatRaw] = await Promise.all([
+      gitClient.raw(["diff", "--name-status", mergeBase]),
+      gitClient.raw(["diff", "--numstat", mergeBase]).catch(() => ""),
+    ]);
+    const branchStats = parseNumstat(numstatRaw);
     for (const line of nameStatus.trim().split("\n")) {
       if (!line) continue;
       const [statusChar, ...fileParts] = line.split("\t");
@@ -521,11 +558,13 @@ async function getBranchFiles(cwd: string) {
       let status: "added" | "modified" | "deleted" = "modified";
       if (statusChar === "A") status = "added";
       else if (statusChar === "D") status = "deleted";
+      const bs = branchStats.get(filePath);
       files.push({
         relPath: filePath,
         fileName: path.basename(filePath),
         extName: path.extname(filePath).replace(".", ""),
         status,
+        ...(bs && { insertions: bs.insertions, deletions: bs.deletions }),
       });
     }
   } catch {

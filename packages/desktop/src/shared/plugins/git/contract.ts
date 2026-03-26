@@ -7,6 +7,8 @@ export interface GitFile {
   extName: string;
   status: "modified" | "deleted" | "untracked" | "added";
   staged?: boolean;
+  insertions?: number;
+  deletions?: number;
 }
 
 export interface GitFilesResponse {
@@ -70,6 +72,8 @@ export interface GitBranchFile {
   fileName: string;
   extName: string;
   status: "added" | "modified" | "deleted";
+  insertions?: number;
+  deletions?: number;
 }
 
 export interface GitBranchFilesResponse {
