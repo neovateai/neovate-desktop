@@ -34,6 +34,10 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     serialize: (value) => JSON.stringify(value, null, 2) + "\n",
   });
 
+  prepareForQuit(): void {
+    this.#isQuitting = true;
+  }
+
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
   }

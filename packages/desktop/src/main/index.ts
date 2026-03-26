@@ -64,7 +64,9 @@ const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
 });
-const updaterService = new UpdaterService();
+const updaterService = new UpdaterService({
+  onBeforeQuitForUpdate: () => mainApp.windowManager.prepareForQuit(),
+});
 
 const skillsService = new SkillsService(projectStore, configStore, process.resourcesPath);
 

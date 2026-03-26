@@ -10,7 +10,12 @@ const log = debug("neovate:updater");
 
 export type FeedURLOptions = Parameters<AppUpdater["setFeedURL"]>[0];
 
-export interface UpdaterOptions {
+export interface UpdaterServiceOptions {
+  /** Called before quitAndInstall to prepare the app for restart. */
+  onBeforeQuitForUpdate?: () => void;
+}
+
+export interface UpdaterInitOptions {
   feedURL?: FeedURLOptions | (() => Promise<FeedURLOptions>);
 }
 
@@ -18,6 +23,7 @@ const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const CHECK_TIMEOUT_MS = 30_000;
 
 export class UpdaterService implements IUpdateService {
+  private options: UpdaterServiceOptions;
   private _state: UpdaterState = { status: "idle" };
   readonly publisher = new EventPublisher<{ state: UpdaterState }>();
   private checkInterval: ReturnType<typeof setInterval> | null = null;
@@ -35,6 +41,10 @@ export class UpdaterService implements IUpdateService {
     status: "downloading" | "ready";
     percent: number;
   } | null = null;
+
+  constructor(options: UpdaterServiceOptions = {}) {
+    this.options = options;
+  }
 
   get state(): UpdaterState {
     return this._state;
@@ -207,10 +217,11 @@ export class UpdaterService implements IUpdateService {
     }
     this.installRequested = true;
     this.logSnapshot("install-before-quitAndInstall");
+    this.options.onBeforeQuitForUpdate?.();
     autoUpdater.quitAndInstall();
   }
 
-  async init(options?: UpdaterOptions) {
+  async init(options?: UpdaterInitOptions) {
     log("init", { hasFeedURL: !!options?.feedURL });
     this.attachDiagnostics();
     autoUpdater.autoDownload = false;

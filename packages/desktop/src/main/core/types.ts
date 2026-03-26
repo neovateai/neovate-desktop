@@ -26,6 +26,7 @@ export interface IBrowserWindowManager {
   close(windowId: string): void;
   destroyAll(): void;
   ensureMinWidth(minWidth: number): void;
+  prepareForQuit(): void;
 }
 
 /** Abstract app interface — plugins depend on this, MainApp implements it. */
