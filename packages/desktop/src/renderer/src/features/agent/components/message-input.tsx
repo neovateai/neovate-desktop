@@ -425,7 +425,7 @@ export function MessageInput({
       >
         <div
           className={cn(
-            "overflow-hidden transition-all duration-200",
+            "overflow-hidden transition-all duration-200 focus-within:!border-primary/50",
             dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
           )}
           style={{
