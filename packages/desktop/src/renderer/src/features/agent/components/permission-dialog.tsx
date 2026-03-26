@@ -180,9 +180,12 @@ export function PermissionDialog({ sessionId }: Props) {
         }}
       >
         <div
-          className="overflow-hidden rounded-lg transition-all duration-200"
+          className="overflow-hidden rounded-lg"
           style={{
             border: "2px solid transparent",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
+            transition: "all .2s",
             background:
               "linear-gradient(var(--background-secondary), var(--background-secondary)) padding-box, linear-gradient(0deg, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 80%) border-box",
           }}

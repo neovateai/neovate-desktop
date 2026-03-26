@@ -425,11 +425,14 @@ export function MessageInput({
       >
         <div
           className={cn(
-            "overflow-hidden transition-all duration-200 focus-within:!border-primary/50",
+            "border border-input focus-within:!border-primary/50 overflow-hidden",
             dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
           )}
           style={{
             border: "2px solid transparent",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
+            transition: "all .2s",
             background:
               "linear-gradient(var(--background-secondary), var(--background-secondary)) padding-box, linear-gradient(0deg, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 80%) border-box",
           }}
