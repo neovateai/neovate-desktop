@@ -22,5 +22,10 @@ export function useSessionChatStatus(sessionId: string) {
     () => (chat?.store.getState().pendingRequests.length ?? 0) > 0,
   );
 
-  return { isStreaming, hasPendingRequests };
+  const hasError = useSyncExternalStore(
+    subscribe,
+    () => chat?.store.getState().error != null || chat?.store.getState().eventError != null,
+  );
+
+  return { isStreaming, hasPendingRequests, hasError };
 }

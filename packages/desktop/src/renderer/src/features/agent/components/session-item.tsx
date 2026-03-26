@@ -1,12 +1,10 @@
-import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
+import { AlertCircleIcon, Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { formatDistanceToNowStrict } from "date-fns";
 import debug from "debug";
-import { Archive, Circle, Pin, PinOff } from "lucide-react";
+import { Archive, Pin, PinOff } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import type { TurnResult } from "../store";
 
 import { Spinner } from "../../../components/ui/spinner";
 import { cn } from "../../../lib/utils";
@@ -37,7 +35,7 @@ interface SessionItemProps {
   isRestoring: boolean;
   isStreaming?: boolean;
   hasPendingPermission?: boolean;
-  turnResult?: TurnResult;
+  hasError?: boolean;
   /** Session has an active backend process (loaded in SessionManager) */
   isInitialized?: boolean;
   onClick: () => void;
@@ -53,7 +51,7 @@ export const SessionItem = memo(function SessionItem({
   isRestoring,
   isStreaming = false,
   hasPendingPermission = false,
-  turnResult,
+  hasError = false,
   isInitialized = false,
   onClick,
   projectPath,
@@ -157,7 +155,14 @@ export const SessionItem = memo(function SessionItem({
             )}
           </button>
           <div className="flex size-5 items-center justify-center group-hover:hidden">
-            {hasPendingPermission ? (
+            {hasError ? (
+              <HugeiconsIcon
+                icon={AlertCircleIcon}
+                size={14}
+                strokeWidth={1.5}
+                className="text-destructive"
+              />
+            ) : hasPendingPermission ? (
               <HugeiconsIcon
                 icon={HelpCircleIcon}
                 size={14}
@@ -166,13 +171,6 @@ export const SessionItem = memo(function SessionItem({
               />
             ) : isProcessing ? (
               <Spinner className="size-3.5" />
-            ) : turnResult ? (
-              <Circle
-                size={8}
-                strokeWidth={0}
-                fill="currentColor"
-                className={turnResult === "success" ? "text-success" : "text-destructive"}
-              />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
             ) : (

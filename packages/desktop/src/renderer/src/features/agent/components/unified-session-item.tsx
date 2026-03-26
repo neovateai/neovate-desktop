@@ -1,11 +1,9 @@
 import { memo, useCallback } from "react";
 
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
-import type { TurnResult } from "../store";
 
 import { layoutStore } from "../../../components/app-layout/store";
 import { useSessionChatStatus } from "../hooks/use-session-chat-status";
-import { useAgentStore } from "../store";
 import { SessionItem } from "./session-item";
 
 interface UnifiedSessionItemProps {
@@ -29,10 +27,7 @@ export const UnifiedSessionItem = memo(
     const sessionId = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
     const title = item.kind === "memory" ? item.session.title : item.info.title;
     const createdAt = item.kind === "memory" ? item.session.createdAt : item.info.createdAt;
-    const { isStreaming, hasPendingRequests } = useSessionChatStatus(sessionId);
-    const turnResult = useAgentStore((s) => s.unseenTurnResults.get(sessionId)) as
-      | TurnResult
-      | undefined;
+    const { isStreaming, hasPendingRequests, hasError } = useSessionChatStatus(sessionId);
 
     const isActive = item.kind === "memory" && sessionId === activeSessionId;
     const isRestoring = item.kind === "persisted" && restoring === sessionId;
@@ -56,7 +51,7 @@ export const UnifiedSessionItem = memo(
         isRestoring={isRestoring}
         isStreaming={isStreaming}
         hasPendingPermission={hasPendingRequests}
-        turnResult={turnResult}
+        hasError={hasError}
         isInitialized={item.kind === "memory"}
         onClick={handleClick}
         projectPath={item.projectPath}
