@@ -14,7 +14,7 @@ const MultiIcon = ({ className }: { className?: string }) => (
 const plugin: RendererPlugin = {
   name: "plugin-content-panel-demo",
 
-  configContributions() {
+  configViewContributions() {
     return {
       contentPanelViews: [
         {

@@ -3,7 +3,13 @@ import debug from "debug";
 import type { I18nContributions } from "../i18n";
 import type { PluginContext, RendererPlugin, RendererPluginHooks } from "./types";
 
-import { buildContributions, PluginContributions, type WindowContribution } from "./contributions";
+import {
+  buildContributions,
+  buildViewContributions,
+  type PluginContributions,
+  type PluginViewContributions,
+  type WindowContribution,
+} from "./contributions";
 
 const log = debug("neovate:plugin");
 
@@ -11,6 +17,7 @@ type HookFn = (...args: unknown[]) => unknown;
 
 export class PluginManager {
   readonly #plugins: RendererPlugin[];
+  viewContributions: Required<PluginViewContributions> = buildViewContributions([]);
   contributions: Required<PluginContributions> = buildContributions([]);
   private _windowContributions: WindowContribution[] = [];
   get windowContributions(): readonly WindowContribution[] {
@@ -57,10 +64,17 @@ export class PluginManager {
     this._windowContributions = result;
   }
 
-  /** Collect and merge configContributions from all plugins (parallel) */
+  /** Collect and merge view contributions from all plugins (parallel) */
   // TODO: preserve plugin origin (plugin.name) per contribution item,
   // so NLS markers like %key% can auto-resolve to %namespace:key% without
   // plugins having to write the namespace prefix themselves.
+  async configViewContributions(): Promise<void> {
+    log("configViewContributions", { pluginCount: this.#plugins.length });
+    const results = await this.applyParallel("configViewContributions");
+    this.viewContributions = buildViewContributions(results);
+  }
+
+  /** Collect and merge data contributions from all plugins (parallel) */
   async configContributions(ctx: PluginContext): Promise<void> {
     log("configContributions", { pluginCount: this.#plugins.length });
     const results = await this.applyParallel("configContributions", ctx);

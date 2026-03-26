@@ -47,6 +47,8 @@
   "settings.general.terminalFont": "终端字体",
   "settings.general.terminalFont.description": "终端字体系列（留空使用默认）",
   "settings.general.terminalFont.default": "默认",
+  "settings.general.appFontSize": "应用字体大小",
+  "settings.general.appFontSize.description": "整个应用的基础字体大小（12-20px）",
   "settings.general.developerMode": "开发者模式",
   "settings.general.developerMode.description": "在聊天输入等位置显示调试信息",
   "settings.general.group.appearance": "外观",

@@ -1,4 +1,5 @@
 export type {
+  PluginViewContributions,
   PluginContributions,
   SecondarySidebarView,
   ContentPanelView,

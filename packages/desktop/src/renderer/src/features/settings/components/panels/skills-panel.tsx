@@ -32,6 +32,7 @@ import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
+import { claudeCodeChatManager } from "../../../agent/chat-manager";
 import { useProjectStore } from "../../../project/store";
 import { SkillAddModal } from "./skill-add-modal";
 import { SkillDetailModal } from "./skill-detail-modal";
@@ -96,6 +97,13 @@ export const SkillsPanel = () => {
     fetchingRef.current = false;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- t is stable enough, avoid re-fetch loops
 
+  // Refresh skills list AND recreate new sessions so slash commands pick up changes
+  const refreshAfterMutation = useCallback(async () => {
+    await fetchData();
+    const projectPath = useProjectStore.getState().activeProject?.path;
+    claudeCodeChatManager.invalidateNewSessions(projectPath);
+  }, [fetchData]);
+
   const refresh = useCallback(async () => {
     setRefreshing(true);
     await fetchData(true);
@@ -159,7 +167,7 @@ export const SkillsPanel = () => {
           projectPath: skill.projectPath,
         });
       }
-      await fetchData();
+      await refreshAfterMutation();
     } catch {
       // Silently fail — user can retry
     } finally {
@@ -180,7 +188,7 @@ export const SkillsPanel = () => {
         scope,
         projectPath,
       });
-      await fetchData();
+      await refreshAfterMutation();
     } catch (e: any) {
       setError(e.message || t("settings.skills.installFailed"));
     }
@@ -453,7 +461,7 @@ export const SkillsPanel = () => {
           }
           update={getUpdate(selectedSkill)}
           onClose={() => setSelectedSkill(null)}
-          onRefresh={fetchData}
+          onRefresh={refreshAfterMutation}
         />
       )}
 
@@ -463,7 +471,7 @@ export const SkillsPanel = () => {
           recommendedSkill={selectedRecommended}
           projects={projects}
           onClose={() => setSelectedRecommended(null)}
-          onRefresh={fetchData}
+          onRefresh={refreshAfterMutation}
           onInstall={handleInstallRecommended}
         />
       )}
@@ -473,7 +481,7 @@ export const SkillsPanel = () => {
         <SkillAddModal
           projects={projects}
           onClose={() => setShowAddModal(false)}
-          onRefresh={fetchData}
+          onRefresh={refreshAfterMutation}
         />
       )}
     </div>

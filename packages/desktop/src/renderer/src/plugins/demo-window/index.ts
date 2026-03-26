@@ -18,7 +18,7 @@ const plugin: RendererPlugin = {
     };
   },
 
-  configContributions() {
+  configViewContributions() {
     return {
       secondaryTitlebarItems: [
         {

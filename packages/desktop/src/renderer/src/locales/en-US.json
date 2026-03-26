@@ -47,6 +47,8 @@
   "settings.general.terminalFont": "Terminal Font",
   "settings.general.terminalFont.description": "Font family for the terminal (leave empty for default)",
   "settings.general.terminalFont.default": "Default",
+  "settings.general.appFontSize": "App Font Size",
+  "settings.general.appFontSize.description": "Base font size for the entire application (12-20px)",
   "settings.general.developerMode": "Developer Mode",
   "settings.general.developerMode.description": "Show debug info in chat input and other places",
   "settings.general.group.appearance": "Appearance",

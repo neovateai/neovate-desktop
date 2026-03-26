@@ -1,7 +1,16 @@
 import debug from "debug";
 import i18n from "i18next";
 import { ThemeProvider, useTheme } from "next-themes";
-import { StrictMode, Suspense, createContext, useContext, useEffect, useRef, lazy } from "react";
+import {
+  StrictMode,
+  Suspense,
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  lazy,
+} from "react";
 import ReactDOM from "react-dom/client";
 
 import type { ProjectTabState } from "../features/content-panel";
@@ -113,6 +122,19 @@ function StyleSync() {
       apply();
     }
   }, [themeStyle, loaded]);
+
+  return null;
+}
+
+/** Syncs appFontSize to document.documentElement.style.fontSize */
+function FontSizeSync() {
+  const appFontSize = useConfigStore((s) => s.appFontSize);
+  const loaded = useConfigStore((s) => s.loaded);
+
+  useLayoutEffect(() => {
+    if (!loaded) return;
+    document.documentElement.style.fontSize = `${appFontSize}px`;
+  }, [appFontSize, loaded]);
 
   return null;
 }
@@ -316,7 +338,7 @@ export class RendererApp implements IRendererApp {
   }
 
   initWorkbench(): void {
-    const views = this.pluginManager.contributions.contentPanelViews;
+    const views = this.pluginManager.viewContributions.contentPanelViews;
     // TODO: Move app-layout UI to consume app.workbench.layout directly, then
     // transfer store ownership from components/app-layout/store into
     // WorkbenchLayoutService.
@@ -380,6 +402,8 @@ export class RendererApp implements IRendererApp {
 
     if (this.#windowType === "main") {
       // Main window — full plugin UI
+      await this.pluginManager.configViewContributions();
+      startupLog("renderer viewContributions done %s", el());
       await this.pluginManager.configContributions(ctx);
       startupLog("renderer pluginContributions done %s", el());
       this.initWorkbench();
@@ -422,6 +446,7 @@ export class RendererApp implements IRendererApp {
                 <ToastProvider>
                   <ThemeSync />
                   <StyleSync />
+                  <FontSizeSync />
                   <MenuCommandHandler />
                   <DeeplinkHandler />
                   <Suspense

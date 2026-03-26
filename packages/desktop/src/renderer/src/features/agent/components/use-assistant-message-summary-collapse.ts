@@ -155,7 +155,7 @@ export function useAssistantMessageSummaryCollapse(message: ClaudeCodeUIMessage)
       hasRestoredProcessContent
         ? lastSummaryPartIndex
         : -1;
-    const hasSummaryContent = toolCallCount > 0 || messageCount > 0 || reasoningCount > 0;
+    const hasSummaryContent = toolCallCount > 0 || reasoningCount > 0;
     const collapseKind = getCollapseKind({
       deliveryMode,
       hasInit,
@@ -187,7 +187,9 @@ export function useAssistantMessageSummaryCollapse(message: ClaudeCodeUIMessage)
     };
   }, [message]);
 
-  const [collapseMode, setCollapseMode] = useState<CollapseMode>("normal");
+  const [collapseMode, setCollapseMode] = useState<CollapseMode>(
+    collapseKind === "restored" ? "collapsed" : "normal",
+  );
   const [isOpen, setIsOpen] = useState(false);
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

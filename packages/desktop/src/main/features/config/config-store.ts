@@ -21,6 +21,7 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   locale: "en-US",
   runOnStartup: false,
   multiProjectSupport: false,
+  appFontSize: 14,
   terminalFontSize: 12,
   terminalFont: "",
   developerMode: false,

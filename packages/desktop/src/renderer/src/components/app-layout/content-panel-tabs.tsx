@@ -27,7 +27,7 @@ export function ContentPanelTabs() {
   const locale = useConfigStore((s) => s.locale);
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const views = app.pluginManager.contributions.contentPanelViews;
+  const views = app.pluginManager.viewContributions.contentPanelViews;
   const lazyComponents = useLazyComponents(views);
 
   const activeProject = useProjectStore((s) => s.activeProject);

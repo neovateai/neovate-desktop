@@ -17,6 +17,8 @@ export interface ChangesFile {
   fileName: string;
   extName: string;
   status: string;
+  insertions?: number;
+  deletions?: number;
 }
 
 export interface FileDiff {
@@ -77,6 +79,8 @@ export function useChanges(category: ChangesCategory) {
               fileName: f.fileName,
               extName: f.extName,
               status: f.status,
+              insertions: f.insertions,
+              deletions: f.deletions,
             })),
           );
         } else {
@@ -127,6 +131,8 @@ export function useChanges(category: ChangesCategory) {
               fileName: f.fileName,
               extName: f.extName,
               status: f.status,
+              insertions: f.insertions,
+              deletions: f.deletions,
             })),
           );
         } else {

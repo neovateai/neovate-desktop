@@ -10,12 +10,17 @@ const log = debug("neovate:plugin");
 
 // ─── Contribution Types ─────────────────────────────────────────────
 
-export interface PluginContributions {
+/** View/UI contributions — things that register visual slots */
+export interface PluginViewContributions {
   activityBarItems?: ActivityBarItem[];
   secondarySidebarViews?: SecondarySidebarView[];
   contentPanelViews?: ContentPanelView[];
   primaryTitlebarItems?: TitlebarItem[];
   secondaryTitlebarItems?: TitlebarItem[];
+}
+
+/** Data/config contributions — non-visual registrations */
+export interface PluginContributions {
   providerTemplates?: ProviderTemplate[];
   externalUriOpeners?: ExternalUriOpenerContribution[];
 }
@@ -73,11 +78,11 @@ function deduplicateTemplates(templates: ProviderTemplate[]): ProviderTemplate[]
   });
 }
 
-/** Merge partial contributions from multiple plugins into a complete set */
-export function buildContributions(
-  items: (PluginContributions | null | undefined)[],
-): Required<PluginContributions> {
-  const valid = items.filter((r): r is PluginContributions => r != null);
+/** Merge partial view contributions from multiple plugins into a complete set */
+export function buildViewContributions(
+  items: (PluginViewContributions | null | undefined)[],
+): Required<PluginViewContributions> {
+  const valid = items.filter((r): r is PluginViewContributions => r != null);
 
   const sortByOrder = <T extends { order?: number }>(list: T[]) =>
     list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
@@ -88,6 +93,16 @@ export function buildContributions(
     contentPanelViews: valid.flatMap((r) => r.contentPanelViews ?? []),
     primaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.primaryTitlebarItems ?? [])),
     secondaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.secondaryTitlebarItems ?? [])),
+  };
+}
+
+/** Merge partial data contributions from multiple plugins into a complete set */
+export function buildContributions(
+  items: (PluginContributions | null | undefined)[],
+): Required<PluginContributions> {
+  const valid = items.filter((r): r is PluginContributions => r != null);
+
+  return {
     providerTemplates: deduplicateTemplates(valid.flatMap((r) => r.providerTemplates ?? [])),
     externalUriOpeners: valid.flatMap((r) => r.externalUriOpeners ?? []),
   };

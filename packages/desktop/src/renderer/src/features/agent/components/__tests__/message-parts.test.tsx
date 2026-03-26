@@ -3,6 +3,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../orpc", () => ({ client: {} }));
+vi.mock("../../../../core/app", () => ({
+  useRendererApp: () => ({ opener: { open: vi.fn() } }),
+}));
 vi.mock("../../hooks/use-markdown-components", async () => {
   const { markdownBaseComponents } =
     await import("../../../../components/ai-elements/markdown-base-components");

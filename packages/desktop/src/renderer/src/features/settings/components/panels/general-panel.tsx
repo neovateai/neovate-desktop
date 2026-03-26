@@ -32,6 +32,7 @@ export const GeneralPanel = () => {
     locale,
     runOnStartup,
     multiProjectSupport,
+    appFontSize,
     terminalFontSize,
     terminalFont,
     developerMode,
@@ -42,6 +43,7 @@ export const GeneralPanel = () => {
       locale: s.locale,
       runOnStartup: s.runOnStartup,
       multiProjectSupport: s.multiProjectSupport,
+      appFontSize: s.appFontSize,
       terminalFontSize: s.terminalFontSize,
       terminalFont: s.terminalFont,
       developerMode: s.developerMode,
@@ -138,6 +140,24 @@ export const GeneralPanel = () => {
           >
             <ThemeStylePicker value={themeStyle} onChange={handleThemeStyleChange} />
           </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.appFontSize")}
+            description={t("settings.general.appFontSize.description")}
+          >
+            <Input
+              type="number"
+              min={12}
+              max={20}
+              value={appFontSize}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                if (Number.isNaN(n) || n < 12 || n > 20) return;
+                setConfig("appFontSize", n);
+              }}
+              className="w-24"
+            />
+          </SettingsRow>
         </SettingsGroup>
 
         {/* Terminal */}
@@ -151,7 +171,11 @@ export const GeneralPanel = () => {
               min={8}
               max={32}
               value={terminalFontSize}
-              onChange={(e) => setConfig("terminalFontSize", Number(e.target.value))}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                if (Number.isNaN(n) || n < 8 || n > 32) return;
+                setConfig("terminalFontSize", n);
+              }}
               className="w-24"
             />
           </SettingsRow>
