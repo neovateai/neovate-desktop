@@ -22,6 +22,7 @@ import { extractText } from "../utils/extract-text";
 import { buildInsertChatContent, type InsertChatDetail } from "../utils/insert-chat";
 import { readFileAsAttachment } from "../utils/read-file-as-attachment";
 import { AttachmentPreview } from "./attachment-preview";
+import { GradientBorderWrapper } from "./gradient-border-wrapper";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
 import { createMentionExtension } from "./mention-extension";
@@ -415,66 +416,49 @@ export function MessageInput({
         aria-label={t("chat.attachImages")}
         onChange={handleFileSelect}
       />
-      <div
-        className="rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
-        style={{
-          border: "3px solid transparent",
-          background:
-            "linear-gradient(var(--color-background), var(--color-background)) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
-        }}
+      <GradientBorderWrapper
+        innerClassName={cn(
+          "focus-within:!border-primary/50",
+          dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
+        )}
       >
-        <div
-          className={cn(
-            "border border-input focus-within:!border-primary/50 overflow-hidden",
-            dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
-          )}
-          style={{
-            border: "2px solid transparent",
-            backgroundColor: "var(--background)",
-            color: "var(--foreground)",
-            transition: "all .2s",
-            background:
-              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 30%, transparent) 0,transparent 80%,transparent)border-box",
-          }}
-        >
-          <AnimatePresence>
-            {permissionMode === "plan" && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden"
+        <AnimatePresence>
+          {permissionMode === "plan" && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden"
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 border-b border-info/20 bg-info/5 px-3 py-1 text-xs text-info-foreground",
+                  dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+                )}
               >
-                <div
-                  className={cn(
-                    "flex items-center gap-1.5 border-b border-info/20 bg-info/5 px-3 py-1 text-xs text-info-foreground",
-                    dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
-                  )}
-                >
-                  <span className="font-medium">{t("chat.planMode")}</span>
-                  <span className="text-info-foreground/50">{t("chat.planModeExit")}</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div data-has-suggestion={promptSuggestion ? "" : undefined}>
-            <EditorContent editor={editor} />
-          </div>
-          <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
-          <InputToolbar
-            streaming={streaming}
-            disabled={disabled}
-            sessionInitializing={sessionInitializing}
-            sessionInitError={sessionInitError}
-            onRetry={onRetry}
-            onSend={send}
-            onCancel={onCancel}
-            onAttach={() => fileInputRef.current?.click()}
-            activeSessionId={activeSessionId}
-          />
+                <span className="font-medium">{t("chat.planMode")}</span>
+                <span className="text-info-foreground/50">{t("chat.planModeExit")}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div data-has-suggestion={promptSuggestion ? "" : undefined}>
+          <EditorContent editor={editor} />
         </div>
-      </div>
+        <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
+        <InputToolbar
+          streaming={streaming}
+          disabled={disabled}
+          sessionInitializing={sessionInitializing}
+          sessionInitError={sessionInitError}
+          onRetry={onRetry}
+          onSend={send}
+          onCancel={onCancel}
+          onAttach={() => fileInputRef.current?.click()}
+          activeSessionId={activeSessionId}
+        />
+      </GradientBorderWrapper>
     </div>
   );
 }

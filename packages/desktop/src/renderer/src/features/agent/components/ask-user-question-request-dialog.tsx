@@ -139,7 +139,7 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
                           ? "w-2 bg-primary/50"
                           : "w-2 bg-border"
                     }`}
-                    aria-label={`Go to question ${index + 1}`}
+                    aria-label={t("question.goToQuestion", { index: index + 1 })}
                     type="button"
                   />
                 );

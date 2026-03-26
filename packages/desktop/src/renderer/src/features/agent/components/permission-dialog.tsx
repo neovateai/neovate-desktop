@@ -13,6 +13,7 @@ import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useAgentStore } from "../store";
 import { AskUserQuestionRequestDialog } from "./ask-user-question-request-dialog";
 import { ExitPlanModeRequestDialog } from "./exit-plan-mode-request-dialog";
+import { GradientBorderWrapper } from "./gradient-border-wrapper";
 import { PermissionRequestDialog } from "./permission-request-dialog";
 
 const chatLog = debug("neovate:agent-chat");
@@ -171,28 +172,7 @@ export function PermissionDialog({ sessionId }: Props) {
 
   return (
     <div className="relative z-10 mx-4 min-w-0 max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
-      <div
-        className="rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
-        style={{
-          border: "3px solid transparent",
-          background:
-            "linear-gradient(var(--color-background), var(--color-background)) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
-        }}
-      >
-        <div
-          className="overflow-hidden rounded-lg"
-          style={{
-            border: "2px solid transparent",
-            backgroundColor: "var(--background)",
-            color: "var(--foreground)",
-            transition: "all .2s",
-            background:
-              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 30%, transparent) 0,transparent 80%,transparent)border-box",
-          }}
-        >
-          {content}
-        </div>
-      </div>
+      <GradientBorderWrapper>{content}</GradientBorderWrapper>
     </div>
   );
 }

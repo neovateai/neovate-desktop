@@ -292,6 +292,7 @@
   "question.next": "Next",
   "question.submit": "Submit",
   "question.preview": "Preview",
+  "question.goToQuestion": "Go to question {{index}}",
 
   "branch.loadFailed": "Failed to load branches",
   "branch.switchFailed": "Failed to switch branch",

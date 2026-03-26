@@ -293,6 +293,7 @@
   "question.next": "下一步",
   "question.submit": "提交",
   "question.preview": "预览",
+  "question.goToQuestion": "跳转到第 {{index}} 题",
 
   "branch.loadFailed": "加载分支失败",
   "branch.switchFailed": "切换分支失败",
