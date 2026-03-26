@@ -446,5 +446,13 @@
       linear-gradient(var(--background-secondary), var(--background-secondary)) padding-box,
       linear-gradient(0deg, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 80%)
         border-box;
+    transition: all 0.2s;
+  }
+
+  .input-box-inner:focus-within {
+    background:
+      linear-gradient(var(--background-secondary), var(--background-secondary)) padding-box,
+      linear-gradient(0deg, color-mix(in srgb, var(--primary) 50%, transparent) 0%, transparent 80%)
+        border-box;
   }
 }
