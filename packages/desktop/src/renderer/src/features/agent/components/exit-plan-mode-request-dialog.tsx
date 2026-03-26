@@ -23,15 +23,7 @@ export type PlanApprovalChoice =
   | { action: "revise"; feedback: string }
   | { action: "dismiss" };
 
-type ApprovalOption = {
-  value: string;
-  labelKey: string;
-  descriptionKey: string;
-  mode: PermissionMode;
-  clearContext: boolean;
-};
-
-const APPROVAL_OPTIONS: ApprovalOption[] = [
+const APPROVAL_OPTIONS = [
   {
     value: "bypass",
     labelKey: "plan.bypassPermissions",
@@ -60,7 +52,7 @@ const APPROVAL_OPTIONS: ApprovalOption[] = [
     mode: "bypassPermissions",
     clearContext: true,
   },
-];
+] as const;
 
 const REVISE_VALUE = "revise";
 
