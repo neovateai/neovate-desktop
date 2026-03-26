@@ -277,15 +277,16 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse: FC<MessageResponseProps> = memo<MessageResponseProps>(
-  ({ className, ...props }) => (
+  ({ className, components, ...props }) => (
     <Streamdown
       className={cn("markdown-root size-full", className)}
-      components={markdownBaseComponents}
+      components={{ ...markdownBaseComponents, ...components }}
       plugins={markdownPlugins}
       {...props}
     />
   ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children && prevProps.components === nextProps.components,
 );
 
 MessageResponse.displayName = "MessageResponse";
