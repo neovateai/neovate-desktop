@@ -46,6 +46,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [loading, setLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
   const expandedKeys = useOperationKeys();
   const selectedKeys = useOperationKeys();
@@ -156,6 +157,40 @@ function FilesViewComponent({ project }: FilesViewProps) {
       stopAllWatchers();
     };
   }, [cwd, isVisible]);
+
+  // --- Keyboard shortcut: Enter to rename selected item ---
+  const findTreeItemByPath = (items: FileTreeItem[], path: string): FileTreeItem | null => {
+    for (const item of items) {
+      if (item.fullPath === path) return item;
+      if (item.children) {
+        const found = findTreeItemByPath(item.children, path);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      if (e.key === "Enter" && selectedKeys.keys.size === 1 && !editingKey) {
+        const selectedPath = [...selectedKeys.keys][0];
+        const item = findTreeItemByPath(treeData, selectedPath);
+        // Skip root item (empty relPath)
+        if (item && item.relPath !== "") {
+          setEditingKey(selectedPath);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedKeys.keys, editingKey, treeData]);
 
   const restoreExpandedDirectories = async (restoreKeys: Set<string>) => {
     if (!cwd || restoreKeys.size === 0) return;
@@ -368,6 +403,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
                 expandedKeys={expandedKeys.keys}
                 onToggleExpand={handleToggleExpand}
                 selectedKeys={selectedKeys.keys}
+                editingKey={editingKey}
+                onEditingKeyChange={setEditingKey}
                 onSelect={handleSelect}
                 onDelete={handleDelete}
                 onRename={handleRename}

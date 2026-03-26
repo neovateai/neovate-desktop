@@ -1,7 +1,7 @@
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronRight, ChevronDown, FilePlus, FolderPlus, Edit, Trash2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import type { FileTreeItem } from "../../../../shared/plugins/files/contract";
 
@@ -21,6 +21,8 @@ interface TreeNodeProps {
   expandedKeys: Set<string>;
   onToggleExpand: (key: string) => void;
   selectedKeys: Set<string>;
+  editingKey: string | null;
+  onEditingKeyChange: (key: string | null) => void;
   onSelect?: (item: FileTreeItem) => void;
   onDelete?: (item: FileTreeItem) => void;
   onRename?: (oldPath: string, newPath: string) => void;
@@ -50,6 +52,8 @@ export function TreeNode({
   expandedKeys,
   onToggleExpand,
   selectedKeys,
+  editingKey,
+  onEditingKeyChange,
   onSelect,
   onDelete,
   onRename,
@@ -59,12 +63,19 @@ export function TreeNode({
 }: TreeNodeProps) {
   const { t } = useFilesTranslation();
   const { fileName = "" } = item || {};
-  const [isEditing, setIsEditing] = useState(false);
+  const isEditing = editingKey === item.fullPath;
   const [editingName, setEditingName] = useState(fileName);
   const [isCreating, setIsCreating] = useState(false);
   const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
   const [creatingName, setCreatingName] = useState("");
   const [isHovered, setIsHovered] = useState(false);
+
+  // Sync editingName when editingKey changes to this item
+  useEffect(() => {
+    if (isEditing) {
+      setEditingName(fileName);
+    }
+  }, [isEditing, fileName]);
 
   const isExpanded = expandedKeys.has(item.fullPath);
   const isSelected = selectedKeys.has(item.fullPath);
@@ -123,7 +134,7 @@ export function TreeNode({
   ];
 
   const handleStartRename = () => {
-    setIsEditing(true);
+    onEditingKeyChange(item.fullPath);
     setEditingName(fileName);
   };
 
@@ -133,11 +144,11 @@ export function TreeNode({
       const newPath = parentPath + editingName;
       onRename(item.fullPath, newPath);
     }
-    setIsEditing(false);
+    onEditingKeyChange(null);
   };
 
   const handleCancelRename = () => {
-    setIsEditing(false);
+    onEditingKeyChange(null);
     setEditingName(fileName);
   };
 
@@ -212,6 +223,7 @@ export function TreeNode({
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
                 onBlur={handleFinishRename}
+                onFocus={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFinishRename();
                   if (e.key === "Escape") handleCancelRename();
@@ -290,6 +302,8 @@ export function TreeNode({
               expandedKeys={expandedKeys}
               onToggleExpand={onToggleExpand}
               selectedKeys={selectedKeys}
+              editingKey={editingKey}
+              onEditingKeyChange={onEditingKeyChange}
               onSelect={onSelect}
               onDelete={onDelete}
               onRename={onRename}
