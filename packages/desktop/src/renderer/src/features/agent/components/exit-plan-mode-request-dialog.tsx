@@ -98,7 +98,18 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
       <div className="space-y-3 px-4 py-3">
         <p className="text-sm font-medium text-foreground">{t("plan.readyToImplement")}</p>
 
-        <RadioGroup value={selected} onValueChange={setSelected} className="gap-1">
+        <RadioGroup
+          value={selected}
+          onValueChange={setSelected}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+              (
+                event as React.KeyboardEvent & { preventBaseUIHandler?: () => void }
+              ).preventBaseUIHandler?.();
+            }
+          }}
+          className="gap-1"
+        >
           {APPROVAL_OPTIONS.map((option) => (
             <Label
               key={option.value}

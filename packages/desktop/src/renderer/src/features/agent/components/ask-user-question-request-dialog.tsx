@@ -214,6 +214,13 @@ export function AskUserQuestionRequestDialog({ input, onResolve }: Props) {
               <RadioGroup
                 value={(selections[activeQuestionIndex] as string) ?? ""}
                 onValueChange={(value) => handleSingleSelect(activeQuestionIndex, value)}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                    (
+                      event as React.KeyboardEvent & { preventBaseUIHandler?: () => void }
+                    ).preventBaseUIHandler?.();
+                  }
+                }}
                 className="gap-1"
               >
                 {activeQuestion.options.map((option) => {
