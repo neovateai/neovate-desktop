@@ -1,16 +1,14 @@
 import type { BundledLanguage } from "shiki";
 
-import { AlertCircle, ExternalLink } from "lucide-react";
-import { useCallback } from "react";
+import { AlertCircle } from "lucide-react";
 
 import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { CodeBlock, CodeBlockCopyButton } from "../../../../components/ai-elements/code-block";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
-import { useRendererApp } from "../../../../core/app";
+import { OpenInEditorButton } from "./open-in-editor-button";
 
 export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
-  const app = useRendererApp();
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output, errorText } = invocation;
 
@@ -20,28 +18,11 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
   const title = filePath ? `Read ${filePath}` : undefined;
   const hasError = state === "output-error";
 
-  const handleOpenInEditor = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (filePath) app.opener.open(filePath);
-    },
-    [app, filePath],
-  );
-
   return (
     <Tool>
       <div className="flex items-center gap-1">
         <ToolHeader type="tool-Read" state={state} title={title} />
-        {filePath && (
-          <button
-            type="button"
-            className="shrink-0 p-0.5 rounded text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
-            onClick={handleOpenInEditor}
-            title="Open in editor"
-          >
-            <ExternalLink className="size-3" />
-          </button>
-        )}
+        {filePath && <OpenInEditorButton filePath={filePath} />}
       </div>
       <ToolContent>
         {hasError && errorText ? (
