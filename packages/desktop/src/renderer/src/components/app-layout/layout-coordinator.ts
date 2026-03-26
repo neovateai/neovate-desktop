@@ -130,9 +130,9 @@ export function shrinkPanelsToFit(panels: PanelMap, windowWidth: number): PanelM
       const aIsChatPanel = a.id === "chatPanel";
       const bIsChatPanel = b.id === "chatPanel";
 
-      // If comparing contentPanel vs chatPanel, contentPanel gets higher priority
-      if (aIsContentPanel && bIsChatPanel) return 1;
-      if (bIsContentPanel && aIsChatPanel) return -1;
+      // If comparing contentPanel vs chatPanel, contentPanel shrinks first (sorts before chatPanel)
+      if (aIsContentPanel && bIsChatPanel) return -1;
+      if (bIsContentPanel && aIsChatPanel) return 1;
     }
     // Default: sort by overflow.priority (higher priority shrinks first)
     return b.overflow.priority - a.overflow.priority;
@@ -389,8 +389,8 @@ export function openPanel(panels: PanelMap, id: PanelId, windowWidth: number): P
     // Calculate how much width this panel is gaining
     const widthGain = width - (panels[id].collapsed ? 0 : panels[id].width);
 
-    if (widthGain > 0 && result.contentPanel.width > 300) {
-      // Take from contentPanel, but respect its minimum (300)
+    if (widthGain > 0) {
+      // Take from contentPanel, but respect its minimum
       const contentMin = getDescriptor("contentPanel").min;
       const canTake = result.contentPanel.width - contentMin;
       const takeAmount = Math.min(widthGain, canTake);
@@ -418,11 +418,9 @@ export function collapsePanel(panels: PanelMap, id: PanelId): PanelMap {
 
     // Give the freed space back to contentPanel
     if (freedWidth > 0) {
-      return {
-        ...panels,
-        [id]: { ...panels[id], collapsed: true },
-        contentPanel: { ...panels.contentPanel, width: panels.contentPanel.width + freedWidth },
-      };
+      let result = setPanelCollapsed(panels, id, true);
+      result = setPanelWidth(result, "contentPanel", panels.contentPanel.width + freedWidth);
+      return result;
     }
   }
 

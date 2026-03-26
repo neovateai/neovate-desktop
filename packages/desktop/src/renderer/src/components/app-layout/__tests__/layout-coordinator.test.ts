@@ -11,6 +11,8 @@ import {
   setPanelWidth,
   applyDelta,
   isSeparatorVisible,
+  openPanel,
+  collapsePanel,
 } from "../layout-coordinator";
 import { getDescriptor } from "../panel-descriptors";
 
@@ -253,6 +255,89 @@ describe("computeMinWindowWidth with non-adjacent panels", () => {
     // fixed(48) + primary(250) + chat(340) + secondary(240) + 2 handles(10) = 888
     const minWidth = computeMinWindowWidth(panels);
     expect(minWidth).toBe(888);
+  });
+});
+
+describe("shrinkPanelsToFit with contentPanel expanded", () => {
+  it("shrinks contentPanel before chatPanel when contentPanel is expanded", () => {
+    const panels: PanelMap = {
+      primarySidebar: { width: 300, collapsed: false },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 500, collapsed: false },
+      secondarySidebar: { width: 300, collapsed: false },
+    };
+    // Total panel width = 1600, fixed = 48, 3 handles = 15, total = 1663
+    // Fit to 1400 → need to shrink 263
+    const result = shrinkPanelsToFit(panels, 1400);
+    // contentPanel should shrink before chatPanel
+    const contentShrink = 500 - result.contentPanel.width;
+    const chatShrink = 500 - result.chatPanel.width;
+    expect(contentShrink).toBeGreaterThan(0);
+    // contentPanel should have given more than chatPanel
+    expect(contentShrink).toBeGreaterThanOrEqual(chatShrink);
+  });
+});
+
+describe("openPanel with contentPanel absorption", () => {
+  it("absorbs width from contentPanel when opening a side panel", () => {
+    const panels: PanelMap = {
+      primarySidebar: { width: 300, collapsed: true },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 600, collapsed: false },
+      secondarySidebar: { width: 240, collapsed: true },
+    };
+    const result = openPanel(panels, "primarySidebar", 1400);
+    // primarySidebar should be expanded
+    expect(result.primarySidebar.collapsed).toBe(false);
+    // contentPanel should have shrunk to absorb the sidebar width
+    expect(result.contentPanel.width).toBeLessThan(600);
+    // chatPanel should be mostly unaffected
+    expect(result.chatPanel.width).toBe(500);
+  });
+
+  it("falls through to shrinkPanelsToFit when contentPanel is at min", () => {
+    const panels: PanelMap = {
+      primarySidebar: { width: 300, collapsed: true },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 300, collapsed: false }, // already at min
+      secondarySidebar: { width: 240, collapsed: true },
+    };
+    const result = openPanel(panels, "primarySidebar", 1200);
+    // primarySidebar should still open
+    expect(result.primarySidebar.collapsed).toBe(false);
+    // contentPanel stays at min since it can't give more
+    expect(result.contentPanel.width).toBe(300);
+  });
+});
+
+describe("collapsePanel with contentPanel absorption", () => {
+  it("gives freed width back to contentPanel when collapsing a side panel", () => {
+    const panels: PanelMap = {
+      primarySidebar: { width: 300, collapsed: false },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 400, collapsed: false },
+      secondarySidebar: { width: 240, collapsed: false },
+    };
+    const result = collapsePanel(panels, "secondarySidebar");
+    // secondarySidebar should be collapsed
+    expect(result.secondarySidebar.collapsed).toBe(true);
+    // contentPanel should have gained the freed width
+    expect(result.contentPanel.width).toBe(400 + 240);
+    // chatPanel should be unchanged
+    expect(result.chatPanel.width).toBe(500);
+  });
+
+  it("does not absorb when contentPanel is collapsed", () => {
+    const panels: PanelMap = {
+      primarySidebar: { width: 300, collapsed: false },
+      chatPanel: { width: 500, collapsed: false },
+      contentPanel: { width: 400, collapsed: true },
+      secondarySidebar: { width: 240, collapsed: false },
+    };
+    const result = collapsePanel(panels, "secondarySidebar");
+    expect(result.secondarySidebar.collapsed).toBe(true);
+    // contentPanel should NOT gain width (it's collapsed)
+    expect(result.contentPanel.width).toBe(400);
   });
 });
 
