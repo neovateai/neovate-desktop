@@ -121,9 +121,22 @@ export function shrinkPanelsToFit(panels: PanelMap, windowWidth: number): PanelM
   const excess = computeTotalWidth(panels) - windowWidth;
   if (excess <= 0) return panels;
 
-  const byPriority = expandedDescriptors(panels).sort(
-    (a, b) => b.overflow.priority - a.overflow.priority,
-  );
+  const byPriority = expandedDescriptors(panels).sort((a, b) => {
+    // When contentPanel is expanded, it should be shrunk before chatPanel
+    // to protect chat width (contentPanel acts as a buffer)
+    if (shouldContentPanelAbsorbChanges(panels)) {
+      const aIsContentPanel = a.id === "contentPanel";
+      const bIsContentPanel = b.id === "contentPanel";
+      const aIsChatPanel = a.id === "chatPanel";
+      const bIsChatPanel = b.id === "chatPanel";
+
+      // If comparing contentPanel vs chatPanel, contentPanel gets higher priority
+      if (aIsContentPanel && bIsChatPanel) return 1;
+      if (bIsContentPanel && aIsChatPanel) return -1;
+    }
+    // Default: sort by overflow.priority (higher priority shrinks first)
+    return b.overflow.priority - a.overflow.priority;
+  });
 
   let result = panels;
   let remaining = excess;
@@ -168,10 +181,68 @@ function resolveEffectivePanels(
 }
 
 /**
+ * Check if contentPanel is expanded and should absorb width changes to protect chatPanel.
+ * When contentPanel is expanded, it acts as a "buffer" between side panels and chatPanel.
+ */
+function shouldContentPanelAbsorbChanges(panels: PanelMap): boolean {
+  return !panels.contentPanel.collapsed;
+}
+
+/**
+ * Get shrink targets in priority order, with special handling for contentPanel elasticity.
+ * When contentPanel is expanded, it should be shrunk before chatPanel to protect chat width.
+ *
+ * @param panels - Current panel state
+ * @param shrinkLeftIds - Panel IDs to consider for shrinking, from left to right
+ * @param shrinkRightIds - Panel IDs to consider for shrinking, from right to left
+ */
+function getShrinkTargets(
+  panels: PanelMap,
+  shrinkLeftIds: PanelId[],
+  shrinkRightIds: PanelId[],
+): { left: PanelId[]; right: PanelId[] } {
+  const contentPanelAbsorbs = shouldContentPanelAbsorbChanges(panels);
+
+  if (!contentPanelAbsorbs) {
+    return { left: shrinkLeftIds, right: shrinkRightIds };
+  }
+
+  // When contentPanel should absorb changes, prioritize it over chatPanel
+  // For left shrink targets (shrinking towards left)
+  const leftHasContentPanel = shrinkLeftIds.includes("contentPanel");
+  const leftHasChatPanel = shrinkLeftIds.includes("chatPanel");
+
+  let leftTargets = shrinkLeftIds;
+  if (leftHasContentPanel && leftHasChatPanel) {
+    // Move contentPanel to the front so it gets shrunk first
+    const filtered = shrinkLeftIds.filter((id) => id !== "contentPanel");
+    leftTargets = ["contentPanel", ...filtered];
+  }
+
+  // For right shrink targets (shrinking towards right)
+  const rightHasContentPanel = shrinkRightIds.includes("contentPanel");
+  const rightHasChatPanel = shrinkRightIds.includes("chatPanel");
+
+  let rightTargets = shrinkRightIds;
+  if (rightHasContentPanel && rightHasChatPanel) {
+    // Move contentPanel to the front so it gets shrunk first
+    const filtered = shrinkRightIds.filter((id) => id !== "contentPanel");
+    rightTargets = ["contentPanel", ...filtered];
+  }
+
+  return { left: leftTargets, right: rightTargets };
+}
+
+/**
  * Apply a pixel delta from separator drag using bulldozer algorithm.
  * Separator `i` sits between PANEL_ORDER[i] and PANEL_ORDER[i+1].
  * Resolves effective expanded panels on each side (skipping collapsed gaps)
  * then walks panels by physical position from the separator outward.
+ *
+ * When contentPanel is expanded, it acts as a buffer to protect chatPanel width:
+ * - Dragging primarySidebar:chatPanel separator shrinks contentPanel first
+ * - Dragging chatPanel:contentPanel separator shrinks contentPanel first
+ * - Dragging contentPanel:secondarySidebar separator shrinks contentPanel first
  */
 export function applyDelta(panels: PanelMap, separatorIndex: number, delta: number): PanelMap {
   if (delta === 0) return panels;
@@ -192,11 +263,29 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     let result = panels;
     let remaining = cappedDelta;
 
-    // Shrink from the effective right panel outward
-    const rightStart = PANEL_ORDER.indexOf(leftId) + 1;
-    for (let i = rightStart; i < PANEL_ORDER.length; i++) {
-      if (remaining <= 0) break;
+    // Build shrink targets: panels to the right of leftId, in physical order
+    const leftIndex = PANEL_ORDER.indexOf(leftId);
+    const shrinkRightIds: PanelId[] = [];
+    for (let i = PANEL_ORDER.length - 1; i > leftIndex; i--) {
       const id = PANEL_ORDER[i];
+      if (!result[id].collapsed) {
+        shrinkRightIds.push(id);
+      }
+    }
+
+    // Build shrink targets: panels to the left (for symmetry, though not used in this branch)
+    const shrinkLeftIds: PanelId[] = [];
+    for (let i = leftIndex; i >= 0; i--) {
+      const id = PANEL_ORDER[i];
+      if (!result[id].collapsed) {
+        shrinkLeftIds.push(id);
+      }
+    }
+
+    const { right: shrinkTargets } = getShrinkTargets(result, shrinkLeftIds, shrinkRightIds);
+
+    for (const id of shrinkTargets) {
+      if (remaining <= 0) break;
       const panel = result[id];
       if (panel.collapsed) continue;
       const descriptor = getDescriptor(id);
@@ -204,6 +293,7 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
       result = setPanelWidth(result, id, panel.width - give);
       remaining -= give;
     }
+
     const consumed = cappedDelta - remaining;
     if (consumed > 0) {
       result = setPanelWidth(result, leftId, growPanel.width + consumed);
@@ -222,11 +312,29 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
     let result = panels;
     let remaining = cappedDelta;
 
-    // Shrink from the effective left panel outward
-    const leftStart = PANEL_ORDER.indexOf(rightId) - 1;
-    for (let i = leftStart; i >= 0; i--) {
-      if (remaining <= 0) break;
+    // Build shrink targets: panels to the left of rightId, in physical order
+    const rightIndex = PANEL_ORDER.indexOf(rightId);
+    const shrinkLeftIds: PanelId[] = [];
+    for (let i = rightIndex - 1; i >= 0; i--) {
       const id = PANEL_ORDER[i];
+      if (!result[id].collapsed) {
+        shrinkLeftIds.push(id);
+      }
+    }
+
+    // Build shrink targets: panels to the right (for symmetry, though not used in this branch)
+    const shrinkRightIds: PanelId[] = [];
+    for (let i = rightIndex; i < PANEL_ORDER.length; i++) {
+      const id = PANEL_ORDER[i];
+      if (!result[id].collapsed) {
+        shrinkRightIds.push(id);
+      }
+    }
+
+    const { left: shrinkTargets } = getShrinkTargets(result, shrinkLeftIds, shrinkRightIds);
+
+    for (const id of shrinkTargets) {
+      if (remaining <= 0) break;
       const panel = result[id];
       if (panel.collapsed) continue;
       const descriptor = getDescriptor(id);
@@ -234,6 +342,7 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
       result = setPanelWidth(result, id, panel.width - give);
       remaining -= give;
     }
+
     const consumed = cappedDelta - remaining;
     if (consumed > 0) {
       result = setPanelWidth(result, rightId, growPanel.width + consumed);
@@ -250,10 +359,16 @@ export function applyDelta(panels: PanelMap, separatorIndex: number, delta: numb
  * Expand a panel. Pipeline:
  * 1. Propose — open behavior computes target width
  * 2. Constrain — clamp within min/max/available bounds
- * 3. Fit — shrink siblings if layout overflows
+ * 3. Absorb — when contentPanel is expanded, absorb width from it to protect chatPanel
+ * 4. Fit — shrink siblings if layout overflows
+ *
+ * When contentPanel is expanded, it acts as a buffer:
+ * - Opening primarySidebar or secondarySidebar absorbs width from contentPanel
+ * - This keeps chatPanel width stable
  */
 export function openPanel(panels: PanelMap, id: PanelId, windowWidth: number): PanelMap {
   const descriptor = getDescriptor(id);
+  const contentPanelAbsorbs = shouldContentPanelAbsorbChanges(panels);
 
   // 1. Propose
   const proposed = descriptor.open(panels[id].width, { windowWidth, panels });
@@ -265,11 +380,51 @@ export function openPanel(panels: PanelMap, id: PanelId, windowWidth: number): P
     panels: expanded,
   });
 
-  // 3. Fit
-  return shrinkPanelsToFit(setPanelWidth(expanded, id, width), windowWidth);
+  // 3. Apply width change
+  let result = setPanelWidth(expanded, id, width);
+
+  // When contentPanel is expanded and we're opening a side panel,
+  // absorb the width change from contentPanel to protect chatPanel
+  if (contentPanelAbsorbs && id !== "contentPanel" && id !== "chatPanel") {
+    // Calculate how much width this panel is gaining
+    const widthGain = width - (panels[id].collapsed ? 0 : panels[id].width);
+
+    if (widthGain > 0 && result.contentPanel.width > 300) {
+      // Take from contentPanel, but respect its minimum (300)
+      const contentMin = getDescriptor("contentPanel").min;
+      const canTake = result.contentPanel.width - contentMin;
+      const takeAmount = Math.min(widthGain, canTake);
+      if (takeAmount > 0) {
+        result = setPanelWidth(result, "contentPanel", result.contentPanel.width - takeAmount);
+      }
+    }
+  }
+
+  // 4. Fit if overflow
+  return shrinkPanelsToFit(result, windowWidth);
 }
 
-/** Collapse a panel (preserves stored width for restore). */
+/**
+ * Collapse a panel (preserves stored width for restore).
+ * When contentPanel is expanded and a side panel collapses,
+ * give the freed space back to contentPanel.
+ */
 export function collapsePanel(panels: PanelMap, id: PanelId): PanelMap {
+  const contentPanelAbsorbs = shouldContentPanelAbsorbChanges(panels);
+
+  if (contentPanelAbsorbs && id !== "contentPanel" && id !== "chatPanel") {
+    // The panel is collapsing, so it frees up its width
+    const freedWidth = panels[id].width;
+
+    // Give the freed space back to contentPanel
+    if (freedWidth > 0) {
+      return {
+        ...panels,
+        [id]: { ...panels[id], collapsed: true },
+        contentPanel: { ...panels.contentPanel, width: panels.contentPanel.width + freedWidth },
+      };
+    }
+  }
+
   return setPanelCollapsed(panels, id, true);
 }

@@ -61,11 +61,11 @@ describe("resize flow integration", () => {
     const result = applyDelta(panels, 0, 1000);
     // growRoom = 600 - 300 = 300
     // shrinkable: chat(180) + content(100) + secondary(60) = 340 > 300, so cap at 300
-    // Shrink order: chat first (adjacent), then content, then secondary
-    // chat gives 180, content gives 100, secondary gives 20 (300-180-100=20)
-    expect(result.chatPanel.width).toBe(460); // at min
+    // Shrink order: contentPanel first (buffer to protect chat), then secondary, then chat
+    // content gives 100, secondary gives 60, chat gives 140 (300-100-60=140)
     expect(result.contentPanel.width).toBe(300); // at min
-    expect(result.secondarySidebar.width).toBe(280); // partially shrunk
+    expect(result.secondarySidebar.width).toBe(240); // at min
+    expect(result.chatPanel.width).toBe(500); // partially shrunk
     expect(result.primarySidebar.width).toBe(600); // at max
     // Verify conservation: total before == total after
     const before = 300 + 640 + 400 + 300;
