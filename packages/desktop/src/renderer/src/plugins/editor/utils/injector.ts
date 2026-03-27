@@ -25,6 +25,38 @@ export const INJECT_STYLES = `
   text-align: center!important;
   display: block!important;
 }
+.monaco-workbench .part.editor>.content .editor-group-container>.title>.tabs-and-actions-container {
+  background-color: var(--vscode-tab-activeBackground)!important;
+}
+/** tab container **/
+.monaco-workbench .part.editor>.content .editor-group-container>.title .tabs-container {
+  --editor-group-tab-height: 28px!important;
+  margin: 3px 0!important;
+}
+/** tab **/
+.monaco-workbench .part.editor>.content .editor-group-container>.title .tabs-container>.tab {
+  border: none !important;
+  border-radius: 5px!important;
+  margin: 0 1px!important;
+  background-color: transparent!important;
+}
+.vs-dark.monaco-workbench .part.editor>.content .editor-group-container.active>.title .tabs-container>.tab.active {
+  background-color: oklab(0.999994 0.0000455678 0.0000200868 / 0.06)!important;
+}
+.vs.monaco-workbench .part.editor>.content .editor-group-container.active>.title .tabs-container>.tab.active {
+  background-color: oklab(0 0 0 / 0.04)!important;
+}
+/** tab active border top **/
+.monaco-workbench .part.editor>.content .editor-group-container>.title .tabs-container>.tab.active.tab-border-top:not(:focus)>.tab-border-top-container, .monaco-workbench .part.editor>.content .editor-group-container>.title .tabs-container>.tab.selected.tab-border-top:not(:focus)>.tab-border-top-container {
+  height: 0!important;
+}
+/** tab close icon **/
+.monaco-workbench .part.editor>.content .editor-group-container.active>.title .tabs-container>.tab>.tab-actions .action-label.codicon {
+  font-size: 12px!important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 `.trim();
 
 async function injectScript(webview: HTMLWebViewElement): Promise<string> {

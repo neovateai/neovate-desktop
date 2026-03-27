@@ -16,6 +16,7 @@ export function useWebview(serverUrl: string | null, cb: (webview: HTMLWebViewEl
 
     return () => {
       webview.removeEventListener("dom-ready", onDomReady);
+      // webview.closeDevTools();
     };
   };
 
