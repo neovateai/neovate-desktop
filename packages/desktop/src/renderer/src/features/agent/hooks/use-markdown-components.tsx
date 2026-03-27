@@ -78,11 +78,12 @@ export function useMarkdownComponents(): Components {
   return useMemo(
     () => ({
       ...markdownBaseComponents,
-      code: createFilePathCode((path, line) => {
-        const resolved = path.startsWith("~/") ? path.replace("~", window.api.homedir) : path;
-        app.opener.open(line ? `${resolved}:${line}` : resolved);
+      code: createFilePathCode((path, line, col) => {
+        const resolved = path.startsWith("~/") ? path.replace(/^~/, window.api.homedir) : path;
+        const suffix = line != null ? (col != null ? `:${line}:${col}` : `:${line}`) : "";
+        app.opener.open(`${resolved}${suffix}`);
       }),
-      a: ({ className, children, ...props }: React.ComponentProps<"a">) => (
+      a: ({ className, children, node: _, ...props }: React.ComponentProps<"a"> & ExtraProps) => (
         <a
           className={cn(
             "text-primary transition-colors underline-offset-2 hover:underline",
