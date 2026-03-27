@@ -1,7 +1,13 @@
-import { EditorEvent } from "../../../../shared/plugins/editor/contract";
+import { EditorEvent, IEditorTab } from "../../../../../shared/plugins/editor/contract";
 
-export function handleEditorEvents(e: EditorEvent) {
+export function handleEditorEvents(
+  e: EditorEvent,
+  opts?: {
+    onTabsChange?: (tabs: IEditorTab[]) => void;
+  },
+) {
   const { type, detail } = e || {};
+  const { onTabsChange } = opts || {};
   switch (type) {
     case "link.open":
       if (detail?.url) {
@@ -23,6 +29,7 @@ export function handleEditorEvents(e: EditorEvent) {
       return;
     case "tabs.change":
       const { tabs = [] } = detail || {};
+      onTabsChange?.(tabs);
       // TODO: 暂时无实际消费方，先保留此事件派发逻辑
       window.dispatchEvent(
         new CustomEvent("neovate:editor-tabs-change", {
