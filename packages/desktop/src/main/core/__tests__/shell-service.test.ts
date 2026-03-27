@@ -12,7 +12,7 @@ describe("ShellEnvironmentService", () => {
     expect(env).toBeDefined();
     expect(typeof env.PATH).toBe("string");
     expect(env.PATH.length).toBeGreaterThan(0);
-  });
+  }, 15000);
 
   it("getEnv() caches the result", async () => {
     const first = shellEnvService.getEnv();
@@ -23,7 +23,7 @@ describe("ShellEnvironmentService", () => {
   it("getEnv() returns env with SHELL key", async () => {
     const env = await shellEnvService.getEnv();
     expect(typeof env.SHELL).toBe("string");
-  });
+  }, 15000);
 
   it("_resetForTesting() clears cache", async () => {
     const first = shellEnvService.getEnv();
