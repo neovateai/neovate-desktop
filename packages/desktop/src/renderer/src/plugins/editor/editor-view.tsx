@@ -110,7 +110,7 @@ function EditorViewCore(props: { cwd: string }) {
       window.addEventListener("neovate:open-editor", openEditorEvent);
 
       return () => {
-        window.addEventListener("neovate:open-editor", openEditorEvent);
+        window.removeEventListener("neovate:open-editor", openEditorEvent);
       };
     }
   };

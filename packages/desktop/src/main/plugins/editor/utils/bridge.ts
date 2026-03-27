@@ -71,7 +71,7 @@ export class ExtensionBridgeServer extends EventEmitter {
                 } else {
                   try {
                     if (!handler) {
-                      throw new Error(`No handler registered for operation111: ${operationType}`);
+                      throw new Error(`No handler registered for operation: ${operationType}`);
                     }
                     const result = await handler(params, cwd);
                     const response = JSON.stringify({
@@ -104,7 +104,7 @@ export class ExtensionBridgeServer extends EventEmitter {
               const jsonList = content.split("\n\n"); // 通过分隔符避免socket 消息粘包
               for (const fragment of jsonList) {
                 if (!fragment.trim()) continue;
-                onData(fragment);
+                await onData(fragment);
               }
             } catch (error) {
               console.error("Unknown request data:", {

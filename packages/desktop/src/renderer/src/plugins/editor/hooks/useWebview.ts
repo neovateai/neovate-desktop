@@ -23,7 +23,7 @@ export function useWebview(serverUrl: string | null, cb: (webview: HTMLWebViewEl
   useEffect(() => {
     if (!serverUrl) return;
 
-    init();
+    return init();
   }, [serverUrl]);
 
   return {
