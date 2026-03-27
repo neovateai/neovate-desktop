@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 import type { FileTreeItem } from "../../../../../shared/plugins/files/contract";
 
 type TreeUpdate = {
@@ -15,6 +17,10 @@ interface UseTreeUpdaterOptions {
  * Solves the issue where multiple consecutive updates cause unnecessary re-renders.
  */
 export function useTreeUpdater({ cwd, setTreeData }: UseTreeUpdaterOptions) {
+  // Use ref to keep latest cwd value accessible in setTreeData updater
+  const cwdRef = useRef(cwd);
+  cwdRef.current = cwd;
+
   /**
    * Update multiple parent paths with their children in a single render.
    * This is more efficient than calling update() multiple times.
@@ -24,10 +30,11 @@ export function useTreeUpdater({ cwd, setTreeData }: UseTreeUpdaterOptions) {
 
     setTreeData((prev) => {
       let result = prev;
+      const currentCwd = cwdRef.current;
 
       for (const { parentPath, children } of updates) {
         // If this is the root, replace top-level
-        if (parentPath === cwd) {
+        if (parentPath === currentCwd) {
           result = children;
           continue;
         }

@@ -10,7 +10,7 @@ import type { Project } from "../../../../shared/features/project/types";
 import { FileTreeItem } from "../../../../shared/plugins/files/contract";
 import { filesContract } from "../../../../shared/plugins/files/contract";
 import { getEmpty2Url } from "../../assets/images";
-import { useLayoutStore } from "../../components/app-layout/store";
+import { layoutStore, useLayoutStore } from "../../components/app-layout/store";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -30,6 +30,11 @@ import { TreeNode } from "./tree-node";
 import { convertPathListDepth } from "./utils/sort";
 
 const log = debug("neovate:files-view");
+
+// Constants for timeouts (in milliseconds)
+const DEBOUNCE_REVEAL_MS = 50; // Debounce reveal when editor tabs change
+const PANEL_VISIBLE_DELAY_MS = 100; // Delay before revealing when panel becomes visible
+const REFRESH_DEBOUNCE_MS = 500; // Debounce directory refresh on file system events
 
 interface FilesViewProps {
   project: Project | null;
@@ -65,6 +70,12 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const watchersRef = useRef<Map<string, () => void>>(new Map());
   // Debounce timers for per-directory refresh
   const refreshTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  // Debounce timer for revealFile
+  const revealTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track last revealed path to avoid duplicate work
+  const lastRevealedPathRef = useRef<string | null>(null);
+  // Pending file path to reveal when panel becomes visible
+  const pendingRevealPathRef = useRef<string | null>(null);
 
   // --- Lazy tree loading (Section 3) ---
   async function fetchChildren(dir: string) {
@@ -94,7 +105,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
             refreshTimersRef.current.delete(dir);
             const children = await fetchChildren(dir);
             updateChildrenInTree(dir, children);
-          }, 500),
+          }, REFRESH_DEBOUNCE_MS),
         );
       },
       onError: (e) => {
@@ -350,6 +361,111 @@ function FilesViewComponent({ project }: FilesViewProps) {
       }),
     );
   };
+
+  /** Reveal file in tree: expand all parent directories and select the file */
+  const revealFile = async (fullPath: string, forceReveal = false) => {
+    log("revealFile called", { fullPath, cwd });
+    if (!cwd || !fullPath.startsWith(cwd)) {
+      log("revealFile skipped: no cwd or path mismatch");
+      return;
+    }
+
+    // Only reveal if the files panel is currently visible (unless forced)
+    if (!forceReveal) {
+      const { collapsed, activeView } = layoutStore.getState().panels.secondarySidebar || {};
+      if (collapsed || activeView !== "files") {
+        // Save the path to reveal later when panel becomes visible
+        pendingRevealPathRef.current = fullPath;
+        log("revealFile deferred: files panel not active, saved pending path", { fullPath });
+        return;
+      }
+    }
+
+    // Clear pending path since we're revealing now
+    pendingRevealPathRef.current = null;
+
+    // Collect all parent directories (from root to file's direct parent)
+    const allParentDirs: string[] = [];
+    let currentPath = fullPath;
+    while (currentPath !== cwd) {
+      const parentDir = currentPath.substring(0, currentPath.lastIndexOf("/"));
+      if (parentDir && parentDir.startsWith(cwd)) {
+        allParentDirs.unshift(parentDir);
+      }
+      currentPath = parentDir;
+    }
+    log("revealFile allParentDirs", { allParentDirs });
+
+    // Find which directories need to be expanded
+    const dirsToExpand = allParentDirs.filter((dir) => !expandedKeys.has(dir));
+    log("revealFile dirsToExpand", { dirsToExpand });
+
+    // Expand directories that need it
+    if (dirsToExpand.length > 0) {
+      for (const dir of dirsToExpand) {
+        expandedKeys.add(dir);
+      }
+    }
+
+    // Always load data for all parent directories to ensure they have children
+    log("revealFile loading data for all parent dirs");
+    await restoreExpandedDirectories(new Set(allParentDirs));
+
+    // Select the file
+    selectedKeys.only(fullPath);
+    lastRevealedPathRef.current = fullPath;
+    log("revealFile completed", { fullPath });
+  };
+
+  // --- Reveal pending file when panel becomes visible ---
+  useEffect(() => {
+    if (isVisible && pendingRevealPathRef.current) {
+      const pathToReveal = pendingRevealPathRef.current;
+      log("panel became visible, revealing pending file", { pathToReveal });
+      // Use timeout to ensure panel is fully rendered
+      setTimeout(() => {
+        revealFile(pathToReveal, true);
+      }, PANEL_VISIBLE_DELAY_MS);
+    }
+  }, [isVisible]);
+
+  // --- Listen for editor tabs change to reveal active file in tree ---
+  // Use ref to store the latest revealFile function
+  const revealFileRef = useRef(revealFile);
+  revealFileRef.current = revealFile;
+
+  useEffect(() => {
+    const handleEditorTabsChange = (
+      e: CustomEvent<{
+        tabs: Array<{ isActive: boolean; fullPath: string }>;
+      }>,
+    ) => {
+      const { tabs } = e.detail || {};
+      const activeTab = tabs?.find((t) => t.isActive);
+      if (activeTab?.fullPath) {
+        // Debounce: clear previous timer and set new one
+        if (revealTimerRef.current) {
+          clearTimeout(revealTimerRef.current);
+        }
+        revealTimerRef.current = setTimeout(() => {
+          revealFileRef.current(activeTab.fullPath);
+        }, DEBOUNCE_REVEAL_MS);
+      }
+    };
+
+    log("adding editor-tabs-change listener");
+    window.addEventListener("neovate:editor-tabs-change", handleEditorTabsChange as EventListener);
+    return () => {
+      log("removing editor-tabs-change listener");
+      if (revealTimerRef.current) {
+        clearTimeout(revealTimerRef.current);
+      }
+      window.removeEventListener(
+        "neovate:editor-tabs-change",
+        handleEditorTabsChange as EventListener,
+      );
+    };
+  }, []); // Empty deps - listener only registered once
 
   if (!project) {
     return (

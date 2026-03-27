@@ -23,12 +23,12 @@ export function handleEditorEvents(e: EditorEvent) {
       return;
     case "tabs.change":
       const { tabs = [] } = detail || {};
-      // TODO: 暂时无实际消费方，先保留此事件派发逻辑
       window.dispatchEvent(
         new CustomEvent("neovate:editor-tabs-change", {
           detail: { tabs },
         }),
       );
+      return;
     default:
       return;
   }
