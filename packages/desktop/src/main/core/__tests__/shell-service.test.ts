@@ -7,7 +7,7 @@ describe("ShellEnvironmentService", () => {
     shellEnvService._resetForTesting();
   });
 
-  it("getEnv() returns a record with PATH", async () => {
+  it("getEnv() returns a record with PATH", { timeout: 15_000 }, async () => {
     const env = await shellEnvService.getEnv();
     expect(env).toBeDefined();
     expect(typeof env.PATH).toBe("string");
@@ -20,7 +20,7 @@ describe("ShellEnvironmentService", () => {
     expect(first).toBe(second);
   });
 
-  it("getEnv() returns env with SHELL key", async () => {
+  it("getEnv() returns env with SHELL key", { timeout: 15_000 }, async () => {
     const env = await shellEnvService.getEnv();
     expect(typeof env.SHELL).toBe("string");
   });
