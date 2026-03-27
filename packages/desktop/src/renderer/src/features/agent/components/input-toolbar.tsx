@@ -114,7 +114,7 @@ export function InputToolbar({
         /* Streaming: subtle stop button with animated ring */
         <button
           type="button"
-          className="relative flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10 text-foreground transition-all duration-150 hover:bg-foreground/15 active:scale-95"
+          className="relative flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-foreground/10 text-foreground transition-all duration-150 hover:bg-foreground/15 active:scale-95"
           onClick={onCancel}
         >
           <span className="absolute inset-0 rounded-full border border-foreground/20 animate-pulse" />
@@ -124,7 +124,7 @@ export function InputToolbar({
         /* Error: retry button */
         <button
           type="button"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-95"
+          className="flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-95"
           onClick={onRetry}
           title={t("chat.sessionInitRetry")}
         >
@@ -132,7 +132,7 @@ export function InputToolbar({
         </button>
       ) : sessionInitializing ? (
         /* Initializing: subtle spinner */
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/50">
+        <div className="flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted/50">
           <Spinner className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
       ) : (
@@ -141,8 +141,8 @@ export function InputToolbar({
           type="button"
           className={
             disabled
-              ? "flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground/40 cursor-not-allowed"
-              : "flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-primary/85 active:scale-95"
+              ? "flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted text-muted-foreground/40 cursor-not-allowed"
+              : "flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-primary/85 active:scale-95"
           }
           disabled={disabled}
           onClick={onSend}
@@ -205,11 +205,11 @@ function ConnectedPermissionModeSelect({
     <Menu>
       <MenuTrigger
         disabled={disabled}
-        className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
+        className="inline-flex h-7 min-w-0 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
       >
-        <Shield className="h-3 w-3" />
-        <span>{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
-        <ChevronDown className="h-3 w-3 opacity-50" />
+        <Shield className="h-3 w-3 shrink-0" />
+        <span className="min-w-0 truncate">{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
+        <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
       </MenuTrigger>
       <MenuPopup side="top" align="start" className="min-w-52">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
@@ -473,15 +473,15 @@ function ConnectedModelSelect({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="inline-flex">
+      <ContextMenuTrigger className="inline-flex min-w-0">
         <Menu open={menuOpen} onOpenChange={setMenuOpen}>
           <MenuTrigger
             disabled={disabled}
-            className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
+            className="inline-flex h-7 min-w-0 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
           >
             <ScopeBadge scope={modelScope} />
-            <span className="max-w-[200px] truncate">{buttonLabel}</span>
-            <ChevronDown className="h-3 w-3 opacity-50" />
+            <span className="min-w-0 truncate">{buttonLabel}</span>
+            <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
           </MenuTrigger>
           <MenuPopup side="top" align="start" className="max-h-80 min-w-48 overflow-y-auto">
             {/* Provider groups — only show when providers exist */}
