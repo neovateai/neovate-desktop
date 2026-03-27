@@ -16,6 +16,10 @@ export function extractText(doc: JSONContent): string {
       parts.push(node.attrs?.label ?? "");
       return;
     }
+    if (node.type === "hardBreak") {
+      parts.push("\n");
+      return;
+    }
     if (node.type === "codeBlock") {
       const code = (node.content ?? []).map((c) => c.text ?? "").join("");
       parts.push("```\n" + code + "\n```");
