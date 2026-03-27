@@ -23,6 +23,9 @@ export function useNewSession() {
       if (existing) {
         newSessionLog("createNewSession: reusing pre-warmed session %s", existing);
         setActiveSession(existing);
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent("neovate:focus-input"));
+        });
         return existing;
       }
 
@@ -51,6 +54,10 @@ export function useNewSession() {
         { commands, models, currentModel, modelScope, providerId },
         true,
       );
+
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent("neovate:focus-input"));
+      });
 
       return sessionId;
     },
