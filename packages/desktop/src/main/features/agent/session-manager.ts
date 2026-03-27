@@ -855,11 +855,14 @@ export class SessionManager {
           value.event.type === "message_start" &&
           value.parent_tool_use_id === null
         ) {
+          // Non-Anthropic providers (e.g. Wohu/Kimi) may omit usage from message_start
           const usage = value.event.message.usage;
-          lastInputTokens =
-            (usage.input_tokens ?? 0) +
-            (usage.cache_creation_input_tokens ?? 0) +
-            (usage.cache_read_input_tokens ?? 0);
+          if (usage) {
+            lastInputTokens =
+              (usage.input_tokens ?? 0) +
+              (usage.cache_creation_input_tokens ?? 0) +
+              (usage.cache_read_input_tokens ?? 0);
+          }
         }
 
         // Publish to subscribe stream (result event included — carries cost/usage/stop_reason)
