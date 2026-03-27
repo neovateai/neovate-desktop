@@ -185,7 +185,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if user is typing in an input field
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+      const tagName = target.tagName;
+      // Check for standard input elements
+      if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") {
+        return;
+      }
+      // Check for contentEditable elements
+      if (target.isContentEditable || target.closest("[contenteditable='true']")) {
+        return;
+      }
+      // Check if focus is inside a dialog, modal, or popover
+      if (target.closest("[role='dialog'], [role='alertdialog'], [data-state='open']")) {
         return;
       }
 
