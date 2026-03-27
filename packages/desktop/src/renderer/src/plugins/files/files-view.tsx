@@ -380,7 +380,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
         return;
       }
     }
-
     // Clear pending path since we're revealing now
     pendingRevealPathRef.current = null;
 
@@ -408,8 +407,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
 
     // Always load data for all parent directories to ensure they have children
+    // Include both current expanded keys and parent dirs to preserve user's expanded state
     log("revealFile loading data for all parent dirs");
-    await restoreExpandedDirectories(new Set(allParentDirs));
+    await restoreExpandedDirectories(new Set([...expandedKeys.keys, ...allParentDirs]));
 
     // Select the file
     selectedKeys.only(fullPath);
