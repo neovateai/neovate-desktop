@@ -5,6 +5,13 @@ type EditorEventWrapper<T extends string, P extends Record<string, any>> = {
   detail: P;
 };
 
+export interface IEditorTab {
+  isActive: boolean;
+  isPreview: boolean;
+  relPath: string;
+  fullPath: string;
+}
+
 type EditorContextAddEvent = EditorEventWrapper<
   "context.add",
   {
@@ -15,17 +22,7 @@ type EditorContextAddEvent = EditorEventWrapper<
 
 type EditorLinkOpenEvent = EditorEventWrapper<"link.open", { url: string }>;
 
-type EditorTabsChangeEvent = EditorEventWrapper<
-  "tabs.change",
-  {
-    tabs: Array<{
-      isActive: boolean;
-      isPreview: boolean;
-      relPath: string;
-      fullPath: string;
-    }>;
-  }
->;
+type EditorTabsChangeEvent = EditorEventWrapper<"tabs.change", { tabs: IEditorTab[] }>;
 
 export type EditorEvent = EditorContextAddEvent | EditorTabsChangeEvent | EditorLinkOpenEvent;
 

@@ -8,9 +8,11 @@ import { editorContract, EditorOpenOption } from "../../../../shared/plugins/edi
 import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { useWebview } from "./hooks/useWebview";
 import { ErrorState, LoadingState } from "./status";
 import { EditorStatus } from "./type";
-import { handleEditorEvents } from "./utils";
+import { handleEditorEvents } from "./utils/events";
+import { executeInject } from "./utils/injector";
 
 const log = debug("neovate:editor:view");
 
@@ -20,7 +22,6 @@ function EditorViewCore(props: { cwd: string }) {
   const { cwd = "" } = props;
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [status, setStatus] = useState<EditorStatus>("idle");
   const initRef = useRef(false);
   const [extReady, seExtReady] = useState(false); // vscode 扩展就绪情况
@@ -28,6 +29,10 @@ function EditorViewCore(props: { cwd: string }) {
 
   const { orpcClient } = usePluginContext();
   const client = orpcClient as EditorClient;
+
+  const { webviewRef } = useWebview(serverUrl, (instance) => {
+    executeInject(instance);
+  });
 
   useEffect(() => {
     if (!cwd) {
@@ -56,7 +61,6 @@ function EditorViewCore(props: { cwd: string }) {
 
   useEffect(() => {
     if (extReady) {
-      log("setting theme", { theme: resolvedTheme });
       client.editor.setTheme({ cwd, theme: resolvedTheme || "dark" });
     }
   }, [resolvedTheme, extReady]);
@@ -106,7 +110,7 @@ function EditorViewCore(props: { cwd: string }) {
       window.addEventListener("neovate:open-editor", openEditorEvent);
 
       return () => {
-        window.addEventListener("neovate:open-editor", openEditorEvent);
+        window.removeEventListener("neovate:open-editor", openEditorEvent);
       };
     }
   };
@@ -179,12 +183,12 @@ function EditorViewCore(props: { cwd: string }) {
     <>
       {renderHolder()}
       {!!serverUrl && (
-        <iframe
-          ref={iframeRef}
+        <webview
+          ref={webviewRef}
           src={serverUrl}
           title="Code Editor"
-          className={`flex-1 w-full h-full border-0 bg-background min-h-0 block`}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          className="relative z-0 flex-1 w-full h-full border-0 bg-background min-h-0"
+          style={{ display: "flex", width: "100%", height: "100%" }}
         />
       )}
     </>

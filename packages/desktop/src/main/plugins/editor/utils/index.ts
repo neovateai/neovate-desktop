@@ -3,7 +3,6 @@ import path from "path";
 
 import { ExtensionBridgeServer } from "./bridge";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
-import { injectStyle } from "./injector";
 import { installExtension } from "./installer";
 import { overrideCodeServerSettings } from "./settings";
 import { codeServerStarter } from "./starter";
@@ -95,8 +94,6 @@ export class CodeServerManager {
       process.env.NEOVATE_BRIDGE_PORT = String(bridgePort);
       // preset extension
       await installExtension(extDir);
-      // overwrite vscode dist style
-      injectStyle();
     } catch (e) {
       log("extension service failed", e);
     }

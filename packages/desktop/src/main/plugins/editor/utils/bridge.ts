@@ -36,66 +36,81 @@ export class ExtensionBridgeServer extends EventEmitter {
           let currentCwd: string | null = null;
           // response or events
           socket.on("data", async (raw) => {
-            try {
-              const data = JSON.parse(raw.toString());
-              log("received", data);
-              const { operationType, params, cwd, result, requestId } = data || {};
-              // handle response data from extension (with requestId of current instance)
-              if (requestId && this.pendingRequests.has(requestId)) {
-                const pending = this.pendingRequests.get(requestId);
-                if (pending) {
-                  clearTimeout(pending.timeout);
-                  this.pendingRequests.delete(requestId);
-                  pending.resolve(result as { success: boolean; data: Record<string, any> });
+            const onData = async (dataStr: string) => {
+              try {
+                const data = JSON.parse(dataStr);
+                log("received", data);
+                const { operationType, msgType, params, cwd, result, requestId } = data || {};
+                // handle response data from extension (with requestId of current instance)
+                if (requestId && this.pendingRequests.has(requestId)) {
+                  const pending = this.pendingRequests.get(requestId);
+                  if (pending) {
+                    clearTimeout(pending.timeout);
+                    this.pendingRequests.delete(requestId);
+                    pending.resolve(result as { success: boolean; data: Record<string, any> });
+                    return;
+                  }
+                }
+                if (!operationType || !cwd) {
                   return;
                 }
-              }
-              if (!operationType || !cwd) {
-                return;
-              }
-              // 首次连接或cwd变化时更新映射
-              if (currentCwd !== cwd) {
-                if (currentCwd) {
-                  this.clients.delete(currentCwd);
+                // 首次连接或cwd变化时更新映射
+                if (currentCwd !== cwd) {
+                  if (currentCwd) {
+                    this.clients.delete(currentCwd);
+                  }
+                  currentCwd = cwd;
+                  this.clients.set(cwd, socket);
                 }
-                currentCwd = cwd;
-                this.clients.set(cwd, socket);
-              }
-              // handle events/request data from extension.
-              const handler = this.handlers.get(operationType);
-              if (handler) {
-                try {
-                  const result = await handler(params, cwd);
-                  const response = JSON.stringify({
-                    ...result,
-                    requestId: data.requestId,
-                  });
-                  socket.write(Buffer.from(response));
-                } catch (error) {
-                  const response = JSON.stringify({
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                    requestId: data.requestId,
-                  });
-                  socket.write(Buffer.from(response));
+                // handle events/request data from extension.
+                const handler = this.handlers.get(operationType);
+                if (msgType === "PUSH") {
+                  if (handler) {
+                    await handler(params, cwd);
+                  }
+                } else {
+                  try {
+                    if (!handler) {
+                      throw new Error(`No handler registered for operation: ${operationType}`);
+                    }
+                    const result = await handler(params, cwd);
+                    const response = JSON.stringify({
+                      ...result,
+                      requestId: data.requestId,
+                    });
+                    socket.write(Buffer.from(response));
+                  } catch (error) {
+                    const response = JSON.stringify({
+                      success: false,
+                      error: error instanceof Error ? error.message : String(error),
+                      requestId: data.requestId,
+                    });
+                    socket.write(Buffer.from(response));
+                  }
+                  socket.write("\n\n"); // 分隔符避免粘包
                 }
-                socket.write("\n\n"); // 分隔符避免粘包
-              } else {
+              } catch (error) {
                 const response = JSON.stringify({
                   success: false,
-                  error: `No handler registered for operation: ${operationType}`,
-                  requestId: data.requestId,
+                  error: "Invalid JSON format:" + raw.toString(),
                 });
+                log("Invalid bridge data", error, raw);
                 socket.write(Buffer.from(response));
                 socket.write("\n\n");
               }
+            };
+            try {
+              const content = raw.toString();
+              const jsonList = content.split("\n\n"); // 通过分隔符避免socket 消息粘包
+              for (const fragment of jsonList) {
+                if (!fragment.trim()) continue;
+                await onData(fragment);
+              }
             } catch (error) {
-              const response = JSON.stringify({
-                success: false,
-                error: "Invalid JSON format",
+              console.error("Unknown request data:", {
+                error,
+                text: raw.toString(),
               });
-              log("Invalid bridge data", error, raw);
-              socket.write(Buffer.from(response));
             }
           });
 
