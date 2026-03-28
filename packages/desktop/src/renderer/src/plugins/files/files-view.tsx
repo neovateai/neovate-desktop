@@ -27,7 +27,7 @@ import { useOperationKeys } from "./hooks/useOperationKeys";
 import { useTreeUpdater } from "./hooks/useTreeUpdater";
 import { useFilesTranslation } from "./i18n";
 import { TreeNode } from "./tree-node";
-import { convertPathListDepth } from "./utils/sort";
+import { buildTreeNodeCache, prepareDirsToLoad } from "./utils/sort";
 
 const log = debug("neovate:files-view");
 
@@ -48,6 +48,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const client = orpcClient as FilesClient;
 
   const [treeData, setTreeData] = useState<FileTreeItem[]>([]);
+  // Keep ref to latest treeData for checking if children are already loaded
+  const treeDataRef = useRef<FileTreeItem[]>([]);
+  treeDataRef.current = treeData;
   const [loading, setLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
@@ -160,7 +163,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
       setTreeData(children);
       setLoading(false);
       // After root is loaded, restore all expanded directories
-      restoreExpandedDirectories(expandedKeys.keys);
+      // Pass children directly since treeDataRef.current hasn't been updated yet
+      restoreExpandedDirectories(expandedKeys.keys, children);
     });
     startWatcher(cwd);
 
@@ -213,12 +217,23 @@ function FilesViewComponent({ project }: FilesViewProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedKeys.keys, editingKey, treeData]);
 
-  const restoreExpandedDirectories = async (restoreKeys: Set<string>) => {
+  const restoreExpandedDirectories = async (
+    restoreKeys: Set<string>,
+    initialTree?: FileTreeItem[],
+  ) => {
     if (!cwd || restoreKeys.size === 0) return;
     log("restoring expanded directories", { count: restoreKeys.size });
 
-    // 按层级分批加载目录数据（确保父级先加载）
-    const depthList = convertPathListDepth(restoreKeys, cwd);
+    // Build cache once, then prepare dirs to load (filter + ensure parents + group by depth)
+    // Use provided initialTree or fall back to treeDataRef.current
+    const cache = buildTreeNodeCache(initialTree ?? treeDataRef.current);
+    const depthList = prepareDirsToLoad(restoreKeys, cwd, cache);
+
+    if (depthList.length === 0) {
+      log("all directories already loaded, skipping fetch");
+      return;
+    }
+
     const allUpdates: { parentPath: string; children: FileTreeItem[] }[] = [];
     const dirsToWatch: string[] = [];
 
@@ -416,10 +431,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
       }
     }
 
-    // Always load data for all parent directories to ensure they have children
-    // Include both current expanded keys and parent dirs to preserve user's expanded state
-    log("revealFile loading data for all parent dirs");
-    await restoreExpandedDirectories(new Set([...expandedKeys.keys, ...allParentDirs]));
+    // Load all parent directories to ensure they have children
+    await restoreExpandedDirectories(dirsToExpand);
 
     // Select the file
     selectedKeys.only(fullPath);

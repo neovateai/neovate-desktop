@@ -45,7 +45,7 @@ export function useTreeUpdater({ cwd, setTreeData }: UseTreeUpdaterOptions) {
             if (node.fullPath === parentPath) {
               return { ...node, children };
             }
-            if (node.children && node.children.length > 0) {
+            if (node.children != null) {
               return { ...node, children: updateNode(node.children) };
             }
             return node;
