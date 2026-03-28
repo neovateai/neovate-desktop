@@ -870,12 +870,7 @@ export function toUIEvent(msg: SDKMessage): ClaudeCodeUIEvent | null {
       return { kind: "event", event: { id: (msg as any).uuid ?? crypto.randomUUID(), ...msg } };
     }
     case "system": {
-      if (
-        msg.subtype === "init" ||
-        msg.subtype === "compact_boundary" ||
-        msg.subtype === "session_state_changed"
-      )
-        return null;
+      if (msg.subtype === "init" || msg.subtype === "compact_boundary") return null;
       return { kind: "event", event: { id: (msg as any).uuid ?? crypto.randomUUID(), ...msg } };
     }
     default:
