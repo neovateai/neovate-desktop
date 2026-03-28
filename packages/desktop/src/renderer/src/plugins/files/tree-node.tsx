@@ -106,16 +106,20 @@ export function TreeNode({
   };
 
   const menuItems = [
-    {
-      label: t("contextMenu.newFile"),
-      icon: <FilePlus size={16} />,
-      action: () => handleCreateFile(),
-    },
-    {
-      label: t("contextMenu.newFolder"),
-      icon: <FolderPlus size={16} />,
-      action: () => handleCreateFolder(),
-    },
+    ...(item.isFolder
+      ? [
+          {
+            label: t("contextMenu.newFile"),
+            icon: <FilePlus size={16} />,
+            action: () => handleCreateFile(),
+          },
+          {
+            label: t("contextMenu.newFolder"),
+            icon: <FolderPlus size={16} />,
+            action: () => handleCreateFolder(),
+          },
+        ]
+      : []),
     ...(item.relPath !== ""
       ? [
           {
@@ -158,6 +162,13 @@ export function TreeNode({
     }
   };
 
+  const getParentPath = () => {
+    // If item is a folder, create inside it; if file, create in same directory
+    return item.isFolder
+      ? item.fullPath
+      : item.fullPath.substring(0, item.fullPath.lastIndexOf("/"));
+  };
+
   const handleCreateFile = () => {
     setIsCreating(true);
     setCreatingType("file");
@@ -172,10 +183,11 @@ export function TreeNode({
 
   const handleFinishCreate = () => {
     if (creatingName) {
+      const parentPath = getParentPath();
       if (creatingType === "file" && onCreateFile) {
-        onCreateFile(item.fullPath, creatingName);
+        onCreateFile(parentPath, creatingName);
       } else if (creatingType === "folder" && onCreateFolder) {
-        onCreateFolder(item.fullPath, creatingName);
+        onCreateFolder(parentPath, creatingName);
       }
     }
     setIsCreating(false);
