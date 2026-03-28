@@ -29,11 +29,7 @@ export const filesContract = {
   rename: oc
     .input(type<{ oldPath: string; newPath: string }>())
     .output(type<{ success: boolean; error?: string }>()),
-  createFolder: oc
-    .input(type<{ path: string }>())
-    .output(type<{ success: boolean; error?: string }>()),
-  createFile: oc
-    .input(type<{ path: string }>())
-    .output(type<{ success: boolean; error?: string }>()),
+  createFolder: oc.input(type<{ path: string }>()).output(type<FileSystemOperation>()),
+  createFile: oc.input(type<{ path: string }>()).output(type<FileSystemOperation>()),
   watch: oc.input(type<{ cwd: string }>()).output(eventIterator(type<FileWatchEvent>())),
 };

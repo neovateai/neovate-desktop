@@ -1,12 +1,11 @@
-import type { TFunction } from "react-i18next";
+import type { FileErrorCode } from "../../../../../shared/plugins/files/contract";
 
-import type { FileErrorCode } from "../../../../shared/plugins/files/contract";
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getCreateErrorMessage(
   errorCode: FileErrorCode | undefined,
   defaultMessage: string,
   type: "file" | "folder",
-  t: TFunction,
+  t: (...args: any[]) => string,
 ) {
   if (errorCode === "already_exists") {
     return t(`error.${type}AlreadyExists`);
