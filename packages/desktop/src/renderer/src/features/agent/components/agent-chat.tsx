@@ -177,6 +177,8 @@ export function AgentChat() {
     createNewSession(activeProjectPath)
       .then((sessionId) => {
         chatLog("effect[auto-create]: session created sessionId=%s", sessionId);
+        // Eagerly pre-warm a background session so the first "New Chat" is instant
+        claudeCodeChatManager.preWarmForProject(activeProjectPath);
       })
       .catch((error) => {
         chatLog(
@@ -204,6 +206,12 @@ export function AgentChat() {
       files: files.length > 0 ? files : undefined,
       metadata: { sessionId: activeSessionId, parentToolUseId: null },
     });
+
+    // This handleSend is only reachable from the welcome panel (isNew state).
+    // Pre-warm a replacement session in the background for the next "New Chat".
+    if (activeProjectPath) {
+      claudeCodeChatManager.preWarmForProject(activeProjectPath);
+    }
   };
 
   const sessionInitializing = !!activeProjectPath && !activeSessionId;

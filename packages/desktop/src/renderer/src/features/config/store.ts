@@ -45,6 +45,7 @@ const DEFAULT_CONFIG: AppConfig = {
   tokenOptimization: true,
   networkInspector: false,
   keepAwake: false,
+  preWarmSessions: true,
 
   // Keybindings
   keybindings: {},
