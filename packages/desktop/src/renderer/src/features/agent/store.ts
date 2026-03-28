@@ -246,7 +246,14 @@ export const useAgentStore = create<AgentState>()(
       );
       set((state) => {
         const session = state.sessions.get(sessionId);
-        if (session) session.availableCommands = commands;
+        if (session) {
+          const seen = new Set<string>();
+          session.availableCommands = commands.filter((c) => {
+            if (seen.has(c.name)) return false;
+            seen.add(c.name);
+            return true;
+          });
+        }
       });
     },
 
