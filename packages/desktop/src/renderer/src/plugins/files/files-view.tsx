@@ -432,7 +432,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
 
     // Load all parent directories to ensure they have children
-    await restoreExpandedDirectories(dirsToExpand);
+    await restoreExpandedDirectories(new Set(dirsToExpand));
 
     // Select the file
     selectedKeys.only(fullPath);
