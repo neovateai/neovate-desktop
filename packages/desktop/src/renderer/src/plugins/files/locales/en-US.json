@@ -13,6 +13,9 @@
   "delete.description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
   "error.deleteFailed": "Delete failed: {{error}}",
   "error.renameFailed": "Rename failed: {{error}}",
-  "error.createFileFailed": "Failed to create file",
-  "error.createFolderFailed": "Failed to create folder"
+  "error.createFileFailed": "Failed to create file: {{error}}",
+  "error.createFolderFailed": "Failed to create folder: {{error}}",
+  "error.fileAlreadyExists": "File already exists",
+  "error.folderAlreadyExists": "Folder already exists",
+  "error.pathRequired": "Path is required"
 }

@@ -27,6 +27,7 @@ import { useOperationKeys } from "./hooks/useOperationKeys";
 import { useTreeUpdater } from "./hooks/useTreeUpdater";
 import { useFilesTranslation } from "./i18n";
 import { TreeNode } from "./tree-node";
+import { getCreateErrorMessage } from "./utils/error";
 import { convertPathListDepth } from "./utils/sort";
 
 const log = debug("neovate:files-view");
@@ -342,24 +343,42 @@ function FilesViewComponent({ project }: FilesViewProps) {
       alert(t("error.renameFailed", { error: String(error) }));
     }
   };
-  // TODO: not yet implemented
+
   const handleCreateFile = async (parentPath: string, name: string) => {
+    const fullPath = `${parentPath}/${name}`;
+    log("create file", { parentPath, name, fullPath });
     try {
-      alert("Coming soon");
-      log("create file", { parentPath, name });
+      const result = await client.files.createFile({ path: fullPath });
+      if (result.success) {
+        selectedKeys.only(fullPath);
+        // Watcher will automatically sync the file system changes
+      } else {
+        alert(getCreateErrorMessage(result.errorCode, result.error || "", "file", t));
+      }
     } catch (error) {
       console.error("Error creating file:", error);
-      alert(t("error.createFileFailed"));
+      alert(t("error.createFileFailed", { error: String(error) }));
     }
   };
-  // TODO: not yet implemented
+
   const handleCreateFolder = async (parentPath: string, name: string) => {
+    const fullPath = `${parentPath}/${name}`;
+    log("create folder", { parentPath, name, fullPath });
     try {
-      alert("Coming soon");
-      log("create folder", { parentPath, name });
+      const result = await client.files.createFolder({ path: fullPath });
+      if (result.success) {
+        selectedKeys.only(fullPath);
+        // Expand parent folder to show the new folder
+        if (!expandedKeys.has(parentPath)) {
+          expandedKeys.add(parentPath);
+        }
+        // Watcher will automatically sync the file system changes
+      } else {
+        alert(getCreateErrorMessage(result.errorCode, result.error || "", "folder", t));
+      }
     } catch (error) {
       console.error("Error creating folder:", error);
-      alert(t("error.createFolderFailed"));
+      alert(t("error.createFolderFailed", { error: String(error) }));
     }
   };
   /** Add file to conversation */

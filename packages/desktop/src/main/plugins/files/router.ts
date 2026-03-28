@@ -84,6 +84,55 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
         };
       }
     }),
+    createFolder: orpcServer.handler(async ({ input }) => {
+      const data = input as { path: string };
+      log("createFolder requested", { path: data?.path });
+      try {
+        const { path: folderPath } = data || {};
+        if (!folderPath) {
+          return { success: false, error: "Path is required", errorCode: "path_required" };
+        }
+        if (fs.existsSync(folderPath)) {
+          return { success: false, error: "Folder already exists", errorCode: "already_exists" };
+        }
+        fs.mkdirSync(folderPath, { recursive: true });
+        log("folder created", { path: folderPath });
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+          errorCode: "unknown",
+        };
+      }
+    }),
+    createFile: orpcServer.handler(async ({ input }) => {
+      const data = input as { path: string };
+      log("createFile requested", { path: data?.path });
+      try {
+        const { path: filePath } = data || {};
+        if (!filePath) {
+          return { success: false, error: "Path is required", errorCode: "path_required" };
+        }
+        if (fs.existsSync(filePath)) {
+          return { success: false, error: "File already exists", errorCode: "already_exists" };
+        }
+        // Ensure parent directory exists
+        const parentDir = path.dirname(filePath);
+        if (!fs.existsSync(parentDir)) {
+          fs.mkdirSync(parentDir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, "");
+        log("file created", { path: filePath });
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+          errorCode: "unknown",
+        };
+      }
+    }),
     watch: orpcServer.handler(async function* ({ input, signal }) {
       const { cwd } = input as { cwd: string };
       log("watch requested", { cwd });

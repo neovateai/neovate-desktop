@@ -8,9 +8,13 @@ export interface FileTreeItem {
   children: FileTreeItem[];
 }
 
+export const fileErrorCodes = ["already_exists", "path_required", "not_found", "unknown"] as const;
+export type FileErrorCode = (typeof fileErrorCodes)[number];
+
 export interface FileSystemOperation {
   success: boolean;
   error?: string;
+  errorCode?: FileErrorCode;
 }
 
 export interface FileWatchEvent {
@@ -24,6 +28,12 @@ export const filesContract = {
   delete: oc.input(type<{ path: string }>()).output(type<{ success: boolean; error?: string }>()),
   rename: oc
     .input(type<{ oldPath: string; newPath: string }>())
+    .output(type<{ success: boolean; error?: string }>()),
+  createFolder: oc
+    .input(type<{ path: string }>())
+    .output(type<{ success: boolean; error?: string }>()),
+  createFile: oc
+    .input(type<{ path: string }>())
     .output(type<{ success: boolean; error?: string }>()),
   watch: oc.input(type<{ cwd: string }>()).output(eventIterator(type<FileWatchEvent>())),
 };
