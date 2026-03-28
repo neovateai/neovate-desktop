@@ -46,6 +46,15 @@ export interface ContentPanelView {
   singleton?: boolean; // default true; per-project scope
   persist?: boolean; // default true; whether the tab is persisted to storage
   deactivation?: "hidden" | "offscreen" | "activity" | "unmount"; // default "hidden"
+  /**
+   * Whether this view is user-discoverable via the new-tab menu.
+   *
+   * Set to `false` for views that are opened programmatically (e.g. by a
+   * plugin action) and should not be surfaced to the user as a manual option.
+   *
+   * @default true
+   */
+  discoverable?: boolean;
   component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }
 
