@@ -215,6 +215,16 @@ export const ChatPanel = () => {
           </SettingsRow>
 
           <SettingsRow
+            title={t("settings.chat.preWarmSessions")}
+            description={t("settings.chat.preWarmSessions.description")}
+          >
+            <Switch
+              checked={config.preWarmSessions}
+              onCheckedChange={(v) => setConfig("preWarmSessions", v)}
+            />
+          </SettingsRow>
+
+          <SettingsRow
             title={t("settings.chat.sendMessage")}
             description={t("settings.chat.sendMessage.description")}
           >

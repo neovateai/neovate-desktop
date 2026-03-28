@@ -32,6 +32,7 @@ export type AppConfig = {
   tokenOptimization: boolean;
   networkInspector: boolean;
   keepAwake: boolean;
+  preWarmSessions: boolean;
 
   // Keybindings
   keybindings: Record<string, string>;

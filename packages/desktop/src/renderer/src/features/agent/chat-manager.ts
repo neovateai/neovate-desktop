@@ -4,10 +4,11 @@ import debug from "debug";
 
 import { agentContract } from "../../../../shared/features/agent/contract";
 import { client } from "../../orpc";
+import { useConfigStore } from "../config/store";
 import { ClaudeCodeChat } from "./chat";
 import { ClaudeCodeChatTransport } from "./chat-transport";
 import { scrollPositions } from "./scroll-positions";
-import { registerSessionInStore } from "./session-utils";
+import { findPreWarmedSession, registerSessionInStore } from "./session-utils";
 import { useAgentStore } from "./store";
 
 const log = debug("neovate:chat-manager");
@@ -110,6 +111,41 @@ export class ClaudeCodeChatManager {
       const result = await this.createSession(cwd);
       registerSessionInStore(result.sessionId, cwd, result, true);
     }
+
+    // Re-pre-warm after invalidation so the next "New Chat" is instant
+    if (cwd) {
+      this.preWarmForProject(cwd);
+    }
+  }
+
+  /** Pre-warm a background session for the given project if config allows. */
+  preWarmForProject(cwd: string): void {
+    if (!useConfigStore.getState().preWarmSessions) return;
+
+    // Check for an existing background pre-warmed session (exclude the active one)
+    const existing = findPreWarmedSession(cwd);
+    if (existing && existing !== useAgentStore.getState().activeSessionId) {
+      log("preWarmForProject: already have a background pre-warmed session, skipping");
+      return;
+    }
+
+    log("preWarmForProject: creating background session cwd=%s", cwd);
+    this.createSession(cwd)
+      .then(({ sessionId, commands, models, currentModel, modelScope, providerId }) => {
+        log("preWarmForProject: created %s currentModel=%s", sessionId, currentModel);
+        registerSessionInStore(
+          sessionId,
+          cwd,
+          { commands, models, currentModel, modelScope, providerId },
+          false,
+        );
+      })
+      .catch((error) => {
+        log(
+          "preWarmForProject: FAILED error=%s",
+          error instanceof Error ? error.message : String(error),
+        );
+      });
   }
 
   async #handleContextClear(
