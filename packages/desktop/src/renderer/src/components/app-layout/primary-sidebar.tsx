@@ -27,7 +27,7 @@ export function AppLayoutPrimarySidebar({ children }: { children: ReactNode }) {
         <div className="flex h-full flex-col" style={{ width }}>
           {/* Fixed spacer so the scrollable area (content + scrollbar track) starts below the top rounded corner */}
           <div className="shrink-0 h-7" />
-          <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </div>
       </AppLayoutPanelActivity>
     </motion.aside>
