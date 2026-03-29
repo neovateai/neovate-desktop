@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 import { cn } from "../../../lib/utils";
 import { useQueryStatus } from "../hooks/use-query-status";
 
@@ -207,9 +209,17 @@ function formatThinkingDuration(ms: number): string {
 
 export function QueryStatus({ sessionId }: { sessionId: string }) {
   const status = useQueryStatus(sessionId);
+  const hasBeenActiveRef = useRef(false);
 
-  if (status.phase === "idle") return null;
+  if (status.phase !== "idle") {
+    hasBeenActiveRef.current = true;
+  }
 
+  // Before first activation, render nothing — the first appearance happens
+  // when the user sends a message, so that layout shift is expected.
+  if (!hasBeenActiveRef.current) return null;
+
+  const isIdle = status.phase === "idle";
   const isCompleting = status.phase === "completing";
 
   // Build the detail parts inside parentheses
@@ -225,7 +235,7 @@ export function QueryStatus({ sessionId }: { sessionId: string }) {
     <div
       className={cn(
         "flex items-center gap-1.5 px-3 py-1 text-xs transition-opacity duration-300",
-        isCompleting ? "opacity-0" : "opacity-100",
+        isIdle ? "invisible" : isCompleting ? "opacity-0" : "opacity-100",
       )}
     >
       <span
