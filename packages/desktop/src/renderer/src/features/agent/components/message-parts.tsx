@@ -117,7 +117,9 @@ function AssistantMessageParts({
           />
           <span>{triggerLabel}</span>
         </CollapsibleTrigger>
-        <CollapsibleContent className={cn(collapseMode === "prepare" ? "mt-0" : "mt-2")}>
+        <CollapsibleContent
+          className={cn(collapseMode === "prepare" ? "mt-0" : "mt-2", "text-muted-foreground/60")}
+        >
           <MessagePartRenderer
             message={collapsibleMessage}
             renderToolPart={renderToolPart}
