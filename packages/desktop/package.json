@@ -21,8 +21,8 @@
     "build:unpack": "bun run build && electron-builder --dir --config configs/electron-builder.mjs",
     "build:mac": "bun run build && electron-builder --mac --config configs/electron-builder.mjs",
     "build:mac:dev": "bun run build && BUILD_ENV=dev electron-builder --mac --config configs/electron-builder.mjs",
-    "test": "vitest",
-    "test:run": "vitest run",
+    "test": "vp test",
+    "test:run": "vp test run",
     "test:e2e": "bun run build && playwright test"
   },
   "dependencies": {
