@@ -393,16 +393,6 @@
     font-size: 0.8125rem;
     padding: 0;
   }
-
-  .attachment-thumb {
-    position: relative;
-    border-radius: 0.375rem;
-    overflow: visible;
-  }
-
-  .attachment-thumb img {
-    border: 1px solid var(--border);
-  }
 }
 @layer utilities {
   .glass-card {

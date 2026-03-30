@@ -443,10 +443,10 @@ export function MessageInput({
             </motion.div>
           )}
         </AnimatePresence>
+        <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
         <div data-has-suggestion={promptSuggestion ? "" : undefined}>
           <EditorContent editor={editor} />
         </div>
-        <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
         <InputToolbar
           streaming={streaming}
           disabled={disabled}
