@@ -54,8 +54,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
-  const expandedKeys = useOperationKeys();
+  const expandedKeys = useOperationKeys(); // dirs expanded or ever expanded
   const selectedKeys = useOperationKeys();
+  const loadedKeys = useOperationKeys(); // dirs loaded with data and file-watcher
   const cwd = project?.path || "";
   const { update: updateChildrenInTree, batchUpdate } = useTreeUpdater({
     cwd,
@@ -114,6 +115,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       },
     });
     watchersRef.current.set(dir, cancel);
+    loadedKeys.add(dir);
   }
 
   function stopWatcher(dir: string) {
@@ -122,6 +124,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       log("stopping watcher", { dir });
       cancel();
       watchersRef.current.delete(dir);
+      loadedKeys.remove(dir);
     }
     const timer = refreshTimersRef.current.get(dir);
     if (timer) {
@@ -136,6 +139,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       cancel();
     }
     watchersRef.current.clear();
+    loadedKeys.reset();
     for (const timer of refreshTimersRef.current.values()) {
       clearTimeout(timer);
     }
@@ -214,6 +218,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedKeys.keys, editingKey, treeData]);
 
+  /**
+   * 传入一组目录路径，该函数将分批加载路径对应的数据并启动监听，必须确保路径依赖的完备性
+   */
   const restoreExpandedDirectories = async (restoreKeys: Set<string>) => {
     if (!cwd || restoreKeys.size === 0) return;
     log("restoring expanded directories", { count: restoreKeys.size });
@@ -256,9 +263,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
   };
 
-  const getChildrenKeys = (parentPath: string, expandedSet: Set<string>) => {
+  const getChildrenKeys = (parentPath: string, allKeys: Set<string>) => {
     const descendants: string[] = [];
-    for (const key of expandedSet) {
+    for (const key of allKeys) {
       if (key.startsWith(parentPath + "/")) {
         descendants.push(key);
       }
@@ -272,7 +279,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
     if (isCurrentlyExpanded) {
       // 关闭目录，清理下属的文件监听器。（展开状态仅修正当前节点）
       expandedKeys.remove(key);
-      const subKeys = getChildrenKeys(key, expandedKeys.keys);
+      const subKeys = getChildrenKeys(key, loadedKeys.keys);
       const keysToUnwatch = [key, ...subKeys];
       for (const k of keysToUnwatch) {
         stopWatcher(k);
@@ -395,17 +402,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const revealFile = async (fullPath: string, forceReveal = false) => {
     log("revealFile called", { fullPath, cwd });
     if (!cwd || !fullPath.startsWith(cwd)) {
-      log("revealFile skipped: no cwd or path mismatch");
       return;
     }
-
     // Only reveal if the files panel is currently visible (unless forced)
     if (!forceReveal) {
       const { collapsed, activeView } = layoutStore.getState().panels.secondarySidebar || {};
       if (collapsed || activeView !== "files") {
         // Save the path to reveal later when panel becomes visible
         pendingRevealPathRef.current = fullPath;
-        log("revealFile deferred: files panel not active, saved pending path", { fullPath });
+        log("revealFile deferred: files panel not active, saved pending path", {
+          fullPath,
+        });
         return;
       }
     }
@@ -416,34 +423,64 @@ function FilesViewComponent({ project }: FilesViewProps) {
     const allParentDirs: string[] = [];
     let currentPath = fullPath;
     while (currentPath !== cwd) {
-      const parentDir = currentPath.substring(0, currentPath.lastIndexOf("/"));
-      if (parentDir && parentDir.startsWith(cwd)) {
-        allParentDirs.unshift(parentDir);
-      }
+      const lastSlash = currentPath.lastIndexOf("/");
+      if (lastSlash === -1) break;
+      const parentDir = currentPath.substring(0, lastSlash);
+      if (!parentDir || !parentDir.startsWith(cwd)) break;
+      allParentDirs.unshift(parentDir);
       currentPath = parentDir;
     }
-    log("revealFile allParentDirs", { allParentDirs });
+    // Find which directories need to be loaded
+    const dirsToLoad = allParentDirs.filter((dir) => !loadedKeys.has(dir));
 
-    // Find which directories need to be expanded
-    const dirsToExpand = allParentDirs.filter((dir) => !expandedKeys.has(dir));
-    log("revealFile dirsToExpand", { dirsToExpand });
+    // 已经加载的路径，需要考虑其下级的加载情况，还原历史上已经被打开加载过的旁支节点
+    const ancestorDirsToRefresh = allParentDirs.filter((dir) => loadedKeys.has(dir));
+
+    // Find all expanded but not loaded descendants under these ancestors
+    // When ancestors are refreshed, these descendants' data would be lost
+    const siblingDirsToRestore: string[] = [];
+    for (const ancestorDir of ancestorDirsToRefresh) {
+      for (const expandedKey of expandedKeys.keys) {
+        if (
+          expandedKey.startsWith(ancestorDir + "/") &&
+          !loadedKeys.has(expandedKey) &&
+          !dirsToLoad.includes(expandedKey)
+        ) {
+          siblingDirsToRestore.push(expandedKey);
+        }
+      }
+    }
+
+    // Combine all directories that need data restoration
+    const dirsToRestore = new Set([...dirsToLoad, ...siblingDirsToRestore]);
+
+    console.log("revealFile dirsToExpand", {
+      allParentDirs,
+      dirsToLoad,
+      ancestorDirsToRefresh,
+      siblingDirsToRestore,
+      dirsToRestore,
+    });
 
     // Expand directories that need it
-    if (dirsToExpand.length > 0) {
-      for (const dir of dirsToExpand) {
+    if (dirsToLoad.length > 0) {
+      for (const dir of dirsToLoad) {
         expandedKeys.add(dir);
       }
     }
+    await restoreExpandedDirectories(dirsToRestore);
 
-    // Always load data for all parent directories to ensure they have children
-    // Include both current expanded keys and parent dirs to preserve user's expanded state
-    log("revealFile loading data for all parent dirs");
-    await restoreExpandedDirectories(new Set([...expandedKeys.keys, ...allParentDirs]));
-
-    // Select the file
-    selectedKeys.only(fullPath);
     lastRevealedPathRef.current = fullPath;
-    log("revealFile completed", { fullPath });
+    if (!selectedKeys.has(fullPath)) {
+      selectedKeys.only(fullPath);
+      // Scroll the selected node into view
+      requestAnimationFrame(() => {
+        const node = document.querySelector(`[data-full-path="${fullPath}"]`);
+        if (node) {
+          node.scrollIntoView({ block: "center" });
+        }
+      });
+    }
   };
 
   // --- Reveal pending file when panel becomes visible ---

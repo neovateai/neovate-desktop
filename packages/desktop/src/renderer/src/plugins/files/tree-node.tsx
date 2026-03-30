@@ -216,6 +216,7 @@ export function TreeNode({
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            data-full-path={item.fullPath}
           >
             {item.isFolder ? (
               <div className="w-3 h-5 flex items-center justify-center">
