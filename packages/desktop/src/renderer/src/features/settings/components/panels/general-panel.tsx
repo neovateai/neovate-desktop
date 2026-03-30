@@ -13,6 +13,7 @@ import { Switch } from "../../../../components/ui/switch";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
 import { useRendererApp } from "../../../../core";
 import { localeOptions, type Locales } from "../../../../core/i18n";
+import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
 import { useConfigStore } from "../../../config/store";
 import { SettingsGroup } from "../settings-group";
@@ -72,9 +73,20 @@ export const GeneralPanel = () => {
   const [localTerminalFont, setLocalTerminalFont] = useState(terminalFont);
   const terminalFontTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Debounced npm registry input with validation
+  const npmRegistry = useConfigStore((s) => s.npmRegistry);
+  const [localNpmRegistry, setLocalNpmRegistry] = useState(npmRegistry);
+  const [npmRegistryError, setNpmRegistryError] = useState(false);
+  const npmRegistryTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
   useEffect(() => {
     setLocalTerminalFont(terminalFont);
   }, [terminalFont]);
+
+  useEffect(() => {
+    setLocalNpmRegistry(npmRegistry);
+    setNpmRegistryError(false);
+  }, [npmRegistry]);
 
   useEffect(() => {
     if (localTerminalFont === terminalFont) return;
@@ -85,6 +97,31 @@ export const GeneralPanel = () => {
       if (terminalFontTimerRef.current) clearTimeout(terminalFontTimerRef.current);
     };
   }, [localTerminalFont]);
+
+  useEffect(() => {
+    if (localNpmRegistry === npmRegistry) {
+      setNpmRegistryError(false);
+      return;
+    }
+    npmRegistryTimerRef.current = setTimeout(() => {
+      const trimmed = localNpmRegistry.replace(/\/+$/, "");
+      if (trimmed === "") {
+        setNpmRegistryError(false);
+        setConfig("npmRegistry", "");
+        return;
+      }
+      try {
+        new URL(trimmed);
+        setNpmRegistryError(false);
+        setConfig("npmRegistry", trimmed);
+      } catch {
+        setNpmRegistryError(true);
+      }
+    }, 500);
+    return () => {
+      if (npmRegistryTimerRef.current) clearTimeout(npmRegistryTimerRef.current);
+    };
+  }, [localNpmRegistry]);
 
   const handleRunOnStartupChange = async (enabled: boolean) => {
     setConfig("runOnStartup", enabled);
@@ -220,6 +257,30 @@ export const GeneralPanel = () => {
             <Switch
               checked={developerMode}
               onCheckedChange={(v) => setConfig("developerMode", v)}
+            />
+          </SettingsRow>
+        </SettingsGroup>
+
+        {/* Skills */}
+        <SettingsGroup title={t("settings.general.group.skills")}>
+          <SettingsRow
+            title={t("settings.general.npmRegistry")}
+            description={
+              npmRegistryError ? (
+                <span className="text-destructive">
+                  {t("settings.general.npmRegistry.invalidUrl")}
+                </span>
+              ) : (
+                t("settings.general.npmRegistry.description")
+              )
+            }
+          >
+            <Input
+              type="text"
+              value={localNpmRegistry}
+              onChange={(e) => setLocalNpmRegistry(e.target.value)}
+              placeholder="https://registry.npmmirror.com"
+              className={cn("w-64", npmRegistryError && "border-destructive")}
             />
           </SettingsRow>
         </SettingsGroup>

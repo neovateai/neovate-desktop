@@ -1,5 +1,5 @@
 import debug from "debug";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../../../../shared/features/project/types";
@@ -27,6 +27,7 @@ import {
 import { Spinner } from "../../../../components/ui/spinner";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
+import { useConfigStore } from "../../../config/store";
 
 const log = debug("neovate:settings:skills");
 
@@ -53,6 +54,12 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
   const [phase, setPhase] = useState<AddPhase>({ step: "input" });
   const [sourceInput, setSourceInput] = useState("");
   const [installScope, setInstallScope] = useState<string>("global");
+  const npmRegistry = useConfigStore((s) => s.npmRegistry);
+
+  const isNpmSource = useMemo(() => {
+    const trimmed = sourceInput.trim();
+    return trimmed.startsWith("npm:") || (trimmed.startsWith("@") && trimmed.includes("/"));
+  }, [sourceInput]);
 
   const handleFetch = async () => {
     const source = sourceInput.trim();
@@ -163,6 +170,13 @@ export const SkillAddModal = ({ projects, onClose, onRefresh }: SkillAddModalPro
                   </code>
                 </div>
               </div>
+              {isNpmSource && (
+                <p className="text-xs text-muted-foreground">
+                  {npmRegistry
+                    ? t("settings.skills.npmRegistryActive", { registry: npmRegistry })
+                    : t("settings.skills.npmRegistryHint")}
+                </p>
+              )}
               {phase.error && <p className="text-sm text-destructive">{phase.error}</p>}
             </div>
           )}

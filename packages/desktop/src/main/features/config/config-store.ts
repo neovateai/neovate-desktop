@@ -45,6 +45,7 @@ const DEFAULT_APP_CONFIG: AppConfig = {
 
   // Skills
   skillsRegistryUrls: [],
+  npmRegistry: "",
 };
 
 const STORE_DEFAULTS: ConfigStoreSchema = {

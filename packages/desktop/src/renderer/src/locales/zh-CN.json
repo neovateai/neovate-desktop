@@ -54,6 +54,10 @@
   "settings.general.group.appearance": "外观",
   "settings.general.group.terminal": "终端",
   "settings.general.group.advanced": "高级",
+  "settings.general.group.skills": "技能",
+  "settings.general.npmRegistry": "NPM 镜像源",
+  "settings.general.npmRegistry.description": "安装 npm 技能时使用的默认 npm 镜像源地址（例如 https://registry.npmmirror.com）",
+  "settings.general.npmRegistry.invalidUrl": "无效的 URL，请输入有效的镜像源地址或留空使用默认源。",
 
   "settings.chat": "聊天",
   "settings.chat.model": "模型",
@@ -261,6 +265,8 @@
   "settings.skills.noDescription": "暂无描述",
   "settings.skills.retry": "重试",
   "settings.skills.removeSkill": "移除技能",
+  "settings.skills.npmRegistryHint": "提示：可在 设置 > 通用 > 技能 中配置默认 npm 镜像源",
+  "settings.skills.npmRegistryActive": "使用镜像源：{{registry}}",
   "common.yes": "是",
   "common.no": "否",
 

@@ -52,7 +52,7 @@ export class SkillsService {
     this.configStore = configStore;
     this.installers = [
       new PrebuiltInstaller(path.join(resourcesDir, "skills")),
-      new NpmInstaller(),
+      new NpmInstaller(() => this.configStore.get("npmRegistry") || undefined),
       new ClawhubInstaller(),
       new GitInstaller(),
     ];

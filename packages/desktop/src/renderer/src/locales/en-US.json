@@ -54,6 +54,10 @@
   "settings.general.group.appearance": "Appearance",
   "settings.general.group.terminal": "Terminal",
   "settings.general.group.advanced": "Advanced",
+  "settings.general.group.skills": "Skills",
+  "settings.general.npmRegistry": "NPM Registry",
+  "settings.general.npmRegistry.description": "Default npm registry URL for installing npm skills (e.g. https://registry.npmmirror.com)",
+  "settings.general.npmRegistry.invalidUrl": "Invalid URL. Enter a valid registry URL or leave empty for default.",
 
   "settings.chat": "Chat",
   "settings.chat.model": "Model",
@@ -262,6 +266,8 @@
   "common.no": "no",
   "settings.skills.retry": "Retry",
   "settings.skills.removeSkill": "Remove skill",
+  "settings.skills.npmRegistryHint": "Tip: Set a default npm registry in Settings > General > Skills",
+  "settings.skills.npmRegistryActive": "Using registry: {{registry}}",
 
   "permission.allow": "Allow",
   "permission.allowOnce": "Allow once",

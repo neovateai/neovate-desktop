@@ -52,6 +52,7 @@ const DEFAULT_CONFIG: AppConfig = {
 
   // Skills
   skillsRegistryUrls: [],
+  npmRegistry: "",
 };
 
 export const useConfigStore = create<ConfigState>()(

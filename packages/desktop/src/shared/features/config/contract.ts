@@ -67,6 +67,10 @@ export const configContract = {
           key: z.literal("skillsRegistryUrls"),
           value: z.array(z.string().url()),
         }),
+        z.object({
+          key: z.literal("npmRegistry"),
+          value: z.string().url().or(z.literal("")),
+        }),
       ]),
     )
     .output(type<void>()),

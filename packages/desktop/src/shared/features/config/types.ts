@@ -39,4 +39,5 @@ export type AppConfig = {
 
   // Skills
   skillsRegistryUrls: string[];
+  npmRegistry: string;
 };
