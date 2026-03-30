@@ -1,3 +1,5 @@
 {
-  "contextMenu.addToChat": "Add to Chat"
+  "contextMenu.addToChat": "Add to Chat",
+  "editor.overlay.noFileOpened": "No File Opened",
+  "editor.overlay.extensionPreparing": "Extension Preparing..."
 }

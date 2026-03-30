@@ -4,11 +4,16 @@ import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
-import { editorContract, EditorOpenOption } from "../../../../shared/plugins/editor/contract";
+import {
+  editorContract,
+  EditorOpenOption,
+  IEditorTab,
+} from "../../../../shared/plugins/editor/contract";
 import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useWebview } from "./hooks/useWebview";
+import { useEditorTranslation } from "./i18n";
 import { ErrorState, LoadingState } from "./status";
 import { EditorStatus } from "./type";
 import { handleEditorEvents } from "./utils/events";
@@ -23,9 +28,11 @@ function EditorViewCore(props: { cwd: string }) {
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<EditorStatus>("idle");
+  const [tabs, setTabs] = useState<IEditorTab[]>([]);
   const initRef = useRef(false);
   const [extReady, seExtReady] = useState(false); // vscode 扩展就绪情况
   const { resolvedTheme } = useTheme();
+  const { t } = useEditorTranslation();
 
   const { orpcClient } = usePluginContext();
   const client = orpcClient as EditorClient;
@@ -76,7 +83,11 @@ function EditorViewCore(props: { cwd: string }) {
     const cancel = consumeEventIterator(client.editor.events({ cwd }), {
       onEvent: (e) => {
         log("editor events received", e);
-        handleEditorEvents(e);
+        handleEditorEvents(e, {
+          onTabsChange: (newTabs) => {
+            setTabs(newTabs);
+          },
+        });
       },
       onError: (e) => {
         log("editor events error", e);
@@ -179,17 +190,46 @@ function EditorViewCore(props: { cwd: string }) {
     return null;
   };
 
+  const renderOverlay = () => {
+    if (status === "starting" || !serverUrl || tabs.length > 0) {
+      return null;
+    }
+
+    const message = !extReady
+      ? t("editor.overlay.extensionPreparing")
+      : t("editor.overlay.noFileOpened");
+
+    return (
+      <div className="absolute inset-0 z-10 bg-card backdrop-blur-sm flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src={
+              resolvedTheme === "dark"
+                ? "https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*hgaTTZvoTicAAAAAQDAAAAgAenyRAQ/original"
+                : "https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*Wrd1TL3S_pYAAAAAQFAAAAgAenyRAQ/original"
+            }
+            alt="Editor Logo"
+            className="w-32 h-24 object-contain"
+          />
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {renderHolder()}
       {!!serverUrl && (
-        <webview
-          ref={webviewRef}
-          src={serverUrl}
-          title="Code Editor"
-          className="relative z-0 flex-1 w-full h-full border-0 bg-background min-h-0"
-          style={{ display: "flex", width: "100%", height: "100%" }}
-        />
+        <div className="relative flex-1 w-full h-full">
+          <webview
+            ref={webviewRef}
+            src={serverUrl}
+            title="Code Editor"
+            className="absolute inset-0 w-full h-full border-0 bg-background"
+          />
+          {renderOverlay()}
+        </div>
       )}
     </>
   );

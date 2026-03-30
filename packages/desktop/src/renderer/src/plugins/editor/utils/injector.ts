@@ -1,32 +1,7 @@
 export const INJECT_STYLES = `
-/* modify the empty icon */
-.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .letterpress {
-  background-image: url('https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*Wrd1TL3S_pYAAAAAQFAAAAgAenyRAQ/original')!important;
-  max-width: 128px!important;
-  max-height: 95px!important;
-}
-/* modify the empty icon: [dark theme] */
-.vs-dark.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .letterpress {
-  background-image: url('https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*hgaTTZvoTicAAAAAQDAAAAgAenyRAQ/original')!important;
-  max-width: 128px!important;
-  max-height: 95px!important;
-}
-
-.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark>.watermark-container {
-  gap: 8px!important;
-}
-/* hide the default shortcuts tips */
-.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .shortcuts .watermark-box {
+/* remove the empty style */
+.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark {
   display: none!important;
-}
-/* add simple custom tip text */
-.monaco-workbench .part.editor>.content .editor-group-container>.editor-group-watermark .shortcuts::after {
-  content: "No File Opened";
-  text-align: center!important;
-  display: block!important;
-}
-.monaco-workbench .part.editor>.content .editor-group-container>.title>.tabs-and-actions-container {
-  background-color: var(--vscode-tab-activeBackground)!important;
 }
 /** tab container **/
 .monaco-workbench .part.editor>.content .editor-group-container>.title .tabs-container {

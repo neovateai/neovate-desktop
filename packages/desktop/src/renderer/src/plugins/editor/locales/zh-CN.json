@@ -1,3 +1,5 @@
 {
-  "contextMenu.addToChat": "添加到对话"
+  "contextMenu.addToChat": "添加到对话",
+  "editor.overlay.noFileOpened": "暂无打开的文件",
+  "editor.overlay.extensionPreparing": "扩展准备中..."
 }

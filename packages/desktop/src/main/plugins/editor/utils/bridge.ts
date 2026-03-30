@@ -168,8 +168,12 @@ export class ExtensionBridgeServer extends EventEmitter {
       );
 
       const client = this.clients.get(cwd);
-      if (!client || client.destroyed) {
+      if (!client) {
         reject(new Error(`No active client for cwd: ${cwd}`));
+        return;
+      }
+      if (client.destroyed) {
+        reject(new Error(`Client destroyed for cwd: ${cwd}`));
         return;
       }
 
