@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RequestTracker } from "../features/agent/request-tracker";
 import { buildRouter, type AppDependencies } from "../router";
 
-const router = buildRouter(new Map());
+const router = buildRouter([]);
 
 describe("main router context wiring", () => {
   it("ping returns pong", async () => {
@@ -25,7 +25,7 @@ describe("main router context wiring", () => {
 
   it("spreads plugin routers into root", () => {
     const fakeRouter = { myHandler: vi.fn() } as any;
-    const r = buildRouter(new Map([["myPlugin", fakeRouter]]));
+    const r = buildRouter([{ plugin: { name: "myPlugin" }, value: fakeRouter }]);
     expect(r).toHaveProperty("myPlugin");
   });
 });

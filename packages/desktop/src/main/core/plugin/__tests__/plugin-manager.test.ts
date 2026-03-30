@@ -24,6 +24,14 @@ function makeCtx(): PluginContext {
 }
 
 describe("PluginManager", () => {
+  describe("duplicate name guard", () => {
+    it("throws on duplicate plugin names", () => {
+      expect(() => new PluginManager([{ name: "a" }, { name: "a" }])).toThrow(
+        'Duplicate plugin name: "a"',
+      );
+    });
+  });
+
   describe("enforce ordering", () => {
     it("sorts plugins: pre → normal → post", () => {
       const pre: MainPlugin = { name: "pre", enforce: "pre" };
@@ -48,7 +56,9 @@ describe("PluginManager", () => {
       const manager = new PluginManager([plugin]);
       await manager.configContributions(makeCtx());
 
-      expect(manager.contributions.routers.get("test")).toBe(fakeRouter);
+      expect(manager.contributions.routers.find((c) => c.plugin.name === "test")?.value).toBe(
+        fakeRouter,
+      );
     });
 
     it("skips plugins without configContributions", async () => {
@@ -56,7 +66,7 @@ describe("PluginManager", () => {
       const manager = new PluginManager([plugin]);
       await manager.configContributions(makeCtx());
 
-      expect(manager.contributions.routers.size).toBe(0);
+      expect(manager.contributions.routers.length).toBe(0);
     });
 
     it("skips plugins that return no router", async () => {
@@ -64,7 +74,7 @@ describe("PluginManager", () => {
       const manager = new PluginManager([plugin]);
       await manager.configContributions(makeCtx());
 
-      expect(manager.contributions.routers.size).toBe(0);
+      expect(manager.contributions.routers.length).toBe(0);
     });
 
     it("passes PluginContext to configContributions", async () => {

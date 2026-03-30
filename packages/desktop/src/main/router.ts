@@ -2,6 +2,7 @@ import type { AnyRouter } from "@orpc/server";
 
 import { implement } from "@orpc/server";
 
+import type { Contribution } from "./core/plugin/contribution";
 import type { StorageService } from "./core/storage-service";
 import type { IMainApp } from "./core/types";
 import type { RequestTracker } from "./features/agent/request-tracker";
@@ -40,7 +41,7 @@ export type AppDependencies = AppContext;
 
 const os = implement(contract).$context<AppContext>();
 
-export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
+export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
   return {
     ping: os.ping.handler(() => "pong" as const),
     agent: agentRouter,
@@ -61,6 +62,6 @@ export function buildRouter(pluginRouters: Map<string, AnyRouter>) {
         context.mainApp.windowManager.open(input);
       }),
     },
-    ...Object.fromEntries(pluginRouters),
+    ...Object.fromEntries(pluginRouters.map((c) => [c.plugin.name, c.value])),
   };
 }

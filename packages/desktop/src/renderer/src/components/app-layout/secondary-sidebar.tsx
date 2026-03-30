@@ -62,7 +62,7 @@ export function AppLayoutSecondarySidebar() {
   const { collapsed, width, isResizing } = usePanelState("secondarySidebar");
   const activeView = useLayoutStore((s) => s.panels.secondarySidebar?.activeView);
   const app = useRendererApp();
-  const views = app.pluginManager.viewContributions.secondarySidebarViews;
+  const views = app.pluginManager.viewContributions.secondarySidebarViews.map((c) => c.value);
   const lazyComponents = useLazyComponents(views);
 
   return (

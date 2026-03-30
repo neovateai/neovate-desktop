@@ -1,16 +1,26 @@
+import type { AnyRouter } from "@orpc/server";
+
 import debug from "debug";
 
-import type { MainPlugin, PluginContext } from "./types";
+import type { MainPlugin, MainPluginHooks, PluginContext } from "./types";
 
-import { buildContributions, EMPTY_CONTRIBUTIONS, type Contributions } from "./contributions";
+import { contribution, type Contribution } from "./contribution";
+import { type Contributions } from "./contributions";
 
 const log = debug("neovate:plugin");
 
+type HookFn = (...args: unknown[]) => unknown;
+
 export class PluginManager {
   readonly #plugins: MainPlugin[];
-  contributions: Contributions = EMPTY_CONTRIBUTIONS;
+  contributions: Contributions = { routers: [] };
 
   constructor(rawPlugins: MainPlugin[] = []) {
+    const names = new Set<string>();
+    for (const p of rawPlugins) {
+      if (names.has(p.name)) throw new Error(`Duplicate plugin name: "${p.name}"`);
+      names.add(p.name);
+    }
     this.#plugins = [
       ...rawPlugins.filter((p) => p.enforce === "pre"),
       ...rawPlugins.filter((p) => !p.enforce),
@@ -24,13 +34,12 @@ export class PluginManager {
 
   async configContributions(ctx: PluginContext): Promise<void> {
     log("configContributions", { pluginCount: this.#plugins.length });
-    const pluginsWithHook = this.#plugins.filter(
-      (p) => typeof p.configContributions === "function",
-    );
-    const items = await Promise.all(
-      pluginsWithHook.map(async (p) => ({ name: p.name, ...(await p.configContributions!(ctx)) })),
-    );
-    this.contributions = buildContributions(items);
+    const entries = await this.applyParallel("configContributions", ctx);
+    const routers: Contribution<AnyRouter>[] = [];
+    for (const { plugin, raw } of entries) {
+      if (raw.router) routers.push(contribution(plugin, raw.router));
+    }
+    this.contributions = { routers };
   }
 
   async activate(ctx: PluginContext): Promise<void> {
@@ -53,5 +62,20 @@ export class PluginManager {
       }
     }
     log("deactivate done");
+  }
+
+  // ─── Hook Runners ─────────────────────────────────────────────────
+
+  /** Run hook on all plugins in parallel, zip results with source plugin */
+  private async applyParallel<K extends keyof MainPluginHooks>(
+    hook: K,
+    ...args: Parameters<MainPluginHooks[K]>
+  ): Promise<{ plugin: MainPlugin; raw: Awaited<ReturnType<MainPluginHooks[K]>> }[]> {
+    const active = this.#plugins.filter((p) => typeof p[hook] === "function");
+    const raws = (await Promise.all(
+      active.map((p) => (p[hook] as HookFn).call(p, ...args)),
+    )) as Awaited<ReturnType<MainPluginHooks[K]>>[];
+    // raws[i]! is safe: active and raws are co-derived from the same Promise.all, lengths always equal
+    return active.map((plugin, i) => ({ plugin, raw: raws[i]! }));
   }
 }

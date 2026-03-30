@@ -226,7 +226,7 @@ export function AppLayoutSecondaryTitleBar() {
   const setShowSettings = useSettingsStore((s) => s.setShowSettings);
   const locale = useConfigStore((s) => s.locale);
   const app = useRendererApp();
-  const items = app.pluginManager.viewContributions.secondaryTitlebarItems;
+  const items = app.pluginManager.viewContributions.secondaryTitlebarItems.map((c) => c.value);
   const lazyComponents = useLazyComponents(items);
 
   return (

@@ -125,7 +125,9 @@ function builtInToForm(t: ProviderTemplate, lang: string): ProviderFormData {
 
 export const ProvidersPanel = () => {
   const { t, i18n } = useTranslation();
-  const providerTemplates = useRendererApp().pluginManager.contributions.providerTemplates;
+  const providerTemplates = useRendererApp().pluginManager.contributions.providerTemplates.map(
+    (c) => c.value,
+  );
   const providers = useProviderStore((s) => s.providers);
   const loaded = useProviderStore((s) => s.loaded);
   const load = useProviderStore((s) => s.load);

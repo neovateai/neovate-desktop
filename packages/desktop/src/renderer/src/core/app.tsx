@@ -338,7 +338,7 @@ export class RendererApp implements IRendererApp {
   }
 
   initWorkbench(): void {
-    const views = this.pluginManager.viewContributions.contentPanelViews;
+    const views = this.pluginManager.viewContributions.contentPanelViews.map((c) => c.value);
     // TODO: Move app-layout UI to consume app.workbench.layout directly, then
     // transfer store ownership from components/app-layout/store into
     // WorkbenchLayoutService.
@@ -359,8 +359,9 @@ export class RendererApp implements IRendererApp {
     });
     // Wire plugin-contributed openers into the opener system
     const externalUriOpenerService = new ExternalUriOpenerService(this.opener);
-    for (const { id, opener: uriOpener, metadata } of this.pluginManager.contributions
-      .externalUriOpeners) {
+    for (const {
+      value: { id, opener: uriOpener, metadata },
+    } of this.pluginManager.contributions.externalUriOpeners) {
       this.subscriptions.push(
         externalUriOpenerService.registerExternalUriOpener(id, uriOpener, metadata),
       );
@@ -466,10 +467,10 @@ export class RendererApp implements IRendererApp {
       );
     }
     const windowDef = this.pluginManager.windowContributions.find(
-      (w) => w.windowType === this.#windowType,
+      (w) => w.value.windowType === this.#windowType,
     );
     if (!windowDef) return reactDomRoot.render(<div>Unknown window type: {this.#windowType}</div>);
-    const WindowComponent = lazy(windowDef.component);
+    const WindowComponent = lazy(windowDef.value.component);
 
     reactDomRoot.render(
       <StrictMode>

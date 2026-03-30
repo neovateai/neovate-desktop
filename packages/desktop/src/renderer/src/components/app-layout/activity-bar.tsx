@@ -41,7 +41,7 @@ function ActivityBarButton({ item }: { item: ActivityBarItem }) {
 
 export function AppLayoutActivityBar() {
   const app = useRendererApp();
-  const items = app.pluginManager.viewContributions.activityBarItems;
+  const items = app.pluginManager.viewContributions.activityBarItems.map((c) => c.value);
 
   return (
     <nav

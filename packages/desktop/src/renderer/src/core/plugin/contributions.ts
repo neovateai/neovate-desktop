@@ -5,6 +5,7 @@ import debug from "debug";
 import type { ProviderTemplate } from "../../../../shared/features/provider/built-in";
 import type { LocalizedString } from "../../../../shared/i18n";
 import type { ExternalUriOpenerContribution } from "../external-uri-opener";
+import type { Contribution } from "./contribution";
 
 const log = debug("neovate:plugin");
 
@@ -63,47 +64,21 @@ export interface WindowContribution {
   component: () => Promise<{ default: React.ComponentType }>;
 }
 
-// ─── Merge ──────────────────────────────────────────────────────────
+// ─── Utilities ──────────────────────────────────────────────────────
 
-/** Deduplicate provider templates by id (first-wins) */
-function deduplicateTemplates(templates: ProviderTemplate[]): ProviderTemplate[] {
+export const sortByOrder = <T extends { order?: number }>(list: Contribution<T>[]) =>
+  list.toSorted((a, b) => (a.value.order ?? Infinity) - (b.value.order ?? Infinity));
+
+export function deduplicateById<T extends { id: string }>(
+  items: Contribution<T>[],
+): Contribution<T>[] {
   const seen = new Set<string>();
-  return templates.filter((t) => {
-    if (seen.has(t.id)) {
-      log("duplicate providerTemplate id=%s, skipping", t.id);
+  return items.filter((c) => {
+    if (seen.has(c.value.id)) {
+      log("duplicate id=%s from plugin=%s, skipping", c.value.id, c.plugin.name);
       return false;
     }
-    seen.add(t.id);
+    seen.add(c.value.id);
     return true;
   });
-}
-
-/** Merge partial view contributions from multiple plugins into a complete set */
-export function buildViewContributions(
-  items: (PluginViewContributions | null | undefined)[],
-): Required<PluginViewContributions> {
-  const valid = items.filter((r): r is PluginViewContributions => r != null);
-
-  const sortByOrder = <T extends { order?: number }>(list: T[]) =>
-    list.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-
-  return {
-    activityBarItems: sortByOrder(valid.flatMap((r) => r.activityBarItems ?? [])),
-    secondarySidebarViews: valid.flatMap((r) => r.secondarySidebarViews ?? []),
-    contentPanelViews: valid.flatMap((r) => r.contentPanelViews ?? []),
-    primaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.primaryTitlebarItems ?? [])),
-    secondaryTitlebarItems: sortByOrder(valid.flatMap((r) => r.secondaryTitlebarItems ?? [])),
-  };
-}
-
-/** Merge partial data contributions from multiple plugins into a complete set */
-export function buildContributions(
-  items: (PluginContributions | null | undefined)[],
-): Required<PluginContributions> {
-  const valid = items.filter((r): r is PluginContributions => r != null);
-
-  return {
-    providerTemplates: deduplicateTemplates(valid.flatMap((r) => r.providerTemplates ?? [])),
-    externalUriOpeners: valid.flatMap((r) => r.externalUriOpeners ?? []),
-  };
 }
