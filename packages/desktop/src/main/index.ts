@@ -35,6 +35,10 @@ if (is.dev && process.env.ELECTRON_CDP_PORT) {
   app.commandLine.appendSwitch("remote-debugging-port", process.env.ELECTRON_CDP_PORT);
 }
 
+// Each SDK session adds a process.on("exit") listener to kill its child process.
+// Raise the limit so normal multi-session usage doesn't trigger a warning.
+process.setMaxListeners(50);
+
 // Eagerly warm the shell environment cache so it's ready before first session
 shellEnvService.getEnv();
 

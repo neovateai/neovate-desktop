@@ -118,7 +118,12 @@ export function AgentChat() {
       multiProjectSupport,
     );
     if (activeProjectPath) setCwd(activeProjectPath);
-    if (!multiProjectSupport) setActiveSession(null);
+    if (!multiProjectSupport) {
+      setActiveSession(null);
+      // Close main-process sessions from the previous project to free SDK child
+      // processes and their process.on("exit") listeners.
+      claudeCodeChatManager.closeAllSessions();
+    }
 
     if (!activeProjectPath && !multiProjectSupport) {
       chatLog("effect[project-switch]: no project, clearing sessions");

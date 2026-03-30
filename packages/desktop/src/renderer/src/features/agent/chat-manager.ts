@@ -94,6 +94,15 @@ export class ClaudeCodeChatManager {
     this.rpc.claudeCode.closeSession({ sessionId }).catch(() => {});
   }
 
+  async closeAllSessions(): Promise<void> {
+    const ids = [...this.chats.keys()];
+    log("closeAllSessions: closing %d sessions", ids.length);
+    for (const id of ids) {
+      await this.removeSession(id);
+      useAgentStore.getState().removeSession(id);
+    }
+  }
+
   async invalidateNewSessions(cwd?: string): Promise<void> {
     const store = useAgentStore.getState();
     let removedActive = false;
