@@ -10,6 +10,9 @@ import icon from "../../../resources/icon.png?asset";
 import { APP_DATA_DIR } from "./app-paths";
 import log from "./logger";
 
+// fixed(48) + primarySidebar.min(250) + chatPanel comfortable min(480) + 1 handle(5)
+const MAIN_WINDOW_MIN_WIDTH = 783;
+
 type WindowStore = {
   bounds: Electron.Rectangle;
   isMaximized: boolean;
@@ -51,7 +54,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
     const win = new BrowserWindow({
       ...bounds,
-      minWidth: 900,
+      minWidth: MAIN_WINDOW_MIN_WIDTH,
       minHeight: 600,
       show: false,
       autoHideMenuBar: true,
@@ -202,7 +205,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     if (!mainWindow) return;
     const display = screen.getDisplayMatching(mainWindow.getBounds());
     const maxWidth = display.workAreaSize.width;
-    const capped = Math.min(minWidth, maxWidth);
+    const capped = Math.max(Math.min(minWidth, maxWidth), MAIN_WINDOW_MIN_WIDTH);
     const [currentWidth, currentHeight] = mainWindow.getSize();
     const [, currentMinHeight] = mainWindow.getMinimumSize();
     mainWindow.setMinimumSize(capped, currentMinHeight);
