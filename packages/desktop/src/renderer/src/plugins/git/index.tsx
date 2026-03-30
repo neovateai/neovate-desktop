@@ -49,6 +49,7 @@ const plugin: RendererPlugin = {
           viewType: "git-diff",
           name: { "en-US": "Git Diff", "zh-CN": "代码变更" },
           singleton: true,
+          discoverable: false,
           deactivation: "offscreen",
           icon: GitIcon,
           component: () => import("./git-diff-view"),
