@@ -34,6 +34,14 @@ const mockContentComponent: ContentPanelView["component"] = () =>
   Promise.resolve({ default: () => null });
 
 describe("PluginManager", () => {
+  describe("duplicate name guard", () => {
+    it("throws on duplicate plugin names", () => {
+      expect(() => new PluginManager([{ name: "a" }, { name: "a" }])).toThrow(
+        'Duplicate plugin name: "a"',
+      );
+    });
+  });
+
   describe("enforce ordering", () => {
     it("sorts plugins: pre → normal → post", () => {
       const plugins: RendererPlugin[] = [

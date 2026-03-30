@@ -52,6 +52,11 @@ export class PluginManager {
   }
 
   constructor(rawPlugins: RendererPlugin[] = []) {
+    const names = new Set<string>();
+    for (const p of rawPlugins) {
+      if (names.has(p.name)) throw new Error(`Duplicate plugin name: "${p.name}"`);
+      names.add(p.name);
+    }
     this.#plugins = [
       ...rawPlugins.filter((p) => p.enforce === "pre"),
       ...rawPlugins.filter((p) => !p.enforce),
