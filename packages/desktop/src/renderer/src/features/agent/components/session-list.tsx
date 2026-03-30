@@ -48,11 +48,17 @@ function MultiProjectSessionList() {
   }, [projects, loadSessionPreferences]);
 
   return (
-    <div className="flex flex-1 flex-col pt-2">
-      <PanelTriggerGroup projectPath={activeProject?.path} />
-      <PinnedSessionList />
-      <SidebarTitleBar />
-      {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
+    <div className="flex min-h-0 flex-1 flex-col pt-2">
+      {/* Fixed header area - does not scroll */}
+      <div className="shrink-0">
+        <PanelTriggerGroup projectPath={activeProject?.path} />
+      </div>
+      {/* Scrollable session list area */}
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <PinnedSessionList />
+        <SidebarTitleBar />
+        {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
+      </div>
     </div>
   );
 }
@@ -159,48 +165,54 @@ const SingleProjectSessionList = memo(function SingleProjectSessionList() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-1 pt-2">
-      <PanelTriggerGroup projectPath={projectPath} />
-      {pinnedItems.length === 0 && regularItems.length === 0 ? (
-        sessionsLoaded ? (
-          <EmptySessionState />
-        ) : null
-      ) : (
-        <ul className="flex flex-col gap-1">
-          {pinnedItems.length > 0 && (
-            <>
-              {pinnedItems.map((item) => {
-                const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-                return (
-                  <UnifiedSessionItem
-                    key={id}
-                    item={item}
-                    activeSessionId={activeSessionId}
-                    isPinned={true}
-                    restoring={restoring}
-                    onActivate={handleActivate}
-                    onLoad={handleLoad}
-                  />
-                );
-              })}
-            </>
-          )}
-          {regularItems.map((item) => {
-            const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
-            return (
-              <UnifiedSessionItem
-                key={id}
-                item={item}
-                activeSessionId={activeSessionId}
-                isPinned={pinned.has(id)}
-                restoring={restoring}
-                onActivate={handleActivate}
-                onLoad={handleLoad}
-              />
-            );
-          })}
-        </ul>
-      )}
+    <div className="flex min-h-0 flex-1 flex-col gap-1 pt-2">
+      {/* Fixed header area - does not scroll */}
+      <div className="shrink-0">
+        <PanelTriggerGroup projectPath={projectPath} />
+      </div>
+      {/* Scrollable session list area */}
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        {pinnedItems.length === 0 && regularItems.length === 0 ? (
+          sessionsLoaded ? (
+            <EmptySessionState />
+          ) : null
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {pinnedItems.length > 0 && (
+              <>
+                {pinnedItems.map((item) => {
+                  const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+                  return (
+                    <UnifiedSessionItem
+                      key={id}
+                      item={item}
+                      activeSessionId={activeSessionId}
+                      isPinned={true}
+                      restoring={restoring}
+                      onActivate={handleActivate}
+                      onLoad={handleLoad}
+                    />
+                  );
+                })}
+              </>
+            )}
+            {regularItems.map((item) => {
+              const id = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
+              return (
+                <UnifiedSessionItem
+                  key={id}
+                  item={item}
+                  activeSessionId={activeSessionId}
+                  isPinned={pinned.has(id)}
+                  restoring={restoring}
+                  onActivate={handleActivate}
+                  onLoad={handleLoad}
+                />
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 });
