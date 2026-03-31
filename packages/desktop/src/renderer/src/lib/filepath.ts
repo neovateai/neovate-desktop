@@ -9,7 +9,7 @@ const PATH_CHAR = "[\\w/.~@# -]";
 
 // Match files with known extensions (with optional :line:col)
 const FILE_EXT_RE = new RegExp(
-  `^(${PATH_CHAR}+\\.(?:tsx?|jsx?|mjs|cjs|py|rs|go|rb|java|kt|swift|c|cpp|h|hpp|cs|php|sh|sql|css|scss|html|xml|svg|vue|svelte|astro|md|mdx|json|ya?ml|toml|env|lock|graphql|prisma)|\\.env)(?::(\\d+)(?::(\\d+))?)?$`,
+  `^(${PATH_CHAR}+\\.(?:tsx?|jsx?|mjs|cjs|py|rs|go|rb|java|kt|swift|c|cpp|h|hpp|cs|php|sh|sql|css|scss|html|xml|svg|vue|svelte|astro|md|mdx|json|ya?ml|toml|env(?:\\.\\w+)?|lock|graphql|prisma)|\\.env(?:\\.\\w+)?)(?::(\\d+)(?::(\\d+))?)?$`,
 );
 
 export function isFilePath(text: string): boolean {

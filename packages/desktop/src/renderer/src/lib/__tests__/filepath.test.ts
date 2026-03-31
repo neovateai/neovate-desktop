@@ -11,6 +11,9 @@ describe("isFilePath", () => {
     "~/config.json",
     "/Users/me/My Project/src/App.tsx",
     "/path/to/#readme.md",
+    "/project/.env.local",
+    "~/.env.production",
+    "/app/.env.development",
   ])("matches absolute/home path: %s", (input) => {
     expect(isFilePath(input)).toBe(true);
   });

@@ -1,23 +1,12 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 import type { Components, ExtraProps } from "streamdown";
 
-import { isValidElement, useMemo } from "react";
+import { useMemo } from "react";
 
 import { markdownBaseComponents } from "../../../components/ai-elements/markdown-base-components";
 import { useRendererApp } from "../../../core/app";
 import { parseFilePath } from "../../../lib/filepath";
 import { cn } from "../../../lib/utils";
-
-const extractTextContent = (children: ReactNode): string => {
-  if (typeof children === "string") return children;
-  if (typeof children === "number") return String(children);
-  if (Array.isArray(children)) return children.map(extractTextContent).join("");
-  if (isValidElement(children)) {
-    const props = children.props as { children?: ReactNode };
-    if (props.children) return extractTextContent(props.children);
-  }
-  return "";
-};
 
 type InlineCodeProps = ComponentProps<"code"> & ExtraProps;
 
@@ -25,11 +14,8 @@ type FilePathClickHandler = (path: string, line?: number, col?: number) => void;
 
 function createFilePathCode(onFilePathClick: FilePathClickHandler) {
   return ({ children, className, node, ...props }: InlineCodeProps) => {
-    const raw = extractTextContent(children);
-    const text = raw.replace(/^`+|`+$/g, "");
     const FallbackCode = markdownBaseComponents.code;
-
-    const fileInfo = parseFilePath(text);
+    const fileInfo = typeof children === "string" ? parseFilePath(children) : null;
 
     if (!fileInfo) {
       if (FallbackCode && typeof FallbackCode !== "string") {
