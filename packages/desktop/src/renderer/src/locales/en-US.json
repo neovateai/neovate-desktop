@@ -348,7 +348,7 @@
   "sidebar.sortBy.updated": "Updated",
   "sidebar.noProject": "No project",
   "sidebar.noProjects": "No projects",
-  "sidebar.addFirstProject": "Click the + icon above to add your first project",
+  "sidebar.addFirstProject": "Click \"Open Project\" in the right panel to get started",
 
   "session.noConversations": "No conversations",
   "session.noConversationsYet": "No conversations yet",
