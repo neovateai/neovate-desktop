@@ -189,16 +189,21 @@ function ConnectedPermissionModeSelect({
   const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
 
   const handleSelect = useCallback(
-    (value: unknown) => {
+    async (value: unknown) => {
       const mode = value as PermissionMode;
       log("handlePermissionModeSelect: mode=%s sessionId=%s", mode, activeSessionId);
+      const previousMode = permissionMode;
       setPermissionMode(activeSessionId, mode);
-      claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
+      const result = await claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
         kind: "configure",
         configure: { type: "set_permission_mode", mode },
       });
+      if (result && !result.ok) {
+        log("handlePermissionModeSelect: failed, reverting to %s", previousMode);
+        setPermissionMode(activeSessionId, previousMode);
+      }
     },
-    [activeSessionId, setPermissionMode],
+    [activeSessionId, permissionMode, setPermissionMode],
   );
 
   return (

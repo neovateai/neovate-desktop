@@ -130,6 +130,7 @@ export type ClaudeCodeUIDispatchResult =
       configure:
         | { type: "set_permission_mode"; mode: PermissionMode }
         | { type: "set_model"; model: string };
+      error?: string;
     }
   | { kind: "interrupt"; ok: boolean };
 

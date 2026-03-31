@@ -508,6 +508,7 @@ export class SessionManager {
     });
     const options: Options = {
       ...queryOpts,
+      allowDangerouslySkipPermissions: true,
       env,
       settings: {
         ...(settingsEnv ? { env: settingsEnv } : {}),
@@ -908,7 +909,10 @@ export class SessionManager {
   }
 
   /** Handle dispatch — respond to permission request or configure session */
-  handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
+  async handleDispatch(
+    sessionId: string,
+    dispatch: ClaudeCodeUIDispatch,
+  ): Promise<ClaudeCodeUIDispatchResult> {
     if (dispatch.kind === "respond") {
       const session = this.sessions.get(sessionId);
       if (!session) throw new Error(`Unknown session: ${sessionId}`);
@@ -943,7 +947,17 @@ export class SessionManager {
             sessionId,
             configure.mode,
           );
-          session.query.setPermissionMode(configure.mode as SDKPermissionMode);
+          try {
+            await session.query.setPermissionMode(configure.mode as SDKPermissionMode);
+          } catch (error) {
+            log("handleDispatch: set_permission_mode failed: %O", error);
+            return {
+              kind: "configure",
+              ok: false,
+              configure,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
           return { kind: "configure", ok: true, configure };
         }
         case "set_model": {
