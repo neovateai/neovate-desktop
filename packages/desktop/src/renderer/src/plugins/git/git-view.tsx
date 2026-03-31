@@ -241,80 +241,82 @@ export default memo(function GitView() {
               >
                 {getFileIcon(file.relPath)}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm text-foreground flex-shrink-0" title={file.fileName}>
-                      {file.fileName}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate" title={file.relPath}>
-                      {file.relPath}
-                    </div>
-                  </div>
+                <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+                  <span
+                    className="text-sm text-foreground truncate flex-shrink-0 max-w-[50%]"
+                    title={file.fileName}
+                  >
+                    {file.fileName}
+                  </span>
+                  <span
+                    className="text-xs text-muted-foreground truncate flex-shrink min-w-0"
+                    title={file.relPath}
+                  >
+                    {file.relPath}
+                  </span>
                 </div>
 
-                <div className="flex-shrink-0 flex items-center gap-0.5">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openFile(file);
-                      }}
-                      className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                      title={t("git.openFile")}
-                    >
-                      <File className="w-3 h-3 text-muted-foreground hover:text-foreground pointer-events-none" />
-                    </button>
-                    {isStaged ? (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFromStage(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.unstageChanges")}
-                        >
-                          <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRevertRequest(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.discardChanges")}
-                        >
-                          <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            add2stage(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.stageChanges")}
-                        >
-                          <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRevertRequest(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.discardChanges")}
-                        >
-                          <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="ml-1">{getStatusText(file.status)}</div>
+                <div className="flex-shrink-0 flex items-center gap-0.5 w-0 overflow-hidden group-hover:w-auto group-hover:overflow-visible transition-[width]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openFile(file);
+                    }}
+                    className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                    title={t("git.openFile")}
+                  >
+                    <File className="w-3 h-3 text-muted-foreground hover:text-foreground pointer-events-none" />
+                  </button>
+                  {isStaged ? (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromStage(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.unstageChanges")}
+                      >
+                        <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRevertRequest(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.discardChanges")}
+                      >
+                        <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          add2stage(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.stageChanges")}
+                      >
+                        <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRevertRequest(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.discardChanges")}
+                      >
+                        <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                    </>
+                  )}
                 </div>
+
+                <div className="ml-1">{getStatusText(file.status)}</div>
               </div>
             ))}
           </div>
