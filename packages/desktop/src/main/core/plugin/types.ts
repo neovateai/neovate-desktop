@@ -2,6 +2,7 @@ import type { AnyRouter } from "@orpc/server";
 
 import { os } from "@orpc/server";
 
+import type { DeeplinkHandler } from "../deeplink/types";
 import type { IShellService } from "../shell-service";
 import type { IMainApp } from "../types";
 
@@ -25,6 +26,7 @@ export interface PluginContext {
 
 export interface PluginContributions {
   router?: AnyRouter;
+  deeplinkHandler?: DeeplinkHandler;
 }
 
 export interface MainPluginHooks {

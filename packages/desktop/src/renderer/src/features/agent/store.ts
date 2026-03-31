@@ -105,8 +105,6 @@ type AgentState = {
     usage: { contextWindowSize: number; usedTokens: number; remainingPct: number },
   ) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
-  pendingDeeplink: { sessionId: string; project: string } | null;
-  setPendingDeeplink: (dl: { sessionId: string; project: string } | null) => void;
   sessionInitError: string | null;
   setSessionInitError: (error: string | null) => void;
 };
@@ -118,7 +116,6 @@ export const useAgentStore = create<AgentState>()(
     agentSessions: [],
     sessionsLoaded: false,
     unseenTurnResults: new Map(),
-    pendingDeeplink: null,
     sessionInitError: null,
     _nextMessageId: 0,
 
@@ -317,11 +314,6 @@ export const useAgentStore = create<AgentState>()(
           remainingPct: usage.remainingPct,
         };
       });
-    },
-
-    setPendingDeeplink: (dl) => {
-      storeLog("setPendingDeeplink: %o", dl);
-      set({ pendingDeeplink: dl });
     },
 
     setSessionInitError: (error) => {
