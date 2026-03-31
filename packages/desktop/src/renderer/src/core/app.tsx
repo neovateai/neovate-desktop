@@ -42,6 +42,7 @@ import gitPlugin from "../plugins/git";
 import networkPlugin from "../plugins/network";
 import { providersPlugin } from "../plugins/providers";
 import searchPlugin from "../plugins/search";
+import statsPlugin from "../plugins/stats";
 import terminalPlugin from "../plugins/terminal";
 import { DisposableStore } from "./disposable";
 import { ExternalUriOpenerService } from "./external-uri-opener";
@@ -257,6 +258,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   editorPlugin,
   changesPlugin,
   networkPlugin,
+  statsPlugin,
   debugPlugin,
   providersPlugin,
   // TODO: Remove in the future

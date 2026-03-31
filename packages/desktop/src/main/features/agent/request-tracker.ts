@@ -8,6 +8,8 @@ import type {
   RequestSummary,
 } from "../../../shared/features/agent/request-types";
 
+import { getStatsService } from "../stats/stats-service";
+
 const log = debug("neovate:request-tracker");
 
 const MAX_ENTRIES = 500;
@@ -102,6 +104,15 @@ export class RequestTracker {
     }
 
     this.eventPublisher.publish(sessionId, summary);
+
+    // Persist completed requests to stats database
+    if (summary.phase === "end") {
+      try {
+        getStatsService().persistRequest(summary);
+      } catch (err) {
+        log("Failed to persist request to stats: %s", err);
+      }
+    }
   }
 
   startTurn(sessionId: string): void {
