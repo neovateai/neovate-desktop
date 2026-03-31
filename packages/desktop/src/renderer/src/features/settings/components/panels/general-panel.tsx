@@ -11,7 +11,7 @@ import { Input } from "../../../../components/ui/input";
 import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
-import { useRendererApp } from "../../../../core";
+import { useRendererApp } from "../../../../core/app";
 import { localeOptions, type Locales } from "../../../../core/i18n";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";

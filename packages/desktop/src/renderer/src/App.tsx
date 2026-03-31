@@ -16,7 +16,7 @@ import {
 import { FullRightPanel } from "./components/app-layout/full-right-panel";
 import { AgentChat, SessionList } from "./features/agent";
 import { useConfigStore } from "./features/config/store";
-import { ContentPanelRenderer } from "./features/content-panel";
+import { ContentPanelRenderer } from "./features/content-panel/components/content-panel";
 import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
 import { UpdaterToast } from "./features/updater/updater-toast";

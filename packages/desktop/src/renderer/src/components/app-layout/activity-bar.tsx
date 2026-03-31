@@ -1,6 +1,6 @@
 import type { ActivityBarItem } from "../../core/plugin/contributions";
 
-import { useRendererApp } from "../../core";
+import { useRendererApp } from "../../core/app";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
