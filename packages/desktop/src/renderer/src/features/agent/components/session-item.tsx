@@ -140,7 +140,7 @@ export const SessionItem = memo(function SessionItem({
             developerMode && "border-l-2",
             developerMode && (isInitialized ? "border-green-500" : "border-transparent"),
             isActive
-              ? "bg-accent/80 text-foreground"
+              ? "bg-primary/10 text-primary"
               : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}
