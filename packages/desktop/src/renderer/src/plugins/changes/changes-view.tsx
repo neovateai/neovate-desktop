@@ -23,7 +23,7 @@ import {
   SelectItem,
 } from "../../components/ui/select";
 import { usePluginContext } from "../../core/app";
-import { useContentPanelViewContext } from "../../features/content-panel";
+import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
 import { useIntersectionObserver } from "../../hooks/use-intersection-observer";
 import { useActiveSession } from "../../hooks/useActiveSession";
