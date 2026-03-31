@@ -157,38 +157,37 @@ const SortableProjectItem = memo(function SortableProjectItem({
       <AccordionPrimitive.Header
         className={`group flex justify-between items-center rounded-lg text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground ${isStale ? "opacity-50" : ""}`}
       >
-        <div
-          className="flex flex-1 cursor-grab items-center gap-2.5 px-2.5 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
-          {...attributes}
-          {...listeners}
-        >
-          {isStale ? (
-            <div className="flex items-center gap-2.5 text-left max-w-[calc(100%)]">
-              <div className="flex size-5 flex-shrink-0 items-center justify-center">
-                <TriangleAlertIcon size={16} className="text-warning" />
-              </div>
-              <span className="flex-1 truncate text-sm font-medium max-w-[calc(100%)]">
-                {project.name}
-              </span>
+        {isStale ? (
+          <div
+            className="flex flex-1 cursor-grab items-center gap-2.5 px-2.5 py-1.5 active:cursor-grabbing max-w-[calc(100%-50px)]"
+            {...attributes}
+            {...listeners}
+          >
+            <div className="flex size-5 flex-shrink-0 items-center justify-center">
+              <TriangleAlertIcon size={16} className="text-warning" />
             </div>
-          ) : (
-            <AccordionPrimitive.Trigger className="flex cursor-pointer items-center gap-2.5 text-left max-w-[calc(100%)]">
-              <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
-                <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
-              </div>
-              <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
-                {!closedSet.has(project.id) ? (
-                  <ChevronDown size={16} strokeWidth={1.5} />
-                ) : (
-                  <ChevronRight size={16} strokeWidth={1.5} />
-                )}
-              </div>
-              <span className="flex-1 truncate text-sm font-medium max-w-[calc(100%)]">
-                {project.name}
-              </span>
-            </AccordionPrimitive.Trigger>
-          )}
-        </div>
+            <span className="flex-1 truncate text-sm font-medium">{project.name}</span>
+          </div>
+        ) : (
+          <AccordionPrimitive.Trigger
+            render={<div />}
+            className="flex flex-1 cursor-pointer items-center gap-2.5 px-2.5 py-1.5 max-w-[calc(100%-50px)]"
+            {...attributes}
+            {...listeners}
+          >
+            <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
+              <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+            </div>
+            <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
+              {!closedSet.has(project.id) ? (
+                <ChevronDown size={16} strokeWidth={1.5} />
+              ) : (
+                <ChevronRight size={16} strokeWidth={1.5} />
+              )}
+            </div>
+            <span className="flex-1 truncate text-sm font-medium">{project.name}</span>
+          </AccordionPrimitive.Trigger>
+        )}
         <div className="flex items-center gap-1 pr-1">
           <button
             className={`flex size-6 items-center justify-center rounded-md transition-all hover:bg-destructive/10 hover:text-destructive ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
