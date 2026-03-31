@@ -1,4 +1,4 @@
-const isDev = process.env.BUILD_ENV === "dev";
+import { isDev, deeplinkScheme } from "./build-env.mjs";
 
 /**
  * @type {import('electron-builder').Configuration}
@@ -89,12 +89,16 @@ const config = {
     "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
   ],
 
-  protocols: [{ name: "Neovate", schemes: [isDev ? "neovate-dev" : "neovate"] }],
-
   compression: isDev ? "normal" : "maximum",
 
   mac: {
     icon: isDev ? "build/icons/dev/icon.icns" : "build/icons/prod/icon.icns",
+    protocols: [
+      {
+        name: isDev ? "Neovate Dev" : "Neovate",
+        schemes: [deeplinkScheme],
+      },
+    ],
     category: "public.app-category.developer-tools",
     hardenedRuntime: true,
     entitlements: "build/entitlements.mac.plist",

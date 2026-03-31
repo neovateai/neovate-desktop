@@ -6,7 +6,6 @@ import { app, ipcMain, BrowserWindow } from "electron";
 
 import type { AppContext } from "./router";
 
-import { APP_NAME } from "../shared/constants";
 import { isMac } from "../shared/platform";
 import { MainApp } from "./app";
 import { ApplicationMenu } from "./core/menu";
@@ -91,61 +90,27 @@ const appContext: AppContext = {
 // Reset crash counter after 30s of stable uptime
 setTimeout(() => projectStore.clearCrashCounter(), 30_000);
 
-// ── Deeplink protocol registration ──
-const deeplinkScheme = `${APP_NAME.toLowerCase()}${is.dev ? "-dev" : ""}`;
-app.setAsDefaultProtocolClient(deeplinkScheme);
-
-// Single-instance lock: required on Windows for deeplinks (second-instance event),
-// and generally good practice to prevent duplicate instances on non-macOS.
-// macOS handles multi-instance via open-url and Dock, so skip the lock there.
-if (!isMac) {
-  const gotLock = app.requestSingleInstanceLock();
-  if (!gotLock) {
-    app.quit();
-  }
-}
-
-function parseDeeplinkUrl(url: string): { sessionId: string; project: string } | null {
-  try {
-    const parsed = new URL(url);
-    const match = parsed.pathname.match(/^\/?\/?session\/(.+)/);
-    if (!match) return null;
-    const sessionId = match[1];
-    const project = parsed.searchParams.get("project");
-    if (!sessionId || !project) return null;
-    return { sessionId, project: decodeURIComponent(project) };
-  } catch {
-    return null;
-  }
-}
-
-let pendingDeeplink: { sessionId: string; project: string } | null = null;
-
-function handleDeeplinkUrl(url: string): void {
-  const parsed = parseDeeplinkUrl(url);
-  if (!parsed) return;
-  startupLog("deeplink: %o", parsed);
-
+// ── Deeplink ──
+// open-url at module level — critical for cold launch on macOS
+app.on("open-url", (event, url) => {
+  event.preventDefault();
   const win = BrowserWindow.getAllWindows()[0];
   if (win) {
     win.show();
     win.focus();
-    win.webContents.send("deeplink", parsed);
-  } else {
-    pendingDeeplink = parsed;
   }
-}
-
-// macOS/Linux: deeplinks arrive via open-url
-app.on("open-url", (event, url) => {
-  event.preventDefault();
-  handleDeeplinkUrl(url);
+  mainApp.deeplink.handle(url);
 });
 
-// Windows: deeplinks arrive via second-instance (argv contains the URL)
-app.on("second-instance", (_event, argv) => {
-  const url = argv.find((arg) => arg.startsWith(`${deeplinkScheme}://`));
-  if (url) handleDeeplinkUrl(url);
+// Register app-level deeplink handler before start()
+mainApp.deeplink.register("session", {
+  handle(ctx) {
+    const sessionId = ctx.path.slice(1); // remove leading /
+    const project = ctx.searchParams.get("project");
+    if (!sessionId || !project) return null;
+    // searchParams.get() already decodes — do not double-decode
+    return { sessionId, project };
+  },
 });
 
 let menu: ApplicationMenu | null = null;
@@ -170,19 +135,6 @@ app.whenReady().then(async () => {
     handler.upgrade(serverPort, { context: appContext });
     serverPort.start();
   });
-
-  // Flush any buffered deeplink once renderer is ready
-  if (pendingDeeplink) {
-    const win = mainApp.windowManager.mainWindow;
-    if (win) {
-      win.webContents.once("did-finish-load", () => {
-        if (pendingDeeplink) {
-          win.webContents.send("deeplink", pendingDeeplink);
-          pendingDeeplink = null;
-        }
-      });
-    }
-  }
 
   app.on("activate", () => {
     const win = mainApp.windowManager.mainWindow;

@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 
 import type { SessionManager } from "../features/agent/session-manager";
+import type { DeeplinkService } from "./deeplink/deeplink-service";
 import type { Disposable } from "./disposable";
 
 export type AppContext = {
@@ -33,4 +34,5 @@ export interface IBrowserWindowManager {
 export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
+  readonly deeplink: DeeplinkService;
 }

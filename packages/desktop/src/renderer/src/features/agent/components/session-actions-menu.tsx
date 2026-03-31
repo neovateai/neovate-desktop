@@ -5,7 +5,7 @@ import { MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { encodeProjectPath } from "../../../../../shared/claude-code/paths";
-import { APP_NAME } from "../../../../../shared/constants";
+import { DEEPLINK_SCHEME } from "../../../../../shared/constants";
 import { Button } from "../../../components/ui/button";
 import {
   ContextMenu,
@@ -76,8 +76,7 @@ export function SessionActionsMenu({
   };
 
   const handleCopyDeeplink = () => {
-    const scheme = `${APP_NAME.toLowerCase()}${window.api.isDev ? "-dev" : ""}`;
-    const deeplink = `${scheme}://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
+    const deeplink = `${DEEPLINK_SCHEME}://session/${sessionId}?project=${encodeURIComponent(cwd)}`;
     log("copyDeeplink: %s", deeplink);
     navigator.clipboard.writeText(deeplink);
   };

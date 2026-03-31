@@ -2,9 +2,12 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "electron-vite";
 
+import { deeplinkScheme } from "./configs/build-env.mjs";
+
 const appDefine = {
   __APP_NAME__: JSON.stringify("Neovate"),
   __APP_ID__: JSON.stringify("neovate-desktop"),
+  __DEEPLINK_SCHEME__: JSON.stringify(deeplinkScheme),
 };
 
 export default defineConfig({

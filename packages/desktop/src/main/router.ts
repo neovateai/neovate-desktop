@@ -16,6 +16,7 @@ import type { UpdaterService } from "./features/updater/service";
 import { contract } from "../shared/contract";
 import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
+import { deeplinkRouter } from "./features/deeplink/router";
 import { electronRouter } from "./features/electron/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
@@ -46,6 +47,7 @@ export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
     ping: os.ping.handler(() => "pong" as const),
     agent: agentRouter,
     config: configRouter,
+    deeplink: deeplinkRouter,
     electron: electronRouter,
     project: projectRouter,
     provider: providerRouter,
