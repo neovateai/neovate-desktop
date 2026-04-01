@@ -1,7 +1,7 @@
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
-import { PLAYGROUND_PROJECT_ID } from "../../../../shared/features/project/constants";
+import { PLAYGROUND_PROJECT_ID } from "../../../shared/features/project/constants";
 import { layoutStore } from "../components/app-layout/store";
 import { toastManager } from "../components/ui/toast";
 import { useRendererApp } from "../core/app";
