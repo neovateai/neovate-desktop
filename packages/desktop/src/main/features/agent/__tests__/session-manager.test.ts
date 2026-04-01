@@ -120,6 +120,7 @@ describe("SessionManager", () => {
       input,
       query,
       cwd: "/tmp/project",
+      uiToSdkMessageIds: new Map(),
       pendingRequests: new Map(),
     });
 

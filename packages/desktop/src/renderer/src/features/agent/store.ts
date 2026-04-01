@@ -72,6 +72,11 @@ export type ChatSession = {
 
 export type TurnResult = "success" | "error";
 
+export type RewindUndoBuffer = {
+  originalSessionId: string;
+  forkedSessionId: string;
+};
+
 type AgentState = {
   sessions: Map<string, ChatSession>;
   activeSessionId: string | null;
@@ -79,6 +84,8 @@ type AgentState = {
   sessionsLoaded: boolean;
   unseenTurnResults: Map<string, TurnResult>;
   _nextMessageId: number;
+  isRewinding: boolean;
+  rewindUndoBuffer: RewindUndoBuffer | null;
 
   setActiveSession: (sessionId: string | null) => void;
   setAgentSessions: (sessions: SessionInfo[]) => void;
@@ -107,6 +114,14 @@ type AgentState = {
   renameSession: (sessionId: string, title: string) => Promise<void>;
   sessionInitError: string | null;
   setSessionInitError: (error: string | null) => void;
+  setIsRewinding: (value: boolean) => void;
+  applyRewind: (
+    originalSessionId: string,
+    forkedSessionId: string,
+    forkedSession: ChatSession,
+  ) => void;
+  setRewindUndoBuffer: (buffer: RewindUndoBuffer | null) => void;
+  undoRewindStore: (originalSessionId: string, originalSession: ChatSession) => void;
 };
 
 export const useAgentStore = create<AgentState>()(
@@ -118,12 +133,16 @@ export const useAgentStore = create<AgentState>()(
     unseenTurnResults: new Map(),
     sessionInitError: null,
     _nextMessageId: 0,
+    isRewinding: false,
+    rewindUndoBuffer: null,
 
     setActiveSession: (sessionId) => {
       storeLog("setActiveSession: %s", sessionId);
       set((state) => {
         state.activeSessionId = sessionId;
         if (sessionId) state.unseenTurnResults.delete(sessionId);
+        // Clear rewind undo buffer on session switch
+        state.rewindUndoBuffer = null;
       });
     },
 
@@ -328,6 +347,67 @@ export const useAgentStore = create<AgentState>()(
         if (session) session.title = title;
         const info = state.agentSessions.find((s) => s.sessionId === sessionId);
         if (info) info.title = title;
+      });
+    },
+
+    setIsRewinding: (value) => {
+      set({ isRewinding: value });
+    },
+
+    applyRewind: (originalSessionId, forkedSessionId, forkedSession) => {
+      storeLog("applyRewind: original=%s forked=%s", originalSessionId, forkedSessionId);
+      set((state) => {
+        // Transplant metadata from original to fork
+        const original = state.sessions.get(originalSessionId);
+        if (original) {
+          forkedSession.title = original.title;
+          forkedSession.createdAt = original.createdAt;
+          forkedSession.cwd = original.cwd;
+        }
+
+        // Replace in sidebar: swap the original entry with the fork
+        const idx = state.agentSessions.findIndex((s) => s.sessionId === originalSessionId);
+        if (idx !== -1) {
+          state.agentSessions[idx] = {
+            ...state.agentSessions[idx],
+            sessionId: forkedSessionId,
+          };
+        }
+
+        // Register fork, remove original from in-memory sessions
+        state.sessions.set(forkedSessionId, forkedSession);
+        state.sessions.delete(originalSessionId);
+        state.activeSessionId = forkedSessionId;
+        state.isRewinding = false;
+      });
+    },
+
+    setRewindUndoBuffer: (buffer) => {
+      set({ rewindUndoBuffer: buffer });
+    },
+
+    undoRewindStore: (originalSessionId, originalSession) => {
+      storeLog("undoRewindStore: restoring original=%s", originalSessionId);
+      set((state) => {
+        const buffer = state.rewindUndoBuffer;
+        if (!buffer) return;
+
+        // Remove fork from in-memory sessions
+        state.sessions.delete(buffer.forkedSessionId);
+
+        // Restore original in sidebar
+        const idx = state.agentSessions.findIndex((s) => s.sessionId === buffer.forkedSessionId);
+        if (idx !== -1) {
+          state.agentSessions[idx] = {
+            ...state.agentSessions[idx],
+            sessionId: originalSessionId,
+          };
+        }
+
+        // Register original session and activate it
+        state.sessions.set(originalSessionId, originalSession);
+        state.activeSessionId = originalSessionId;
+        state.rewindUndoBuffer = null;
       });
     },
   })),

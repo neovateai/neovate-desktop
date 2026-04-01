@@ -441,5 +441,15 @@
 
   "chat.context.title": "Context Window",
   "chat.context.used": "Used",
-  "chat.context.total": "Total"
+  "chat.context.total": "Total",
+
+  "chat.rewind.tooltip": "Rewind to here",
+  "chat.rewind.conversationOnly": "Restore conversation only",
+  "chat.rewind.codeAndConversation": "Restore code and conversation",
+  "chat.rewind.loading": "Checking file changes...",
+  "chat.rewind.filesSummary": "{{count}} files changed  +{{insertions}} −{{deletions}}",
+  "chat.rewind.undoToast": "Conversation restored to earlier point",
+  "chat.rewind.undo": "Undo",
+  "chat.rewind.error": "Failed to rewind",
+  "chat.rewind.undoError": "Failed to undo rewind"
 }

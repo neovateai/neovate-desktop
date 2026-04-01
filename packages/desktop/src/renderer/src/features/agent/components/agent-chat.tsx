@@ -320,6 +320,8 @@ function AgentChatSession({
                 (status !== "streaming" && status !== "submitted") || i !== messages.length - 1
               }
               renderToolPart={(_partMessage, part) => <ClaudeCodeToolUIPart part={part} />}
+              sessionId={sessionId}
+              isStreaming={status === "streaming" || status === "submitted"}
             />
           ))}
         </ConversationContent>

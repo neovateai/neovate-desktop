@@ -30,6 +30,7 @@ import {
 } from "../../../components/ui/collapsible";
 import { cn } from "../../../lib/utils";
 import { useMarkdownComponents } from "../hooks/use-markdown-components";
+import { MessageRewindButton } from "./message-rewind-button";
 import { useAssistantMessageSummaryCollapse } from "./use-assistant-message-summary-collapse";
 
 type RenderToolPart = (
@@ -41,13 +42,24 @@ export function MessageParts({
   message,
   renderToolPart,
   isComplete = true,
+  sessionId,
+  isStreaming = false,
 }: {
   message: ClaudeCodeUIMessage;
   renderToolPart: RenderToolPart;
   isComplete?: boolean;
+  sessionId?: string;
+  isStreaming?: boolean;
 }) {
   if (message.role !== "assistant") {
-    return <MessagePartRenderer message={message} renderToolPart={renderToolPart} />;
+    return (
+      <MessagePartRenderer
+        message={message}
+        renderToolPart={renderToolPart}
+        sessionId={sessionId}
+        isStreaming={isStreaming}
+      />
+    );
   }
 
   return (
@@ -171,11 +183,15 @@ export const MessagePartRenderer = memo(
     renderToolPart,
     showActions = true,
     isComplete = true,
+    sessionId,
+    isStreaming = false,
   }: {
     message: ClaudeCodeUIMessage;
     renderToolPart: RenderToolPart;
     showActions?: boolean;
     isComplete?: boolean;
+    sessionId?: string;
+    isStreaming?: boolean;
   }) => {
     const markdownComponents = useMarkdownComponents();
     const lastTextIndex = message.parts.findLastIndex((p) => p.type === "text");
@@ -195,12 +211,14 @@ export const MessagePartRenderer = memo(
 
           switch (part.type) {
             case "text": {
-              const canShowActions =
+              const isLastText = index === lastTextIndex;
+              const canShowAssistantActions =
                 message.role === "assistant" &&
                 showActions &&
                 isComplete &&
-                index === lastTextIndex &&
+                isLastText &&
                 !!part.text.trim();
+              const canShowUserActions = message.role === "user" && isLastText && !!sessionId;
               return (
                 <Message
                   key={`${message.id}-${index}`}
@@ -214,9 +232,18 @@ export const MessagePartRenderer = memo(
                       <p className="m-0 whitespace-pre-wrap">{part.text}</p>
                     )}
                   </MessageContent>
-                  {canShowActions && (
+                  {canShowAssistantActions && (
                     <MessageActions className="mt-2">
                       <CopyMarkdownButton text={part.text} />
+                    </MessageActions>
+                  )}
+                  {canShowUserActions && (
+                    <MessageActions className="mt-1 ml-auto">
+                      <MessageRewindButton
+                        sessionId={sessionId!}
+                        messageId={message.id}
+                        disabled={isStreaming}
+                      />
                     </MessageActions>
                   )}
                 </Message>
