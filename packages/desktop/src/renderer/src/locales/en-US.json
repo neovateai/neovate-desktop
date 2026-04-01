@@ -266,6 +266,16 @@
   "settings.skills.detail.update": "Update",
   "settings.skills.detail.updating": "Updating...",
   "settings.skills.noDescription": "No description",
+  "settings.skills.noRegistries": "No skill registries configured",
+  "settings.skills.noRegistriesDescription": "Add a skill registry to discover and install skills from curated collections.",
+  "settings.skills.addRegistry": "Add Registry",
+  "settings.skills.checkMore": "Check More",
+  "settings.skills.registrySkillCount": "{{count}} skills",
+  "settings.skills.addRegistryDescription": "Add a remote registry URL to discover skills.",
+  "settings.skills.registryUrl": "Registry URL",
+  "settings.skills.registryUrlPlaceholder": "https://example.com/skills.json",
+  "settings.skills.removeRegistry": "Remove",
+  "settings.skills.manageRegistries": "Manage",
 
   "common.loading": "Loading...",
   "common.yes": "yes",
@@ -335,6 +345,7 @@
   "branch.create.invalidChars": "Branch name contains invalid characters",
 
   "common.cancel": "Cancel",
+  "common.done": "Done",
   "common.delete": "Delete",
 
   "sidebar.newChat": "New chat",

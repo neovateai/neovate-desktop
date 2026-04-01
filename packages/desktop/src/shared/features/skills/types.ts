@@ -31,6 +31,12 @@ export interface RecommendedSkill {
   installed: boolean;
 }
 
+export interface RegistryGroup {
+  name: string;
+  url?: string;
+  skills: RecommendedSkill[];
+}
+
 export type SkillSource = "prebuilt" | "git" | "npm" | "clawhub";
 
 export interface PreviewSkill {

@@ -10,6 +10,7 @@ import type {
   InstallMeta,
   PreviewSkill,
   RecommendedSkill,
+  RegistryGroup,
   SkillMeta,
   SkillSource,
   SkillUpdate,
@@ -37,12 +38,22 @@ const remoteSkillSchema = z.object({
   version: z.string().optional(),
 });
 
+const remoteRegistryGroupSchema = z.object({
+  name: z.string(),
+  url: z.string().optional(),
+  skills: z.array(remoteSkillSchema),
+});
+
 export class SkillsService {
   private installers: SkillInstaller[];
   private projectStore: ProjectStore;
   private configStore: ConfigStore;
   private registryCache: {
-    data: Omit<RecommendedSkill, "installed">[];
+    data: {
+      name: string;
+      url?: string;
+      skills: Omit<RecommendedSkill, "installed">[];
+    }[];
     fetchedAt: number;
   } | null = null;
   private previewSources = new Map<string, string>();
@@ -97,12 +108,11 @@ export class SkillsService {
     }
   }
 
-  async recommended(forceRefresh?: boolean): Promise<RecommendedSkill[]> {
+  async recommended(forceRefresh?: boolean): Promise<RegistryGroup[]> {
     log("recommended", { forceRefresh });
     if (forceRefresh) this.registryCache = null;
 
-    const registry = await this.fetchRegistry();
-    log("recommended: registry returned %d items", registry.length);
+    const groups = await this.fetchRegistry();
     const installed = await this.list("all");
     const installedDirNames = new Set(installed.map((s) => s.dirName));
     const installedSources = new Set(
@@ -112,13 +122,19 @@ export class SkillsService {
         .map((ref) => stripSourceVersion(ref)),
     );
 
-    const result = registry.map((skill) => ({
-      ...skill,
-      installed:
-        installedDirNames.has(skill.skillName) ||
-        installedSources.has(stripSourceVersion(skill.sourceRef)),
+    const result: RegistryGroup[] = groups.map((group) => ({
+      name: group.name,
+      url: group.url,
+      skills: group.skills.map((skill) => ({
+        ...skill,
+        installed:
+          installedDirNames.has(skill.skillName) ||
+          installedSources.has(stripSourceVersion(skill.sourceRef)),
+      })),
     }));
-    log("recommended: returning %d items", result.length);
+
+    const totalSkills = result.reduce((n, g) => n + g.skills.length, 0);
+    log("recommended: returning %d groups, %d skills", result.length, totalSkills);
     return result;
   }
 
@@ -329,56 +345,73 @@ export class SkillsService {
 
   // --- Registry fetching ---
 
-  private async fetchRegistry(): Promise<Omit<RecommendedSkill, "installed">[]> {
+  private async fetchRegistry() {
     if (this.registryCache && Date.now() - this.registryCache.fetchedAt < CACHE_TTL_MS) {
       log("fetchRegistry cache hit");
       return this.registryCache.data;
     }
 
-    const urls = this.configStore.get("skillsRegistryUrls");
-    log("fetchRegistry urls=%o", urls);
-    if (!urls || urls.length === 0) {
-      log("fetchRegistry: no registry URLs configured, returning empty");
+    const registries = this.configStore.get("skillsRegistries");
+    log("fetchRegistry registries=%o", registries);
+    if (!registries || registries.length === 0) {
+      log("fetchRegistry: no registries configured, returning empty");
       return [];
     }
 
-    const results = await Promise.allSettled(urls.map((url) => this.fetchSingleRegistry(url)));
+    const results = await Promise.allSettled(
+      registries.map((reg) => this.fetchSingleRegistry(reg.url)),
+    );
 
     // If ALL fetches failed, propagate error with details
     const allFailed = results.every((r) => r.status === "rejected");
     if (allFailed) {
       const errors = results.map((r, i) => {
         const reason = (r as PromiseRejectedResult).reason;
-        return `${urls[i]}: ${reason?.message ?? "unknown"}`;
+        return `${registries[i]!.url}: ${reason?.message ?? "unknown"}`;
       });
       log("fetchRegistry all failed", { errors });
       throw new Error(`Failed to fetch skills registry: ${errors.join("; ")}`);
     }
 
-    // Merge successful results, dedupe by skillName
+    // Flatten groups from all URLs, dedupe skills globally by skillName
     const seen = new Set<string>();
-    const merged: Omit<RecommendedSkill, "installed">[] = [];
+    const groups: typeof this.registryCache extends { data: infer T } | null ? T : never = [];
     for (const result of results) {
       if (result.status !== "fulfilled") continue;
-      for (const skill of result.value) {
-        if (seen.has(skill.skillName)) continue;
-        seen.add(skill.skillName);
-        merged.push(skill);
+      for (const group of result.value) {
+        const skills: Omit<RecommendedSkill, "installed">[] = [];
+        for (const skill of group.skills) {
+          if (seen.has(skill.skillName)) continue;
+          seen.add(skill.skillName);
+          skills.push(skill);
+        }
+        if (skills.length > 0) {
+          groups.push({ name: group.name, url: group.url, skills });
+        }
       }
     }
 
-    this.registryCache = { data: merged, fetchedAt: Date.now() };
-    return merged;
+    this.registryCache = { data: groups, fetchedAt: Date.now() };
+    return groups;
   }
 
-  private async fetchSingleRegistry(url: string): Promise<Omit<RecommendedSkill, "installed">[]> {
+  private async fetchSingleRegistry(url: string) {
     log("fetchSingleRegistry", { url });
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data)) throw new Error("Invalid registry format: expected array");
 
-    return data.filter((item) => remoteSkillSchema.safeParse(item).success);
+    const groups: {
+      name: string;
+      url?: string;
+      skills: Omit<RecommendedSkill, "installed">[];
+    }[] = [];
+    for (const item of data) {
+      const parsed = remoteRegistryGroupSchema.safeParse(item);
+      if (parsed.success) groups.push(parsed.data);
+    }
+    return groups;
   }
 
   // --- Private helpers ---
