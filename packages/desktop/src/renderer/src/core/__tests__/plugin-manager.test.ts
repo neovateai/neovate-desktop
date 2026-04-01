@@ -20,7 +20,7 @@ function createMockApp(): IRendererApp {
       contentPanel: {} as any,
     },
     project: {} as any,
-    vendor: {},
+    options: {},
   };
 }
 

@@ -66,7 +66,7 @@ export const AboutPanel = () => {
   };
 
   const DEFAULT_FEEDBACK_URL = "https://github.com/neovateai/neovate-desktop/issues";
-  const { feedbackUrl } = useRendererApp().vendor;
+  const { feedbackUrl } = useRendererApp().options.vendor ?? {};
 
   const handleSendFeedback = () => {
     window.open(feedbackUrl ?? DEFAULT_FEEDBACK_URL, "_blank");

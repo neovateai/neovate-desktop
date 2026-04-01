@@ -276,7 +276,7 @@ export interface RendererAppOptions {
 export class RendererApp implements IRendererApp {
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
-  readonly vendor: VendorConfig;
+  readonly options: RendererAppOptions;
   readonly opener = new OpenerService();
   readonly #windowType: string;
   // @ts-expect-error reserved for future use
@@ -327,7 +327,7 @@ export class RendererApp implements IRendererApp {
     this.#windowId = windowId;
     this.pluginManager = new PluginManager([...BUILTIN_PLUGINS, ...(options.plugins ?? [])]);
     this.i18nManager = new I18nManager();
-    this.vendor = options.vendor ?? {};
+    this.options = options;
   }
 
   /** Read window params from URL and stamp them onto <html> */

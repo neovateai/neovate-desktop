@@ -1,6 +1,6 @@
 import type { Project } from "../../../shared/features/project/types";
 import type { ContentPanel } from "../features/content-panel/content-panel";
-import type { VendorConfig } from "./app";
+import type { RendererAppOptions } from "./app";
 import type { Disposable, Unsubscribe } from "./disposable";
 import type { I18nManager } from "./i18n";
 import type { IWorkbenchLayoutService } from "./workbench/layout";
@@ -24,5 +24,5 @@ export interface IRendererApp {
   };
   readonly project: IProjectService;
   readonly workbench: IWorkbench;
-  readonly vendor: VendorConfig;
+  readonly options: RendererAppOptions;
 }
