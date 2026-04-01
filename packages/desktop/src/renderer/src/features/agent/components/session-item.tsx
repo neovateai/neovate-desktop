@@ -1,14 +1,14 @@
 import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { formatDistanceToNowStrict } from "date-fns";
 import debug from "debug";
 import { Archive, Circle, Pin, PinOff } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { TurnResult } from "../store";
 
 import { Spinner } from "../../../components/ui/spinner";
+import { useRelativeTime } from "../../../hooks/use-relative-time";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
@@ -16,17 +16,6 @@ import { useAgentStore } from "../store";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session");
-
-function formatRelativeTime(iso: string): string {
-  const distance = formatDistanceToNowStrict(new Date(iso), { addSuffix: false });
-  return distance
-    .replace(/ seconds?/, "s")
-    .replace(/ minutes?/, "m")
-    .replace(/ hours?/, "h")
-    .replace(/ days?/, "d")
-    .replace(/ months?/, "mo")
-    .replace(/ years?/, "y");
-}
 
 interface SessionItemProps {
   sessionId: string;
@@ -64,7 +53,7 @@ export const SessionItem = memo(function SessionItem({
   const renameSession = useAgentStore((s) => s.renameSession);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
-  const developerMode = useConfigStore((s) => s.developerMode);
+  const showSessionInitStatus = useConfigStore((s) => s.showSessionInitStatus);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
@@ -72,7 +61,7 @@ export const SessionItem = memo(function SessionItem({
 
   const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
-  const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+  const relativeTime = useRelativeTime(createdAt);
 
   log(
     "render: sid=%s isInitialized=%s isActive=%s",
@@ -137,10 +126,10 @@ export const SessionItem = memo(function SessionItem({
         <div
           className={cn(
             "flex items-center gap-2.5 pl-2.5 pr-3 py-1 cursor-pointer rounded-lg transition-all group",
-            developerMode && "border-l-2",
-            developerMode && (isInitialized ? "border-green-500" : "border-transparent"),
+            showSessionInitStatus && "border-l-2",
+            showSessionInitStatus && (isInitialized ? "border-green-500" : "border-transparent"),
             isActive
-              ? "bg-accent/80 text-foreground"
+              ? "bg-primary/10 text-primary"
               : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}

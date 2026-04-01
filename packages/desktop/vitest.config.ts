@@ -4,6 +4,7 @@ export default defineProject({
   define: {
     __APP_NAME__: JSON.stringify("Neovate"),
     __APP_ID__: JSON.stringify("neovate-desktop"),
+    __DEEPLINK_SCHEME__: JSON.stringify("neovate"),
   },
   test: {
     environment: "node",

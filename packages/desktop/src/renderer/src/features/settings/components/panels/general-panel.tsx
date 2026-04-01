@@ -37,6 +37,7 @@ export const GeneralPanel = () => {
     terminalFontSize,
     terminalFont,
     developerMode,
+    showSessionInitStatus,
   } = useConfigStore(
     useShallow((s) => ({
       theme: s.theme,
@@ -48,6 +49,7 @@ export const GeneralPanel = () => {
       terminalFontSize: s.terminalFontSize,
       terminalFont: s.terminalFont,
       developerMode: s.developerMode,
+      showSessionInitStatus: s.showSessionInitStatus,
     })),
   );
   const setConfig = useConfigStore((s) => s.setConfig);
@@ -247,6 +249,16 @@ export const GeneralPanel = () => {
             <Switch
               checked={multiProjectSupport}
               onCheckedChange={(v) => setConfig("multiProjectSupport", v)}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.showSessionInitStatus")}
+            description={t("settings.general.showSessionInitStatus.description")}
+          >
+            <Switch
+              checked={showSessionInitStatus}
+              onCheckedChange={(v) => setConfig("showSessionInitStatus", v)}
             />
           </SettingsRow>
 

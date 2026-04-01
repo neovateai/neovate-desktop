@@ -2,6 +2,7 @@ import type { AnyRouter } from "@orpc/server";
 
 import debug from "debug";
 
+import type { DeeplinkHandler } from "../deeplink/types";
 import type { AgentContributions } from "./contributions";
 import type { MainPlugin, MainPluginHooks, PluginContext } from "./types";
 
@@ -14,7 +15,7 @@ type HookFn = (...args: unknown[]) => unknown;
 
 export class PluginManager {
   readonly #plugins: MainPlugin[];
-  contributions: Contributions = { routers: [], agents: [] };
+  contributions: Contributions = { routers: [], agents: [], deeplinkHandlers: [] };
 
   constructor(rawPlugins: MainPlugin[] = []) {
     const names = new Set<string>();
@@ -38,11 +39,13 @@ export class PluginManager {
     const entries = await this.applyParallel("configContributions", ctx);
     const routers: Contribution<AnyRouter>[] = [];
     const agents: Contribution<AgentContributions>[] = [];
+    const deeplinkHandlers: Contribution<DeeplinkHandler>[] = [];
     for (const { plugin, raw } of entries) {
       if (raw.router) routers.push(contribution(plugin, raw.router));
       if (raw.agents) agents.push(contribution(plugin, raw.agents));
+      if (raw.deeplinkHandler) deeplinkHandlers.push(contribution(plugin, raw.deeplinkHandler));
     }
-    this.contributions = { routers, agents };
+    this.contributions = { routers, agents, deeplinkHandlers };
   }
 
   async activate(ctx: PluginContext): Promise<void> {

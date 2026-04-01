@@ -49,6 +49,8 @@
   "settings.general.terminalFont": "Terminal Font",
   "settings.general.terminalFont.description": "Font family for the terminal (leave empty for default)",
   "settings.general.terminalFont.default": "Default",
+  "settings.general.showSessionInitStatus": "Show Session Init Status",
+  "settings.general.showSessionInitStatus.description": "Show whether sessions are initialized in the session list",
   "settings.general.developerMode": "Developer Mode",
   "settings.general.developerMode.description": "Show debug info in chat input and other places",
   "settings.general.group.appearance": "Appearance",
@@ -348,7 +350,7 @@
   "sidebar.sortBy.updated": "Updated",
   "sidebar.noProject": "No project",
   "sidebar.noProjects": "No projects",
-  "sidebar.addFirstProject": "Click the + icon above to add your first project",
+  "sidebar.addFirstProject": "Click \"Open Project\" in the right panel to get started",
 
   "session.noConversations": "No conversations",
   "session.noConversationsYet": "No conversations yet",

@@ -2,7 +2,9 @@ import { oc, type } from "@orpc/contract";
 import { z } from "zod";
 
 import { agentContract } from "./features/agent/contract";
+import { pluginsContract } from "./features/claude-code-plugins/contract";
 import { configContract } from "./features/config/contract";
+import { deeplinkContract } from "./features/deeplink/contract";
 import { electronContract } from "./features/electron/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
@@ -17,11 +19,13 @@ import { gitContract } from "./plugins/git/contract";
 export const contract = {
   ping: oc.output(type<"pong">()),
   agent: agentContract,
+  deeplink: deeplinkContract,
   config: configContract,
   electron: electronContract,
   project: projectContract,
   provider: providerContract,
   rules: rulesContract,
+  plugins: pluginsContract,
   skills: skillsContract,
   storage: storageContract,
   updater: updaterContract,

@@ -1,6 +1,7 @@
 import type { HookCallbackMatcher, HookEvent, Options } from "@anthropic-ai/claude-agent-sdk";
 import type { AnyRouter } from "@orpc/server";
 
+import type { DeeplinkHandler } from "../deeplink/types";
 import type { Contribution } from "./contribution";
 
 export interface AgentContributions {
@@ -14,6 +15,7 @@ export interface ClaudeCodeContributions {
 export type Contributions = {
   routers: Contribution<AnyRouter>[];
   agents: Contribution<AgentContributions>[];
+  deeplinkHandlers: Contribution<DeeplinkHandler>[];
 };
 
 /** Merge agent hook contributions into a single SDK-compatible hooks record. */

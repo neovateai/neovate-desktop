@@ -42,6 +42,7 @@ import { Spinner } from "../../../components/ui/spinner";
 import { cn } from "../../../lib/utils";
 import { client } from "../../../orpc";
 import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
 import { useProviderStore } from "../../provider/store";
 import { useSettingsStore } from "../../settings/store";
 import { claudeCodeChatManager } from "../chat-manager";
@@ -382,18 +383,27 @@ function ConnectedModelSelect({
         activeSessionId,
         providerId ?? "(sdk)",
       );
+      const invalidatePrewarm = () => {
+        // Only invalidate background prewarmed sessions when the active session
+        // has messages (not isNew). If the active session is still new, it would
+        // be destroyed too — which is disruptive.
+        const store = useAgentStore.getState();
+        const activeSession = store.sessions.get(store.activeSessionId ?? "");
+        if (!activeSession || activeSession.messages.length === 0) return;
+        const projectPath = useProjectStore.getState().activeProject?.path;
+        claudeCodeChatManager.invalidateNewSessions(projectPath);
+      };
       if (providerId) {
         if (!model) return;
         // Provider active: only write to our provider config files
-        client.provider.setSelection({
-          sessionId: activeSessionId,
-          providerId,
-          model,
-          scope,
-        });
+        client.provider
+          .setSelection({ sessionId: activeSessionId, providerId, model, scope })
+          .then(invalidatePrewarm);
       } else {
         // SDK Default: write to .claude/ settings files (model can be null to just clear provider)
-        client.agent.setModelSetting({ sessionId: activeSessionId, model, scope });
+        client.agent
+          .setModelSetting({ sessionId: activeSessionId, model, scope })
+          .then(invalidatePrewarm);
       }
     },
     [activeSessionId, currentModel, providerId, setCurrentModel, setModelScope],
