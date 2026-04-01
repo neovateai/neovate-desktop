@@ -47,8 +47,8 @@ export class PtyManager {
     });
 
     term.onData((chunk) => publisher.publish("data", chunk));
-    term.onExit(() => {
-      log("pty exited", { sessionId });
+    term.onExit(({ exitCode, signal }) => {
+      log("pty exited", { sessionId, exitCode, signal });
       exitController.abort();
     });
 
