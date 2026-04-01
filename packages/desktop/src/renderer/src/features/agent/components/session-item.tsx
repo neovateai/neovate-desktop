@@ -2,7 +2,7 @@ import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
 import { Archive, Circle, MessageCircle, Pin, PinOff } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { TurnResult } from "../store";
@@ -14,6 +14,7 @@ import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
+import { isImeComposingKeyEvent } from "../utils/keyboard";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session");
@@ -52,6 +53,7 @@ export const SessionItem = memo(function SessionItem({
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const renameSession = useAgentStore((s) => s.renameSession);
+  const sessionIsNew = useAgentStore((s) => s.sessions.get(sessionId)?.isNew ?? false);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
   const showSessionInitStatus = useConfigStore((s) => s.showSessionInitStatus);
@@ -89,6 +91,7 @@ export const SessionItem = memo(function SessionItem({
   };
 
   const handleStartRename = () => {
+    if (sessionIsNew || isEditing) return;
     setIsEditing(true);
     setEditingValue(displayTitle);
   };
@@ -120,6 +123,14 @@ export const SessionItem = memo(function SessionItem({
     if (isConfirming) setIsConfirming(false);
   };
 
+  const handleDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.target instanceof HTMLElement && e.target.closest("button, input")) {
+      return;
+    }
+
+    handleStartRename();
+  };
+
   return (
     <li data-session-id={sessionId}>
       <SessionActionsMenu
@@ -138,6 +149,7 @@ export const SessionItem = memo(function SessionItem({
               : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}
+          onDoubleClick={handleDoubleClick}
           onMouseLeave={handleMouseLeave}
         >
           <button
@@ -195,6 +207,8 @@ export const SessionItem = memo(function SessionItem({
               onChange={(e) => setEditingValue(e.target.value)}
               onBlur={handleSaveRename}
               onKeyDown={(e) => {
+                if (isImeComposingKeyEvent(e.nativeEvent)) return;
+
                 if (e.key === "Enter") {
                   handleSaveRename();
                 } else if (e.key === "Escape") {
