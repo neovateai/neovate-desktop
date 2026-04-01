@@ -7,6 +7,7 @@ import { useRendererApp } from "../core/app";
 import { useNewSession } from "../features/agent/hooks/use-new-session";
 import { navigateSession } from "../features/agent/navigate-session";
 import { useAgentStore } from "../features/agent/store";
+import { useCommandPaletteStore } from "../features/command-palette/store";
 import { useConfigStore } from "../features/config/store";
 import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
@@ -48,6 +49,13 @@ export function useGlobalKeybindings(): void {
         const newTheme = resolvedTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
         config.setConfig("theme", newTheme);
+        return;
+      }
+
+      // Command Palette
+      if (matchesBinding(e, keybindings.openCommandPalette)) {
+        e.preventDefault();
+        useCommandPaletteStore.getState().toggle();
         return;
       }
 

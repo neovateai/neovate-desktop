@@ -139,6 +139,7 @@
   "settings.keybindings.closeSettings": "关闭设置",
   "settings.keybindings.toggleTheme": "切换主题",
   "settings.keybindings.clearTerminal": "清空终端",
+  "settings.keybindings.openCommandPalette": "命令面板",
   "settings.keybindings.prevSession": "上一个会话",
   "settings.keybindings.nextSession": "下一个会话",
   "settings.keybindings.copyPath": "复制路径",
