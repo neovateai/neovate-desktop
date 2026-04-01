@@ -1,5 +1,8 @@
+import { Comment01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   MessageSquarePlus,
+  MessageCircle,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -18,10 +21,11 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useMemo } from "react";
+import { createElement, useMemo } from "react";
 
 import type { CommandItem } from "./types";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../shared/features/project/constants";
 import { layoutStore } from "../../components/app-layout/store";
 import { toastManager } from "../../components/ui/toast";
 import { useRendererApp } from "../../core/app";
@@ -60,6 +64,15 @@ function shortcutFor(action: string): string[] | undefined {
   return binding ? formatKeyForDisplay(binding) : undefined;
 }
 
+function SessionIcon({ className }: { className?: string }) {
+  return createElement(HugeiconsIcon, {
+    icon: Comment01Icon,
+    size: 16,
+    strokeWidth: 1.5,
+    className,
+  });
+}
+
 export function useCommandRegistry() {
   const { resolvedTheme, setTheme } = useTheme();
   const { createNewSession } = useNewSession();
@@ -69,6 +82,7 @@ export function useCommandRegistry() {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const sessions = useAgentStore((s) => s.sessions);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const projects = useProjectStore((s) => s.projects);
   const pinnedSessions = useProjectStore((s) => s.pinnedSessions);
   const archivedSessions = useProjectStore((s) => s.archivedSessions);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
@@ -318,6 +332,12 @@ export function useCommandRegistry() {
     const projectPath = activeProject?.path;
     const archivedIds = new Set(projectPath ? (archivedSessions[projectPath] ?? []) : []);
 
+    const playgroundPaths = new Set(
+      projects.filter((p) => p.id === PLAYGROUND_PROJECT_ID).map((p) => p.path),
+    );
+    const isPlaygroundSession = (cwd?: string) =>
+      cwd ? [...playgroundPaths].some((pp) => cwd.startsWith(pp)) : false;
+
     // Combine in-memory sessions with persisted ones
     const seen = new Set<string>();
     const items: CommandItem[] = [];
@@ -344,6 +364,7 @@ export function useCommandRegistry() {
         id: `session:${info.sessionId}`,
         label: info.title || "Untitled",
         group: "session",
+        icon: isPlaygroundSession(info.cwd) ? MessageCircle : SessionIcon,
         keywords: [info.title ?? "", preview ?? ""].filter(Boolean),
         preview,
         metadata,
@@ -380,6 +401,7 @@ export function useCommandRegistry() {
         id: `session:${session.sessionId}`,
         label: session.title || "Untitled",
         group: "session",
+        icon: isPlaygroundSession(session.cwd) ? MessageCircle : SessionIcon,
         keywords: [session.title ?? "", preview ?? ""].filter(Boolean),
         preview,
         metadata,
@@ -390,7 +412,15 @@ export function useCommandRegistry() {
     }
 
     return items;
-  }, [agentSessions, sessions, activeProject, archivedSessions, multiProjectSupport, loadSession]);
+  }, [
+    agentSessions,
+    sessions,
+    activeProject,
+    archivedSessions,
+    multiProjectSupport,
+    projects,
+    loadSession,
+  ]);
 
   return { commands, sessionItems };
 }

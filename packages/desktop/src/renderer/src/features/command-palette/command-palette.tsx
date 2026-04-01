@@ -1,4 +1,4 @@
-import { SearchIcon, MessageSquare, Plus } from "lucide-react";
+import { SearchIcon, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ElementRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -333,11 +333,7 @@ function PaletteItem({
       onClick={onSelect}
       onMouseEnter={onMouseEnter}
     >
-      {item.group === "session" ? (
-        <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
-      ) : Icon ? (
-        <Icon className="size-4 shrink-0 text-muted-foreground" />
-      ) : null}
+      {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
 
       <div className="min-w-0 flex-1 truncate">
         {isConfirming ? (
