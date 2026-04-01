@@ -110,6 +110,24 @@ export function useCommandRegistry() {
         },
       },
       {
+        id: "quickChat",
+        label: "Quick Chat",
+        group: "command",
+        category: "Session",
+        icon: MessageCircle,
+        shortcut: shortcutFor("quickChat"),
+        keywords: ["quick", "chat", "playground"],
+        onSelect: () => {
+          const playground = useProjectStore
+            .getState()
+            .projects.find((p) => p.id === PLAYGROUND_PROJECT_ID);
+          if (playground) {
+            useProjectStore.getState().switchToProjectByPath(playground.path);
+            createNewSession(playground.path);
+          }
+        },
+      },
+      {
         id: "prevSession",
         label: "Previous Session",
         group: "command",
