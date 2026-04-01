@@ -20,6 +20,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
     projectStore: { getSessionStartTimes: vi.fn().mockReturnValue({}) } as any,
     mainApp: { windowManager: { mainWindow: null } } as any,
     storage: {} as any,
+    pluginsService: {} as any,
     skillsService: {} as any,
     stateStore: {} as any,
     updaterService: {} as any,

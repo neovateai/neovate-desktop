@@ -13,6 +13,7 @@ import { PowerBlockerService } from "./core/power-blocker-service";
 import { shellEnvService } from "./core/shell-service";
 import { RequestTracker } from "./features/agent/request-tracker";
 import { SessionManager } from "./features/agent/session-manager";
+import { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import { ConfigStore } from "./features/config/config-store";
 import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
@@ -73,6 +74,7 @@ const updaterService = new UpdaterService({
   onBeforeQuitForUpdate: () => mainApp.windowManager.prepareForQuit(),
 });
 
+const pluginsService = new PluginsService();
 const skillsService = new SkillsService(projectStore, configStore, process.resourcesPath);
 
 const appContext: AppContext = {
@@ -80,6 +82,7 @@ const appContext: AppContext = {
   requestTracker,
   configStore,
   projectStore,
+  pluginsService,
   skillsService,
   stateStore,
   updaterService,

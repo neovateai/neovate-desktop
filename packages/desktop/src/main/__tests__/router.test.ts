@@ -13,6 +13,7 @@ describe("main router context wiring", () => {
       requestTracker: new RequestTracker(),
       configStore: {} as unknown as AppDependencies["configStore"],
       projectStore: {} as unknown as AppDependencies["projectStore"],
+      pluginsService: {} as unknown as AppDependencies["pluginsService"],
       skillsService: {} as unknown as AppDependencies["skillsService"],
       stateStore: {} as unknown as AppDependencies["stateStore"],
       updaterService: {} as unknown as AppDependencies["updaterService"],
