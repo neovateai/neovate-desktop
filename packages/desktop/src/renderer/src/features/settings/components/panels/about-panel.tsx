@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "../../../../components/ui/button";
 import { Spinner } from "../../../../components/ui/spinner";
+import { useRendererApp } from "../../../../core/app";
 import { client } from "../../../../orpc";
 import { useUpdaterState } from "../../../updater/hooks";
 import { SettingsRow } from "../settings-row";
@@ -64,8 +65,11 @@ export const AboutPanel = () => {
     });
   };
 
+  const DEFAULT_FEEDBACK_URL = "https://github.com/neovateai/neovate-desktop/issues";
+  const { feedbackUrl } = useRendererApp().vendor;
+
   const handleSendFeedback = () => {
-    window.open("https://github.com/neovateai/neovate-desktop/issues", "_blank");
+    window.open(feedbackUrl ?? DEFAULT_FEEDBACK_URL, "_blank");
   };
 
   return (
