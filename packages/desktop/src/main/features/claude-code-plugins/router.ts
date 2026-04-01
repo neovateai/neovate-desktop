@@ -42,7 +42,7 @@ export const pluginsRouter = os.plugins.router({
 
   uninstall: os.plugins.uninstall.handler(async ({ input, context }) => {
     try {
-      await context.pluginsService.uninstall(input.pluginId, input.scope);
+      await context.pluginsService.uninstall(input.pluginId, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to uninstall plugin");
     }
@@ -50,7 +50,7 @@ export const pluginsRouter = os.plugins.router({
 
   update: os.plugins.update.handler(async ({ input, context }) => {
     try {
-      await context.pluginsService.update(input.pluginId, input.scope);
+      await context.pluginsService.update(input.pluginId, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to update plugin");
     }
@@ -58,7 +58,7 @@ export const pluginsRouter = os.plugins.router({
 
   getReadme: os.plugins.getReadme.handler(async ({ input, context }) => {
     try {
-      return await context.pluginsService.getReadme(input.pluginId, input.scope);
+      return await context.pluginsService.getReadme(input.pluginId, input.scope, input.projectPath);
     } catch (e) {
       wrapError(e, "Failed to get plugin README");
     }
@@ -130,7 +130,12 @@ export const pluginsRouter = os.plugins.router({
 
   install: os.plugins.install.handler(async ({ input, context }) => {
     try {
-      return await context.pluginsService.install(input.pluginName, input.marketplace, input.scope);
+      return await context.pluginsService.install(
+        input.pluginName,
+        input.marketplace,
+        input.scope,
+        input.projectPath,
+      );
     } catch (e) {
       wrapError(e, "Failed to install plugin");
     }

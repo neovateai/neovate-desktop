@@ -47,6 +47,7 @@ export interface InstalledPlugin {
   name: string;
   marketplace: string;
   scope: "user" | "project" | "local";
+  projectPath?: string;
   installPath: string;
   version: string;
   enabled: boolean;
@@ -64,6 +65,7 @@ export interface InstalledPlugin {
 export interface PluginUpdate {
   pluginId: string;
   scope: "user" | "project" | "local";
+  projectPath?: string;
   currentVersion: string;
   latestSha?: string;
 }

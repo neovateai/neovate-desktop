@@ -151,6 +151,7 @@ interface InstalledPluginsFile {
     string,
     Array<{
       scope: string;
+      projectPath?: string;
       installPath: string;
       version: string;
       installedAt: string;
@@ -199,6 +200,7 @@ export class PluginsService {
           name: manifest.name ?? name,
           marketplace,
           scope: entry.scope as InstalledPlugin["scope"],
+          projectPath: entry.projectPath,
           installPath: entry.installPath,
           version: manifest.version ?? entry.version ?? "unknown",
           enabled: enabledMap[pluginId] !== false,
@@ -242,15 +244,17 @@ export class PluginsService {
     );
   }
 
-  async uninstall(pluginId: string, scope: string): Promise<void> {
-    log("uninstall %s scope=%s", pluginId, scope);
+  async uninstall(pluginId: string, scope: string, projectPath?: string): Promise<void> {
+    log("uninstall %s scope=%s projectPath=%s", pluginId, scope, projectPath);
 
     await atomicJsonUpdate<InstalledPluginsFile>(
       INSTALLED_PLUGINS_FILE,
       (file) => {
         const entries = file.plugins[pluginId];
         if (!entries) return file;
-        const remaining = entries.filter((e) => e.scope !== scope);
+        const remaining = entries.filter(
+          (e) => !(e.scope === scope && e.projectPath === projectPath),
+        );
         const plugins = { ...file.plugins };
         if (remaining.length === 0) {
           delete plugins[pluginId];
@@ -280,14 +284,14 @@ export class PluginsService {
     }
   }
 
-  async getReadme(pluginId: string, scope: string): Promise<string | null> {
-    log("getReadme %s scope=%s", pluginId, scope);
+  async getReadme(pluginId: string, scope: string, projectPath?: string): Promise<string | null> {
+    log("getReadme %s scope=%s projectPath=%s", pluginId, scope, projectPath);
     const installed = await readJsonSafe<InstalledPluginsFile>(
       INSTALLED_PLUGINS_FILE,
       EMPTY_INSTALLED,
     );
     const entries = installed.plugins[pluginId];
-    const entry = entries?.find((e) => e.scope === scope);
+    const entry = entries?.find((e) => e.scope === scope && e.projectPath === projectPath);
     if (!entry) return null;
 
     try {
@@ -314,6 +318,7 @@ export class PluginsService {
             updates.push({
               pluginId,
               scope: entry.scope as PluginUpdate["scope"],
+              projectPath: entry.projectPath,
               currentVersion: entry.version,
               latestSha: headSha,
             });
@@ -327,14 +332,14 @@ export class PluginsService {
     return updates;
   }
 
-  async update(pluginId: string, scope: string): Promise<void> {
-    log("update %s scope=%s", pluginId, scope);
+  async update(pluginId: string, scope: string, projectPath?: string): Promise<void> {
+    log("update %s scope=%s projectPath=%s", pluginId, scope, projectPath);
     const installed = await readJsonSafe<InstalledPluginsFile>(
       INSTALLED_PLUGINS_FILE,
       EMPTY_INSTALLED,
     );
     const entries = installed.plugins[pluginId];
-    const entry = entries?.find((e) => e.scope === scope);
+    const entry = entries?.find((e) => e.scope === scope && e.projectPath === projectPath);
     if (!entry) throw new Error(`Plugin ${pluginId} not found in scope ${scope}`);
 
     try {
@@ -355,7 +360,7 @@ export class PluginsService {
           plugins: {
             ...file.plugins,
             [pluginId]: fileEntries.map((e) =>
-              e.scope === scope
+              e.scope === scope && e.projectPath === projectPath
                 ? {
                     ...e,
                     version: manifest.version ?? e.version,
@@ -378,7 +383,7 @@ export class PluginsService {
 
     for (const plugin of installed) {
       try {
-        await this.update(plugin.pluginId, plugin.scope);
+        await this.update(plugin.pluginId, plugin.scope, plugin.projectPath);
         updated++;
       } catch (e) {
         this.addError({
@@ -550,8 +555,18 @@ export class PluginsService {
     return allPlugins;
   }
 
-  async install(pluginName: string, marketplace: string, scope: string): Promise<InstalledPlugin> {
-    log("install %s from %s scope=%s", pluginName, marketplace, scope);
+  async install(
+    pluginName: string,
+    marketplace: string,
+    scope: string,
+    projectPath?: string,
+  ): Promise<InstalledPlugin> {
+    log("install %s from %s scope=%s projectPath=%s", pluginName, marketplace, scope, projectPath);
+
+    if ((scope === "project" || scope === "local") && !projectPath) {
+      throw new Error(`projectPath is required when scope is "${scope}"`);
+    }
+
     const known = await readJsonSafe<Record<string, KnownMarketplaceEntry>>(
       KNOWN_MARKETPLACES_FILE,
       {},
@@ -564,7 +579,14 @@ export class PluginsService {
     if (!pluginEntry) throw new Error(`Plugin not found: ${pluginName} in ${marketplace}`);
 
     const version = pluginEntry.version ?? "unknown";
-    const destDir = path.join(CACHE_DIR, marketplace, pluginName, version);
+    let destDir: string;
+    if (scope === "project" && projectPath) {
+      destDir = path.join(projectPath, ".claude", "plugins", pluginName);
+    } else if (scope === "local" && projectPath) {
+      destDir = path.join(projectPath, ".claude", "plugins.local", pluginName);
+    } else {
+      destDir = path.join(CACHE_DIR, marketplace, pluginName, version);
+    }
     await mkdir(path.dirname(destDir), { recursive: true });
     await rm(destDir, { recursive: true, force: true });
 
@@ -578,7 +600,9 @@ export class PluginsService {
       INSTALLED_PLUGINS_FILE,
       (file) => {
         const existing = file.plugins[pluginId] ?? [];
-        const filtered = existing.filter((e) => e.scope !== scope);
+        const filtered = existing.filter(
+          (e) => !(e.scope === scope && e.projectPath === projectPath),
+        );
         return {
           ...file,
           plugins: {
@@ -587,6 +611,7 @@ export class PluginsService {
               ...filtered,
               {
                 scope,
+                projectPath,
                 installPath: destDir,
                 version,
                 installedAt: now,
@@ -616,6 +641,7 @@ export class PluginsService {
       name: pluginManifest.name ?? pluginName,
       marketplace,
       scope: scope as InstalledPlugin["scope"],
+      projectPath,
       installPath: destDir,
       version: pluginManifest.version ?? version,
       enabled: true,

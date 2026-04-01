@@ -7,6 +7,7 @@ import type {
   MarketplacePlugin,
   PluginUpdate,
 } from "../../../../../shared/features/claude-code-plugins/types";
+import type { Project } from "../../../../../shared/features/project/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -36,6 +37,7 @@ interface PluginDetailModalProps {
   installedPlugin?: InstalledPlugin;
   marketplacePlugin?: MarketplacePlugin;
   update?: PluginUpdate;
+  projects: Project[];
   onClose: () => void;
   onRefresh: () => Promise<void>;
 }
@@ -44,6 +46,7 @@ export const PluginDetailModal = ({
   installedPlugin,
   marketplacePlugin,
   update,
+  projects,
   onClose,
   onRefresh,
 }: PluginDetailModalProps) => {
@@ -55,13 +58,18 @@ export const PluginDetailModal = ({
   const [removing, setRemoving] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [installScope, setInstallScope] = useState<string>("user");
+  const [installTarget, setInstallTarget] = useState<string>("user");
+  const [projectScope, setProjectScope] = useState<"project" | "local">("project");
 
   useEffect(() => {
     if (!installedPlugin) return;
     setLoadingReadme(true);
     client.plugins
-      .getReadme({ pluginId: installedPlugin.pluginId, scope: installedPlugin.scope })
+      .getReadme({
+        pluginId: installedPlugin.pluginId,
+        scope: installedPlugin.scope,
+        projectPath: installedPlugin.projectPath,
+      })
       .then(setReadme)
       .catch(() => setReadme(null))
       .finally(() => setLoadingReadme(false));
@@ -90,6 +98,7 @@ export const PluginDetailModal = ({
       await client.plugins.uninstall({
         pluginId: installedPlugin.pluginId,
         scope: installedPlugin.scope,
+        projectPath: installedPlugin.projectPath,
       });
       await onRefresh();
       onClose();
@@ -106,6 +115,7 @@ export const PluginDetailModal = ({
       await client.plugins.update({
         pluginId: installedPlugin.pluginId,
         scope: installedPlugin.scope,
+        projectPath: installedPlugin.projectPath,
       });
       await onRefresh();
       onClose();
@@ -116,13 +126,21 @@ export const PluginDetailModal = ({
 
   const handleInstall = async () => {
     if (!marketplacePlugin) return;
-    log("installing plugin: %s scope=%s", marketplacePlugin.name, installScope);
+    const scope = installTarget === "user" ? "user" : projectScope;
+    const targetProjectPath = installTarget === "user" ? undefined : installTarget;
+    log(
+      "installing plugin: %s scope=%s projectPath=%s",
+      marketplacePlugin.name,
+      scope,
+      targetProjectPath,
+    );
     setInstalling(true);
     try {
       await client.plugins.install({
         pluginName: marketplacePlugin.name,
         marketplace: marketplacePlugin.marketplace,
-        scope: installScope as "user" | "project" | "local",
+        scope,
+        projectPath: targetProjectPath,
       });
       await onRefresh();
       onClose();
@@ -161,7 +179,9 @@ export const PluginDetailModal = ({
             {isInstalled && (
               <>
                 <Badge variant="outline" size="sm">
-                  {installedPlugin.scope}
+                  {installedPlugin.scope === "user"
+                    ? "user"
+                    : `${installedPlugin.scope}: ${installedPlugin.projectPath?.split("/").pop() ?? "unknown"}`}
                 </Badge>
                 {installedPlugin.version && (
                   <Badge variant="secondary" size="sm">
@@ -302,22 +322,39 @@ export const PluginDetailModal = ({
             </div>
           ) : (
             <div className="flex items-center justify-end gap-2 w-full">
-              <Select value={installScope} onValueChange={(v) => v && setInstallScope(v)}>
-                <SelectTrigger size="sm" className="w-28">
+              <Select value={installTarget} onValueChange={(v) => v && setInstallTarget(v)}>
+                <SelectTrigger size="sm" className="w-36">
                   <SelectValue>
-                    {installScope === "user"
-                      ? "User"
-                      : installScope === "project"
-                        ? "Project"
-                        : "Local"}
+                    {installTarget === "user"
+                      ? "User (global)"
+                      : (projects.find((p) => p.path === installTarget)?.name ?? installTarget)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="project">Project</SelectItem>
-                  <SelectItem value="local">Local</SelectItem>
+                  <SelectItem value="user">User (global)</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.path}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
                 </SelectPopup>
               </Select>
+              {installTarget !== "user" && (
+                <Select
+                  value={projectScope}
+                  onValueChange={(v) => v && setProjectScope(v as "project" | "local")}
+                >
+                  <SelectTrigger size="sm" className="w-28">
+                    <SelectValue>
+                      {projectScope === "project" ? "Shared" : "Local only"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectPopup>
+                    <SelectItem value="project">Shared</SelectItem>
+                    <SelectItem value="local">Local only</SelectItem>
+                  </SelectPopup>
+                </Select>
+              )}
               <Button variant="default" size="sm" onClick={handleInstall} disabled={installing}>
                 {installing ? <Spinner className="size-3.5" /> : null}
                 {installing ? "Installing..." : "Install"}

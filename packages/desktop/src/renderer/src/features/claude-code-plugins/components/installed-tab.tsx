@@ -6,6 +6,7 @@ import type {
   InstalledPlugin,
   PluginUpdate,
 } from "../../../../../shared/features/claude-code-plugins/types";
+import type { Project } from "../../../../../shared/features/project/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -27,10 +28,11 @@ const getInitials = (name: string): string => {
 interface InstalledTabProps {
   plugins: InstalledPlugin[];
   updates: PluginUpdate[];
+  projects: Project[];
   onRefresh: () => Promise<void>;
 }
 
-export const InstalledTab = ({ plugins, updates, onRefresh }: InstalledTabProps) => {
+export const InstalledTab = ({ plugins, updates, projects, onRefresh }: InstalledTabProps) => {
   const [selectedPlugin, setSelectedPlugin] = useState<InstalledPlugin | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [updatingAll, setUpdatingAll] = useState(false);
@@ -121,7 +123,9 @@ export const InstalledTab = ({ plugins, updates, onRefresh }: InstalledTabProps)
 
               <div className="flex flex-wrap items-center gap-1.5 mt-auto">
                 <Badge variant="outline" size="sm">
-                  {plugin.scope}
+                  {plugin.scope === "user"
+                    ? "user"
+                    : `${plugin.scope}: ${plugin.projectPath?.split("/").pop() ?? "unknown"}`}
                 </Badge>
                 {plugin.version && (
                   <Badge variant="secondary" size="sm">
@@ -148,6 +152,7 @@ export const InstalledTab = ({ plugins, updates, onRefresh }: InstalledTabProps)
             ) ?? selectedPlugin
           }
           update={getUpdate(selectedPlugin)}
+          projects={projects}
           onClose={() => setSelectedPlugin(null)}
           onRefresh={onRefresh}
         />

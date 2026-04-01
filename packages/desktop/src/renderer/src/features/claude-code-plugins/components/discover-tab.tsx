@@ -5,6 +5,7 @@ import type {
   Marketplace,
   MarketplacePlugin,
 } from "../../../../../shared/features/claude-code-plugins/types";
+import type { Project } from "../../../../../shared/features/project/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -23,10 +24,11 @@ const getInitials = (name: string): string => {
 interface DiscoverTabProps {
   plugins: MarketplacePlugin[];
   marketplaces: Marketplace[];
+  projects: Project[];
   onRefresh: () => Promise<void>;
 }
 
-export const DiscoverTab = ({ plugins, marketplaces, onRefresh }: DiscoverTabProps) => {
+export const DiscoverTab = ({ plugins, marketplaces, projects, onRefresh }: DiscoverTabProps) => {
   const [selectedPlugin, setSelectedPlugin] = useState<MarketplacePlugin | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [addingOfficial, setAddingOfficial] = useState(false);
@@ -151,6 +153,7 @@ export const DiscoverTab = ({ plugins, marketplaces, onRefresh }: DiscoverTabPro
       {selectedPlugin && (
         <PluginDetailModal
           marketplacePlugin={selectedPlugin}
+          projects={projects}
           onClose={() => setSelectedPlugin(null)}
           onRefresh={onRefresh}
         />

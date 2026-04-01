@@ -27,6 +27,7 @@ import { SourcesTab } from "./sources-tab";
 const log = debug("neovate:plugins");
 
 export const PluginsPanel = () => {
+  const projects = useProjectStore((s) => s.projects);
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
   const [discovered, setDiscovered] = useState<MarketplacePlugin[]>([]);
@@ -161,6 +162,7 @@ export const PluginsPanel = () => {
           <DiscoverTab
             plugins={filteredDiscovered}
             marketplaces={marketplaces}
+            projects={projects}
             onRefresh={refreshAfterMutation}
           />
         </TabsContent>
@@ -169,6 +171,7 @@ export const PluginsPanel = () => {
           <InstalledTab
             plugins={filteredInstalled}
             updates={updates}
+            projects={projects}
             onRefresh={refreshAfterMutation}
           />
         </TabsContent>

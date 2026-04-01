@@ -18,12 +18,22 @@ export const pluginsContract = {
 
   disable: oc.input(z.object({ pluginId: z.string() })).output(type<void>()),
 
-  uninstall: oc.input(z.object({ pluginId: z.string(), scope: scopeSchema })).output(type<void>()),
+  uninstall: oc
+    .input(
+      z.object({ pluginId: z.string(), scope: scopeSchema, projectPath: z.string().optional() }),
+    )
+    .output(type<void>()),
 
-  update: oc.input(z.object({ pluginId: z.string(), scope: scopeSchema })).output(type<void>()),
+  update: oc
+    .input(
+      z.object({ pluginId: z.string(), scope: scopeSchema, projectPath: z.string().optional() }),
+    )
+    .output(type<void>()),
 
   getReadme: oc
-    .input(z.object({ pluginId: z.string(), scope: scopeSchema }))
+    .input(
+      z.object({ pluginId: z.string(), scope: scopeSchema, projectPath: z.string().optional() }),
+    )
     .output(type<string | null>()),
 
   checkUpdates: oc.input(z.object({})).output(type<PluginUpdate[]>()),
@@ -52,6 +62,7 @@ export const pluginsContract = {
         pluginName: z.string(),
         marketplace: z.string(),
         scope: scopeSchema.default("user"),
+        projectPath: z.string().optional(),
       }),
     )
     .output(type<InstalledPlugin>()),
