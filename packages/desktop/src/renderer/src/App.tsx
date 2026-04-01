@@ -15,6 +15,7 @@ import {
 } from "./components/app-layout";
 import { FullRightPanel } from "./components/app-layout/full-right-panel";
 import { AgentChat, SessionList } from "./features/agent";
+import { CommandPalette } from "./features/command-palette/command-palette";
 import { useConfigStore } from "./features/config/store";
 import { ContentPanelRenderer } from "./features/content-panel/components/content-panel";
 import { useSettingsStore } from "./features/settings";
@@ -93,6 +94,7 @@ export default function App() {
       </AppLayoutRoot>
 
       {showSettings && <SettingsPage />}
+      <CommandPalette />
     </>
   );
 }

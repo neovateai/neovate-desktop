@@ -139,6 +139,7 @@
   "settings.keybindings.closeSettings": "Close Settings",
   "settings.keybindings.toggleTheme": "Toggle Theme",
   "settings.keybindings.clearTerminal": "Clear Terminal",
+  "settings.keybindings.openCommandPalette": "Command Palette",
   "settings.keybindings.prevSession": "Previous Session",
   "settings.keybindings.nextSession": "Next Session",
   "settings.keybindings.copyPath": "Copy Path",
