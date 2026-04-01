@@ -10,7 +10,12 @@ import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
 import { shellEnvService } from "../../../core/shell-service";
-import { deriveInstallName, resolveSkillSource, scanSkillDirs } from "../skill-utils";
+import {
+  deriveInstallName,
+  findSkillPath,
+  resolveSkillSource,
+  scanSkillDirs,
+} from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
 const log = debug("neovate:skills:npm");
@@ -55,7 +60,8 @@ export class NpmInstaller implements SkillInstaller {
     try {
       await this.fetchAndExtract(pkg, tmpDir, registry);
       const extractedDir = path.join(tmpDir, "package");
-      const src = resolveSkillSource(extractedDir, skillName);
+      const skillPath = await findSkillPath(extractedDir, skillName);
+      const src = resolveSkillSource(extractedDir, skillPath);
       const destName = deriveInstallName(skillName, sourceRef);
       const dest = path.join(targetDir, destName);
       await cp(src, dest, { recursive: true });

@@ -22,7 +22,7 @@ import { ClawhubInstaller } from "./installers/clawhub";
 import { GitInstaller } from "./installers/git";
 import { NpmInstaller } from "./installers/npm";
 import { PrebuiltInstaller } from "./installers/prebuilt";
-import { deriveInstallName, scanInstalledSkills } from "./skill-utils";
+import { deriveInstallName, scanInstalledSkills, stripSourceVersion } from "./skill-utils";
 
 const GLOBAL_SKILLS_DIR = path.join(homedir(), ".claude", "skills");
 const INSTALL_META_FILE = ".neovate-install.json";
@@ -105,10 +105,18 @@ export class SkillsService {
     log("recommended: registry returned %d items", registry.length);
     const installed = await this.list("all");
     const installedDirNames = new Set(installed.map((s) => s.dirName));
+    const installedSources = new Set(
+      installed
+        .map((s) => s.installedFrom)
+        .filter((ref): ref is string => !!ref)
+        .map((ref) => stripSourceVersion(ref)),
+    );
 
     const result = registry.map((skill) => ({
       ...skill,
-      installed: installedDirNames.has(skill.skillName),
+      installed:
+        installedDirNames.has(skill.skillName) ||
+        installedSources.has(stripSourceVersion(skill.sourceRef)),
     }));
     log("recommended: returning %d items", result.length);
     return result;
