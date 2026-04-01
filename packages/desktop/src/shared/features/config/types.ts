@@ -39,6 +39,10 @@ export type AppConfig = {
   keybindings: Record<string, string>;
 
   // Skills
-  skillsRegistryUrls: string[];
+  skillsRegistries: SkillsRegistry[];
   npmRegistry: string;
+};
+
+export type SkillsRegistry = {
+  url: string;
 };

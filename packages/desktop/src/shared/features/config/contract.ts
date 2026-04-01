@@ -65,8 +65,8 @@ export const configContract = {
         z.object({ key: z.literal("preWarmSessions"), value: booleanValueSchema }),
         z.object({ key: z.literal("sidebarSortBy"), value: sidebarSortByValueSchema }),
         z.object({
-          key: z.literal("skillsRegistryUrls"),
-          value: z.array(z.string().url()),
+          key: z.literal("skillsRegistries"),
+          value: z.array(z.object({ url: z.string().url() })),
         }),
         z.object({
           key: z.literal("npmRegistry"),

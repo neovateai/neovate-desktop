@@ -52,7 +52,7 @@ const DEFAULT_CONFIG: AppConfig = {
   keybindings: {},
 
   // Skills
-  skillsRegistryUrls: [],
+  skillsRegistries: [],
   npmRegistry: "",
 };
 
