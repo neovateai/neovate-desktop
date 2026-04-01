@@ -684,7 +684,7 @@ export class PluginsService {
 
     return manifest.plugins.map((p) => {
       const pluginId = `${p.name}@${marketplace}`;
-      const isInstalled = !!installed.plugins[pluginId]?.length;
+      const entries = installed.plugins[pluginId] ?? [];
       return {
         name: p.name,
         description: p.description,
@@ -694,8 +694,11 @@ export class PluginsService {
         version: p.version,
         keywords: p.keywords,
         marketplace,
-        installed: isInstalled,
-        enabled: isInstalled ? enabledMap[pluginId] !== false : undefined,
+        installedScopes: entries.map((e) => ({
+          scope: e.scope as "user" | "project" | "local",
+          projectPath: e.projectPath,
+        })),
+        enabled: entries.length > 0 ? enabledMap[pluginId] !== false : undefined,
       };
     });
   }

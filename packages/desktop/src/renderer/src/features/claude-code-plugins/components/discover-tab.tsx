@@ -127,7 +127,7 @@ export const DiscoverTab = ({
                 <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0">
                   {initials}
                 </div>
-                {plugin.installed ? (
+                {plugin.installedScopes.length > 0 ? (
                   <Badge variant="secondary" size="sm">
                     Installed
                   </Badge>

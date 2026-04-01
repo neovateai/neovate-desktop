@@ -1,6 +1,6 @@
 import debug from "debug";
-import { AlertTriangle, ArrowUpCircle, ExternalLink, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertTriangle, ArrowUpCircle, Check, ExternalLink, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   InstalledPlugin,
@@ -60,6 +60,28 @@ export const PluginDetailModal = ({
   const [updating, setUpdating] = useState(false);
   const [installTarget, setInstallTarget] = useState<string>("user");
   const [projectScope, setProjectScope] = useState<"project" | "local">("project");
+
+  const selectedScope = installTarget === "user" ? "user" : projectScope;
+  const selectedProjectPath = installTarget === "user" ? undefined : installTarget;
+
+  const isAlreadyInstalled = useMemo(() => {
+    if (!marketplacePlugin) return false;
+    return marketplacePlugin.installedScopes.some(
+      (s) => s.scope === selectedScope && s.projectPath === selectedProjectPath,
+    );
+  }, [marketplacePlugin, selectedScope, selectedProjectPath]);
+
+  const installedScopeLabels = useMemo(() => {
+    if (!marketplacePlugin) return [];
+    return marketplacePlugin.installedScopes.map((s) => {
+      if (s.scope === "user") return "User (global)";
+      const projectName =
+        projects.find((p) => p.path === s.projectPath)?.name ??
+        s.projectPath?.split("/").pop() ??
+        "unknown";
+      return `${projectName} (${s.scope === "project" ? "shared" : "local"})`;
+    });
+  }, [marketplacePlugin, projects]);
 
   useEffect(() => {
     if (!installedPlugin) return;
@@ -125,22 +147,20 @@ export const PluginDetailModal = ({
   };
 
   const handleInstall = async () => {
-    if (!marketplacePlugin) return;
-    const scope = installTarget === "user" ? "user" : projectScope;
-    const targetProjectPath = installTarget === "user" ? undefined : installTarget;
+    if (!marketplacePlugin || isAlreadyInstalled) return;
     log(
       "installing plugin: %s scope=%s projectPath=%s",
       marketplacePlugin.name,
-      scope,
-      targetProjectPath,
+      selectedScope,
+      selectedProjectPath,
     );
     setInstalling(true);
     try {
       await client.plugins.install({
         pluginName: marketplacePlugin.name,
         marketplace: marketplacePlugin.marketplace,
-        scope,
-        projectPath: targetProjectPath,
+        scope: selectedScope,
+        projectPath: selectedProjectPath,
       });
       await onRefresh();
       onClose();
@@ -321,44 +341,58 @@ export const PluginDetailModal = ({
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-end gap-2 w-full">
-              <Select value={installTarget} onValueChange={(v) => v && setInstallTarget(v)}>
-                <SelectTrigger size="sm" className="w-36">
-                  <SelectValue>
-                    {installTarget === "user"
-                      ? "User (global)"
-                      : (projects.find((p) => p.path === installTarget)?.name ?? installTarget)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectPopup>
-                  <SelectItem value="user">User (global)</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.path}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectPopup>
-              </Select>
-              {installTarget !== "user" && (
-                <Select
-                  value={projectScope}
-                  onValueChange={(v) => v && setProjectScope(v as "project" | "local")}
-                >
-                  <SelectTrigger size="sm" className="w-28">
+            <div className="flex flex-col gap-2 w-full">
+              {installedScopeLabels.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Already installed: {installedScopeLabels.join(", ")}
+                </p>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <Select value={installTarget} onValueChange={(v) => v && setInstallTarget(v)}>
+                  <SelectTrigger size="sm" className="w-36">
                     <SelectValue>
-                      {projectScope === "project" ? "Shared" : "Local only"}
+                      {installTarget === "user"
+                        ? "User (global)"
+                        : (projects.find((p) => p.path === installTarget)?.name ?? installTarget)}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectPopup>
-                    <SelectItem value="project">Shared</SelectItem>
-                    <SelectItem value="local">Local only</SelectItem>
+                    <SelectItem value="user">User (global)</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.path}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                   </SelectPopup>
                 </Select>
-              )}
-              <Button variant="default" size="sm" onClick={handleInstall} disabled={installing}>
-                {installing ? <Spinner className="size-3.5" /> : null}
-                {installing ? "Installing..." : "Install"}
-              </Button>
+                {installTarget !== "user" && (
+                  <Select
+                    value={projectScope}
+                    onValueChange={(v) => v && setProjectScope(v as "project" | "local")}
+                  >
+                    <SelectTrigger size="sm" className="w-28">
+                      <SelectValue>
+                        {projectScope === "project" ? "Shared" : "Local only"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectPopup>
+                      <SelectItem value="project">Shared</SelectItem>
+                      <SelectItem value="local">Local only</SelectItem>
+                    </SelectPopup>
+                  </Select>
+                )}
+                {isAlreadyInstalled ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Check className="size-3.5" />
+                    Installed
+                  </Button>
+                ) : (
+                  <Button variant="default" size="sm" onClick={handleInstall} disabled={installing}>
+                    {installing ? <Spinner className="size-3.5" /> : null}
+                    {installing ? "Installing..." : "Install"}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </DialogFooter>

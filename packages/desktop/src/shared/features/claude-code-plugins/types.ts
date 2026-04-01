@@ -29,7 +29,10 @@ export interface MarketplacePlugin {
   version?: string;
   keywords?: string[];
   marketplace: string;
-  installed: boolean;
+  installedScopes: Array<{
+    scope: "user" | "project" | "local";
+    projectPath?: string;
+  }>;
   enabled?: boolean;
 }
 
