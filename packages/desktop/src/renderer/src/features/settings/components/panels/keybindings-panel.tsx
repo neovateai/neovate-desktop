@@ -20,6 +20,7 @@ const log = debug("neovate:settings:keybindings");
 const KEYBINDING_ACTIONS: KeybindingAction[] = [
   "openSettings",
   "newChat",
+  "quickChat",
   "toggleSidebar",
   "toggleChanges",
   "toggleTerminal",
