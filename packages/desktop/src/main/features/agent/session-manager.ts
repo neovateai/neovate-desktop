@@ -29,6 +29,8 @@ import type {
   RewindFilesResult,
   SessionInfo,
 } from "../../../shared/features/agent/types";
+import type { Contribution } from "../../core/plugin/contribution";
+import type { AgentContributions } from "../../core/plugin/contributions";
 
 const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
@@ -126,6 +128,7 @@ export class SessionManager {
     private projectStore: ProjectStore,
     private requestTracker: RequestTracker,
     private powerBlocker: PowerBlockerService,
+    private getAgentContributions: () => Contribution<AgentContributions>[] = () => [],
   ) {}
 
   /** Return all in-memory (active) sessions. */
@@ -506,6 +509,22 @@ export class SessionManager {
       cwd,
       model: opts?.model,
     });
+    // Merge plugin-contributed hooks with built-in hooks (RTK)
+    type HookEventKey = import("@anthropic-ai/claude-agent-sdk").HookEvent;
+    type HookMatcherEntry = import("@anthropic-ai/claude-agent-sdk").HookCallbackMatcher;
+    const mergedHooks: Partial<Record<HookEventKey, HookMatcherEntry[]>> = {};
+    for (const { value } of this.getAgentContributions()) {
+      const hooks = value.claudeCode?.options?.hooks;
+      if (!hooks) continue;
+      for (const [event, matchers] of Object.entries(hooks)) {
+        if (!matchers) continue;
+        (mergedHooks[event as HookEventKey] ??= []).push(...matchers);
+      }
+    }
+    if (registerRtkHook) {
+      (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+    }
+
     const options: Options = {
       ...queryOpts,
       allowDangerouslySkipPermissions: true,
@@ -514,9 +533,7 @@ export class SessionManager {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
-      ...(registerRtkHook
-        ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
-        : {}),
+      hooks: mergedHooks,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
       ...(networkInspector
         ? {

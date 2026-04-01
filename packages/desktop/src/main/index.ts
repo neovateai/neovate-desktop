@@ -65,7 +65,13 @@ process.on("unhandledRejection", (reason) => {
 });
 const requestTracker = new RequestTracker();
 const powerBlocker = new PowerBlockerService(configStore);
-const sessionManager = new SessionManager(configStore, projectStore, requestTracker, powerBlocker);
+const sessionManager = new SessionManager(
+  configStore,
+  projectStore,
+  requestTracker,
+  powerBlocker,
+  () => mainApp.pluginManager.contributions.agents,
+);
 const stateStore = new StateStore();
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
