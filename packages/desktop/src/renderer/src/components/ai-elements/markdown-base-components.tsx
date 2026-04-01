@@ -1,8 +1,9 @@
+import type { Element, Text } from "hast";
 import type { ComponentProps, ReactNode } from "react";
 import type { BundledLanguage } from "shiki";
 import type { Components, ExtraProps } from "streamdown";
 
-import { Children, isValidElement } from "react";
+import { isValidElement } from "react";
 
 import { cn } from "../../lib/utils";
 import { CodeBlock } from "./code-block";
@@ -17,6 +18,16 @@ type MarkdownTableProps = ComponentProps<"table"> & ExtraProps;
 
 const isBlockCode = (className?: string) =>
   className?.split(" ").some((token) => token.startsWith("language-")) ?? false;
+
+const extractHastText = (node: Element): string => {
+  return node.children
+    .map((child) => {
+      if (child.type === "text") return (child as Text).value;
+      if (child.type === "element") return extractHastText(child as Element);
+      return "";
+    })
+    .join("");
+};
 
 const extractLanguage = (className?: string): BundledLanguage | null => {
   if (!className) return null;
@@ -41,7 +52,7 @@ const extractCodeContent = (children: ReactNode): string => {
   return "";
 };
 
-function MarkdownLink({ className, children, ...props }: MarkdownAnchorProps) {
+function MarkdownLink({ className, children, node: _, ...props }: MarkdownAnchorProps) {
   return (
     <a
       className={cn("text-primary transition-colors underline-offset-2 hover:underline", className)}
@@ -52,7 +63,7 @@ function MarkdownLink({ className, children, ...props }: MarkdownAnchorProps) {
   );
 }
 
-function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps) {
+function MarkdownInlineCode({ className, children, node: _, ...props }: MarkdownCodeProps) {
   const codeContent = typeof children === "string" ? children : extractCodeContent(children);
 
   // Block code is handled by MarkdownPre, so just render a plain code element here
@@ -85,17 +96,17 @@ function MarkdownInlineCode({ className, children, ...props }: MarkdownCodeProps
   );
 }
 
-function MarkdownPre({ className, children }: MarkdownPreProps) {
-  // Extract code content and language from children
-  const codeElement = Children.toArray(children).find(
-    (child) => isValidElement(child) && child.type === "code",
+function MarkdownPre({ className, children, node: preNode }: MarkdownPreProps) {
+  // Extract code content and language directly from hast node
+  // This avoids dependency on React children (which may be affected by component overrides)
+  const codeNode = preNode?.children?.find(
+    (child): child is Element => child.type === "element" && child.tagName === "code",
   );
 
-  if (isValidElement(codeElement)) {
-    const codeProps = codeElement.props as { className?: string; children?: ReactNode };
-    const codeClassName = codeProps.className;
+  if (codeNode) {
+    const codeClassName = (codeNode.properties?.className as string[] | undefined)?.join(" ");
     const language = extractLanguage(codeClassName) ?? ("text" as BundledLanguage);
-    const codeContent = extractCodeContent(codeProps.children);
+    const codeContent = extractHastText(codeNode);
 
     return (
       <CodeBlock
@@ -112,7 +123,7 @@ function MarkdownPre({ className, children }: MarkdownPreProps) {
   );
 }
 
-function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquoteProps) {
+function MarkdownBlockquote({ className, children, node: _, ...props }: MarkdownBlockquoteProps) {
   return (
     <blockquote
       className={cn(
@@ -126,7 +137,7 @@ function MarkdownBlockquote({ className, children, ...props }: MarkdownBlockquot
   );
 }
 
-function MarkdownTable({ className, children, ...props }: MarkdownTableProps) {
+function MarkdownTable({ className, children, node: _, ...props }: MarkdownTableProps) {
   return (
     <div className="my-4 overflow-x-auto first:mt-0 last:mb-0" data-markdown-table-wrapper="true">
       <table className={cn("w-full border-collapse text-sm", className)} {...props}>
@@ -136,7 +147,7 @@ function MarkdownTable({ className, children, ...props }: MarkdownTableProps) {
   );
 }
 
-function MarkdownImage({ className, alt, ...props }: MarkdownImageProps) {
+function MarkdownImage({ className, alt, node: _, ...props }: MarkdownImageProps) {
   return (
     <img
       alt={alt}
@@ -147,7 +158,7 @@ function MarkdownImage({ className, alt, ...props }: MarkdownImageProps) {
   );
 }
 
-function MarkdownInput({ className, type, ...props }: MarkdownInputProps) {
+function MarkdownInput({ className, type, node: _, ...props }: MarkdownInputProps) {
   if (type !== "checkbox") {
     return <input className={className} type={type} {...props} />;
   }
@@ -165,12 +176,12 @@ function MarkdownInput({ className, type, ...props }: MarkdownInputProps) {
 }
 
 export const markdownBaseComponents: Components = {
-  p: ({ className, children, ...props }) => (
+  p: ({ className, children, node: _, ...props }) => (
     <p className={cn("my-4 text-sm leading-relaxed first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </p>
   ),
-  h1: ({ className, children, ...props }) => (
+  h1: ({ className, children, node: _, ...props }) => (
     <h1
       className={cn(
         "mt-6 mb-4 text-base font-semibold leading-tight text-foreground first:mt-0",
@@ -181,7 +192,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </h1>
   ),
-  h2: ({ className, children, ...props }) => (
+  h2: ({ className, children, node: _, ...props }) => (
     <h2
       className={cn(
         "mt-5 mb-3 text-sm font-semibold leading-tight text-foreground first:mt-0",
@@ -192,7 +203,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </h2>
   ),
-  h3: ({ className, children, ...props }) => (
+  h3: ({ className, children, node: _, ...props }) => (
     <h3
       className={cn(
         "mt-4 mb-2 text-sm font-medium leading-tight text-foreground first:mt-0",
@@ -203,7 +214,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </h3>
   ),
-  h4: ({ className, children, ...props }) => (
+  h4: ({ className, children, node: _, ...props }) => (
     <h4
       className={cn(
         "mt-4 mb-2 text-sm font-medium leading-tight text-foreground first:mt-0",
@@ -214,7 +225,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </h4>
   ),
-  h5: ({ className, children, ...props }) => (
+  h5: ({ className, children, node: _, ...props }) => (
     <h5
       className={cn(
         "mt-3 mb-2 text-sm font-medium leading-tight text-foreground first:mt-0",
@@ -225,7 +236,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </h5>
   ),
-  h6: ({ className, children, ...props }) => (
+  h6: ({ className, children, node: _, ...props }) => (
     <h6
       className={cn(
         "mt-3 mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground first:mt-0",
@@ -236,12 +247,12 @@ export const markdownBaseComponents: Components = {
       {children}
     </h6>
   ),
-  ul: ({ className, children, ...props }) => (
+  ul: ({ className, children, node: _, ...props }) => (
     <ul className={cn("my-4 list-disc space-y-1 pl-5 first:mt-0 last:mb-0", className)} {...props}>
       {children}
     </ul>
   ),
-  ol: ({ className, children, ...props }) => (
+  ol: ({ className, children, node: _, ...props }) => (
     <ol
       className={cn("my-4 list-decimal space-y-1 pl-5 first:mt-0 last:mb-0", className)}
       {...props}
@@ -249,7 +260,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </ol>
   ),
-  li: ({ className, children, ...props }) => (
+  li: ({ className, children, node: _, ...props }) => (
     <li
       className={cn("text-sm leading-relaxed marker:text-muted-foreground", className)}
       {...props}
@@ -257,20 +268,20 @@ export const markdownBaseComponents: Components = {
       {children}
     </li>
   ),
-  hr: ({ className, ...props }) => (
+  hr: ({ className, node: _, ...props }) => (
     <hr className={cn("my-6 border-border first:mt-0 last:mb-0", className)} {...props} />
   ),
-  strong: ({ className, children, ...props }) => (
+  strong: ({ className, children, node: _, ...props }) => (
     <strong className={cn("font-semibold text-foreground", className)} {...props}>
       {children}
     </strong>
   ),
-  em: ({ className, children, ...props }) => (
+  em: ({ className, children, node: _, ...props }) => (
     <em className={cn("italic", className)} {...props}>
       {children}
     </em>
   ),
-  del: ({ className, children, ...props }) => (
+  del: ({ className, children, node: _, ...props }) => (
     <del className={cn("text-muted-foreground line-through", className)} {...props}>
       {children}
     </del>
@@ -280,22 +291,22 @@ export const markdownBaseComponents: Components = {
   pre: MarkdownPre,
   blockquote: MarkdownBlockquote,
   table: MarkdownTable,
-  thead: ({ className, children, ...props }) => (
+  thead: ({ className, children, node: _, ...props }) => (
     <thead className={cn("bg-muted/40", className)} {...props}>
       {children}
     </thead>
   ),
-  tbody: ({ className, children, ...props }) => (
+  tbody: ({ className, children, node: _, ...props }) => (
     <tbody className={className} {...props}>
       {children}
     </tbody>
   ),
-  tr: ({ className, children, ...props }) => (
+  tr: ({ className, children, node: _, ...props }) => (
     <tr className={cn("align-top", className)} {...props}>
       {children}
     </tr>
   ),
-  th: ({ className, children, ...props }) => (
+  th: ({ className, children, node: _, ...props }) => (
     <th
       className={cn(
         "border-b border-border px-3 py-2 text-left font-medium text-muted-foreground",
@@ -306,7 +317,7 @@ export const markdownBaseComponents: Components = {
       {children}
     </th>
   ),
-  td: ({ className, children, ...props }) => (
+  td: ({ className, children, node: _, ...props }) => (
     <td className={cn("border-b border-border/50 px-3 py-2", className)} {...props}>
       {children}
     </td>
