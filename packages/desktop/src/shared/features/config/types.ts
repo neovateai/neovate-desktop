@@ -19,6 +19,7 @@ export type AppConfig = {
   terminalFontSize: number;
   terminalFont: string;
   developerMode: boolean;
+  showSessionInitStatus: boolean;
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: SidebarOrganize;

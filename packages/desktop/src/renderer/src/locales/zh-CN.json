@@ -49,6 +49,8 @@
   "settings.general.terminalFont": "终端字体",
   "settings.general.terminalFont.description": "终端字体系列（留空使用默认）",
   "settings.general.terminalFont.default": "默认",
+  "settings.general.showSessionInitStatus": "显示会话初始化状态",
+  "settings.general.showSessionInitStatus.description": "在会话列表中显示会话是否已初始化",
   "settings.general.developerMode": "开发者模式",
   "settings.general.developerMode.description": "在聊天输入等位置显示调试信息",
   "settings.general.group.appearance": "外观",

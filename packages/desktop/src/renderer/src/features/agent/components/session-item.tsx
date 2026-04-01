@@ -53,7 +53,7 @@ export const SessionItem = memo(function SessionItem({
   const renameSession = useAgentStore((s) => s.renameSession);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
-  const developerMode = useConfigStore((s) => s.developerMode);
+  const showSessionInitStatus = useConfigStore((s) => s.showSessionInitStatus);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
@@ -126,8 +126,8 @@ export const SessionItem = memo(function SessionItem({
         <div
           className={cn(
             "flex items-center gap-2.5 pl-2.5 pr-3 py-1 cursor-pointer rounded-lg transition-all group",
-            developerMode && "border-l-2",
-            developerMode && (isInitialized ? "border-green-500" : "border-transparent"),
+            showSessionInitStatus && "border-l-2",
+            showSessionInitStatus && (isInitialized ? "border-green-500" : "border-transparent"),
             isActive
               ? "bg-primary/10 text-primary"
               : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",

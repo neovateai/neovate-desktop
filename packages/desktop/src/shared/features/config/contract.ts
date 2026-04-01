@@ -52,6 +52,7 @@ export const configContract = {
         z.object({ key: z.literal("terminalFontSize"), value: terminalFontSizeValueSchema }),
         z.object({ key: z.literal("terminalFont"), value: terminalFontValueSchema }),
         z.object({ key: z.literal("developerMode"), value: booleanValueSchema }),
+        z.object({ key: z.literal("showSessionInitStatus"), value: booleanValueSchema }),
         z.object({ key: z.literal("sendMessageWith"), value: sendMessageWithValueSchema }),
         z.object({ key: z.literal("agentLanguage"), value: agentLanguageValueSchema }),
         z.object({ key: z.literal("permissionMode"), value: permissionModeValueSchema }),

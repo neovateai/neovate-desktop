@@ -25,6 +25,7 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   terminalFontSize: 12,
   terminalFont: "",
   developerMode: false,
+  showSessionInitStatus: false,
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: "byProject",
