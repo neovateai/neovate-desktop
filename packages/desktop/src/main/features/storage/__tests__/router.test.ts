@@ -29,6 +29,7 @@ beforeEach(() => {
     requestTracker: new RequestTracker(),
     configStore: {} as any,
     projectStore: {} as any,
+    pluginsService: {} as any,
     skillsService: {} as any,
     mainApp: {} as any,
     stateStore: {} as any,

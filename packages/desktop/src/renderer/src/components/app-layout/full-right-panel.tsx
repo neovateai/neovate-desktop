@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 
+import { PluginsPanel } from "../../features/plugins/components/plugins-panel";
 import { SkillsPanel } from "../../features/settings/components/panels/skills-panel";
 import { useLayoutStore } from "./store";
 
@@ -37,7 +38,10 @@ export function FullRightPanel() {
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto px-8 pb-12">
-        <div className="mx-auto max-w-3xl">{fullRightPanelId === "skills" && <SkillsPanel />}</div>
+        <div className="mx-auto max-w-3xl">
+          {fullRightPanelId === "skills" && <SkillsPanel />}
+          {fullRightPanelId === "plugins" && <PluginsPanel />}
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import type { IMainApp } from "./core/types";
 import type { RequestTracker } from "./features/agent/request-tracker";
 import type { SessionManager } from "./features/agent/session-manager";
 import type { ConfigStore } from "./features/config/config-store";
+import type { PluginsService } from "./features/plugins/plugins-service";
 import type { ProjectStore } from "./features/project/project-store";
 import type { SkillsService } from "./features/skills/skills-service";
 import type { StateStore } from "./features/state/state-store";
@@ -18,6 +19,7 @@ import { agentRouter } from "./features/agent/router";
 import { configRouter } from "./features/config/router";
 import { deeplinkRouter } from "./features/deeplink/router";
 import { electronRouter } from "./features/electron/router";
+import { pluginsRouter } from "./features/plugins/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
 import { rulesRouter } from "./features/rules/router";
@@ -31,6 +33,7 @@ export type AppContext = {
   requestTracker: RequestTracker;
   configStore: ConfigStore;
   projectStore: ProjectStore;
+  pluginsService: PluginsService;
   skillsService: SkillsService;
   stateStore: StateStore;
   updaterService: UpdaterService;
@@ -52,6 +55,7 @@ export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
     project: projectRouter,
     provider: providerRouter,
     rules: rulesRouter,
+    plugins: pluginsRouter,
     skills: skillsRouter,
     storage: storageRouter,
     updater: updaterRouter,
