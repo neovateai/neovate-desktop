@@ -9,6 +9,7 @@ import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
 import { rulesContract } from "./features/rules/contract";
 import { skillsContract } from "./features/skills/contract";
+import { statsContract } from "./features/stats/contract";
 import { storageContract } from "./features/storage/contract";
 import { updaterContract } from "./features/updater/contract";
 import { utilsContract } from "./features/utils/contract";
@@ -25,6 +26,7 @@ export const contract = {
   provider: providerContract,
   rules: rulesContract,
   skills: skillsContract,
+  stats: statsContract,
   storage: storageContract,
   updater: updaterContract,
   utils: utilsContract,

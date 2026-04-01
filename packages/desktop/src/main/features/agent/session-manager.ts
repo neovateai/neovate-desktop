@@ -495,9 +495,10 @@ export class SessionManager {
       }
     };
 
-    // Network inspector: conditionally inject fetch interceptor via --preload
-    const networkInspector = this.configStore.get("networkInspector") === true;
-    if (networkInspector) {
+    // Network inspector UI is controlled by networkInspector setting,
+    // but we always inject the interceptor to collect usage stats
+    const networkInspectorUI = this.configStore.get("networkInspector") === true;
+    if (networkInspectorUI) {
       this.requestTracker.markInspectorEnabled(sessionId);
     }
 
@@ -518,74 +519,63 @@ export class SessionManager {
         ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
         : {}),
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
-      ...(networkInspector
-        ? {
-            spawnClaudeCodeProcess: (
-              spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions,
-            ) => {
-              const interceptorPath = resolveInterceptorPath();
+      // Always inject fetch interceptor to collect usage stats for Token Statistics
+      spawnClaudeCodeProcess: (
+        spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions,
+      ) => {
+        const interceptorPath = resolveInterceptorPath();
+        log("spawnClaudeCodeProcess: interceptor=%s sessionId=%s", interceptorPath, sessionId);
+
+        const child = spawn(spawnOpts.command, ["--preload", interceptorPath, ...spawnOpts.args], {
+          cwd: spawnOpts.cwd,
+          env: {
+            ...spawnOpts.env,
+            NV_SESSION_ID: sessionId,
+            ...(settingsEnv?.ANTHROPIC_BASE_URL
+              ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
+              : {}),
+          },
+          signal: spawnOpts.signal,
+          stdio: ["pipe", "pipe", "pipe", "pipe"],
+        });
+
+        // Read interceptor data from fd 3 (dedicated IPC pipe)
+        let interceptorReady = false;
+        const ipcStream = child.stdio[3];
+        if (ipcStream && "on" in ipcStream) {
+          const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
+          rl.on("line", (line: string) => {
+            if (line === "__NV_READY") {
+              interceptorReady = true;
+              log("interceptor ready: sessionId=%s", sessionId);
+              return;
+            }
+            if (!line.startsWith("__NV_REQ:")) {
+              log("interceptor fd3 unknown line: %s", line.slice(0, 100));
+              return;
+            }
+            try {
+              const msg = JSON.parse(line.slice("__NV_REQ:".length));
+              this.requestTracker.onMessage(sessionId, msg);
+            } catch (err) {
               log(
-                "spawnClaudeCodeProcess: interceptor=%s sessionId=%s",
-                interceptorPath,
-                sessionId,
+                "interceptor fd3 parse error: %s line=%s",
+                err instanceof Error ? err.message : err,
+                line.slice(0, 200),
               );
+            }
+          });
+        }
 
-              const child = spawn(
-                spawnOpts.command,
-                ["--preload", interceptorPath, ...spawnOpts.args],
-                {
-                  cwd: spawnOpts.cwd,
-                  env: {
-                    ...spawnOpts.env,
-                    NV_SESSION_ID: sessionId,
-                    ...(settingsEnv?.ANTHROPIC_BASE_URL
-                      ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
-                      : {}),
-                  },
-                  signal: spawnOpts.signal,
-                  stdio: ["pipe", "pipe", "pipe", "pipe"],
-                },
-              );
-
-              // Read interceptor data from fd 3 (dedicated IPC pipe)
-              let interceptorReady = false;
-              const ipcStream = child.stdio[3];
-              if (ipcStream && "on" in ipcStream) {
-                const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
-                rl.on("line", (line: string) => {
-                  if (line === "__NV_READY") {
-                    interceptorReady = true;
-                    log("interceptor ready: sessionId=%s", sessionId);
-                    return;
-                  }
-                  if (!line.startsWith("__NV_REQ:")) {
-                    log("interceptor fd3 unknown line: %s", line.slice(0, 100));
-                    return;
-                  }
-                  try {
-                    const msg = JSON.parse(line.slice("__NV_REQ:".length));
-                    this.requestTracker.onMessage(sessionId, msg);
-                  } catch (err) {
-                    log(
-                      "interceptor fd3 parse error: %s line=%s",
-                      err instanceof Error ? err.message : err,
-                      line.slice(0, 200),
-                    );
-                  }
-                });
-              }
-
-              setTimeout(() => {
-                if (!interceptorReady) {
-                  log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
-                  this.requestTracker.markInspectorFailed(sessionId);
-                }
-              }, 5000);
-
-              return child;
-            },
+        setTimeout(() => {
+          if (!interceptorReady) {
+            log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
+            this.requestTracker.markInspectorFailed(sessionId);
           }
-        : {}),
+        }, 5000);
+
+        return child;
+      },
     };
 
     const { query } = await import("@anthropic-ai/claude-agent-sdk");

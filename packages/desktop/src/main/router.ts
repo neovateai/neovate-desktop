@@ -22,6 +22,7 @@ import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
 import { rulesRouter } from "./features/rules/router";
 import { skillsRouter } from "./features/skills/router";
+import { statsRouter } from "./features/stats/router";
 import { storageRouter } from "./features/storage/router";
 import { updaterRouter } from "./features/updater/router";
 import { utilsRouter } from "./features/utils/router";
@@ -53,6 +54,7 @@ export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
     provider: providerRouter,
     rules: rulesRouter,
     skills: skillsRouter,
+    stats: statsRouter,
     storage: storageRouter,
     updater: updaterRouter,
     utils: utilsRouter,

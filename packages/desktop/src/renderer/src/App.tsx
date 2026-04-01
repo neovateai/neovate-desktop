@@ -21,12 +21,15 @@ import { useSettingsStore } from "./features/settings";
 import { SettingsPage } from "./features/settings/components/settings-page";
 import { UpdaterToast } from "./features/updater/updater-toast";
 import { useGlobalKeybindings } from "./hooks/use-global-keybindings";
+import { StatsPage } from "./plugins/stats/stats-page";
+import { useStatsStore } from "./plugins/stats/store";
 
 const Playground = import.meta.env.DEV ? lazy(() => import("./dev/playground")) : null;
 
 export default function App() {
   useGlobalKeybindings();
   const showSettings = useSettingsStore((state) => state.showSettings);
+  const showStats = useStatsStore((state) => state.showStats);
   const developerMode = useConfigStore((s) => s.developerMode);
 
   // TODO: refactor with 统一的埋点体系, replace raw CustomEvent dispatching
@@ -59,7 +62,7 @@ export default function App() {
   return (
     <>
       <AppLayoutRoot>
-        {!showSettings && <AppLayoutTrafficLights />}
+        {!showSettings && !showStats && <AppLayoutTrafficLights />}
 
         <AppLayoutPrimarySidebar>
           <div className="flex h-full flex-col">
@@ -92,7 +95,8 @@ export default function App() {
         <UpdaterToast />
       </AppLayoutRoot>
 
-      {showSettings && <SettingsPage />}
+      {showSettings && !showStats && <SettingsPage />}
+      {showStats && <StatsPage />}
     </>
   );
 }
