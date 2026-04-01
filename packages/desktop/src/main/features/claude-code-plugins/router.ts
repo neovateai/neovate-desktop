@@ -3,7 +3,7 @@ import debug from "debug";
 
 import type { AppContext } from "../../router";
 
-import { pluginsContract } from "../../../shared/features/plugins/contract";
+import { pluginsContract } from "../../../shared/features/claude-code-plugins/contract";
 
 const log = debug("neovate:plugins:router");
 

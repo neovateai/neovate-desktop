@@ -2,10 +2,10 @@ import { oc, type } from "@orpc/contract";
 import { z } from "zod";
 
 import { agentContract } from "./features/agent/contract";
+import { pluginsContract } from "./features/claude-code-plugins/contract";
 import { configContract } from "./features/config/contract";
 import { deeplinkContract } from "./features/deeplink/contract";
 import { electronContract } from "./features/electron/contract";
-import { pluginsContract } from "./features/plugins/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
 import { rulesContract } from "./features/rules/contract";

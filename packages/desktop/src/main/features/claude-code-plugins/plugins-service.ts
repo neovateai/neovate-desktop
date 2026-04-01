@@ -11,7 +11,7 @@ import type {
   PluginComponents,
   PluginError,
   PluginUpdate,
-} from "../../../shared/features/plugins/types";
+} from "../../../shared/features/claude-code-plugins/types";
 
 import { gitClone, gitCloneSubdir, gitGetHeadSha, gitPull } from "./git-utils";
 

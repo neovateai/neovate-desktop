@@ -2,7 +2,7 @@ import debug from "debug";
 import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import type { Marketplace } from "../../../../../shared/features/plugins/types";
+import type { Marketplace } from "../../../../../shared/features/claude-code-plugins/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";

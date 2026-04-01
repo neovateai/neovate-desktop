@@ -1,7 +1,10 @@
 import { Download, Plus } from "lucide-react";
 import { useState } from "react";
 
-import type { Marketplace, MarketplacePlugin } from "../../../../../shared/features/plugins/types";
+import type {
+  Marketplace,
+  MarketplacePlugin,
+} from "../../../../../shared/features/claude-code-plugins/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";

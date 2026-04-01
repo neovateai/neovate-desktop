@@ -2,7 +2,10 @@ import debug from "debug";
 import { ArrowUpCircle, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
-import type { InstalledPlugin, PluginUpdate } from "../../../../../shared/features/plugins/types";
+import type {
+  InstalledPlugin,
+  PluginUpdate,
+} from "../../../../../shared/features/claude-code-plugins/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";

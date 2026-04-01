@@ -6,7 +6,7 @@ import type {
   InstalledPlugin,
   MarketplacePlugin,
   PluginUpdate,
-} from "../../../../../shared/features/plugins/types";
+} from "../../../../../shared/features/claude-code-plugins/types";
 
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";

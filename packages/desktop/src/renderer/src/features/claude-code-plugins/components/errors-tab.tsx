@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 
-import type { PluginError } from "../../../../../shared/features/plugins/types";
+import type { PluginError } from "../../../../../shared/features/claude-code-plugins/types";
 
 import { Badge } from "../../../components/ui/badge";
 
