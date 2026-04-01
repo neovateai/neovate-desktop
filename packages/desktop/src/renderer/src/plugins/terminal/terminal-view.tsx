@@ -12,10 +12,11 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "@xterm/xterm/css/xterm.css";
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
-import { usePluginContext } from "../../core/app";
+import { usePluginContext, useRendererApp } from "../../core/app";
 import { useConfigStore } from "../../features/config/store";
 import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
+import { findFilePathsInText } from "../../lib/filepath";
 
 const log = debug("neovate:terminal");
 
@@ -76,6 +77,7 @@ export default function TerminalView() {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const { orpcClient } = usePluginContext();
+  const app = useRendererApp();
   const { resolvedTheme } = useTheme();
 
   const xtermRef = useRef<Terminal | null>(null);
@@ -155,6 +157,43 @@ export default function TerminalView() {
     fitAddonRef.current = fitAddon;
     xterm.loadAddon(fitAddon);
     xterm.loadAddon(new WebLinksAddon(openLink));
+
+    // File path link detection — opens clickable file paths in the editor
+    const filePathLinkDisposable = xterm.registerLinkProvider({
+      provideLinks(bufferLineNumber, callback) {
+        const line = xterm.buffer.active.getLine(bufferLineNumber - 1);
+        if (!line) {
+          callback(undefined);
+          return;
+        }
+        const lineText = line.translateToString();
+        const matches = findFilePathsInText(lineText);
+        if (matches.length === 0) {
+          callback(undefined);
+          return;
+        }
+        callback(
+          matches.map((m) => ({
+            range: {
+              start: { x: m.start + 1, y: bufferLineNumber },
+              end: { x: m.end, y: bufferLineNumber },
+            },
+            text: m.path,
+            activate: () => {
+              let resource = m.path;
+              if (resource.startsWith("~/")) {
+                resource = resource.replace(/^~/, window.api.homedir);
+              }
+              if (m.line != null) {
+                resource = `${resource}:${m.line}`;
+              }
+              app.opener.open(resource);
+            },
+          })),
+        );
+      },
+    });
+
     xterm.open(container);
     fitAddon.fit();
 
@@ -272,6 +311,7 @@ export default function TerminalView() {
       clearTimeout(resizeTimer);
       clearTimeout(searchTimerRef.current);
       resultsDisposable.dispose();
+      filePathLinkDisposable.dispose();
       observer.disconnect();
       if (sessionId) client.terminal.kill({ sessionId });
       xterm.dispose();

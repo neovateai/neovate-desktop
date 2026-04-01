@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isFilePath, parseFilePath } from "../filepath";
+import { findFilePathsInText, isFilePath, parseFilePath } from "../filepath";
 
 describe("isFilePath", () => {
   it.each([
@@ -82,5 +82,62 @@ describe("parseFilePath", () => {
 
   it("returns null for non-file-path", () => {
     expect(parseFilePath("useState()")).toBeNull();
+  });
+});
+
+describe("findFilePathsInText", () => {
+  it("finds absolute path in text", () => {
+    expect(findFilePathsInText("Error: /src/main.ts:42")).toEqual([
+      { path: "/src/main.ts", line: 42, start: 7, end: 22 },
+    ]);
+  });
+
+  it("finds home-relative path", () => {
+    expect(findFilePathsInText("file ~/docs/readme.md modified")).toEqual([
+      { path: "~/docs/readme.md", start: 5, end: 21 },
+    ]);
+  });
+
+  it("finds path with line and col", () => {
+    expect(findFilePathsInText("at /src/app.tsx:10:5")).toEqual([
+      { path: "/src/app.tsx", line: 10, col: 5, start: 3, end: 20 },
+    ]);
+  });
+
+  it("finds multiple paths in one line", () => {
+    const result = findFilePathsInText("/src/a.ts and /src/b.ts");
+    expect(result).toHaveLength(2);
+    expect(result[0].path).toBe("/src/a.ts");
+    expect(result[1].path).toBe("/src/b.ts");
+  });
+
+  it("skips paths inside URLs", () => {
+    expect(findFilePathsInText("visit https://example.com/path.html")).toEqual([]);
+  });
+
+  it("skips paths preceded by word character", () => {
+    expect(findFilePathsInText("word/path/file.ts")).toEqual([]);
+  });
+
+  it("finds path after delimiter", () => {
+    expect(findFilePathsInText("(/src/file.ts)")).toEqual([
+      { path: "/src/file.ts", start: 1, end: 13 },
+    ]);
+  });
+
+  it("finds .env files", () => {
+    expect(findFilePathsInText("loaded /app/.env.local")).toEqual([
+      { path: "/app/.env.local", start: 7, end: 22 },
+    ]);
+  });
+
+  it("finds path at start of line", () => {
+    expect(findFilePathsInText("/src/index.ts:1")).toEqual([
+      { path: "/src/index.ts", line: 1, start: 0, end: 15 },
+    ]);
+  });
+
+  it("returns empty for no paths", () => {
+    expect(findFilePathsInText("just some text")).toEqual([]);
   });
 });
