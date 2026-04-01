@@ -27,8 +27,12 @@ import type {
   ActiveSessionInfo,
   ModelScope,
   RewindFilesResult,
+  RewindResult,
   SessionInfo,
 } from "../../../shared/features/agent/types";
+import type { Contributions } from "../../core/plugin/contributions";
+
+import { mergeAgentHooks } from "../../core/plugin/contributions";
 
 const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
@@ -111,6 +115,8 @@ export class SessionManager {
       providerId?: string;
       lastUserMessageId?: string;
       preTurnRef?: string;
+      /** Maps UI message IDs to SDK UUIDs for rewind. */
+      uiToSdkMessageIds: Map<string, string>;
       pendingRequests: Map<
         string,
         {
@@ -126,6 +132,7 @@ export class SessionManager {
     private projectStore: ProjectStore,
     private requestTracker: RequestTracker,
     private powerBlocker: PowerBlockerService,
+    private getAgentContributions: () => Contributions["agents"] = () => [],
   ) {}
 
   /** Return all in-memory (active) sessions. */
@@ -506,6 +513,12 @@ export class SessionManager {
       cwd,
       model: opts?.model,
     });
+    // Merge plugin-contributed hooks with built-in hooks (RTK)
+    const mergedHooks = mergeAgentHooks(this.getAgentContributions());
+    if (registerRtkHook) {
+      (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+    }
+
     const options: Options = {
       ...queryOpts,
       allowDangerouslySkipPermissions: true,
@@ -514,9 +527,7 @@ export class SessionManager {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
-      ...(registerRtkHook
-        ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
-        : {}),
+      hooks: mergedHooks,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
       ...(networkInspector
         ? {
@@ -595,6 +606,7 @@ export class SessionManager {
       query: q,
       cwd,
       providerId: provider?.id,
+      uiToSdkMessageIds: new Map(),
       pendingRequests,
     });
     return q.initializationResult();
@@ -768,6 +780,120 @@ export class SessionManager {
     }
   }
 
+  /** Resolve a UI message ID to the SDK UUID used for rewind operations. */
+  private resolveSdkMessageId(
+    session: { uiToSdkMessageIds: Map<string, string> },
+    uiMessageId: string,
+  ): string {
+    return session.uiToSdkMessageIds.get(uiMessageId) ?? uiMessageId;
+  }
+
+  /** Dry-run: get the list of files that would change if we rewound to this message. */
+  async rewindFilesDryRun(sessionId: string, messageId: string): Promise<RewindFilesResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const sdkMessageId = this.resolveSdkMessageId(session, messageId);
+    try {
+      return await session.query.rewindFiles(sdkMessageId, { dryRun: true });
+    } catch (error) {
+      return {
+        canRewind: false,
+        error: error instanceof Error ? error.message : "Failed to get rewind files",
+      };
+    }
+  }
+
+  /**
+   * Rewind to a specific user message: optionally restore files, then fork the
+   * conversation so the SDK's in-memory state matches the truncated history.
+   */
+  async rewindToMessage(
+    sessionId: string,
+    messageId: string,
+    restoreFiles: boolean,
+    title?: string,
+  ): Promise<RewindResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const sdkMessageId = this.resolveSdkMessageId(session, messageId);
+
+    // 1. Restore files if requested (on the ORIGINAL session, which has file history)
+    if (restoreFiles) {
+      await session.query.rewindFiles(sdkMessageId, { dryRun: false });
+    }
+
+    // 2. Resolve the message immediately before the target for the fork point
+    const prevMessageId = await this.findPrevMessageId(sessionId, sdkMessageId);
+
+    // 3. Fork the conversation
+    const { forkSession } = await import("@anthropic-ai/claude-agent-sdk");
+    let forkedSessionId: string;
+    if (prevMessageId) {
+      const result = await forkSession(sessionId, {
+        upToMessageId: prevMessageId,
+        dir: session.cwd,
+        title,
+      });
+      forkedSessionId = result.sessionId;
+    } else {
+      // Rewinding to first message — create a fresh session
+      const result = await this.createSession(session.cwd);
+      forkedSessionId = result.sessionId;
+    }
+
+    // 4. Close original session's Query (keep .jsonl on disk)
+    await this.closeSession(sessionId);
+
+    log(
+      "rewindToMessage: original=%s forked=%s restoreFiles=%s",
+      sessionId,
+      forkedSessionId,
+      restoreFiles,
+    );
+
+    return { forkedSessionId, originalSessionId: sessionId };
+  }
+
+  /** Delete a session's .jsonl file from disk. */
+  async deleteSessionFile(sessionId: string): Promise<void> {
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
+    if (matches.length === 0) {
+      log("deleteSessionFile: no file found for sessionId=%s", sessionId);
+      return;
+    }
+    const { unlink } = await import("node:fs/promises");
+    for (const file of matches) {
+      try {
+        await unlink(file);
+        log("deleteSessionFile: deleted %s", file);
+      } catch (error) {
+        log(
+          "deleteSessionFile: failed to delete %s error=%s",
+          file,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Find the SDK UUID of the message immediately before the target in the
+   * session transcript. Returns undefined if the target is the first message.
+   */
+  private async findPrevMessageId(
+    sessionId: string,
+    targetMessageId: string,
+  ): Promise<string | undefined> {
+    const { getSessionMessages } = await import("@anthropic-ai/claude-agent-sdk");
+    const messages = await getSessionMessages(sessionId);
+    let prevUuid: string | undefined;
+    for (const msg of messages) {
+      if (msg.uuid === targetMessageId) return prevUuid;
+      prevUuid = msg.uuid;
+    }
+    return undefined;
+  }
+
   /**
    * Stream a user message as UIMessageChunks.
    * Events from the SDK are routed to the event publisher.
@@ -831,6 +957,10 @@ export class SessionManager {
 
     const userMessageId = randomUUID();
     session.lastUserMessageId = userMessageId;
+    // Track UI message ID → SDK UUID mapping for rewind
+    if (message.id) {
+      session.uiToSdkMessageIds.set(message.id, userMessageId);
+    }
 
     this.requestTracker.startTurn(sessionId);
     this.powerBlocker.onTurnStart(sessionId);

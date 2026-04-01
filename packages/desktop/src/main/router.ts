@@ -7,6 +7,7 @@ import type { StorageService } from "./core/storage-service";
 import type { IMainApp } from "./core/types";
 import type { RequestTracker } from "./features/agent/request-tracker";
 import type { SessionManager } from "./features/agent/session-manager";
+import type { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import type { ConfigStore } from "./features/config/config-store";
 import type { ProjectStore } from "./features/project/project-store";
 import type { SkillsService } from "./features/skills/skills-service";
@@ -15,6 +16,7 @@ import type { UpdaterService } from "./features/updater/service";
 
 import { contract } from "../shared/contract";
 import { agentRouter } from "./features/agent/router";
+import { pluginsRouter } from "./features/claude-code-plugins/router";
 import { configRouter } from "./features/config/router";
 import { deeplinkRouter } from "./features/deeplink/router";
 import { electronRouter } from "./features/electron/router";
@@ -31,6 +33,7 @@ export type AppContext = {
   requestTracker: RequestTracker;
   configStore: ConfigStore;
   projectStore: ProjectStore;
+  pluginsService: PluginsService;
   skillsService: SkillsService;
   stateStore: StateStore;
   updaterService: UpdaterService;
@@ -52,6 +55,7 @@ export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
     project: projectRouter,
     provider: providerRouter,
     rules: rulesRouter,
+    plugins: pluginsRouter,
     skills: skillsRouter,
     storage: storageRouter,
     updater: updaterRouter,

@@ -20,7 +20,7 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   themeStyle: "default",
   locale: "en-US",
   runOnStartup: false,
-  multiProjectSupport: false,
+  multiProjectSupport: true,
   appFontSize: 15,
   terminalFontSize: 12,
   terminalFont: "",

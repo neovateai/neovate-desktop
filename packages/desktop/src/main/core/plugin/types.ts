@@ -5,6 +5,7 @@ import { os } from "@orpc/server";
 import type { DeeplinkHandler } from "../deeplink/types";
 import type { IShellService } from "../shell-service";
 import type { IMainApp } from "../types";
+import type { AgentContributions } from "./contributions";
 
 /**
  * Context provided to plugins. Organized by layer:
@@ -26,6 +27,7 @@ export interface PluginContext {
 
 export interface PluginContributions {
   router?: AnyRouter;
+  agents?: AgentContributions;
   deeplinkHandler?: DeeplinkHandler;
 }
 

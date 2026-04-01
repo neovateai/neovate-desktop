@@ -140,6 +140,7 @@
   "settings.keybindings.closeSettings": "关闭设置",
   "settings.keybindings.toggleTheme": "切换主题",
   "settings.keybindings.clearTerminal": "清空终端",
+  "settings.keybindings.openCommandPalette": "命令面板",
   "settings.keybindings.prevSession": "上一个会话",
   "settings.keybindings.nextSession": "下一个会话",
   "settings.keybindings.copyPath": "复制路径",
@@ -446,5 +447,15 @@
 
   "chat.context.title": "上下文窗口",
   "chat.context.used": "已使用",
-  "chat.context.total": "总容量"
+  "chat.context.total": "总容量",
+
+  "chat.rewind.tooltip": "回退到此处",
+  "chat.rewind.conversationOnly": "仅恢复对话",
+  "chat.rewind.codeAndConversation": "恢复代码和对话",
+  "chat.rewind.loading": "正在检查文件变更...",
+  "chat.rewind.filesSummary": "{{count}} 个文件变更  +{{insertions}} −{{deletions}}",
+  "chat.rewind.undoToast": "对话已恢复到较早的状态",
+  "chat.rewind.undo": "撤销",
+  "chat.rewind.error": "回退失败",
+  "chat.rewind.undoError": "撤销回退失败"
 }

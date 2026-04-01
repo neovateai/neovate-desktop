@@ -128,6 +128,7 @@ export type KeybindingAction =
   | "closeSettings"
   | "toggleTheme"
   | "clearTerminal"
+  | "openCommandPalette"
   | "prevSession"
   | "nextSession"
   | "copyPath"
@@ -147,6 +148,7 @@ export const READONLY_ACTIONS: KeybindingAction[] = [
   "openSettings",
   "toggleTheme",
   "clearTerminal",
+  "openCommandPalette",
 ];
 
 /**
@@ -159,6 +161,7 @@ export const KEYBINDING_LABEL_KEYS = {
   closeSettings: "settings.keybindings.closeSettings",
   toggleTheme: "settings.keybindings.toggleTheme",
   clearTerminal: "settings.keybindings.clearTerminal",
+  openCommandPalette: "settings.keybindings.openCommandPalette",
   prevSession: "settings.keybindings.prevSession",
   nextSession: "settings.keybindings.nextSession",
   copyPath: "settings.keybindings.copyPath",
@@ -181,6 +184,7 @@ export const KEYBINDING_LABELS: Record<KeybindingAction, string> = {
   closeSettings: "Close Settings",
   toggleTheme: "Toggle Theme",
   clearTerminal: "Clear Terminal",
+  openCommandPalette: "Command Palette",
   prevSession: "Previous Session",
   nextSession: "Next Session",
   copyPath: "Copy Path",
@@ -202,7 +206,8 @@ export const DEFAULT_KEYBINDINGS: Record<KeybindingAction, string> = {
   quickChat: "Cmd+Shift+N",
   closeSettings: "Cmd+Esc",
   toggleTheme: "Cmd+Option+T",
-  clearTerminal: "Cmd+K",
+  clearTerminal: "Cmd+Shift+K",
+  openCommandPalette: "Cmd+K",
   prevSession: "Cmd+Option+ArrowLeft",
   nextSession: "Cmd+Option+ArrowRight",
   copyPath: "Cmd+Shift+C",

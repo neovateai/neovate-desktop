@@ -30,6 +30,11 @@ export type RewindFilesResult = {
   deletions?: number;
 };
 
+export type RewindResult = {
+  forkedSessionId: string;
+  originalSessionId: string;
+};
+
 export type McpStdioServerConfig = {
   type?: "stdio";
   command: string;

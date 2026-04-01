@@ -2,6 +2,7 @@ import { oc, type } from "@orpc/contract";
 import { z } from "zod";
 
 import { agentContract } from "./features/agent/contract";
+import { pluginsContract } from "./features/claude-code-plugins/contract";
 import { configContract } from "./features/config/contract";
 import { deeplinkContract } from "./features/deeplink/contract";
 import { electronContract } from "./features/electron/contract";
@@ -24,6 +25,7 @@ export const contract = {
   project: projectContract,
   provider: providerContract,
   rules: rulesContract,
+  plugins: pluginsContract,
   skills: skillsContract,
   storage: storageContract,
   updater: updaterContract,
