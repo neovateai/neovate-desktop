@@ -200,6 +200,21 @@ export function resolveSkillSource(baseDir: string, skillPath: string): string {
   return skillPath === "." ? baseDir : path.join(baseDir, skillPath);
 }
 
+/**
+ * Find the actual skillPath within a package directory for a given skillName.
+ * Handles single-skill packages where SKILL.md is at the root (skillPath = "."),
+ * even though skillName is a different identifier like "quick-commit".
+ */
+export async function findSkillPath(baseDir: string, skillName: string): Promise<string> {
+  const skills = await scanSkillDirs(baseDir);
+  const byPath = skills.find((s) => s.skillPath === skillName);
+  if (byPath) return byPath.skillPath;
+  const byName = skills.find((s) => s.name === skillName);
+  if (byName) return byName.skillPath;
+  if (skills.length === 1) return skills[0]!.skillPath;
+  return skillName;
+}
+
 /** Derive the destination folder name for installing a skill. */
 export function deriveInstallName(skillPath: string, sourceRef: string): string {
   return skillPath === "." ? extractFolderName(sourceRef) : path.basename(skillPath);
@@ -248,6 +263,20 @@ export function extractFolderName(sourceRef: string): string {
   normalized = normalized.replace(/\.git$/, "");
   const lastSegment = normalized.split("/").filter(Boolean).pop();
   return lastSegment || "skill";
+}
+
+/** Strip version suffix from a sourceRef for comparison. */
+export function stripSourceVersion(sourceRef: string): string {
+  if (sourceRef.startsWith("npm:") || sourceRef.startsWith("@")) {
+    let s = sourceRef;
+    const qIdx = s.indexOf("?");
+    if (qIdx !== -1) s = s.slice(0, qIdx);
+    return s.replace(/@[\d.][\w.+~-]*$/, "");
+  }
+  if (sourceRef.startsWith("clawhub:")) {
+    return sourceRef.replace(/@[\d.][\w.+~-]*$/, "");
+  }
+  return sourceRef;
 }
 
 /**
