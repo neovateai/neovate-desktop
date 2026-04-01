@@ -1,4 +1,4 @@
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 import type {
@@ -25,10 +25,19 @@ interface DiscoverTabProps {
   plugins: MarketplacePlugin[];
   marketplaces: Marketplace[];
   projects: Project[];
+  sourceFilter: string | null;
+  onClearSourceFilter: () => void;
   onRefresh: () => Promise<void>;
 }
 
-export const DiscoverTab = ({ plugins, marketplaces, projects, onRefresh }: DiscoverTabProps) => {
+export const DiscoverTab = ({
+  plugins,
+  marketplaces,
+  projects,
+  sourceFilter,
+  onClearSourceFilter,
+  onRefresh,
+}: DiscoverTabProps) => {
   const [selectedPlugin, setSelectedPlugin] = useState<MarketplacePlugin | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [addingOfficial, setAddingOfficial] = useState(false);
@@ -91,6 +100,19 @@ export const DiscoverTab = ({ plugins, marketplaces, projects, onRefresh }: Disc
 
   return (
     <>
+      {sourceFilter && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-muted-foreground">Source:</span>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
+            onClick={onClearSourceFilter}
+          >
+            {sourceFilter}
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-3">
         {plugins.map((plugin) => {
           const key = `${plugin.name}@${plugin.marketplace}`;

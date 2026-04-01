@@ -1,5 +1,5 @@
 import debug from "debug";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import type { Marketplace } from "../../../../../shared/features/claude-code-plugins/types";
@@ -14,10 +14,11 @@ const log = debug("neovate:plugins");
 
 interface SourcesTabProps {
   marketplaces: Marketplace[];
+  onBrowse: (name: string) => void;
   onRefresh: () => Promise<void>;
 }
 
-export const SourcesTab = ({ marketplaces, onRefresh }: SourcesTabProps) => {
+export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProps) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -102,6 +103,10 @@ export const SourcesTab = ({ marketplaces, onRefresh }: SourcesTabProps) => {
               </div>
 
               <div className="flex items-center gap-1 ml-3 shrink-0">
+                <Button variant="outline" size="sm" onClick={() => onBrowse(mp.name)}>
+                  <ExternalLink className="size-3.5" />
+                  Browse
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"

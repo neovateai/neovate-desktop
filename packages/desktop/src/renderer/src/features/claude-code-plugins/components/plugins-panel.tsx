@@ -36,6 +36,8 @@ export const PluginsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("discover");
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
   const fetchingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
@@ -78,15 +80,21 @@ export const PluginsPanel = () => {
   }, [fetchData]);
 
   const filteredDiscovered = useMemo(() => {
-    if (!searchQuery) return discovered;
-    const q = searchQuery.toLowerCase();
-    return discovered.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q) ||
-        p.keywords?.some((k) => k.toLowerCase().includes(q)),
-    );
-  }, [discovered, searchQuery]);
+    let result = discovered;
+    if (sourceFilter) {
+      result = result.filter((p) => p.marketplace === sourceFilter);
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          p.keywords?.some((k) => k.toLowerCase().includes(q)),
+      );
+    }
+    return result;
+  }, [discovered, searchQuery, sourceFilter]);
 
   const filteredInstalled = useMemo(() => {
     if (!searchQuery) return installed;
@@ -128,7 +136,13 @@ export const PluginsPanel = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="discover">
+      <Tabs
+        value={activeTab}
+        onValueChange={(tab) => {
+          setActiveTab(tab);
+          if (tab !== "discover") setSourceFilter(null);
+        }}
+      >
         <TabsList variant="underline" className="mb-5">
           <TabsTrigger value="discover">
             <Download className="size-3.5 mr-1.5" />
@@ -163,6 +177,8 @@ export const PluginsPanel = () => {
             plugins={filteredDiscovered}
             marketplaces={marketplaces}
             projects={projects}
+            sourceFilter={sourceFilter}
+            onClearSourceFilter={() => setSourceFilter(null)}
             onRefresh={refreshAfterMutation}
           />
         </TabsContent>
@@ -177,7 +193,14 @@ export const PluginsPanel = () => {
         </TabsContent>
 
         <TabsContent value="sources">
-          <SourcesTab marketplaces={marketplaces} onRefresh={refreshAfterMutation} />
+          <SourcesTab
+            marketplaces={marketplaces}
+            onBrowse={(name) => {
+              setSourceFilter(name);
+              setActiveTab("discover");
+            }}
+            onRefresh={refreshAfterMutation}
+          />
         </TabsContent>
 
         <TabsContent value="errors">

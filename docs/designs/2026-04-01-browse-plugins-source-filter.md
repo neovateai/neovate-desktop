@@ -41,11 +41,14 @@ Currently `<Tabs defaultValue="discover">` is uncontrolled. Make it controlled:
 - Pass `sourceFilter` and `onClearSourceFilter` to DiscoverTab
 - Auto-clear `sourceFilter` when the user manually switches away from the Discover tab (in `onValueChange`), so stale filters don't persist
 
-### 3. Discover tab — filter chip + filtering (`discover-tab.tsx`)
+### 3. Source filtering in PluginsPanel (`plugins-panel.tsx`)
+
+Source filtering is applied in `filteredDiscovered` memo (alongside the existing `searchQuery` filter) so `DiscoverTab` stays a pure display component. Both filters compose: source filter AND text search.
+
+### 4. Discover tab — filter chip (`discover-tab.tsx`)
 
 - Accept `sourceFilter: string | null` and `onClearSourceFilter: () => void` props
-- When `sourceFilter` is set, filter plugins to `plugin.marketplace === sourceFilter` (composes with the existing text search — both filters apply simultaneously)
-- Render a dismissible chip above the plugin grid:
+- Render a dismissible chip above the plugin grid when `sourceFilter` is set:
   ```
   Source: [official x]
   ```
