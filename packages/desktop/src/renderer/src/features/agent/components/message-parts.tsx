@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { isReasoningUIPart, isToolUIPart, type ToolUIPart } from "ai";
 import { CheckIcon, CopyIcon, ChevronDownIcon } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useTranslation } from "react-i18next";
 
@@ -177,6 +177,20 @@ function CopyMarkdownButton({ text }: { text: string }) {
   );
 }
 
+type ImageFilePart = { type: "file"; url: string; mediaType: string; filename?: string };
+
+function isImageFilePart(part: unknown): part is ImageFilePart {
+  return (
+    typeof part === "object" &&
+    part !== null &&
+    "type" in part &&
+    part.type === "file" &&
+    "mediaType" in part &&
+    typeof part.mediaType === "string" &&
+    part.mediaType.startsWith("image/")
+  );
+}
+
 export const MessagePartRenderer = memo(
   ({
     message,
@@ -195,6 +209,11 @@ export const MessagePartRenderer = memo(
   }) => {
     const markdownComponents = useMarkdownComponents();
     const lastTextIndex = message.parts.findLastIndex((p) => p.type === "text");
+
+    // Collect all image file parts for grouped rendering
+    const imageFileParts = useMemo(() => message.parts.filter(isImageFilePart), [message.parts]);
+    const firstImageIndex = message.parts.findIndex(isImageFilePart);
+
     return (
       <div className="flex flex-col gap-2 w-full">
         {message.parts.map((part, index) => {
@@ -265,14 +284,26 @@ export const MessagePartRenderer = memo(
                 </Reasoning>
               );
             case "file":
-              if (part.mediaType.startsWith("image/")) {
+              // Render all images together at first image position
+              if (isImageFilePart(part)) {
+                if (index !== firstImageIndex) return null;
                 return (
-                  <img
-                    key={`${message.id}-${index}`}
-                    src={part.url}
-                    alt={part.filename ?? ""}
-                    className="max-h-48 rounded-md object-cover"
-                  />
+                  <div
+                    key={`${message.id}-images`}
+                    className={cn(
+                      "flex flex-wrap gap-1.5",
+                      message.role === "user" && "justify-end",
+                    )}
+                  >
+                    {imageFileParts.map((img, i) => (
+                      <img
+                        key={`${message.id}-img-${i}`}
+                        src={img.url}
+                        alt={img.filename ?? ""}
+                        className="h-20 w-20 rounded-lg object-cover ring-1 ring-border/50"
+                      />
+                    ))}
+                  </div>
                 );
               }
               return null;
