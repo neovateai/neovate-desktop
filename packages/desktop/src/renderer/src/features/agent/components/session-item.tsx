@@ -1,14 +1,14 @@
 import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { formatDistanceToNowStrict } from "date-fns";
 import debug from "debug";
 import { Archive, Circle, Pin, PinOff } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { TurnResult } from "../store";
 
 import { Spinner } from "../../../components/ui/spinner";
+import { useRelativeTime } from "../../../hooks/use-relative-time";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
@@ -16,17 +16,6 @@ import { useAgentStore } from "../store";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session");
-
-function formatRelativeTime(iso: string): string {
-  const distance = formatDistanceToNowStrict(new Date(iso), { addSuffix: false });
-  return distance
-    .replace(/ seconds?/, "s")
-    .replace(/ minutes?/, "m")
-    .replace(/ hours?/, "h")
-    .replace(/ days?/, "d")
-    .replace(/ months?/, "mo")
-    .replace(/ years?/, "y");
-}
 
 interface SessionItemProps {
   sessionId: string;
@@ -72,7 +61,7 @@ export const SessionItem = memo(function SessionItem({
 
   const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
-  const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+  const relativeTime = useRelativeTime(createdAt);
 
   log(
     "render: sid=%s isInitialized=%s isActive=%s",
