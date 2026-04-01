@@ -9,17 +9,19 @@ import { Terminal } from "@xterm/xterm";
 import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import "@xterm/xterm/css/xterm.css";
+import { useTranslation } from "react-i18next";
+
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
-import { usePluginContext } from "../../core/app";
+import { usePluginContext, useRendererApp } from "../../core/app";
 import { useConfigStore } from "../../features/config/store";
 import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
-
-const log = debug("neovate:terminal");
+import { FileLinksAddon, detectFilePath } from "./file-links-addon";
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
+
+const log = debug("neovate:terminal");
 
 const darkTheme = {
   background: "#0a0a0a",
@@ -80,6 +82,7 @@ export default function TerminalView() {
 
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const fileLinksAddonRef = useRef<FileLinksAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -95,6 +98,8 @@ export default function TerminalView() {
 
   const terminalFont = useConfigStore((s) => s.terminalFont);
   const terminalFontSize = useConfigStore((s) => s.terminalFontSize);
+
+  const app = useRendererApp();
 
   useEffect(() => {
     if (!xtermRef.current) return;
@@ -133,8 +138,29 @@ export default function TerminalView() {
 
     const { terminalFont: initFont, terminalFontSize: initFontSize } = useConfigStore.getState();
 
-    const openLink = (_event: MouseEvent, uri: string) => {
-      window.open(uri, "_blank");
+    const projectPath = useProjectStore.getState().activeProject?.path;
+
+    const openLink = (event: MouseEvent, uri: string) => {
+      // Check for modifier key (Cmd on Mac, Ctrl on others)
+      const hasModifier = isMac ? event.metaKey : event.ctrlKey;
+      if (!hasModifier) {
+        // Without modifier, just open regular URLs
+        if (uri.startsWith("http://") || uri.startsWith("https://")) {
+          window.open(uri, "_blank");
+        }
+        return;
+      }
+
+      // With modifier key pressed, try to open as file path
+      const fileInfo = detectFilePath(uri);
+      if (fileInfo && projectPath) {
+        const fullPath = uri.startsWith("/") ? uri : `${projectPath}/${fileInfo.path}`;
+
+        app.opener.open(fullPath);
+      } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+        // Fall back to opening URL
+        window.open(uri, "_blank");
+      }
     };
 
     const xterm = new Terminal({
@@ -154,7 +180,16 @@ export default function TerminalView() {
     const fitAddon = new FitAddon();
     fitAddonRef.current = fitAddon;
     xterm.loadAddon(fitAddon);
-    xterm.loadAddon(new WebLinksAddon(openLink));
+
+    // WebLinksAddon for automatic URL detection and linking
+    const webLinksAddon = new WebLinksAddon(openLink);
+    xterm.loadAddon(webLinksAddon);
+
+    // Custom FileLinksAddon for file path handling
+    const fileLinksAddon = new FileLinksAddon(openLink, xtermRef.current.options.theme);
+    fileLinksAddonRef.current = fileLinksAddon;
+    xterm.loadAddon(fileLinksAddon);
+
     xterm.open(container);
     fitAddon.fit();
 
@@ -267,6 +302,7 @@ export default function TerminalView() {
       log("unmounting terminal, cleaning up", { sessionId });
       xtermRef.current = null;
       fitAddonRef.current = null;
+      fileLinksAddonRef.current = null;
       searchAddonRef.current = null;
       abortController.abort();
       clearTimeout(resizeTimer);

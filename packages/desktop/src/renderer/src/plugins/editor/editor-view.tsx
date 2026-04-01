@@ -105,6 +105,7 @@ function EditorViewCore(props: { cwd: string }) {
           line = 1,
           focus = false,
         } = (e as CustomEvent<EditorOpenOption>)?.detail || {};
+        console.log("打开编辑器事件", e);
         openInEditor({ fullPath, line, focus });
       };
       window.addEventListener("neovate:open-editor", openEditorEvent);
