@@ -6,6 +6,7 @@ import { CheckIcon, ChevronsUpDownIcon, SearchIcon, TriangleAlertIcon } from "lu
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { Popover, PopoverPopup, PopoverTrigger } from "../../../components/ui/popover";
 import { useProject } from "../hooks/use-project";
 
@@ -188,7 +189,7 @@ export function ProjectSelector({ children, variant = "menu" }: ProjectSelectorP
                           <CheckIcon size={14} />
                         </div>
                       )}
-                      {!isActive && (
+                      {!isActive && project.id !== PLAYGROUND_PROJECT_ID && (
                         <div
                           className={`rounded p-1 transition-opacity hover:bg-destructive/10 ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                           onClick={(e) => {

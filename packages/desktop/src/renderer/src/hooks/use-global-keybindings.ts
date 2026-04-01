@@ -1,6 +1,7 @@
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../shared/features/project/constants";
 import { layoutStore } from "../components/app-layout/store";
 import { toastManager } from "../components/ui/toast";
 import { useRendererApp } from "../core/app";
@@ -129,6 +130,19 @@ export function useGlobalKeybindings(): void {
         const projectPath = useProjectStore.getState().activeProject?.path;
         if (projectPath) {
           createNewSession(projectPath);
+        }
+        return;
+      }
+
+      // Quick Chat (new session in playground project)
+      if (matchesBinding(e, keybindings.quickChat)) {
+        e.preventDefault();
+        const playground = useProjectStore
+          .getState()
+          .projects.find((p) => p.id === PLAYGROUND_PROJECT_ID);
+        if (playground) {
+          useProjectStore.getState().switchToProjectByPath(playground.path);
+          createNewSession(playground.path);
         }
         return;
       }

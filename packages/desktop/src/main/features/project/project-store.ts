@@ -1,5 +1,6 @@
 import debug from "debug";
 import Store from "electron-store";
+import { mkdirSync } from "node:fs";
 
 import type {
   Project,
@@ -7,7 +8,8 @@ import type {
 } from "../../../shared/features/project/types";
 import type { ProjectProviderConfig } from "../../../shared/features/provider/types";
 
-import { APP_DATA_DIR } from "../../core/app-paths";
+import { PLAYGROUND_PROJECT_ID } from "../../../shared/features/project/constants";
+import { APP_DATA_DIR, PLAYGROUND_DIR } from "../../core/app-paths";
 
 const log = debug("neovate:project:store");
 
@@ -53,6 +55,10 @@ export class ProjectStore {
   }
 
   remove(id: string): void {
+    if (id === PLAYGROUND_PROJECT_ID) {
+      log("remove: refusing to remove playground project");
+      return;
+    }
     log("remove project", { id });
     const projects = this.getAll().filter((p) => p.id !== id);
     this.store.set("projects", projects);
@@ -195,5 +201,38 @@ export class ProjectStore {
     }
     selections[cwd] = existing;
     this.store.set("providerSelections", selections);
+  }
+
+  getPlayground(): Project | undefined {
+    return this.get(PLAYGROUND_PROJECT_ID);
+  }
+
+  /**
+   * Ensure the playground project and its directory exist.
+   * Called on app startup — idempotent and cheap.
+   */
+  ensurePlayground(): void {
+    mkdirSync(PLAYGROUND_DIR, { recursive: true });
+
+    const existing = this.get(PLAYGROUND_PROJECT_ID);
+    if (existing) {
+      // Self-heal: update path if it changed (e.g. different machine / home dir)
+      if (existing.path !== PLAYGROUND_DIR) {
+        log("ensurePlayground: updating stale path %s → %s", existing.path, PLAYGROUND_DIR);
+        this.update(PLAYGROUND_PROJECT_ID, { path: PLAYGROUND_DIR });
+      }
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const project: Project = {
+      id: PLAYGROUND_PROJECT_ID,
+      name: "Playground",
+      path: PLAYGROUND_DIR,
+      createdAt: now,
+      lastAccessedAt: now,
+    };
+    log("ensurePlayground: creating playground project", { path: PLAYGROUND_DIR });
+    this.add(project);
   }
 }

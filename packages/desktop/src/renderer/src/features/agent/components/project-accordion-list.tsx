@@ -14,13 +14,21 @@ import { CSS } from "@dnd-kit/utilities";
 import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
-import { ChevronDown, ChevronRight, Plus, Trash2, TriangleAlertIcon } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  MessageCircle,
+  Plus,
+  Trash2,
+  TriangleAlertIcon,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ProjectInfo } from "../../../../../shared/features/project/types";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { Accordion, AccordionItem, AccordionPanel } from "../../../components/ui/accordion";
 import { useProject } from "../../project/hooks/use-project";
 import { useProjectStore } from "../../project/store";
@@ -151,6 +159,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
   };
 
   const isStale = project.pathMissing;
+  const isPlayground = project.id === PLAYGROUND_PROJECT_ID;
 
   return (
     <AccordionItem ref={setNodeRef} style={style} value={project.id} className="border-b-0">
@@ -176,7 +185,11 @@ const SortableProjectItem = memo(function SortableProjectItem({
             {...listeners}
           >
             <div className="flex size-5 flex-shrink-0 items-center justify-center group-hover:hidden">
-              <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+              {isPlayground ? (
+                <MessageCircle size={16} strokeWidth={1.5} />
+              ) : (
+                <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+              )}
             </div>
             <div className="hidden size-5 flex-shrink-0 items-center justify-center group-hover:flex">
               {!closedSet.has(project.id) ? (
@@ -189,15 +202,17 @@ const SortableProjectItem = memo(function SortableProjectItem({
           </AccordionPrimitive.Trigger>
         )}
         <div className="flex items-center gap-1 pr-1">
-          <button
-            className={`flex size-6 items-center justify-center rounded-md transition-all hover:bg-destructive/10 hover:text-destructive ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(project.id);
-            }}
-          >
-            <Trash2 size={14} strokeWidth={1.5} />
-          </button>
+          {!isPlayground && (
+            <button
+              className={`flex size-6 items-center justify-center rounded-md transition-all hover:bg-destructive/10 hover:text-destructive ${isStale ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(project.id);
+              }}
+            >
+              <Trash2 size={14} strokeWidth={1.5} />
+            </button>
+          )}
           {!isStale && (
             <button
               className="flex size-6 items-center justify-center rounded-md opacity-0 transition-all hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
@@ -337,12 +352,16 @@ export const ProjectAccordionList = memo(function ProjectAccordionList() {
       <DragOverlay>
         {activeProject ? (
           <div className="flex items-center gap-2.5 rounded-lg bg-popover px-3 py-2 text-sm font-medium shadow-lg border border-border/50">
-            <HugeiconsIcon
-              icon={FolderIcon}
-              size={16}
-              strokeWidth={1.5}
-              className="text-muted-foreground"
-            />
+            {activeProject.id === PLAYGROUND_PROJECT_ID ? (
+              <MessageCircle size={16} strokeWidth={1.5} className="text-muted-foreground" />
+            ) : (
+              <HugeiconsIcon
+                icon={FolderIcon}
+                size={16}
+                strokeWidth={1.5}
+                className="text-muted-foreground"
+              />
+            )}
             <span className="truncate">{activeProject.name}</span>
           </div>
         ) : null}

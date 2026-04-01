@@ -1,12 +1,13 @@
 import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
-import { Archive, Circle, Pin, PinOff } from "lucide-react";
+import { Archive, Circle, MessageCircle, Pin, PinOff } from "lucide-react";
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { TurnResult } from "../store";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { Spinner } from "../../../components/ui/spinner";
 import { useRelativeTime } from "../../../hooks/use-relative-time";
 import { cn } from "../../../lib/utils";
@@ -58,6 +59,10 @@ export const SessionItem = memo(function SessionItem({
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const isPlayground = useProjectStore(
+    (s) => s.projects.find((p) => p.path === projectPath)?.id === PLAYGROUND_PROJECT_ID,
+  );
 
   const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
@@ -164,6 +169,14 @@ export const SessionItem = memo(function SessionItem({
               />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
+            ) : isPlayground ? (
+              <MessageCircle
+                size={14}
+                strokeWidth={1.5}
+                className={
+                  multiProjectSupport && sidebarOrganize === "byProject" ? "invisible" : undefined
+                }
+              />
             ) : (
               <HugeiconsIcon
                 icon={Comment01Icon}
