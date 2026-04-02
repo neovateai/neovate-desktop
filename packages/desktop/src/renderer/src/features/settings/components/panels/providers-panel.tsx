@@ -482,6 +482,7 @@ export const ProvidersPanel = () => {
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => startEdit(p)}
+                  data-track-id="ui.provider.edited"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
@@ -490,6 +491,7 @@ export const ProvidersPanel = () => {
                   size="icon"
                   className="h-7 w-7 text-destructive"
                   onClick={() => handleDeleteClick(p.id)}
+                  data-track-id="ui.provider.deleteInitiated"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -506,7 +508,12 @@ export const ProvidersPanel = () => {
 
       {!isEditing && !showTemplatePicker && (
         <div className="mt-5 flex justify-end">
-          <Button variant="outline" size="sm" onClick={startCreate}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={startCreate}
+            data-track-id="ui.provider.addInitiated"
+          >
             <Plus className="h-4 w-4 mr-1" />
             {t("settings.providers.add")}
           </Button>
@@ -525,7 +532,11 @@ export const ProvidersPanel = () => {
             <AlertDialogClose render={<Button variant="outline" />}>
               {t("settings.providers.cancel")}
             </AlertDialogClose>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              data-track-id="ui.provider.deleted"
+            >
               {t("common.delete")}
             </Button>
           </AlertDialogFooter>
@@ -542,7 +553,11 @@ export const ProvidersPanel = () => {
             <AlertDialogClose render={<Button variant="outline" />}>
               {t("settings.providers.cancel")}
             </AlertDialogClose>
-            <Button variant="destructive" onClick={handleConfirmReset}>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmReset}
+              data-track-id="ui.provider.resetConfirmed"
+            >
               {t("settings.providers.resetDefaults")}
             </Button>
           </AlertDialogFooter>
@@ -843,7 +858,7 @@ export const ProvidersPanel = () => {
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            <Button size="sm" onClick={handleSave}>
+            <Button size="sm" onClick={handleSave} data-track-id="ui.provider.saved">
               {isCreating ? t("settings.providers.create") : t("settings.providers.save")}
             </Button>
             <Button variant="outline" size="sm" onClick={cancel}>

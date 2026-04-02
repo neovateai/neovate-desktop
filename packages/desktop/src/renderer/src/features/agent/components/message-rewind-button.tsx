@@ -291,6 +291,7 @@ export function MessageRewindButton({ sessionId, messageId, disabled }: Props) {
           type="button"
           className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent text-left"
           onClick={() => handleRewind(false)}
+          data-track-id="ui.chat.rewindConversation"
         >
           <RotateCcwIcon size={14} className="shrink-0 text-muted-foreground" />
           <span>{t("chat.rewind.conversationOnly")}</span>
@@ -308,6 +309,7 @@ export function MessageRewindButton({ sessionId, messageId, disabled }: Props) {
             type="button"
             className="flex w-full items-start gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent text-left"
             onClick={() => handleRewind(true)}
+            data-track-id="ui.chat.rewindWithFiles"
           >
             <RotateCcwIcon size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
             <div>
