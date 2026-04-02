@@ -17,6 +17,7 @@ import type { UpdaterService } from "./features/updater/service";
 
 import { contract } from "../shared/contract";
 import { agentRouter } from "./features/agent/router";
+import { analyticsRouter } from "./features/analytics/router";
 import { pluginsRouter } from "./features/claude-code-plugins/router";
 import { configRouter } from "./features/config/router";
 import { deeplinkRouter } from "./features/deeplink/router";
@@ -51,6 +52,7 @@ const os = implement(contract).$context<AppContext>();
 export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
   return {
     ping: os.ping.handler(() => "pong" as const),
+    analytics: analyticsRouter,
     agent: agentRouter,
     config: configRouter,
     deeplink: deeplinkRouter,

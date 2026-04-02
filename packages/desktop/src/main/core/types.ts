@@ -1,3 +1,4 @@
+import type { AnalyticsInstance } from "analytics";
 import type { BrowserWindow } from "electron";
 
 import type { SessionManager } from "../features/agent/session-manager";
@@ -35,4 +36,5 @@ export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
   readonly deeplink: DeeplinkService;
+  readonly analytics: AnalyticsInstance;
 }

@@ -14,20 +14,17 @@ The app currently has zero analytics infrastructure. To drive product improvemen
 
 **Scope:**
 
-- In scope: Event collection infrastructure, hybrid collection strategy (declarative + manual + middleware), enterprise extensibility via `analytics` plugins, batch sending
-- Out of scope (for now): Privacy/consent UI, error/crash monitoring, OpenTelemetry tracing
+- In scope: Event collection infrastructure, hybrid collection strategy (declarative + manual), enterprise extensibility via `analytics` plugins
+- Out of scope (for now): Privacy/consent UI, error/crash monitoring, OpenTelemetry tracing, batching (backend may not support), oRPC middleware auto-tracking
 
 ## 3. Acceptance Criteria
 
 1. `MainApp` owns the `analytics` instance, exposed via `IMainApp` interface
 2. Renderer UI click events are collected via `data-track-*` attributes (declarative, no JS per component)
 3. Non-click events (page views, session lifecycle) are trackable via `client.analytics.track()` oRPC call
-4. All oRPC calls are auto-tracked via router middleware
-5. Events are batched in memory and flushed on interval/count threshold
-6. Remaining events are flushed on app quit
-7. Enterprise repos can inject their own analytics plugin via `MainApp` constructor — no code changes in base repo
-8. When no plugin is provided, events are collected but not sent (no-op)
-9. `bun ready` passes with the changes
+4. Enterprise repos can inject their own analytics plugin via `MainApp` constructor — no code changes in base repo
+5. When no plugin is provided, events are collected but not sent (no-op)
+6. `bun ready` passes with the changes
 
 ## 4. Architecture
 
@@ -37,11 +34,9 @@ The app currently has zero analytics infrastructure. To drive product improvemen
 Renderer                                  Main Process
 ┌────────────────────────────┐           ┌──────────────────────────────────────┐
 │                            │           │                                      │
-│  data-track click listener │──oRPC──→  │  oRPC analytics middleware           │
-│  useTrackPageView()        │──oRPC──→  │         ↓                            │
-│  manual track()            │──oRPC──→  │  MainApp.analytics                    │
-│                            │           │    = analytics({ plugins })          │
-│                            │           │         ↓                            │
+│  data-track click listener │──oRPC──→  │  MainApp.analytics                    │
+│  useTrackPageView()        │──oRPC──→  │    = analytics({ plugins })          │
+│  manual track()            │──oRPC──→  │         ↓                            │
 │                            │           │  Agent events → direct track()       │
 │                            │           │         ↓                            │
 │                            │           │  analytics dispatches to ALL plugins │
@@ -70,14 +65,14 @@ Enterprise repos use the base repo as a submodule and instantiate `MainApp` dire
 
 ```typescript
 // Enterprise repo
-import { MainApp } from "neovate-desktop"
+import { MainApp } from "neovate-desktop";
 
 const app = new MainApp({
-  plugins: [/* enterprise business plugins */],
-  analyticsPlugins: [
-    enterpriseTrackPlugin({ endpoint: "https://enterprise-api/events" }),
+  plugins: [
+    /* enterprise business plugins */
   ],
-})
+  analyticsPlugins: [enterpriseTrackPlugin({ endpoint: "https://enterprise-api/events" })],
+});
 ```
 
 - `MainApp` accepts an optional `analyticsPlugins` array
@@ -99,11 +94,11 @@ new MainApp({
           action: payload.event,
           data: payload.properties,
           ts: payload.meta.ts,
-        }
+        };
         fetch("https://analytics.enterprise.com/events", {
           method: "POST",
           body: JSON.stringify(transformed),
-        })
+        });
       },
     },
     // Plugin 2: audit log — different format, different endpoint
@@ -117,11 +112,11 @@ new MainApp({
             name: payload.event,
             metadata: payload.properties,
           }),
-        })
+        });
       },
     },
   ],
-})
+});
 ```
 
 ## 5. Decision Log
@@ -137,12 +132,6 @@ new MainApp({
 - Decision: **C) Hybrid** —
   - `data-track-*` for click events (~60% of UI events, zero JS per component)
   - Manual `track()` for non-click events (session lifecycle, async operations)
-  - oRPC middleware for auto-tracking IPC calls
-
-**3. Batching strategy?**
-
-- Options: A) Real-time per-event · B) Batched · C) Mixed (critical real-time, rest batched)
-- Decision: **B)** — Batch all events. Flush on count threshold or timer interval. Flush remaining on app quit.
 
 **4. What library?**
 
@@ -168,14 +157,13 @@ src/shared/features/analytics/
 
 src/main/features/analytics/
   router.ts                # oRPC router: receives events from renderer
-  middleware.ts            # oRPC middleware: auto-tracks all IPC calls
 
 src/renderer/src/features/analytics/
   data-track.ts            # Global click listener for data-track-* attributes
   hooks.ts                 # useTrackPageView, useTrackEvent
 ```
 
-The `analytics` instance lives directly on `MainApp` — no wrapper class needed.
+The `analytics` instance lives directly on `MainApp` — no wrapper class needed. No oRPC middleware — event tracking is explicit, not automatic.
 
 ## 7. Detailed Design
 
@@ -184,10 +172,10 @@ The `analytics` instance lives directly on `MainApp` — no wrapper class needed
 ```typescript
 // src/shared/features/analytics/types.ts
 interface AnalyticsEvent {
-  event: string                      // "agent.session.created", "ui.page.viewed"
-  properties: Record<string, unknown>
-  timestamp: number                  // Unix ms, auto-filled
-  sessionId: string                  // App session ID, auto-filled
+  event: string; // "agent.session.created", "ui.page.viewed"
+  properties: Record<string, unknown>;
+  timestamp: number; // Unix ms, auto-filled
+  sessionId: string; // App session ID, auto-filled
 }
 ```
 
@@ -196,41 +184,43 @@ interface AnalyticsEvent {
 ```typescript
 // src/shared/features/analytics/contract.ts
 export const analyticsContract = {
-  track: oc.input(z.object({
-    event: z.string(),
-    properties: z.record(z.unknown()).default({}),
-  })),
-}
+  track: oc.input(
+    z.object({
+      event: z.string(),
+      properties: z.record(z.unknown()).default({}),
+    }),
+  ),
+};
 ```
 
 ### 7.3 MainApp & IMainApp Integration
 
 ```typescript
 // src/main/core/types.ts (modified)
-import type { AnalyticsInstance } from "analytics"
+import type { AnalyticsInstance } from "analytics";
 
 export interface IMainApp {
-  readonly subscriptions: { push(...disposables: Disposable[]): void }
-  readonly windowManager: IBrowserWindowManager
-  readonly analytics: AnalyticsInstance  // NEW
+  readonly subscriptions: { push(...disposables: Disposable[]): void };
+  readonly windowManager: IBrowserWindowManager;
+  readonly analytics: AnalyticsInstance; // NEW
 }
 ```
 
 ```typescript
 // src/main/app.ts (modified)
-import Analytics from "analytics"
+import Analytics from "analytics";
 
 export class MainApp implements IMainApp {
-  readonly analytics: AnalyticsInstance
+  readonly analytics: AnalyticsInstance;
 
   constructor(options: {
-    plugins?: MainPlugin[]
-    analyticsPlugins?: AnalyticsPlugin[]  // NEW
+    plugins?: MainPlugin[];
+    analyticsPlugins?: AnalyticsPlugin[]; // NEW
   }) {
     this.analytics = Analytics({
       app: "neovate-desktop",
       plugins: options.analyticsPlugins ?? [],
-    })
+    });
     // ... existing init
   }
 }
@@ -263,126 +253,107 @@ export const analyticsRouter = implement(analyticsContract)
   .$context<AppContext>()
   .router({
     track: os.handler(({ input, context }) => {
-      context.mainApp.analytics.track(input.event, input.properties)
+      context.mainApp.analytics.track(input.event, input.properties);
     }),
-  })
+  });
 ```
 
-### 7.5 oRPC Telemetry Middleware
-
-```typescript
-// src/main/features/analytics/middleware.ts
-// Auto-tracks every IPC call passing through the router
-export const analyticsMiddleware = os.middleware(async ({ next, path, context }) => {
-  context.mainApp.analytics.track("ipc.call", { method: path })
-  return next()
-})
-```
-
-### 7.6 Declarative Click Tracking (Renderer)
+### 7.5 Declarative Click Tracking (Renderer)
 
 ```typescript
 // src/renderer/src/features/analytics/data-track.ts
 export function initClickTracking() {
   document.addEventListener("click", (e) => {
-    const el = (e.target as HTMLElement).closest("[data-track]")
-    if (!el) return
+    const el = (e.target as HTMLElement).closest("[data-track]");
+    if (!el) return;
 
-    const event = el.getAttribute("data-track")!
-    const properties: Record<string, string> = {}
+    const event = el.getAttribute("data-track")!;
+    const properties: Record<string, string> = {};
     for (const attr of el.attributes) {
       if (attr.name.startsWith("data-track-") && attr.name !== "data-track") {
-        properties[attr.name.slice(11)] = attr.value
+        properties[attr.name.slice(11)] = attr.value;
       }
     }
 
-    client.analytics.track({ event, properties })
-  })
+    client.analytics.track({ event, properties });
+  });
 }
 ```
 
 Called once at renderer app init.
 
-### 7.7 React Hooks
+### 7.6 React Hooks
 
 ```typescript
 // src/renderer/src/features/analytics/hooks.ts
 export function useTrackPageView(page: string) {
   useEffect(() => {
-    client.analytics.track({ event: "ui.page.viewed", properties: { page } })
-  }, [])
+    client.analytics.track({ event: "ui.page.viewed", properties: { page } });
+  }, []);
 }
 
 export function useTrackEvent() {
   return (event: string, properties?: Record<string, unknown>) => {
-    client.analytics.track({ event, properties: properties ?? {} })
-  }
+    client.analytics.track({ event, properties: properties ?? {} });
+  };
 }
 ```
 
-### 7.8 Usage Examples
+### 7.7 Usage Examples
 
 ```tsx
 // Declarative click tracking — just add attributes
 <button data-track="agent.model.changed" data-track-model={model}>
   Switch Model
-</button>
+</button>;
 
 // Page view tracking — one line in component
 function SettingsPage() {
-  useTrackPageView("settings")
-  return <div>...</div>
+  useTrackPageView("settings");
+  return <div>...</div>;
 }
 
 // Manual tracking — for async/non-click events
-const trackEvent = useTrackEvent()
+const trackEvent = useTrackEvent();
 const onSessionEnd = () => {
-  trackEvent("agent.session.ended", { duration, messageCount })
-}
+  trackEvent("agent.session.ended", { duration, messageCount });
+};
 
 // Enterprise-specific events — same API, zero extra config
-<button data-track="enterprise.sso.login">SSO Login</button>
+<button data-track="enterprise.sso.login">SSO Login</button>;
 ```
 
 ## 8. Hybrid Collection Summary
 
-| Strategy | Coverage | Where | Mechanism |
-|---|---|---|---|
-| `data-track-*` attributes | UI click events (~60%) | Renderer | Global click listener → oRPC |
-| `useTrackPageView` / `useTrackEvent` | Page views, async events | Renderer | React hooks → oRPC |
-| oRPC middleware | All IPC calls | Main | Auto-intercept at router level |
-| Direct `this.analytics.track()` | Agent session events | Main | Called in MainApp / plugin business logic |
+| Strategy                             | Coverage                 | Where    | Mechanism                                 |
+| ------------------------------------ | ------------------------ | -------- | ----------------------------------------- |
+| `data-track-*` attributes            | UI click events (~60%)   | Renderer | Global click listener → oRPC              |
+| `useTrackPageView` / `useTrackEvent` | Page views, async events | Renderer | React hooks → oRPC                        |
+| Direct `this.analytics.track()`      | Agent session events     | Main     | Called in MainApp / plugin business logic |
 
 ## 9. Initial Event Catalog
 
 ### Agent Events (Main Process)
 
-| Event | Properties | Trigger |
-|---|---|---|
-| `agent.session.created` | `model`, `provider` | Session created |
-| `agent.message.sent` | `type` (user/system) | Message sent |
-| `agent.session.ended` | `duration`, `messageCount` | Session ended |
+| Event                   | Properties                 | Trigger         |
+| ----------------------- | -------------------------- | --------------- |
+| `agent.session.created` | `model`, `provider`        | Session created |
+| `agent.message.sent`    | `type` (user/system)       | Message sent    |
+| `agent.session.ended`   | `duration`, `messageCount` | Session ended   |
 
 ### UI Events (Renderer)
 
-| Event | Properties | Collection |
-|---|---|---|
-| `ui.page.viewed` | `page` | `useTrackPageView` hook |
-| `ui.settings.changed` | `key` (no value) | `data-track` |
-| `ui.project.switched` | — | `data-track` |
-| `ui.plugin.used` | `plugin`, `action` | `data-track` |
-
-### Auto Events (Middleware)
-
-| Event | Properties | Collection |
-|---|---|---|
-| `ipc.call` | `method` | oRPC middleware |
+| Event                 | Properties         | Collection              |
+| --------------------- | ------------------ | ----------------------- |
+| `ui.page.viewed`      | `page`             | `useTrackPageView` hook |
+| `ui.settings.changed` | `key` (no value)   | `data-track`            |
+| `ui.project.switched` | —                  | `data-track`            |
+| `ui.plugin.used`      | `plugin`, `action` | `data-track`            |
 
 ## 10. Open Questions
 
 1. **Privacy/consent** — Opt-in vs opt-out? First-run dialog? (Deferred to separate design)
 2. **User identification** — Anonymous device ID vs authenticated user ID?
 3. **Backend API contract** — Event payload format alignment with existing backend
-4. **Batch config** — Flush interval (30s?) and count threshold (50 events?)
+4. **Batching** — Backend may not support batch endpoints; deferred until backend API is defined
 5. **Offline persistence** — Persist to disk on network failure? Max buffer size?
-6. **analytics library batching** — The `analytics` library does not natively batch; each send plugin is responsible for its own batching/queuing strategy internally

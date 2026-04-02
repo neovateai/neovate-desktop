@@ -18,6 +18,8 @@ import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+import { initClickTracking } from "../features/analytics/data-track";
+
 const startupLog = debug("neovate:startup");
 
 import { setPanelWidth, shrinkPanelsToFit } from "../components/app-layout/layout-coordinator";
@@ -364,6 +366,11 @@ export class RendererApp implements IRendererApp {
     startupLog("renderer plugins activated %s", el());
     this.render(ctx);
     startupLog("renderer React.render called %s", el());
+
+    if (this.#windowType === "main") {
+      const cleanupClickTracking = initClickTracking();
+      this.subscriptions.push({ dispose: cleanupClickTracking });
+    }
   }
 
   async stop(): Promise<void> {

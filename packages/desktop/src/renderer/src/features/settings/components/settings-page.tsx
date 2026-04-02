@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 
 import { matchesBinding, DEFAULT_KEYBINDINGS } from "../../../lib/keybindings";
+import { useTrackPageView } from "../../analytics/hooks";
 import { useConfigStore } from "../../config/store";
 import { useSettingsStore } from "../store";
 import { AboutPanel } from "./panels/about-panel";
@@ -23,6 +24,8 @@ export const SettingsPage = () => {
     () => ({ ...DEFAULT_KEYBINDINGS, ...rawKeybindings }),
     [rawKeybindings],
   );
+
+  useTrackPageView("settings");
 
   // Cmd+Esc to close settings and go back to app
   useEffect(() => {

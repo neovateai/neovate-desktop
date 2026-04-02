@@ -1,6 +1,8 @@
 import type { AnyRouter } from "@orpc/server";
+import type { AnalyticsInstance, AnalyticsPlugin } from "analytics";
 
 import { os } from "@orpc/server";
+import { Analytics } from "analytics";
 import debug from "debug";
 
 import type { ILlmService } from "../shared/features/llm/types";
@@ -18,11 +20,14 @@ import { buildRouter } from "./router";
 const log = debug("neovate:startup");
 
 export interface MainAppOptions {
+  appName: string;
   plugins?: MainPlugin[];
   llmService?: ILlmService;
+  analyticsPlugins?: AnalyticsPlugin[];
 }
 
 export class MainApp implements IMainApp {
+  readonly analytics: AnalyticsInstance;
   readonly pluginManager: PluginManager;
   readonly subscriptions = new DisposableStore();
   readonly windowManager: IBrowserWindowManager;
@@ -37,6 +42,10 @@ export class MainApp implements IMainApp {
   }
 
   constructor(options: MainAppOptions) {
+    this.analytics = Analytics({
+      app: options.appName,
+      plugins: options.analyticsPlugins ?? [],
+    });
     this.pluginManager = new PluginManager(options.plugins ?? []);
     this.windowManager = new BrowserWindowManager();
     this.deeplink = new DeeplinkService();

@@ -25,6 +25,7 @@ function makeCtx(): PluginContext {
         dispose: vi.fn(),
         publisher: { size: 0, publish: vi.fn(), subscribe: vi.fn() },
       } as any,
+      analytics: { track: vi.fn() } as any,
     },
     orpcServer: { router: vi.fn(), handler: vi.fn() } as any,
     shell: { getEnv: vi.fn() } as any,
