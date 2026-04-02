@@ -1,6 +1,6 @@
 import Placeholder from "@tiptap/extension-placeholder";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { Extension, useEditor, EditorContent } from "@tiptap/react";
+import { Extension, useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import debug from "debug";
 import { AnimatePresence, motion } from "motion/react";
@@ -45,6 +45,13 @@ type Props = {
 
 const NEW_CHAT_EASTER_EGGS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
 
+type SessionDraft = {
+  content: JSONContent;
+  attachments: ImageAttachment[];
+};
+
+const sessionDrafts = new Map<string, SessionDraft>();
+
 export function MessageInput({
   onSend,
   onCancel,
@@ -59,6 +66,7 @@ export function MessageInput({
   const { t } = useTranslation();
   const cwdRef = useLatestRef(cwd);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorJsonRef = useRef<JSONContent | null>(null);
   const { createNewSession } = useNewSession();
 
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
@@ -107,7 +115,9 @@ export function MessageInput({
     });
   });
 
-  const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+  const [attachments, setAttachments] = useState<ImageAttachment[]>(() =>
+    activeSessionId ? (sessionDrafts.get(activeSessionId)?.attachments ?? []) : [],
+  );
   const attachmentsRef = useLatestRef(attachments);
 
   const addAttachments = useCallback((images: ImageAttachment[]) => {
@@ -315,6 +325,13 @@ export function MessageInput({
     },
     editable: !disabled,
     autofocus: "end",
+    content: activeSessionId ? sessionDrafts.get(activeSessionId)?.content : undefined,
+    onCreate: ({ editor: e }) => {
+      editorJsonRef.current = e.getJSON();
+    },
+    onUpdate: ({ editor: e }) => {
+      editorJsonRef.current = e.getJSON();
+    },
   });
 
   const send = useEventCallback(() => {
@@ -342,12 +359,44 @@ export function MessageInput({
     onSend(text, imgs.length > 0 ? imgs : undefined);
     editor.commands.clearContent();
     setAttachments([]);
+    if (activeSessionId) sessionDrafts.delete(activeSessionId);
   });
 
   // Keep editable in sync with props
   useEffect(() => {
     editor?.setEditable(!disabled);
   }, [editor, disabled]);
+
+  // Save draft on unmount so it persists across session switches
+  useEffect(() => {
+    return () => {
+      if (!activeSessionId) return;
+      const json = editorJsonRef.current;
+      if (!json) return;
+      const imgs = attachmentsRef.current;
+      if (extractText(json).trim() || imgs.length > 0) {
+        sessionDrafts.set(activeSessionId, { content: json, attachments: imgs });
+      } else {
+        sessionDrafts.delete(activeSessionId);
+      }
+    };
+  }, [activeSessionId]);
+
+  // Restore draft when session switches without remount (e.g., between new sessions in welcome panel)
+  const prevSessionIdRef = useRef(activeSessionId);
+  useEffect(() => {
+    if (prevSessionIdRef.current === activeSessionId) return;
+    prevSessionIdRef.current = activeSessionId;
+    if (!editor || editor.isDestroyed) return;
+    const draft = activeSessionId ? sessionDrafts.get(activeSessionId) : undefined;
+    if (draft) {
+      editor.commands.setContent(draft.content);
+      setAttachments(draft.attachments);
+    } else {
+      editor.commands.clearContent();
+      setAttachments([]);
+    }
+  }, [editor, activeSessionId]);
 
   // Force placeholder re-render when suggestion changes
   useEffect(() => {
