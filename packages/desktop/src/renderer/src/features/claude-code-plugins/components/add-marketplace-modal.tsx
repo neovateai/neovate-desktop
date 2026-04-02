@@ -1,5 +1,6 @@
 import debug from "debug";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "../../../components/ui/button";
 import {
@@ -23,6 +24,7 @@ interface AddMarketplaceModalProps {
 }
 
 export const AddMarketplaceModal = ({ onClose, onRefresh }: AddMarketplaceModalProps) => {
+  const { t } = useTranslation();
   const [source, setSource] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export const AddMarketplaceModal = ({ onClose, onRefresh }: AddMarketplaceModalP
       await onRefresh();
       onClose();
     } catch (e: any) {
-      setError(e.message || "Failed to add marketplace");
+      setError(e.message || t("settings.plugins.addMarketplaceFailed"));
     } finally {
       setAdding(false);
     }
@@ -48,10 +50,8 @@ export const AddMarketplaceModal = ({ onClose, onRefresh }: AddMarketplaceModalP
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogPopup className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Marketplace Source</DialogTitle>
-          <DialogDescription>
-            Enter a GitHub repository or git URL to add as a plugin marketplace source.
-          </DialogDescription>
+          <DialogTitle>{t("settings.plugins.addMarketplaceTitle")}</DialogTitle>
+          <DialogDescription>{t("settings.plugins.addMarketplaceDescription")}</DialogDescription>
         </DialogHeader>
 
         <DialogPanel>
@@ -66,7 +66,7 @@ export const AddMarketplaceModal = ({ onClose, onRefresh }: AddMarketplaceModalP
               autoFocus
             />
             <div className="text-xs text-muted-foreground space-y-1">
-              <div>Examples:</div>
+              <div>{t("settings.plugins.examples")}</div>
               <div className="pl-2">
                 <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                   anthropics/claude-plugins-official
@@ -85,7 +85,7 @@ export const AddMarketplaceModal = ({ onClose, onRefresh }: AddMarketplaceModalP
         <DialogFooter variant="bare">
           <div className="flex justify-end gap-2 w-full">
             <Button variant="outline" size="sm" onClick={onClose}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="default"
@@ -94,7 +94,7 @@ export const AddMarketplaceModal = ({ onClose, onRefresh }: AddMarketplaceModalP
               disabled={!source.trim() || adding}
             >
               {adding ? <Spinner className="size-3.5" /> : null}
-              {adding ? "Adding..." : "Add"}
+              {adding ? t("settings.plugins.adding") : t("settings.plugins.add")}
             </Button>
           </div>
         </DialogFooter>

@@ -1,5 +1,6 @@
 import { Download, Plus, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   Marketplace,
@@ -38,6 +39,7 @@ export const DiscoverTab = ({
   onClearSourceFilter,
   onRefresh,
 }: DiscoverTabProps) => {
+  const { t } = useTranslation();
   const [selectedPlugin, setSelectedPlugin] = useState<MarketplacePlugin | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [addingOfficial, setAddingOfficial] = useState(false);
@@ -76,13 +78,15 @@ export const DiscoverTab = ({
         <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10 mx-auto mb-4">
           <Download className="size-6 text-primary" />
         </div>
-        <h3 className="text-sm font-medium text-foreground mb-2">No plugin sources configured</h3>
+        <h3 className="text-sm font-medium text-foreground mb-2">
+          {t("settings.plugins.noSources")}
+        </h3>
         <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
-          Add the official Claude Code marketplace to discover and install plugins.
+          {t("settings.plugins.noSourcesDescription")}
         </p>
         <Button variant="default" size="sm" onClick={handleAddOfficial} disabled={addingOfficial}>
           {addingOfficial ? <Spinner className="size-3.5" /> : <Plus className="size-3.5" />}
-          Add Official Marketplace
+          {t("settings.plugins.addOfficialMarketplace")}
         </Button>
       </div>
     );
@@ -92,7 +96,7 @@ export const DiscoverTab = ({
     return (
       <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
         <p className="text-sm text-muted-foreground text-center">
-          No plugins found matching your search.
+          {t("settings.plugins.noPluginsFound")}
         </p>
       </div>
     );
@@ -102,7 +106,7 @@ export const DiscoverTab = ({
     <>
       {sourceFilter && (
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-muted-foreground">Source:</span>
+          <span className="text-xs text-muted-foreground">{t("settings.plugins.source")}</span>
           <button
             type="button"
             className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
@@ -129,7 +133,7 @@ export const DiscoverTab = ({
                 </div>
                 {plugin.installedScopes.length > 0 ? (
                   <Badge variant="secondary" size="sm">
-                    Installed
+                    {t("settings.plugins.installedBadge")}
                   </Badge>
                 ) : (
                   <Button
@@ -154,7 +158,7 @@ export const DiscoverTab = ({
               <h3 className="text-sm font-medium text-foreground truncate mb-1">{plugin.name}</h3>
 
               <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-8">
-                {plugin.description || "No description"}
+                {plugin.description || t("settings.plugins.noDescription")}
               </p>
 
               <div className="flex flex-wrap items-center gap-1.5 mt-auto">

@@ -1,6 +1,7 @@
 import debug from "debug";
 import { ArrowUpCircle, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   InstalledPlugin,
@@ -33,6 +34,7 @@ interface InstalledTabProps {
 }
 
 export const InstalledTab = ({ plugins, updates, projects, onRefresh }: InstalledTabProps) => {
+  const { t } = useTranslation();
   const [selectedPlugin, setSelectedPlugin] = useState<InstalledPlugin | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [updatingAll, setUpdatingAll] = useState(false);
@@ -71,7 +73,7 @@ export const InstalledTab = ({ plugins, updates, projects, onRefresh }: Installe
     return (
       <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
         <p className="text-sm text-muted-foreground text-center">
-          No plugins installed yet. Browse the Discover tab to find plugins.
+          {t("settings.plugins.noPluginsInstalled")}
         </p>
       </div>
     );
@@ -82,11 +84,11 @@ export const InstalledTab = ({ plugins, updates, projects, onRefresh }: Installe
       {updates.length > 0 && (
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm text-muted-foreground">
-            {updates.length} update{updates.length > 1 ? "s" : ""} available
+            {t("settings.plugins.updatesAvailable", { count: updates.length })}
           </span>
           <Button variant="outline" size="sm" onClick={handleUpdateAll} disabled={updatingAll}>
             {updatingAll ? <Spinner className="size-3.5" /> : <RefreshCw className="size-3.5" />}
-            Update All
+            {t("settings.plugins.updateAll")}
           </Button>
         </div>
       )}
@@ -118,14 +120,14 @@ export const InstalledTab = ({ plugins, updates, projects, onRefresh }: Installe
               <h3 className="text-sm font-medium text-foreground truncate mb-1">{plugin.name}</h3>
 
               <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-8">
-                {plugin.description || "No description"}
+                {plugin.description || t("settings.plugins.noDescription")}
               </p>
 
               <div className="flex flex-wrap items-center gap-1.5 mt-auto">
                 <Badge variant="outline" size="sm">
                   {plugin.scope === "user"
-                    ? "user"
-                    : `${plugin.scope}: ${plugin.projectPath?.split("/").pop() ?? "unknown"}`}
+                    ? t("settings.plugins.user")
+                    : `${plugin.scope}: ${plugin.projectPath?.split("/").pop() ?? t("settings.plugins.unknown")}`}
                 </Badge>
                 {plugin.version && (
                   <Badge variant="secondary" size="sm">
@@ -135,7 +137,7 @@ export const InstalledTab = ({ plugins, updates, projects, onRefresh }: Installe
                 {update && (
                   <Badge variant="default" size="sm" className="gap-1">
                     <ArrowUpCircle className="size-3" />
-                    Update
+                    {t("settings.plugins.update")}
                   </Badge>
                 )}
               </div>

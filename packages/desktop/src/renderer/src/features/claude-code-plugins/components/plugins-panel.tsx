@@ -1,6 +1,7 @@
 import debug from "debug";
 import { AlertTriangle, Download, Puzzle, RefreshCw, Search, Store } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   InstalledPlugin,
@@ -27,6 +28,7 @@ import { SourcesTab } from "./sources-tab";
 const log = debug("neovate:plugins");
 
 export const PluginsPanel = () => {
+  const { t } = useTranslation();
   const projects = useProjectStore((s) => s.projects);
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
@@ -118,7 +120,7 @@ export const PluginsPanel = () => {
         <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
           <Puzzle className="size-5 text-primary" />
         </span>
-        Plugins
+        {t("settings.plugins.title")}
       </h1>
 
       <div className="flex items-center gap-3 mb-5">
@@ -128,7 +130,7 @@ export const PluginsPanel = () => {
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search plugins..."
+            placeholder={t("settings.plugins.searchPlaceholder")}
           />
         </div>
         <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
@@ -146,11 +148,11 @@ export const PluginsPanel = () => {
         <TabsList variant="underline" className="mb-5">
           <TabsTrigger value="discover">
             <Download className="size-3.5 mr-1.5" />
-            Discover
+            {t("settings.plugins.discover")}
           </TabsTrigger>
           <TabsTrigger value="installed">
             <Puzzle className="size-3.5 mr-1.5" />
-            Installed
+            {t("settings.plugins.installed")}
             {installed.length > 0 && (
               <Badge variant="secondary" size="sm" className="ml-1.5">
                 {installed.length}
@@ -159,11 +161,11 @@ export const PluginsPanel = () => {
           </TabsTrigger>
           <TabsTrigger value="sources">
             <Store className="size-3.5 mr-1.5" />
-            Sources
+            {t("settings.plugins.sources")}
           </TabsTrigger>
           <TabsTrigger value="errors">
             <AlertTriangle className="size-3.5 mr-1.5" />
-            Errors
+            {t("settings.plugins.errors")}
             {errors.length > 0 && (
               <Badge variant="destructive" size="sm" className="ml-1.5">
                 {errors.length}
