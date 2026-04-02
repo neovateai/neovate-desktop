@@ -359,6 +359,7 @@ export function useCommandRegistry() {
     // Combine in-memory sessions with persisted ones
     const seen = new Set<string>();
     const items: CommandItem[] = [];
+    const sortKeyMap = new Map<string, string>();
 
     // Add persisted sessions (most complete list)
     for (const info of agentSessions) {
@@ -368,6 +369,7 @@ export function useCommandRegistry() {
         continue;
       }
       seen.add(info.sessionId);
+      sortKeyMap.set(info.sessionId, info.updatedAt);
 
       // Try to get first user message from in-memory session for preview
       const memSession = sessions.get(info.sessionId);
@@ -409,6 +411,8 @@ export function useCommandRegistry() {
         continue;
       }
 
+      sortKeyMap.set(session.sessionId, session.createdAt);
+
       const firstUserMsg = session.messages.find((m) => m.role === "user");
       const preview = firstUserMsg?.content.slice(0, 100);
 
@@ -428,6 +432,13 @@ export function useCommandRegistry() {
         },
       });
     }
+
+    // Sort by recency (newest first) so the most recent sessions survive MAX_SESSIONS cap
+    items.sort((a, b) => {
+      const timeA = sortKeyMap.get(a.id.replace("session:", "")) ?? "";
+      const timeB = sortKeyMap.get(b.id.replace("session:", "")) ?? "";
+      return timeB.localeCompare(timeA);
+    });
 
     return items;
   }, [
