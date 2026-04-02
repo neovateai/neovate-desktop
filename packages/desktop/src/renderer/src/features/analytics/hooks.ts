@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 
-import { client } from "../../orpc";
+import { track } from "./track";
 
 export function useTrackPageView(page: string) {
   useEffect(() => {
-    client.analytics.track({ event: "ui.page.viewed", properties: { page } }).catch(() => {});
+    track("ui.page.viewed", { page });
   }, [page]);
 }

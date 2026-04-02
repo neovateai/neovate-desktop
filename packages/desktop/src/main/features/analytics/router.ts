@@ -12,7 +12,7 @@ const os = implement({ analytics: analyticsContract }).$context<AppContext>();
 export const analyticsRouter = os.analytics.router({
   track: os.analytics.track.handler(async ({ input, context }) => {
     try {
-      await context.mainApp.analytics.track(input.event, input.properties);
+      await context.mainApp.analytics.track(input.event, input.properties ?? {});
     } catch (error) {
       log("track error: %O", error);
     }

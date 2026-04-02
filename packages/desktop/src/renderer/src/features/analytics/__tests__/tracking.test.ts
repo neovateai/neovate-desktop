@@ -26,37 +26,21 @@ describe("initClickTracking", () => {
     cleanup?.();
   });
 
-  it("tracks click on data-track element", () => {
+  it("tracks click on data-track-id element", () => {
     cleanup = initClickTracking();
     const btn = document.createElement("button");
-    btn.setAttribute("data-track", "ui.button.clicked");
+    btn.dataset.trackId = "ui.button.clicked";
     document.body.appendChild(btn);
 
     btn.click();
 
     expect(mockTrack).toHaveBeenCalledWith({
       event: "ui.button.clicked",
-      properties: {},
+      properties: { trackType: "declarative-dom" },
     });
   });
 
-  it("extracts data-track-* properties", () => {
-    cleanup = initClickTracking();
-    const btn = document.createElement("button");
-    btn.setAttribute("data-track", "ui.model.changed");
-    btn.setAttribute("data-track-model", "gpt-4");
-    btn.setAttribute("data-track-provider", "openai");
-    document.body.appendChild(btn);
-
-    btn.click();
-
-    expect(mockTrack).toHaveBeenCalledWith({
-      event: "ui.model.changed",
-      properties: { model: "gpt-4", provider: "openai" },
-    });
-  });
-
-  it("does nothing when clicking element without data-track", () => {
+  it("does nothing when clicking element without data-track-id", () => {
     cleanup = initClickTracking();
     const btn = document.createElement("button");
     document.body.appendChild(btn);
@@ -66,10 +50,10 @@ describe("initClickTracking", () => {
     expect(mockTrack).not.toHaveBeenCalled();
   });
 
-  it("finds closest data-track ancestor for nested clicks", () => {
+  it("finds closest data-track-id ancestor for nested clicks", () => {
     cleanup = initClickTracking();
     const div = document.createElement("div");
-    div.setAttribute("data-track", "ui.card.clicked");
+    div.dataset.trackId = "ui.card.clicked";
     const span = document.createElement("span");
     div.appendChild(span);
     document.body.appendChild(div);
@@ -78,7 +62,25 @@ describe("initClickTracking", () => {
 
     expect(mockTrack).toHaveBeenCalledWith({
       event: "ui.card.clicked",
-      properties: {},
+      properties: { trackType: "declarative-dom" },
+    });
+  });
+
+  it("stops at nearest ancestor when nested tracked elements", () => {
+    cleanup = initClickTracking();
+    const outer = document.createElement("div");
+    outer.dataset.trackId = "ui.outer.clicked";
+    const inner = document.createElement("button");
+    inner.dataset.trackId = "ui.inner.clicked";
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+
+    inner.click();
+
+    expect(mockTrack).toHaveBeenCalledOnce();
+    expect(mockTrack).toHaveBeenCalledWith({
+      event: "ui.inner.clicked",
+      properties: { trackType: "declarative-dom" },
     });
   });
 
@@ -86,7 +88,7 @@ describe("initClickTracking", () => {
     cleanup = initClickTracking();
     cleanup();
     const btn = document.createElement("button");
-    btn.setAttribute("data-track", "ui.button.clicked");
+    btn.dataset.trackId = "ui.button.clicked";
     document.body.appendChild(btn);
 
     btn.click();

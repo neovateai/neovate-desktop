@@ -55,7 +55,7 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
             onClick={() => activeProject && createNewSession(activeProject.path)}
             disabled={!activeProject}
             title={t("sidebar.newChat")}
-            data-track="ui.session.created"
+            data-track-id="ui.session.created"
           >
             <Plus size={16} strokeWidth={1.5} />
           </Button>
@@ -66,7 +66,7 @@ export const SidebarTitleBar = memo(function SidebarTitleBar() {
           className="size-7 text-muted-foreground hover:text-foreground"
           onClick={() => openProject()}
           title={t("sidebar.addProject")}
-          data-track="ui.project.added"
+          data-track-id="ui.project.added"
         >
           <HugeiconsIcon icon={FolderAddIcon} size={16} strokeWidth={1.5} />
         </Button>

@@ -6,19 +6,12 @@ const log = debug("neovate:analytics:click");
 
 export function initClickTracking(): () => void {
   const handler = (e: MouseEvent) => {
-    const el = (e.target as HTMLElement).closest?.("[data-track]");
+    const el = (e.target as HTMLElement).closest?.("[data-track-id]") as HTMLElement | null;
     if (!el) return;
 
-    const event = el.getAttribute("data-track")!;
-    const properties: Record<string, string> = {};
-    for (const attr of el.attributes) {
-      if (attr.name.startsWith("data-track-") && attr.name !== "data-track") {
-        properties[attr.name.slice(11)] = attr.value;
-      }
-    }
-
-    log("tracked: %s %o", event, properties);
-    client.analytics.track({ event, properties }).catch(() => {});
+    const event = el.dataset.trackId!;
+    log("tracked: %s", event);
+    client.analytics.track({ event, properties: { trackType: "declarative-dom" } }).catch(() => {});
   };
 
   document.addEventListener("click", handler);
