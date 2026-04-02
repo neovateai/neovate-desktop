@@ -9,7 +9,7 @@ import type { ProjectStore } from "../../project/project-store";
 
 import { Pushable } from "../pushable";
 import { RequestTracker } from "../request-tracker";
-import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
+import { SessionManager } from "../session-manager";
 
 const makeStreamEventMsg = (event: any) => ({
   type: "stream_event" as const,
@@ -91,10 +91,6 @@ describe("SessionManager", () => {
   it("listSessions returns empty array for nonexistent dir", async () => {
     const sessions = await manager.listSessions("/tmp/nonexistent-" + Date.now());
     expect(sessions).toBeInstanceOf(Array);
-  });
-
-  it("exports PERMISSION_TIMEOUT_MS", () => {
-    expect(PERMISSION_TIMEOUT_MS).toBeGreaterThan(0);
   });
 
   it("enables partial assistant messages in query options", () => {
