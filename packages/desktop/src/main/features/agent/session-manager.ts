@@ -84,9 +84,6 @@ function listSessionFiles(filter?: string): string[] {
   return results;
 }
 
-/** Auto-cancel permission requests after 5 minutes of no UI response. */
-export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
-
 /** Timeout for SDK initializationResult() to prevent hanging sessions. */
 const INIT_TIMEOUT_MS = 10_000;
 
@@ -121,7 +118,6 @@ export class SessionManager {
         string,
         {
           resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
-          timer: ReturnType<typeof setTimeout>;
         }
       >;
     }
@@ -185,7 +181,6 @@ export class SessionManager {
         ): boolean => {
           if (settled) return false;
           settled = true;
-          clearTimeout(timer);
           signal.removeEventListener("abort", onAbort);
           session.pendingRequests.delete(requestId);
           // SDK expects updatedInput on allow results to execute the tool
@@ -196,17 +191,12 @@ export class SessionManager {
           );
           return true;
         };
-        const timer = setTimeout(() => {
-          if (settle({ behavior: "deny", message: "Permission request timed out" })) {
-            this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
-          }
-        }, PERMISSION_TIMEOUT_MS);
         const onAbort = () => {
           if (settle({ behavior: "deny", message: "Permission request cancelled" })) {
             this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
           }
         };
-        session.pendingRequests.set(requestId, { resolve: settle, timer });
+        session.pendingRequests.set(requestId, { resolve: settle });
         this.eventPublisher.publish(sessionId, {
           kind: "request",
           requestId,
@@ -696,7 +686,6 @@ export class SessionManager {
     }
     session.query.close();
     for (const [requestId, pending] of session.pendingRequests) {
-      clearTimeout(pending.timer);
       pending.resolve({ behavior: "deny", message: "Session closed" });
       this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
     }
@@ -1055,7 +1044,6 @@ export class SessionManager {
       }
       pending.resolve(dispatch.respond.result);
       session.pendingRequests.delete(dispatch.requestId);
-      clearTimeout(pending.timer);
       return { kind: "respond", ok: true };
     }
     const session = this.sessions.get(sessionId);
