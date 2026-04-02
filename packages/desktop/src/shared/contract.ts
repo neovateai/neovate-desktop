@@ -6,6 +6,7 @@ import { pluginsContract } from "./features/claude-code-plugins/contract";
 import { configContract } from "./features/config/contract";
 import { deeplinkContract } from "./features/deeplink/contract";
 import { electronContract } from "./features/electron/contract";
+import { llmContract } from "./features/llm/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
 import { rulesContract } from "./features/rules/contract";
@@ -22,6 +23,7 @@ export const contract = {
   deeplink: deeplinkContract,
   config: configContract,
   electron: electronContract,
+  llm: llmContract,
   project: projectContract,
   provider: providerContract,
   rules: rulesContract,

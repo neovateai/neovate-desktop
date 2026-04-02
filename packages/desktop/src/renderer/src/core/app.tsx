@@ -13,6 +13,7 @@ import {
 } from "react";
 import ReactDOM from "react-dom/client";
 
+import type { ILlmService, LlmMessage, LlmQueryOptions } from "../../../shared/features/llm/types";
 import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
@@ -56,6 +57,34 @@ const PluginContextReact: React.Context<PluginContext | null> =
 if (import.meta.hot) {
   import.meta.hot.data.RendererAppContext = RendererAppContext;
   import.meta.hot.data.PluginContextReact = PluginContextReact;
+}
+
+/** Renderer-side ILlmService that delegates to main via oRPC. */
+function createRendererLlmClient(): ILlmService {
+  let configured = false;
+  const refresh = () => {
+    client.llm.isConfigured().then((r) => {
+      configured = r.configured;
+    });
+  };
+  // Prefetch on init
+  refresh();
+  // Re-fetch when auxiliaryModelSelection changes
+  useConfigStore.subscribe((state, prev) => {
+    if (state.auxiliaryModelSelection !== prev.auxiliaryModelSelection) refresh();
+  });
+  return {
+    isConfigured: () => configured,
+    async query(prompt: string, opts?: LlmQueryOptions): Promise<string> {
+      const { signal, ...input } = opts ?? {};
+      const result = await client.llm.query({ prompt, ...input }, { signal });
+      return result.content;
+    },
+    async queryMessages(messages: LlmMessage[], opts?: LlmQueryOptions) {
+      const { signal, ...input } = opts ?? {};
+      return client.llm.queryMessages({ messages, ...input }, { signal });
+    },
+  };
 }
 
 export function useRendererApp(): RendererApp {
@@ -300,7 +329,7 @@ export class RendererApp implements IRendererApp {
   async start(): Promise<void> {
     const t0 = performance.now();
     const el = () => `${Math.round(performance.now() - t0)}ms`;
-    const ctx: PluginContext = { app: this, orpcClient: client };
+    const ctx: PluginContext = { app: this, orpcClient: client, llm: createRendererLlmClient() };
 
     // Infrastructure — all windows
     await useConfigStore.getState().load();

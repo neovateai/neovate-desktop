@@ -1,11 +1,19 @@
-import { Lightbulb, Maximize2, RefreshCw, X, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Lightbulb,
+  Maximize2,
+  RefreshCw,
+  X,
+  ChevronDown,
+  ChevronRight,
+  BrainCircuit,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ActiveSessionInfo } from "../../../../shared/features/agent/types";
 
 import { Button } from "../../components/ui/button";
-import { useRendererApp } from "../../core/app";
+import { usePluginContext, useRendererApp } from "../../core/app";
 import { claudeCodeChatManager } from "../../features/agent/chat-manager";
 import { useAgentStore } from "../../features/agent/store";
 import { useProjectStore } from "../../features/project/store";
@@ -74,6 +82,76 @@ function SessionRow({ session, onClosed }: { session: ActiveSessionInfo; onClose
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LlmTestSection() {
+  const { llm } = usePluginContext();
+  const [result, setResult] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  const run = async (label: string, fn: () => Promise<string>) => {
+    setResult(`[${label}] Running...`);
+    setLoading(true);
+    try {
+      const output = await fn();
+      setResult(`[${label}] OK\n${output}`);
+    } catch (err) {
+      setResult(`[${label}] ERROR\n${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIsConfigured = () => {
+    const configured = llm.isConfigured();
+    setResult(`isConfigured: ${configured}`);
+  };
+
+  const handleQuery = () =>
+    run("query", async () => {
+      const text = await llm.query("Say hello in one sentence.", { maxTokens: 64 });
+      return text;
+    });
+
+  const handleQueryMessages = () =>
+    run("queryMessages", async () => {
+      const res = await llm.queryMessages(
+        [
+          { role: "user", content: "What is 2+2?" },
+          { role: "assistant", content: "4" },
+          { role: "user", content: "And 3+3?" },
+        ],
+        { maxTokens: 64 },
+      );
+      return `model: ${res.model}\nstopReason: ${res.stopReason}\ntokens: ${res.usage.inputTokens}in/${res.usage.outputTokens}out\ncontent: ${res.content}`;
+    });
+
+  return (
+    <div className="border-t border-border">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+        <BrainCircuit className="size-3 text-muted-foreground" />
+        <span className="text-xs font-medium uppercase text-muted-foreground">Auxiliary LLM</span>
+      </div>
+      <div className="px-3 py-2 space-y-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Button variant="outline" size="sm" onClick={handleIsConfigured} disabled={loading}>
+            isConfigured
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleQuery} disabled={loading}>
+            query
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleQueryMessages} disabled={loading}>
+            queryMessages
+          </Button>
+        </div>
+        {result && (
+          <pre className="text-xs bg-muted/50 rounded-md p-2 whitespace-pre-wrap break-all max-h-40 overflow-auto font-mono text-muted-foreground">
+            {result}
+          </pre>
+        )}
+      </div>
     </div>
   );
 }
@@ -163,6 +241,7 @@ export default function DebugView() {
             <SessionRow key={session.sessionId} session={session} onClosed={refresh} />
           ))
         )}
+        <LlmTestSection />
       </div>
     </div>
   );

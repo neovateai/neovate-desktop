@@ -2,6 +2,7 @@ import type { AnyRouter } from "@orpc/server";
 
 import { os } from "@orpc/server";
 
+import type { ILlmService } from "../../../shared/features/llm/types";
 import type { DeeplinkHandler } from "../deeplink/types";
 import type { IShellService } from "../shell-service";
 import type { IMainApp } from "../types";
@@ -23,6 +24,8 @@ export interface PluginContext {
   orpcServer: typeof os;
   /** System shell environment — resolves user's full PATH and env vars */
   shell: IShellService;
+  /** Auxiliary LLM query — uses the configured auxiliary model/provider */
+  llm: ILlmService;
 }
 
 export interface PluginContributions {

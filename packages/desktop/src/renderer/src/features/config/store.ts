@@ -47,6 +47,7 @@ const DEFAULT_CONFIG: AppConfig = {
   networkInspector: false,
   keepAwake: false,
   preWarmSessions: true,
+  auxiliaryModelSelection: "",
 
   // Keybindings
   keybindings: {},

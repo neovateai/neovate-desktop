@@ -15,6 +15,7 @@ import { RequestTracker } from "./features/agent/request-tracker";
 import { SessionManager } from "./features/agent/session-manager";
 import { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import { ConfigStore } from "./features/config/config-store";
+import { LlmService } from "./features/llm/llm-service";
 import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
@@ -76,13 +77,14 @@ const sessionManager = new SessionManager(
   () => mainApp.pluginManager.contributions.agents,
 );
 const stateStore = new StateStore();
+const llmService = new LlmService(configStore);
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
+  llmService,
 });
 const updaterService = new UpdaterService({
   onBeforeQuitForUpdate: () => mainApp.windowManager.prepareForQuit(),
 });
-
 const pluginsService = new PluginsService();
 const skillsService = new SkillsService(projectStore, configStore, process.resourcesPath);
 
@@ -90,6 +92,7 @@ const appContext: AppContext = {
   sessionManager,
   requestTracker,
   configStore,
+  llmService,
   projectStore,
   pluginsService,
   skillsService,
@@ -166,6 +169,7 @@ app.on("before-quit", () => {
   menu?.dispose();
   updaterService.dispose();
   powerBlocker.dispose();
+  llmService.dispose();
   void sessionManager.closeAll();
   void mainApp.stop();
 });

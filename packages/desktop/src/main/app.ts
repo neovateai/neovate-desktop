@@ -3,6 +3,7 @@ import type { AnyRouter } from "@orpc/server";
 import { os } from "@orpc/server";
 import debug from "debug";
 
+import type { ILlmService } from "../shared/features/llm/types";
 import type { MainPlugin } from "./core/plugin/types";
 import type { IBrowserWindowManager, IMainApp } from "./core/types";
 
@@ -18,6 +19,7 @@ const log = debug("neovate:startup");
 
 export interface MainAppOptions {
   plugins?: MainPlugin[];
+  llmService?: ILlmService;
 }
 
 export class MainApp implements IMainApp {
@@ -26,6 +28,7 @@ export class MainApp implements IMainApp {
   readonly windowManager: IBrowserWindowManager;
   readonly deeplink: DeeplinkService;
   private readonly storage: StorageService;
+  private readonly llmService: ILlmService;
   #router: AnyRouter | null = null;
 
   get router(): AnyRouter {
@@ -38,6 +41,12 @@ export class MainApp implements IMainApp {
     this.windowManager = new BrowserWindowManager();
     this.deeplink = new DeeplinkService();
     this.storage = new StorageService();
+    // Fallback to a stub that always reports unconfigured
+    this.llmService = options.llmService ?? {
+      isConfigured: () => false,
+      query: () => Promise.reject(new Error("LLM service not available")),
+      queryMessages: () => Promise.reject(new Error("LLM service not available")),
+    };
   }
 
   getStorage(): StorageService {
@@ -47,7 +56,7 @@ export class MainApp implements IMainApp {
   async start(): Promise<void> {
     const t0 = performance.now();
     const el = () => `${Math.round(performance.now() - t0)}ms`;
-    const ctx = { app: this, orpcServer: os, shell: shellEnvService };
+    const ctx = { app: this, orpcServer: os, shell: shellEnvService, llm: this.llmService };
     await this.pluginManager.configContributions(ctx);
     log("main configContributions done %s", el());
 

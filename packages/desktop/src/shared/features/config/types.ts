@@ -34,6 +34,8 @@ export type AppConfig = {
   networkInspector: boolean;
   keepAwake: boolean;
   preWarmSessions: boolean;
+  /** Encoded "providerId:modelId" for auxiliary LLM calls (plugins, background tasks). Empty = not configured. */
+  auxiliaryModelSelection: string;
 
   // Keybindings
   keybindings: Record<string, string>;

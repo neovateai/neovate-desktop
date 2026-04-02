@@ -28,6 +28,7 @@ beforeEach(() => {
     sessionManager: {} as any,
     requestTracker: new RequestTracker(),
     configStore: {} as any,
+    llmService: {} as any,
     projectStore: {} as any,
     pluginsService: {} as any,
     skillsService: {} as any,

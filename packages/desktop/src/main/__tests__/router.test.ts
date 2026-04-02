@@ -17,6 +17,7 @@ describe("main router context wiring", () => {
       skillsService: {} as unknown as AppDependencies["skillsService"],
       stateStore: {} as unknown as AppDependencies["stateStore"],
       updaterService: {} as unknown as AppDependencies["updaterService"],
+      llmService: {} as unknown as AppDependencies["llmService"],
       mainApp: { windowManager: { mainWindow: null } } as any,
       storage: {} as unknown as AppDependencies["storage"],
     } satisfies AppDependencies;
