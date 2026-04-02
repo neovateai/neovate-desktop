@@ -31,5 +31,11 @@ export const filesContract = {
     .output(type<{ success: boolean; error?: string }>()),
   createFolder: oc.input(type<{ path: string }>()).output(type<FileSystemOperation>()),
   createFile: oc.input(type<{ path: string }>()).output(type<FileSystemOperation>()),
+  copy: oc
+    .input(type<{ sourcePath: string; targetPath: string }>())
+    .output(type<FileSystemOperation>()),
+  move: oc
+    .input(type<{ sourcePath: string; targetPath: string }>())
+    .output(type<FileSystemOperation>()),
   watch: oc.input(type<{ cwd: string }>()).output(eventIterator(type<FileWatchEvent>())),
 };

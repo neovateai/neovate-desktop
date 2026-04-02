@@ -5,6 +5,7 @@ import path from "path";
 import type { PluginContext } from "../../core/plugin/types";
 
 import { listDirectory } from "./tree";
+import { copyFile, moveFile } from "./utils/copy";
 import { unwatchDirectory, watchDirectory } from "./watch";
 
 const log = debug("neovate:files:router");
@@ -132,6 +133,16 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
           errorCode: "unknown",
         };
       }
+    }),
+    copy: orpcServer.handler(async ({ input }) => {
+      const data = input as { sourcePath: string; targetPath: string };
+      log("copyFile requested", { sourcePath: data?.sourcePath, targetPath: data?.targetPath });
+      return copyFile(data?.sourcePath, data?.targetPath);
+    }),
+    move: orpcServer.handler(async ({ input }) => {
+      const data = input as { sourcePath: string; targetPath: string };
+      log("moveFile requested", { sourcePath: data?.sourcePath, targetPath: data?.targetPath });
+      return moveFile(data?.sourcePath, data?.targetPath);
     }),
     watch: orpcServer.handler(async function* ({ input, signal }) {
       const { cwd } = input as { cwd: string };

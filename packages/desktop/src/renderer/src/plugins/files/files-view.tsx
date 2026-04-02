@@ -21,9 +21,11 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
 import { Button } from "../../components/ui/button";
+import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useOperationKeys } from "./hooks/useOperationKeys";
+import { useTreeKeyboardShortcuts } from "./hooks/useTreeKeyboardShortcuts";
 import { useTreeUpdater } from "./hooks/useTreeUpdater";
 import { useFilesTranslation } from "./i18n";
 import { TreeNode } from "./tree-node";
@@ -53,6 +55,10 @@ function FilesViewComponent({ project }: FilesViewProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FileTreeItem | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [clipboardItem, setClipboardItem] = useState<{
+    sourcePath: string;
+    operation: "copy" | "cut";
+  } | null>(null);
   const { resolvedTheme } = useTheme();
   const expandedKeys = useOperationKeys(); // dirs expanded or ever expanded
   const selectedKeys = useOperationKeys();
@@ -174,49 +180,18 @@ function FilesViewComponent({ project }: FilesViewProps) {
     };
   }, [cwd, isVisible]);
 
-  // --- Keyboard shortcut: Enter to rename selected item ---
-  const findTreeItemByPath = (items: FileTreeItem[], path: string): FileTreeItem | null => {
-    for (const item of items) {
-      if (item.fullPath === path) return item;
-      if (item.children) {
-        const found = findTreeItemByPath(item.children, path);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if user is typing in an input field
-      const target = e.target as HTMLElement;
-      const tagName = target.tagName;
-      // Check for standard input elements
-      if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") {
-        return;
-      }
-      // Check for contentEditable elements
-      if (target.isContentEditable || target.closest("[contenteditable='true']")) {
-        return;
-      }
-      // Check if focus is inside a dialog, modal, or popover
-      if (target.closest("[role='dialog'], [role='alertdialog'], [data-state='open']")) {
-        return;
-      }
-
-      if (e.key === "Enter" && selectedKeys.keys.size === 1 && !editingKey) {
-        const selectedPath = [...selectedKeys.keys][0];
-        const item = findTreeItemByPath(treeData, selectedPath);
-        // Skip root item (empty relPath)
-        if (item && item.relPath !== "") {
-          setEditingKey(selectedPath);
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedKeys.keys, editingKey, treeData]);
+  // --- Keyboard shortcuts ---
+  useTreeKeyboardShortcuts({
+    cwd,
+    selectedKeys: selectedKeys.keys,
+    editingKey,
+    treeData,
+    clipboardItem,
+    onSetEditingKey: setEditingKey,
+    onCopy: (node) => handleCopy(node),
+    onCut: (node) => handleCut(node),
+    onPaste: (node) => handlePaste(node),
+  });
 
   /**
    * 传入一组目录路径，该函数将分批加载路径对应的数据并启动监听，必须确保路径依赖的完备性
@@ -324,17 +299,23 @@ function FilesViewComponent({ project }: FilesViewProps) {
           expandedKeys.remove(targetPath, true);
         }
       } else {
-        alert(t("error.deleteFailed", { error: result.error }));
+        toastManager.add({
+          type: "error",
+          title: t("error.deleteFailed", { error: result.error }),
+        });
       }
     } catch (error) {
       console.error("Error deleting file:", error);
-      alert(t("error.deleteFailed", { error: String(error) }));
+      toastManager.add({
+        type: "error",
+        title: t("error.deleteFailed", { error: String(error) }),
+      });
     } finally {
       setDeleteConfirmOpen(false);
       setItemToDelete(null);
     }
   };
-  const handleRename = async (oldPath: string, newPath: string) => {
+  const handleRename = async (oldPath: string, newPath: string): Promise<boolean> => {
     log("rename", { oldPath, newPath });
     try {
       const result = await client.files.rename({ oldPath, newPath });
@@ -342,12 +323,21 @@ function FilesViewComponent({ project }: FilesViewProps) {
         if (selectedKeys.has(oldPath)) {
           selectedKeys.replace(oldPath, newPath); // rename 场景，保持原本对象的文件夹选中状态
         }
+        return true;
       } else {
-        alert(t("error.renameFailed", { error: result.error }));
+        toastManager.add({
+          type: "error",
+          title: t("error.renameFailed", { error: result.error }),
+        });
+        return false;
       }
     } catch (error) {
       console.error("Error renaming file:", error);
-      alert(t("error.renameFailed", { error: String(error) }));
+      toastManager.add({
+        type: "error",
+        title: t("error.renameFailed", { error: String(error) }),
+      });
+      return false;
     }
   };
 
@@ -360,11 +350,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
         selectedKeys.only(fullPath);
         // Watcher will automatically sync the file system changes
       } else {
-        alert(getCreateErrorMessage(result.errorCode, result.error || "", "file", t));
+        toastManager.add({
+          type: "error",
+          title: getCreateErrorMessage(result.errorCode, result.error || "", "file", t),
+        });
       }
     } catch (error) {
       console.error("Error creating file:", error);
-      alert(t("error.createFileFailed", { error: String(error) }));
+      toastManager.add({
+        type: "error",
+        title: t("error.createFileFailed", { error: String(error) }),
+      });
     }
   };
 
@@ -381,11 +377,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
         }
         // Watcher will automatically sync the file system changes
       } else {
-        alert(getCreateErrorMessage(result.errorCode, result.error || "", "folder", t));
+        toastManager.add({
+          type: "error",
+          title: getCreateErrorMessage(result.errorCode, result.error || "", "folder", t),
+        });
       }
     } catch (error) {
       console.error("Error creating folder:", error);
-      alert(t("error.createFolderFailed", { error: String(error) }));
+      toastManager.add({
+        type: "error",
+        title: t("error.createFolderFailed", { error: String(error) }),
+      });
     }
   };
   /** Add file to conversation */
@@ -396,6 +398,73 @@ function FilesViewComponent({ project }: FilesViewProps) {
         detail: { mentions: [{ id: item.relPath, label: item.relPath }] },
       }),
     );
+  };
+
+  /** Copy file to clipboard */
+  const handleCopy = (item: FileTreeItem) => {
+    log("copy to clipboard", { sourcePath: item.fullPath });
+    setClipboardItem({ sourcePath: item.fullPath, operation: "copy" });
+  };
+
+  /** Cut file to clipboard */
+  const handleCut = (item: FileTreeItem) => {
+    log("cut to clipboard", { sourcePath: item.fullPath });
+    setClipboardItem({ sourcePath: item.fullPath, operation: "cut" });
+  };
+
+  /** Check if paste is allowed at target path */
+  const canPaste = (targetPath: string): boolean => {
+    if (!clipboardItem) return false;
+    // Cannot paste to itself or descendant
+    if (clipboardItem.sourcePath === targetPath) return false;
+    if (targetPath.startsWith(clipboardItem.sourcePath + "/")) return false;
+    return true;
+  };
+
+  /** Paste file from clipboard to target directory */
+  const handlePaste = async (targetDir: string) => {
+    if (!clipboardItem) return;
+    const { sourcePath, operation } = clipboardItem;
+    const fileName = sourcePath.split("/").pop() || "";
+    const targetPath = `${targetDir}/${fileName}`;
+
+    log("paste", { sourcePath, targetPath, operation });
+
+    try {
+      if (operation === "copy") {
+        const result = await client.files.copy({ sourcePath, targetPath });
+        if (!result.success) {
+          toastManager.add({
+            type: "error",
+            title: t("error.copyFailed", { error: result.error }),
+          });
+          return;
+        }
+      } else {
+        if (sourcePath === targetPath) {
+          setClipboardItem(null);
+          return;
+        }
+        const result = await client.files.move({ sourcePath, targetPath });
+        if (!result.success) {
+          toastManager.add({
+            type: "error",
+            title: t("error.moveFailed", { error: result.error }),
+          });
+          return;
+        }
+        // Clear clipboard after cut operation completes
+        setClipboardItem(null);
+      }
+    } catch (error) {
+      console.error("Error pasting file:", error);
+      toastManager.add({
+        type: "error",
+        title: t(operation === "copy" ? "error.copyFailed" : "error.moveFailed", {
+          error: String(error),
+        }),
+      });
+    }
   };
 
   /** Reveal file in tree: expand all parent directories and select the file */
@@ -570,7 +639,15 @@ function FilesViewComponent({ project }: FilesViewProps) {
         <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
       </div>
 
-      <div className="flex-1 overflow-auto -mr-2.5">
+      <div
+        className="flex-1 overflow-auto -mr-2.5"
+        onClick={(e) => {
+          // Only clear selection when clicking the empty area (not tree nodes)
+          if (e.target === e.currentTarget) {
+            selectedKeys.reset();
+          }
+        }}
+      >
         {treeData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
             <p className="text-xs text-muted-foreground">{t("emptyDirectory")}</p>
@@ -593,6 +670,11 @@ function FilesViewComponent({ project }: FilesViewProps) {
                 onCreateFile={handleCreateFile}
                 onCreateFolder={handleCreateFolder}
                 onAdd={handleAddContext}
+                onCopy={handleCopy}
+                onCut={handleCut}
+                onPaste={handlePaste}
+                canPaste={canPaste}
+                cutSourcePath={clipboardItem?.operation === "cut" ? clipboardItem.sourcePath : null}
               />
             ))}
           </div>
