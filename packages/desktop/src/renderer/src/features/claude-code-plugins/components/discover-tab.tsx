@@ -72,7 +72,7 @@ export const DiscoverTab = ({
 
   if (marketplaces.length === 0) {
     return (
-      <div className="rounded-xl bg-muted/30 border border-border/50 py-12 px-6 text-center">
+      <div className="rounded-xl bg-card/60 border border-border/30 py-12 px-6 text-center">
         <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10 mx-auto mb-4">
           <Download className="size-6 text-primary" />
         </div>
@@ -90,7 +90,7 @@ export const DiscoverTab = ({
 
   if (plugins.length === 0) {
     return (
-      <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
+      <div className="rounded-xl bg-card/60 border border-border/30 py-8">
         <p className="text-sm text-muted-foreground text-center">
           No plugins found matching your search.
         </p>
@@ -120,7 +120,7 @@ export const DiscoverTab = ({
           return (
             <div
               key={key}
-              className="group relative flex flex-col p-4 rounded-xl bg-background border border-border/50 cursor-pointer hover:border-border hover:shadow-sm transition-all"
+              className="group relative flex flex-col p-4 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200"
               onClick={() => setSelectedPlugin(plugin)}
             >
               <div className="flex items-start justify-between mb-3">
@@ -133,9 +133,9 @@ export const DiscoverTab = ({
                   </Badge>
                 ) : (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-7 px-2.5"
+                    className="h-7 px-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
                     disabled={installingId !== null}
                     onClick={(e) => {
                       e.stopPropagation();

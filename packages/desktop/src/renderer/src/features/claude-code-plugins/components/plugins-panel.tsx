@@ -143,7 +143,7 @@ export const PluginsPanel = () => {
           if (tab !== "discover") setSourceFilter(null);
         }}
       >
-        <TabsList variant="underline" className="mb-5">
+        <TabsList variant="pill" className="mb-5">
           <TabsTrigger value="discover">
             <Download className="size-3.5 mr-1.5" />
             Discover

@@ -142,7 +142,7 @@ export const SkillInstalledTab = ({
       </div>
 
       {filteredSkills.length === 0 ? (
-        <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
+        <div className="rounded-xl bg-card/60 border border-border/30 py-8">
           <p className="text-sm text-muted-foreground text-center">
             {searchQuery
               ? t("settings.skills.noMatchingSkills", { query: searchQuery })
@@ -157,7 +157,7 @@ export const SkillInstalledTab = ({
             return (
               <div
                 key={`${skill.scope}-${skill.projectPath ?? ""}-${skill.dirName}`}
-                className="group relative flex flex-col p-4 rounded-xl bg-background border border-border/50 cursor-pointer hover:border-border hover:shadow-sm transition-all"
+                className="group relative flex flex-col p-4 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200"
                 onClick={() => setSelectedSkill(skill)}
               >
                 <div className="flex items-start justify-between mb-3">

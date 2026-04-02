@@ -82,7 +82,7 @@ export const SkillDiscoverTab = ({
   // Empty state: no registries configured
   if (registries.length === 0) {
     return (
-      <div className="rounded-xl bg-muted/30 border border-border/50 py-12 px-6 text-center">
+      <div className="rounded-xl bg-card/60 border border-border/30 py-12 px-6 text-center">
         <div className="flex items-center justify-center size-12 rounded-xl bg-primary/10 mx-auto mb-4">
           <Download className="size-6 text-primary" />
         </div>
@@ -103,7 +103,7 @@ export const SkillDiscoverTab = ({
   // Registries configured but no skills (after filtering)
   if (groups.length === 0) {
     return (
-      <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
+      <div className="rounded-xl bg-card/60 border border-border/30 py-8">
         <p className="text-sm text-muted-foreground text-center">
           {t("settings.skills.noMatchingSkills", { query: "" })}
         </p>
@@ -118,7 +118,7 @@ export const SkillDiscoverTab = ({
       <div
         key={skill.sourceRef}
         className={cn(
-          "group relative flex flex-col p-4 rounded-xl bg-background border border-border/50 cursor-pointer hover:border-border hover:shadow-sm transition-all",
+          "group relative flex flex-col p-4 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200",
           skill.installed && "opacity-60",
         )}
         onClick={() => {
@@ -140,9 +140,9 @@ export const SkillDiscoverTab = ({
             </Badge>
           ) : (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-7 px-2.5"
+              className="h-7 px-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
               disabled={installingRef !== null}
               onClick={(e) => {
                 e.stopPropagation();
