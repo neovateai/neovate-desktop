@@ -237,6 +237,17 @@ export const useAgentStore = create<AgentState>()(
         if (!session.title) {
           session.title = content.slice(0, 50);
         }
+        // Surface newly-active session in agentSessions so Cmd+K and other
+        // consumers see it without waiting for the next listSessions call.
+        if (wasNew && !state.agentSessions.some((s) => s.sessionId === sessionId)) {
+          state.agentSessions.unshift({
+            sessionId,
+            title: session.title,
+            cwd: session.cwd,
+            createdAt: session.createdAt,
+            updatedAt: session.createdAt,
+          });
+        }
         state._nextMessageId += 1;
         session.messages.push({
           id: String(state._nextMessageId),

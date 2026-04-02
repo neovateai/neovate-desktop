@@ -72,16 +72,21 @@ export function CommandPalette() {
     if (isCommandMode) {
       items = visibleCommands.filter(matchItem);
     } else {
-      const matchedSessions = sessionItems.filter(matchItem).slice(0, MAX_SESSIONS);
+      // Uncap during active search so users can always find what they're looking for
+      const limit = searchQuery ? sessionItems.length : MAX_SESSIONS;
+      const matchedSessions = sessionItems.filter(matchItem).slice(0, limit);
       const matchedCommands = visibleCommands.filter(matchItem);
       items = [...matchedSessions, ...matchedCommands];
     }
 
-    // Sort by frecency
+    // Sessions: preserve recency order from registry; commands: sort by frecency
+    const sessionOrder = new Map(sessionItems.map((item, i) => [item.id, i]));
     items.sort((a, b) => {
-      // Keep sessions before commands in default mode
       if (!isCommandMode && a.group !== b.group) {
         return a.group === "session" ? -1 : 1;
+      }
+      if (a.group === "session") {
+        return (sessionOrder.get(a.id) ?? 0) - (sessionOrder.get(b.id) ?? 0);
       }
       return getFrecencyScore(b.id) - getFrecencyScore(a.id);
     });
