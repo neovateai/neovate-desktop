@@ -1,6 +1,5 @@
 /**
- * Thin wrapper around processUIMessageChunk from our local copy of
- * AI SDK's processUIMessageStream.
+ * Thin wrapper around our local copy of AI SDK's processUIMessageStream.
  *
  * Manages StreamingUIMessageState and flushes updates to Zustand store
  * via ChunkProcessorState.pushMessage() / replaceMessage().
@@ -9,7 +8,7 @@ import type { UIMessage, UIMessageChunk } from "ai";
 
 import {
   createStreamingUIMessageState,
-  processUIMessageChunk,
+  processUIMessageStream,
   type StreamingUIMessageState,
 } from "./process-ui-message-stream";
 
@@ -45,7 +44,7 @@ export class ChunkProcessor<M extends UIMessage> {
   }
 
   async processChunk(chunk: UIMessageChunk) {
-    await processUIMessageChunk<M>({
+    await processUIMessageStream<M>({
       chunk,
       state: this.sdkState,
       write: () => {
