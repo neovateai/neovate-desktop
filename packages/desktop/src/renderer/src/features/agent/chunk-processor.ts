@@ -19,7 +19,13 @@ import {
 
 // ── Helpers not exported by AI SDK ──────────────────────────────────────────
 
-function isDataUIMessageChunk(chunk: { type: string }): boolean {
+// ai/src/ui-message-stream/ui-message-chunks.ts (not exported from ai package)
+function isDataUIMessageChunk(chunk: UIMessageChunk): chunk is UIMessageChunk & {
+  type: `data-${string}`;
+  id?: string;
+  data: unknown;
+  transient?: boolean;
+} {
   return chunk.type.startsWith("data-");
 }
 
