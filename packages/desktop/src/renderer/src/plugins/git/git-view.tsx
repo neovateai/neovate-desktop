@@ -204,7 +204,13 @@ export default memo(function GitView() {
   const getFileIcon = (filePath: string) => {
     const filename = filePath.split("/").pop() || filePath;
     const suffix = filename.split(".").pop();
-    return <div className="seti-icon flex-shrink-0 w-3.5 h-3.5" data-lang={suffix}></div>;
+    return (
+      <div
+        className="seti-icon flex-shrink-0 w-3.5 h-3.5"
+        data-lang={suffix}
+        data-name={filename}
+      ></div>
+    );
   };
 
   const getStatusText = (status: string) => {
