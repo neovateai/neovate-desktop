@@ -21,6 +21,7 @@ import type {
   SDKRateLimitEvent,
   SDKPromptSuggestionMessage,
   SDKAPIRetryMessage,
+  SDKSessionStateChangedMessage,
   SDKResultSuccess,
   SDKResultError,
 } from "@anthropic-ai/claude-agent-sdk";
@@ -88,6 +89,7 @@ export type ClaudeCodeUIEventPart =
   | SDKRateLimitEvent
   | SDKPromptSuggestionMessage
   | SDKAPIRetryMessage
+  | SDKSessionStateChangedMessage
   | ContextUsageEvent;
 
 export type ClaudeCodeUIEventMessage = { id: string } & ClaudeCodeUIEventPart;
@@ -104,7 +106,8 @@ export type ClaudeCodeUIEventRequest = PermissionRequest;
 export type ClaudeCodeUIEvent =
   | { kind: "event"; event: ClaudeCodeUIEventMessage }
   | { kind: "request"; requestId: string; request: ClaudeCodeUIEventRequest }
-  | { kind: "request_settled"; requestId: string };
+  | { kind: "request_settled"; requestId: string }
+  | { kind: "chunk"; chunk: ClaudeCodeUIMessageChunk };
 
 // ─── Dispatch ────────────────────────────────────────────────────────────────
 

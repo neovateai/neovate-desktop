@@ -53,10 +53,8 @@ export const agentRouter = os.agent.router({
       }
     }),
 
-    stream: os.agent.claudeCode.stream.handler(async function* ({ input, context }) {
-      for await (const chunk of context.sessionManager.stream(input.sessionId, input.message)) {
-        yield chunk;
-      }
+    send: os.agent.claudeCode.send.handler(async ({ input, context }) => {
+      await context.sessionManager.send(input.sessionId, input.message);
     }),
 
     subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context, signal }) {

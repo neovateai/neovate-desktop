@@ -162,6 +162,7 @@ const PERMISSION_MODE_I18N_KEYS = {
   plan: "settings.chat.permissionMode.plan",
   bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
   dontAsk: "settings.chat.permissionMode.dontAsk",
+  auto: "settings.chat.permissionMode.auto",
 } as const satisfies Record<PermissionMode, string>;
 
 function PermissionModeSelect({

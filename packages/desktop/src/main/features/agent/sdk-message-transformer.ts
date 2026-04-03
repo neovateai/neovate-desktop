@@ -193,7 +193,7 @@ export class SDKMessageTransformer {
         } else {
           state.latestMessage = this.finalizeAgentMessage({
             toolCallId: chunk.toolCallId,
-            sessionId: msg.session_id,
+            sessionId: msg.session_id ?? "",
             baseMessage: state.latestMessage,
             result: toolResult.content,
             isError: false,

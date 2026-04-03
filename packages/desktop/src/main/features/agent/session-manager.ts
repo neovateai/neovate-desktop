@@ -20,6 +20,7 @@ import { promisify } from "node:util";
 import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIMessage,
+  ClaudeCodeUIMessageChunk,
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../../shared/claude-code/types";
@@ -111,6 +112,7 @@ export class SessionManager {
       providerId?: string;
       lastUserMessageId?: string;
       preTurnRef?: string;
+      consumeExited: boolean;
       pendingRequests: Map<
         string,
         {
@@ -391,6 +393,7 @@ export class SessionManager {
     const env: Record<string, string | undefined> = {
       ...shellEnv,
       PATH: mergedPath,
+      CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS: "1",
     };
 
     const provider = opts?.provider;
@@ -588,16 +591,19 @@ export class SessionManager {
         : {}),
     };
 
-    const { query } = await import("@anthropic-ai/claude-agent-sdk");
-    const q = query({ prompt: input, options });
+    const { query: queryFn } = await import("@anthropic-ai/claude-agent-sdk");
+    const q = queryFn({ prompt: input, options });
     this.sessions.set(sessionId, {
       input,
       query: q,
       cwd,
       providerId: provider?.id,
+      consumeExited: false,
       pendingRequests,
     });
-    return q.initializationResult();
+    const initResult = await q.initializationResult();
+    this.consume(sessionId).catch((err) => log("consume error for %s: %o", sessionId, err));
+    return initResult;
   }
 
   /** Wrap initSession with a timeout to prevent hanging sessions. */
@@ -769,16 +775,16 @@ export class SessionManager {
   }
 
   /**
-   * Stream a user message as UIMessageChunks.
-   * Events from the SDK are routed to the event publisher.
+   * Send a user message into the session's input Pushable.
+   * Does NOT consume the query iterator — that is handled by consume().
    */
-  async *stream(
+  async send(
     sessionId: string,
     message: import("../../../shared/claude-code/types").ClaudeCodeUIMessage,
-  ): AsyncGenerator<import("../../../shared/claude-code/types").ClaudeCodeUIMessageChunk> {
+  ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error(`Unknown session: ${sessionId}`);
-    const transformer = new SDKMessageTransformer();
+    if (session.consumeExited) throw new Error(`Session consume loop has exited: ${sessionId}`);
 
     // UIMessage -> SDKUserMessage: extract text + image parts
     const text = message.parts
@@ -841,6 +847,18 @@ export class SessionManager {
       session_id: sessionId,
       uuid: userMessageId,
     });
+  }
+
+  /**
+   * Long-lived background loop that consumes the query iterator and publishes
+   * all events and chunks through the eventPublisher.
+   * Started fire-and-forget after initSession(). Does NOT break on result —
+   * continues through background turns.
+   */
+  private async consume(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+    const transformer = new SDKMessageTransformer();
 
     // Track the latest top-level message_start usage to compute context window fill
     let lastInputTokens = 0;
@@ -866,7 +884,7 @@ export class SessionManager {
           }
         }
 
-        // Publish to subscribe stream (result event included — carries cost/usage/stop_reason)
+        // Publish side events to subscribe stream (result event included — carries cost/usage/stop_reason)
         const event = toUIEvent(value);
         if (event) {
           this.eventPublisher.publish(sessionId, event);
@@ -893,17 +911,24 @@ export class SessionManager {
               remainingPct,
             },
           });
+          this.powerBlocker.onTurnEnd(sessionId);
         }
 
-        // Route to message stream (result → finish-step + finish, error → error chunk)
+        // Publish chunks through eventPublisher (wrapped as { kind: "chunk", chunk })
         for await (const chunk of transformer.transformWithAggregation(value)) {
-          yield chunk;
+          this.eventPublisher.publish(sessionId, { kind: "chunk", chunk });
         }
 
-        // Break AFTER transformer so finish/finish-step chunks are sent before closing the stream
-        if (value.type === "result") break;
+        // NO break on result — continue processing background turns
       }
+    } catch (err: unknown) {
+      const errorText = err instanceof Error ? err.message : String(err);
+      this.eventPublisher.publish(sessionId, {
+        kind: "chunk",
+        chunk: { type: "error", errorText } as ClaudeCodeUIMessageChunk,
+      });
     } finally {
+      session.consumeExited = true;
       this.powerBlocker.onTurnEnd(sessionId);
     }
   }

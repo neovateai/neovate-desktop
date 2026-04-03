@@ -79,6 +79,7 @@
   "settings.chat.permissionMode.plan": "计划模式",
   "settings.chat.permissionMode.plan.desc": "更改前先创建计划",
   "settings.chat.permissionMode.dontAsk": "免打扰",
+  "settings.chat.permissionMode.auto": "自动",
   "settings.chat.notification": "通知",
   "settings.chat.notification.description": "任务完成时声音通知",
   "settings.chat.notification.off": "关闭",

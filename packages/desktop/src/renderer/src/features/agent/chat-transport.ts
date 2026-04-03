@@ -1,7 +1,6 @@
 import type { ContractRouterClient } from "@orpc/contract";
 import type { ChatRequestOptions, ChatTransport } from "ai";
 
-import { eventIteratorToUnproxiedDataStream } from "@orpc/client";
 import debug from "debug";
 
 const log = debug("neovate:agent-chat:transport");
@@ -19,36 +18,30 @@ type AgentRpc = ContractRouterClient<{ agent: typeof agentContract }>["agent"];
 export class ClaudeCodeChatTransport implements ChatTransport<ClaudeCodeUIMessage> {
   constructor(private readonly rpc: AgentRpc) {}
 
+  /**
+   * Stub — required by ChatTransport interface for AbstractChat constructor,
+   * but never called because ClaudeCodeChat reassigns sendMessage to bypass makeRequest.
+   */
   async sendMessages(
-    options: {
+    _options: {
       trigger: "submit-message" | "regenerate-message";
       chatId: string;
       messageId: string | undefined;
       messages: ClaudeCodeUIMessage[];
       abortSignal: AbortSignal | undefined;
     } & ChatRequestOptions,
-  ) {
-    const lastMessage = options.messages.at(-1);
-    if (!lastMessage) {
-      throw new Error("Cannot send chat request without a message");
-    }
-
-    log(
-      "sendMessages: chatId=%s trigger=%s messages=%d",
-      options.chatId,
-      options.trigger,
-      options.messages.length,
-    );
-    return eventIteratorToUnproxiedDataStream(
-      await this.rpc.claudeCode.stream(
-        { sessionId: options.chatId, message: lastMessage },
-        { signal: options.abortSignal },
-      ),
-    );
+  ): Promise<ReadableStream> {
+    throw new Error("sendMessages is not used — use send() instead");
   }
 
   async reconnectToStream(_options: { chatId: string } & ChatRequestOptions) {
     return null;
+  }
+
+  /** Fire-and-forget: push a user message to the server. */
+  async send(sessionId: string, message: ClaudeCodeUIMessage) {
+    log("send: sessionId=%s", sessionId);
+    await this.rpc.claudeCode.send({ sessionId, message });
   }
 
   subscribe({ chatId }: { chatId: string }) {
