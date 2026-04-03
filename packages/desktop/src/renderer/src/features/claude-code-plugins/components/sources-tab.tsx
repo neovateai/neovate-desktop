@@ -1,6 +1,7 @@
 import debug from "debug";
 import { Plus, RefreshCw, Store, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Marketplace } from "../../../../../shared/features/claude-code-plugins/types";
 
@@ -18,6 +19,7 @@ interface SourcesTabProps {
 }
 
 export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProps) => {
+  const { t } = useTranslation();
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -47,14 +49,14 @@ export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProp
   };
 
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "Never";
+    if (!dateStr) return t("settings.plugins.updatedNever");
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 30) return `${diffDays} days ago`;
+    if (diffDays === 0) return t("settings.plugins.updatedToday");
+    if (diffDays === 1) return t("settings.plugins.updatedYesterday");
+    if (diffDays < 30) return t("settings.plugins.updatedDaysAgo", { count: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -62,11 +64,11 @@ export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProp
     <>
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm text-muted-foreground">
-          {marketplaces.length} source{marketplaces.length !== 1 ? "s" : ""}
+          {t("settings.plugins.sourcesCount", { count: marketplaces.length })}
         </span>
         <Button variant="outline" size="sm" onClick={() => setShowAddModal(true)}>
           <Plus className="size-3.5" />
-          Add Source
+          {t("settings.plugins.addSource")}
         </Button>
       </div>
 
@@ -77,7 +79,7 @@ export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProp
           </div>
           <h3 className="text-sm font-medium text-foreground mb-2">No sources configured</h3>
           <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
-            Add a plugin marketplace to discover and install plugins.
+            {t("settings.plugins.noSourcesConfigured")}
           </p>
           <Button variant="default" size="sm" onClick={() => setShowAddModal(true)}>
             <Plus className="size-3.5" />
@@ -119,7 +121,7 @@ export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProp
                 {confirmRemove === mp.name ? (
                   <div className="flex items-center gap-1">
                     <Button variant="outline" size="sm" onClick={() => setConfirmRemove(null)}>
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="destructive"
@@ -127,7 +129,7 @@ export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProp
                       onClick={() => handleRemove(mp.name)}
                       disabled={removingId !== null}
                     >
-                      {removingId === mp.name ? <Spinner className="size-3.5" /> : "Remove"}
+                      {removingId === mp.name ? <Spinner className="size-3.5" /> : {t("settings.plugins.remove")}}
                     </Button>
                   </div>
                 ) : (

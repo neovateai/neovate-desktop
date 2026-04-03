@@ -1,6 +1,7 @@
 import debug from "debug";
 import { AlertTriangle, ArrowUpCircle, Check, ExternalLink, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   InstalledPlugin,
@@ -50,6 +51,7 @@ export const PluginDetailModal = ({
   onClose,
   onRefresh,
 }: PluginDetailModalProps) => {
+  const { t } = useTranslation();
   const isInstalled = !!installedPlugin;
   const [readme, setReadme] = useState<string | null>(null);
   const [loadingReadme, setLoadingReadme] = useState(false);
@@ -74,14 +76,14 @@ export const PluginDetailModal = ({
   const installedScopeLabels = useMemo(() => {
     if (!marketplacePlugin) return [];
     return marketplacePlugin.installedScopes.map((s) => {
-      if (s.scope === "user") return "User (global)";
+      if (s.scope === "user") return t("settings.plugins.userGlobal");
       const projectName =
         projects.find((p) => p.path === s.projectPath)?.name ??
         s.projectPath?.split("/").pop() ??
-        "unknown";
-      return `${projectName} (${s.scope === "project" ? "shared" : "local"})`;
+        t("settings.plugins.unknown");
+      return `${projectName} (${s.scope === "project" ? t("settings.plugins.shared").toLowerCase() : t("settings.plugins.localOnly").toLowerCase()})`;
     });
-  }, [marketplacePlugin, projects]);
+  }, [marketplacePlugin, projects, t]);
 
   useEffect(() => {
     if (!installedPlugin) return;
@@ -182,11 +184,17 @@ export const PluginDetailModal = ({
         <DialogHeader>
           <DialogTitle>{displayName}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
-          {author && <p className="text-xs text-muted-foreground mt-1">by {author.name}</p>}
+          {author && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("settings.plugins.by", { name: author.name })}
+            </p>
+          )}
           {isInstalled && (
             <div className="flex items-center gap-2 mt-2">
               <span className="text-xs text-muted-foreground">
-                {installedPlugin.enabled ? "Enabled" : "Disabled"}
+                {installedPlugin.enabled
+                  ? t("settings.plugins.enabled")
+                  : t("settings.plugins.disabled")}
               </span>
               <Switch
                 checked={installedPlugin.enabled}
@@ -211,7 +219,7 @@ export const PluginDetailModal = ({
                 {update && (
                   <Badge variant="default" size="sm" className="gap-1">
                     <ArrowUpCircle className="size-3" />
-                    Update available
+                    {t("settings.plugins.updateAvailable")}
                   </Badge>
                 )}
               </>
@@ -235,16 +243,32 @@ export const PluginDetailModal = ({
           {/* Components for installed */}
           {isInstalled && (
             <div className="mb-4">
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Components</p>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                {t("settings.plugins.components")}
+              </p>
               <div className="flex flex-wrap gap-1.5">
-                {installedPlugin.components.hasCommands && <Badge size="sm">Commands</Badge>}
-                {installedPlugin.components.hasSkills && <Badge size="sm">Skills</Badge>}
-                {installedPlugin.components.hasAgents && <Badge size="sm">Agents</Badge>}
-                {installedPlugin.components.hasHooks && <Badge size="sm">Hooks</Badge>}
-                {installedPlugin.components.hasMcpServers && <Badge size="sm">MCP Servers</Badge>}
-                {installedPlugin.components.hasLspServers && <Badge size="sm">LSP Servers</Badge>}
+                {installedPlugin.components.hasCommands && (
+                  <Badge size="sm">{t("settings.plugins.commands")}</Badge>
+                )}
+                {installedPlugin.components.hasSkills && (
+                  <Badge size="sm">{t("settings.plugins.skills")}</Badge>
+                )}
+                {installedPlugin.components.hasAgents && (
+                  <Badge size="sm">{t("settings.plugins.agents")}</Badge>
+                )}
+                {installedPlugin.components.hasHooks && (
+                  <Badge size="sm">{t("settings.plugins.hooks")}</Badge>
+                )}
+                {installedPlugin.components.hasMcpServers && (
+                  <Badge size="sm">{t("settings.plugins.mcpServers")}</Badge>
+                )}
+                {installedPlugin.components.hasLspServers && (
+                  <Badge size="sm">{t("settings.plugins.lspServers")}</Badge>
+                )}
                 {!Object.values(installedPlugin.components).some(Boolean) && (
-                  <span className="text-xs text-muted-foreground">None detected</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t("settings.plugins.noneDetected")}
+                  </span>
                 )}
               </div>
             </div>
@@ -252,10 +276,14 @@ export const PluginDetailModal = ({
 
           {/* Metadata */}
           <div className="space-y-1 text-xs text-muted-foreground mb-4">
-            {marketplace && <div>Source: {marketplace}</div>}
+            {marketplace && (
+              <div>
+                {t("settings.plugins.source")} {marketplace}
+              </div>
+            )}
             {homepage && (
               <div className="flex items-center gap-1">
-                Homepage:{" "}
+                {t("settings.plugins.homepage")}{" "}
                 <a
                   href={homepage}
                   target="_blank"
@@ -267,14 +295,18 @@ export const PluginDetailModal = ({
                 </a>
               </div>
             )}
-            {installedPlugin?.license && <div>License: {installedPlugin.license}</div>}
+            {installedPlugin?.license && (
+              <div>
+                {t("settings.plugins.license")} {installedPlugin.license}
+              </div>
+            )}
           </div>
 
           {/* README */}
           {loadingReadme ? (
             <div className="flex items-center gap-2 text-muted-foreground py-4">
               <Spinner className="size-4" />
-              <span className="text-sm">Loading README...</span>
+              <span className="text-sm">{t("settings.plugins.loadingReadme")}</span>
             </div>
           ) : readme ? (
             <div className="rounded-md bg-muted border border-border p-4 max-h-64 overflow-y-auto">
@@ -288,8 +320,8 @@ export const PluginDetailModal = ({
               <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-300">
                 {isOfficial
-                  ? "Review this plugin before installing. Plugins can run code on your machine via hooks and MCP servers."
-                  : "Plugins can run code on your machine via hooks and MCP servers. Make sure you trust this plugin before installing. Anthropic does not verify third-party plugins."}
+                  ? t("settings.plugins.trustWarningOfficial")
+                  : t("settings.plugins.trustWarningThirdParty")}
               </p>
             </div>
           )}
@@ -306,17 +338,17 @@ export const PluginDetailModal = ({
                     ) : (
                       <ArrowUpCircle className="size-3.5" />
                     )}
-                    {updating ? "Updating..." : "Update"}
+                    {updating ? t("settings.plugins.updating") : t("settings.plugins.update")}
                   </Button>
                 )}
               </div>
               {confirmRemove ? (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-destructive">
-                    Uninstall from {installedPlugin.scope}?
+                    {t("settings.plugins.uninstallConfirm", { scope: installedPlugin.scope })}
                   </span>
                   <Button variant="outline" size="sm" onClick={() => setConfirmRemove(false)}>
-                    Cancel
+                    {t("common.cancel")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -325,7 +357,7 @@ export const PluginDetailModal = ({
                     disabled={removing}
                   >
                     {removing ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}
-                    Uninstall
+                    {t("settings.plugins.uninstall")}
                   </Button>
                 </div>
               ) : (
@@ -336,7 +368,7 @@ export const PluginDetailModal = ({
                   className="text-destructive"
                 >
                   <Trash2 className="size-3.5" />
-                  Uninstall
+                  {t("settings.plugins.uninstall")}
                 </Button>
               )}
             </div>
@@ -344,7 +376,9 @@ export const PluginDetailModal = ({
             <div className="flex flex-col gap-2 w-full">
               {installedScopeLabels.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Already installed: {installedScopeLabels.join(", ")}
+                  {t("settings.plugins.alreadyInstalled", {
+                    scopes: installedScopeLabels.join(", "),
+                  })}
                 </p>
               )}
               <div className="flex items-center justify-end gap-2">
@@ -352,12 +386,12 @@ export const PluginDetailModal = ({
                   <SelectTrigger size="sm" className="w-36">
                     <SelectValue>
                       {installTarget === "user"
-                        ? "User (global)"
+                        ? t("settings.plugins.userGlobal")
                         : (projects.find((p) => p.path === installTarget)?.name ?? installTarget)}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectPopup>
-                    <SelectItem value="user">User (global)</SelectItem>
+                    <SelectItem value="user">{t("settings.plugins.userGlobal")}</SelectItem>
                     {projects.map((p) => (
                       <SelectItem key={p.id} value={p.path}>
                         {p.name}
@@ -372,24 +406,26 @@ export const PluginDetailModal = ({
                   >
                     <SelectTrigger size="sm" className="w-28">
                       <SelectValue>
-                        {projectScope === "project" ? "Shared" : "Local only"}
+                        {projectScope === "project"
+                          ? t("settings.plugins.shared")
+                          : t("settings.plugins.localOnly")}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectPopup>
-                      <SelectItem value="project">Shared</SelectItem>
-                      <SelectItem value="local">Local only</SelectItem>
+                      <SelectItem value="project">{t("settings.plugins.shared")}</SelectItem>
+                      <SelectItem value="local">{t("settings.plugins.localOnly")}</SelectItem>
                     </SelectPopup>
                   </Select>
                 )}
                 {isAlreadyInstalled ? (
                   <Button variant="outline" size="sm" disabled>
                     <Check className="size-3.5" />
-                    Installed
+                    {t("settings.plugins.installedBadge")}
                   </Button>
                 ) : (
                   <Button variant="default" size="sm" onClick={handleInstall} disabled={installing}>
                     {installing ? <Spinner className="size-3.5" /> : null}
-                    {installing ? "Installing..." : "Install"}
+                    {installing ? t("settings.plugins.installing") : t("settings.plugins.install")}
                   </Button>
                 )}
               </div>

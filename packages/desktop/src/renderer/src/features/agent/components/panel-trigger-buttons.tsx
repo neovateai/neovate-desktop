@@ -65,7 +65,7 @@ export function PanelTriggerGroup({ projectPath }: { projectPath?: string }) {
       />
       <SidebarActionButton
         icon={Puzzle}
-        label="Plugins"
+        label={t("settings.plugins")}
         onClick={() =>
           fullRightPanelId === "plugins"
             ? layoutStore.getState().closeFullRightPanel()

@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { PluginError } from "../../../../../shared/features/claude-code-plugins/types";
 
@@ -9,11 +10,13 @@ interface ErrorsTabProps {
 }
 
 export const ErrorsTab = ({ errors }: ErrorsTabProps) => {
+  const { t } = useTranslation();
+
   if (errors.length === 0) {
     return (
       <div className="rounded-xl bg-muted/30 border border-border/50 py-8">
         <p className="text-sm text-muted-foreground text-center">
-          No errors. Everything looks good.
+          {t("settings.plugins.noErrors")}
         </p>
       </div>
     );
