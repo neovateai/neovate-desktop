@@ -20,7 +20,13 @@ export type ModelScope = "session" | "project" | "global";
 
 export type FastModeState = "off" | "cooldown" | "on";
 
-export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";
+export type PermissionMode =
+  | "default"
+  | "acceptEdits"
+  | "bypassPermissions"
+  | "plan"
+  | "dontAsk"
+  | "auto";
 
 export type RewindFilesResult = {
   canRewind: boolean;

@@ -190,6 +190,7 @@ const MODE_LABELS: Record<PermissionMode, string> = {
   plan: "Plan mode",
   bypassPermissions: "YOLO mode",
   dontAsk: "Don't Ask mode",
+  auto: "Auto mode",
 };
 
 /**

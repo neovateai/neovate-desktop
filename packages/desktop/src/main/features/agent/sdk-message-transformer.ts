@@ -193,7 +193,7 @@ export class SDKMessageTransformer {
         } else {
           state.latestMessage = this.finalizeAgentMessage({
             toolCallId: chunk.toolCallId,
-            sessionId: msg.session_id,
+            sessionId: msg.session_id ?? "",
             baseMessage: state.latestMessage,
             result: toolResult.content,
             isError: false,
@@ -282,7 +282,7 @@ export class SDKMessageTransformer {
   ): Generator<ClaudeCodeUIMessageChunk> {
     switch (msg.event.type) {
       case "message_start": {
-        yield* this.handleMessageStart(msg, msg.event);
+        yield* this.handleMessageStart(msg, msg.event as BetaRawMessageStartEvent);
         break;
       }
 
@@ -329,7 +329,7 @@ export class SDKMessageTransformer {
         type: "start",
         messageId: event.message.id,
         messageMetadata: {
-          sessionId: msg.session_id,
+          sessionId: msg.session_id ?? "",
           parentToolUseId: this.isTopLevelParent(msg.parent_tool_use_id)
             ? null
             : msg.parent_tool_use_id,

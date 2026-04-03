@@ -84,6 +84,7 @@
   "settings.chat.permissionMode.plan": "Plan mode",
   "settings.chat.permissionMode.plan.desc": "Create a plan before making changes",
   "settings.chat.permissionMode.dontAsk": "Don't Ask",
+  "settings.chat.permissionMode.auto": "Auto",
   "settings.chat.notification": "Notification",
   "settings.chat.notification.description": "Sound notification when task completes",
   "settings.chat.notification.off": "Off",
