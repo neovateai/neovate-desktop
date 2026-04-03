@@ -18,7 +18,11 @@ import type {
 import type { ClaudeCodeChatTransport } from "./chat-transport";
 
 import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
-import { ChunkProcessor } from "./chunk-processor";
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  type StreamingUIMessageState,
+} from "./process-ui-message-stream";
 import { useAgentStore } from "./store";
 
 export interface ClaudeCodeChatInit extends Omit<ChatInit<ClaudeCodeUIMessage>, "transport"> {
@@ -32,7 +36,8 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   readonly store: StoreApi<ClaudeCodeChatStoreState>;
   readonly #transport: ClaudeCodeChatTransport;
   readonly #state: ClaudeCodeChatState;
-  readonly #chunkProcessor: ChunkProcessor<ClaudeCodeUIMessage>;
+  #streamingState: StreamingUIMessageState<ClaudeCodeUIMessage> | null = null;
+  #messageIndex = -1;
 
   #unsubscribe?: () => Promise<void>;
   #unsubscribeStore?: () => void;
@@ -56,7 +61,6 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     this.store = state.store;
     this.#transport = transport;
     this.#state = state;
-    this.#chunkProcessor = new ChunkProcessor(state);
 
     log("init: sessionId=%s messages=%d", id, messages?.length ?? 0);
 
@@ -178,11 +182,34 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       // "start" chunk (emitted on system/init) → streaming
       // "finish" chunk (emitted on result) → ready
       if (message.chunk.type === "start") {
-        this.#chunkProcessor.resetTurn();
+        // Create streaming state per turn — matches AI SDK's AbstractChat.makeRequest()
+        this.#streamingState = createStreamingUIMessageState<ClaudeCodeUIMessage>({
+          lastMessage: undefined,
+          messageId: this.generateId(),
+        });
+        this.#messageIndex = -1;
         this.#state.status = "streaming";
       }
-      await this.#chunkProcessor.processChunk(message.chunk);
+      if (this.#streamingState) {
+        await processUIMessageStream<ClaudeCodeUIMessage>({
+          chunk: message.chunk,
+          state: this.#streamingState,
+          write: () => {
+            if (this.#messageIndex < 0) {
+              this.#state.pushMessage(this.#streamingState!.message);
+              this.#messageIndex = this.#state.messages.length - 1;
+            } else {
+              this.#state.replaceMessage(this.#messageIndex, this.#streamingState!.message);
+            }
+          },
+          onError: (error) => {
+            this.#state.error = error instanceof Error ? error : new Error(String(error));
+            this.#state.status = "error";
+          },
+        });
+      }
       if (message.chunk.type === "finish") {
+        this.#streamingState = null;
         this.#state.status = "ready";
       }
       return;
