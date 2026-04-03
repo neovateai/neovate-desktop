@@ -168,7 +168,10 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       }
       if (message.chunk.type === "finish") {
         this.#streamingState = null;
-        this.#state.status = "ready";
+        // Don't overwrite error status — if onError was called, keep error state
+        if (this.#state.status !== "error") {
+          this.#state.status = "ready";
+        }
       }
       return;
     }
@@ -266,13 +269,14 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       const lastMsg = this.#state.messages.at(-1)!;
       await this.#transport.send(this.id, lastMsg);
     } catch (err: unknown) {
+      // Match AI SDK: message stays in state on send failure (no popMessage).
+      // User sees their message; error state signals the failure.
       log(
         "sendMessage: FAILED sessionId=%s error=%s",
         this.id,
         err instanceof Error ? err.message : String(err),
       );
-      this.#state.popMessage();
-      this.#state.status = "ready";
+      this.#state.status = "error";
       this.#state.error = err instanceof Error ? err : new Error(String(err));
     }
   };
