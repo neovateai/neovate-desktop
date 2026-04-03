@@ -509,7 +509,6 @@ export default memo(function GitView() {
             className="flex-1 rounded-e-none border-e-0"
             onClick={() => {
               handleCommit(commitMsg, false);
-              setCommitMsg("");
             }}
             disabled={
               loading || commitStatus !== "idle" || stagedFiles.length === 0 || !commitMsg.trim()
