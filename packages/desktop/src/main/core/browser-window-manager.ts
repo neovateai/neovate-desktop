@@ -137,15 +137,31 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   /**
    * Open a secondary window.
    * Singleton by windowType — focuses existing window of the same type.
+   * If the existing window was hidden (hideOnClose), show+focus instead of creating.
    * Renderer reads `windowType` and `windowId` from URL params.
    */
   open(options: OpenWindowOptions): void {
-    const { windowType, width = 800, height = 600, title, parent = false } = options;
+    const {
+      windowType,
+      width = 800,
+      height = 600,
+      x,
+      y,
+      title,
+      parent = false,
+      alwaysOnTop = false,
+      skipTaskbar = false,
+      type: winType,
+      hideOnClose = false,
+    } = options;
 
-    // Singleton: focus existing window of the same type
+    // Singleton: focus/show existing window of the same type
     for (const [id, entry] of this.#windows) {
       if (entry.windowType === windowType) {
         if (!entry.win.isDestroyed()) {
+          if (!entry.win.isVisible()) {
+            entry.win.show();
+          }
           entry.win.focus();
           return;
         }
@@ -157,8 +173,13 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     const win = new BrowserWindow({
       width,
       height,
+      ...(x !== undefined && y !== undefined ? { x, y } : {}),
       title: title ?? windowType,
       show: false,
+      alwaysOnTop,
+      skipTaskbar,
+      ...(winType ? { type: winType } : {}),
+      autoHideMenuBar: true,
       ...(parent && this.#mainWindow ? { parent: this.#mainWindow } : {}),
       webPreferences: {
         preload: join(__dirname, "../preload/index.js"),
@@ -173,15 +194,56 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     const params = new URLSearchParams({ windowId, windowType, ...safeParams });
     this.#loadURL(win, params);
 
-    win.on("closed", () => this.#windows.delete(windowId));
+    if (hideOnClose) {
+      win.on("close", (e) => {
+        if (!this.#isQuitting) {
+          e.preventDefault();
+          win.hide();
+        }
+      });
+    } else {
+      win.on("closed", () => this.#windows.delete(windowId));
+    }
+
     win.webContents.on("did-fail-load", () => {
       this.#windows.delete(windowId);
-      if (!win.isDestroyed()) win.close();
+      if (!win.isDestroyed()) win.destroy();
     });
 
     this.#pipeConsole(win);
     this.#fixDevToolsFonts(win);
     this.#windows.set(windowId, { win, windowType });
+  }
+
+  /**
+   * Toggle a secondary window — show if hidden/unfocused, hide if focused.
+   * Returns true if the window is now visible.
+   */
+  toggle(windowType: string): boolean {
+    for (const [, entry] of this.#windows) {
+      if (entry.windowType === windowType && !entry.win.isDestroyed()) {
+        if (entry.win.isVisible() && entry.win.isFocused()) {
+          entry.win.hide();
+          return false;
+        }
+        if (!entry.win.isVisible()) {
+          entry.win.show();
+        }
+        entry.win.focus();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Get a secondary window by windowType */
+  getByType(windowType: string): BrowserWindow | null {
+    for (const [, entry] of this.#windows) {
+      if (entry.windowType === windowType && !entry.win.isDestroyed()) {
+        return entry.win;
+      }
+    }
+    return null;
   }
 
   close(windowId: string): void {

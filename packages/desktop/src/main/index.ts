@@ -16,6 +16,7 @@ import { SessionManager } from "./features/agent/session-manager";
 import { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import { ConfigStore } from "./features/config/config-store";
 import { LlmService } from "./features/llm/llm-service";
+import { PopupWindowShortcut } from "./features/popup-window/global-shortcut";
 import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
@@ -130,6 +131,7 @@ mainApp.deeplink.register("session", {
 });
 
 let menu: ApplicationMenu | null = null;
+let popupShortcut: PopupWindowShortcut | null = null;
 
 startupLog("app.whenReady waiting %s", elapsed());
 app.whenReady().then(async () => {
@@ -142,6 +144,10 @@ app.whenReady().then(async () => {
 
   // Setup application menu (for menu items, shortcuts handled in renderer)
   menu = new ApplicationMenu(updaterService);
+
+  // Register global shortcut for popup window
+  popupShortcut = new PopupWindowShortcut(configStore, mainApp.windowManager);
+  popupShortcut.init();
 
   // Transport — Electron MessagePort. Swap for WS/HTTP in other environments.
   const handler = new RPCHandler(mainApp.router);
@@ -172,6 +178,9 @@ app.on("before-quit", () => {
     startupLog("QUIT %s %dms", label, Math.round(performance.now() - qt0));
 
   startupLog("QUIT before-quit fired");
+
+  popupShortcut?.dispose();
+  qel("popupShortcut.dispose");
 
   menu?.dispose();
   qel("menu.dispose");

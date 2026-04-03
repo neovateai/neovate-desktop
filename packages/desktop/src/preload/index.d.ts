@@ -4,6 +4,7 @@ interface NeovateApi {
   homedir: string;
   isDev: boolean;
   onOpenSettings: (callback: () => void) => () => void;
+  onPopupWindowShown: (callback: () => void) => () => void;
 }
 
 declare global {

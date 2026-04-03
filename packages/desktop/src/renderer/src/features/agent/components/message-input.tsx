@@ -41,6 +41,8 @@ type Props = {
   onRetry?: () => void;
   cwd: string;
   dockAttached?: boolean;
+  /** Show project selector in toolbar (popup window mode) */
+  showProjectSelector?: boolean;
 };
 
 const NEW_CHAT_EASTER_EGGS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
@@ -62,6 +64,7 @@ export function MessageInput({
   onRetry,
   cwd,
   dockAttached = false,
+  showProjectSelector = false,
 }: Props) {
   const { t } = useTranslation();
   const cwdRef = useLatestRef(cwd);
@@ -506,6 +509,7 @@ export function MessageInput({
           onCancel={onCancel}
           onAttach={() => fileInputRef.current?.click()}
           activeSessionId={activeSessionId}
+          showProjectSelector={showProjectSelector}
         />
       </GradientBorderWrapper>
     </div>

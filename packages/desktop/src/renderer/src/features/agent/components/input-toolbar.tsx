@@ -42,6 +42,7 @@ import { Spinner } from "../../../components/ui/spinner";
 import { cn } from "../../../lib/utils";
 import { client } from "../../../orpc";
 import { useConfigStore } from "../../config/store";
+import { ProjectSelector } from "../../project/components/project-selector";
 import { useProjectStore } from "../../project/store";
 import { useProviderStore } from "../../provider/store";
 import { useSettingsStore } from "../../settings/store";
@@ -61,6 +62,8 @@ type Props = {
   onCancel: () => void;
   onAttach: () => void;
   activeSessionId: string | null;
+  /** Show project selector in toolbar (popup window mode) */
+  showProjectSelector?: boolean;
 };
 
 export function InputToolbar({
@@ -73,6 +76,7 @@ export function InputToolbar({
   onCancel,
   onAttach,
   activeSessionId,
+  showProjectSelector = false,
 }: Props) {
   const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
   const networkInspector = useConfigStore((s) => s.networkInspector);
@@ -99,6 +103,7 @@ export function InputToolbar({
       </Button>
       <ModelSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
       <PermissionModeSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
+      {showProjectSelector && <ProjectSelector variant="select" />}
       {sessionInitError ? (
         <span className="text-xs text-destructive">
           {t("chat.sessionInitFailed")}

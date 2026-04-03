@@ -39,6 +39,7 @@ import editorPlugin from "../plugins/editor";
 import filesPlugin from "../plugins/files";
 import gitPlugin from "../plugins/git";
 import networkPlugin from "../plugins/network";
+import popupWindowPlugin from "../plugins/popup-window";
 import { providersPlugin } from "../plugins/providers";
 import searchPlugin from "../plugins/search";
 import terminalPlugin from "../plugins/terminal";
@@ -198,6 +199,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   networkPlugin,
   debugPlugin,
   providersPlugin,
+  popupWindowPlugin,
   // TODO: Remove in the future
   // contentPanelDemoPlugin
   // demoWindowPlugin,
@@ -437,6 +439,9 @@ export class RendererApp implements IRendererApp {
               disableTransitionOnChange
             >
               <ToastProvider>
+                <ThemeSync />
+                <StyleSync />
+                <FontSizeSync />
                 <Suspense
                   fallback={
                     <div className="flex h-screen items-center justify-center">

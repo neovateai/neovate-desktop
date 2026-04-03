@@ -14,6 +14,7 @@ import { Switch } from "../../../../components/ui/switch";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
 import { useRendererApp } from "../../../../core/app";
 import { localeOptions, type Locales } from "../../../../core/i18n";
+import { formatKeyForDisplay } from "../../../../lib/keybindings";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
 import { useConfigStore } from "../../../config/store";
@@ -40,6 +41,9 @@ export const GeneralPanel = () => {
     developerMode,
     showSessionInitStatus,
     claudeCodeBinPath,
+    popupWindowEnabled,
+    popupWindowShortcut,
+    popupWindowStayOpen,
   } = useConfigStore(
     useShallow((s) => ({
       theme: s.theme,
@@ -53,6 +57,9 @@ export const GeneralPanel = () => {
       developerMode: s.developerMode,
       showSessionInitStatus: s.showSessionInitStatus,
       claudeCodeBinPath: s.claudeCodeBinPath,
+      popupWindowEnabled: s.popupWindowEnabled,
+      popupWindowShortcut: s.popupWindowShortcut,
+      popupWindowStayOpen: s.popupWindowStayOpen,
     })),
   );
   const setConfig = useConfigStore((s) => s.setConfig);
@@ -322,6 +329,46 @@ export const GeneralPanel = () => {
               </Button>
             </div>
           </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.popupWindow")}
+            description={t("settings.general.popupWindow.description")}
+          >
+            <Switch
+              checked={popupWindowEnabled}
+              onCheckedChange={(v) => setConfig("popupWindowEnabled", v)}
+            />
+          </SettingsRow>
+
+          {popupWindowEnabled && (
+            <>
+              <SettingsRow
+                title={t("settings.general.popupWindowShortcut")}
+                description={t("settings.general.popupWindowShortcut.description")}
+              >
+                <div className="flex items-center gap-1.5">
+                  {formatKeyForDisplay(popupWindowShortcut).map((key, i) => (
+                    <kbd
+                      key={i}
+                      className="inline-flex h-6 min-w-6 items-center justify-center rounded bg-muted px-1.5 text-xs font-medium text-muted-foreground"
+                    >
+                      {key}
+                    </kbd>
+                  ))}
+                </div>
+              </SettingsRow>
+
+              <SettingsRow
+                title={t("settings.general.popupWindowStayOpen")}
+                description={t("settings.general.popupWindowStayOpen.description")}
+              >
+                <Switch
+                  checked={popupWindowStayOpen}
+                  onCheckedChange={(v) => setConfig("popupWindowStayOpen", v)}
+                />
+              </SettingsRow>
+            </>
+          )}
         </SettingsGroup>
 
         {/* Skills */}

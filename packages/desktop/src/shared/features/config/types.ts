@@ -41,6 +41,11 @@ export type AppConfig = {
   // Keybindings
   keybindings: Record<string, string>;
 
+  // Popup Window
+  popupWindowEnabled: boolean;
+  popupWindowShortcut: string;
+  popupWindowStayOpen: boolean;
+
   // Skills
   skillsRegistries: SkillsRegistry[];
   npmRegistry: string;

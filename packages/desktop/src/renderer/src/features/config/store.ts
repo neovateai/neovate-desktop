@@ -53,6 +53,11 @@ const DEFAULT_CONFIG: AppConfig = {
   // Keybindings
   keybindings: {},
 
+  // Popup Window
+  popupWindowEnabled: true,
+  popupWindowShortcut: "Alt+N",
+  popupWindowStayOpen: true,
+
   // Skills
   skillsRegistries: [],
   npmRegistry: "",

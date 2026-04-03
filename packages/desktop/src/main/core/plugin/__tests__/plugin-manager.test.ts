@@ -13,6 +13,8 @@ function makeCtx(): PluginContext {
         createMainWindow: vi.fn(),
         open: vi.fn(),
         close: vi.fn(),
+        toggle: vi.fn(),
+        getByType: vi.fn(),
         destroyAll: vi.fn(),
         ensureMinWidth: vi.fn(),
         prepareForQuit: vi.fn(),

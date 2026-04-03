@@ -180,7 +180,7 @@ export const KEYBINDING_LABEL_KEYS = {
 export const KEYBINDING_LABELS: Record<KeybindingAction, string> = {
   openSettings: "Open Settings",
   newChat: "New Chat",
-  quickChat: "Quick Chat",
+  quickChat: "Quick Chat in Playground",
   closeSettings: "Close Settings",
   toggleTheme: "Toggle Theme",
   clearTerminal: "Clear Terminal",

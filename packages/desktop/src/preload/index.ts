@@ -21,6 +21,10 @@ const api = {
     ipcRenderer.on("menu:open-settings", callback);
     return () => ipcRenderer.removeListener("menu:open-settings", callback);
   },
+  onPopupWindowShown: (callback: () => void) => {
+    ipcRenderer.on("popup-window:shown", callback);
+    return () => ipcRenderer.removeListener("popup-window:shown", callback);
+  },
 };
 
 if (process.contextIsolated) {
