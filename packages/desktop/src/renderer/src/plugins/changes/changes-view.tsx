@@ -14,6 +14,7 @@ import {
 import { useTheme } from "next-themes";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useLayoutStore } from "../../components/app-layout/store";
 import { Popover, PopoverTrigger, PopoverPopup } from "../../components/ui/popover";
 import {
   Select,
@@ -23,6 +24,7 @@ import {
   SelectItem,
 } from "../../components/ui/select";
 import { usePluginContext } from "../../core/app";
+import { useSessionChatStatus } from "../../features/agent/hooks/use-session-chat-status";
 import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
 import { useIntersectionObserver } from "../../hooks/use-intersection-observer";
@@ -102,6 +104,9 @@ export default memo(function ChangesView() {
   const activeProject = useProjectStore((s) => s.activeProject);
   const { sessionId } = useActiveSession();
   const { viewId, viewState: savedState, isActive } = useContentPanelViewContext();
+  const { isStreaming } = useSessionChatStatus(sessionId ?? "");
+  const panelCollapsed = useLayoutStore((s) => s.panels.contentPanel.collapsed);
+  const shouldPoll = !!isStreaming && isActive && !panelCollapsed;
 
   const [category, setCategory] = useState<ChangesCategory>(
     (savedState.category as ChangesCategory) || "unstaged",
@@ -115,8 +120,10 @@ export default memo(function ChangesView() {
   const [diffHeights, setDiffHeights] = useState<Record<string, number>>({});
   const [forceShownFiles, setForceShownFiles] = useState<Set<string>>(new Set());
 
-  const { files, loading, error, branchInfo, diffs, loadingDiffs, refresh, loadDiff } =
-    useChanges(category);
+  const { files, loading, error, branchInfo, diffs, loadingDiffs, refresh, loadDiff } = useChanges(
+    category,
+    { shouldPoll },
+  );
 
   // L1: Memoize diff options to avoid unnecessary MultiFileDiff re-renders
   const diffOptions = useMemo(

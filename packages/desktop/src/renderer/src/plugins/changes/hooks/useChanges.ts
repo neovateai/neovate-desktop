@@ -38,7 +38,8 @@ type Client = ContractRouterClient<{
   changes: typeof changesContract;
 }>;
 
-export function useChanges(category: ChangesCategory) {
+export function useChanges(category: ChangesCategory, opts?: { shouldPoll?: boolean }) {
+  const shouldPoll = opts?.shouldPoll ?? false;
   const { orpcClient } = usePluginContext();
   const client = orpcClient as Client;
   const activeProject = useProjectStore((s) => s.activeProject);
@@ -155,6 +156,32 @@ export function useChanges(category: ChangesCategory) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Poll every 2s while streaming and viewing last-turn
+  const isRefreshingRef = useRef(false);
+  useEffect(() => {
+    if (category !== "last-turn" || !shouldPoll) return;
+    const id = setInterval(() => {
+      if (isRefreshingRef.current) return;
+      isRefreshingRef.current = true;
+      refresh().finally(() => {
+        isRefreshingRef.current = false;
+      });
+    }, 2000);
+    return () => clearInterval(id);
+  }, [category, shouldPoll, refresh]);
+
+  // Refresh when a turn completes (any category)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ sessionId: string }>).detail;
+      if (detail.sessionId === sessionId) {
+        refresh();
+      }
+    };
+    window.addEventListener("neovate:turn-completed", handler);
+    return () => window.removeEventListener("neovate:turn-completed", handler);
+  }, [sessionId, refresh]);
 
   const loadDiff = useCallback(
     async (relPath: string) => {

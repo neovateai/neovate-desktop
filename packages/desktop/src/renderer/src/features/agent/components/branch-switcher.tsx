@@ -98,6 +98,23 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
       .catch(() => setIsGitRepo(false));
   }, [cwd]);
 
+  // Re-fetch current branch when a turn completes
+  useEffect(() => {
+    const handler = () => {
+      client.git
+        .branches({ cwd, limit: 1 })
+        .then((result) => {
+          if (result.success && result.data) {
+            setCurrentBranch(result.data.current);
+            setDetachedHead(result.data.detachedHead);
+          }
+        })
+        .catch(() => {});
+    };
+    window.addEventListener("neovate:turn-completed", handler);
+    return () => window.removeEventListener("neovate:turn-completed", handler);
+  }, [cwd]);
+
   // Debounced search
   const handleSearchChange = useCallback(
     (value: string) => {

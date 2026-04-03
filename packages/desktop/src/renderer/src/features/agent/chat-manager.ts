@@ -34,6 +34,10 @@ export class ClaudeCodeChatManager {
         void this.#handleContextClear(id, pending);
       }
 
+      window.dispatchEvent(
+        new CustomEvent("neovate:turn-completed", { detail: { sessionId: id } }),
+      );
+
       const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
       if (activeSessionId !== id) {
         markTurnCompleted(id, result);
