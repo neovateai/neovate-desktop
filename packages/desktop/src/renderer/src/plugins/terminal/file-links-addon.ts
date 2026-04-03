@@ -8,11 +8,14 @@ import type {
 } from "@xterm/xterm";
 
 // File path patterns for detecting file links in terminal output
+// All patterns include optional line:column suffix (e.g., file.ts:10:5)
 const FILE_PATH_PATTERNS = [
   // Match relative paths: ./file.ts, ../file.ts
-  /\.{1,2}\/[\w./-]+\.\w+/,
+  /\.{1,2}\/[\w./-]+\.\w+(?::\d+(?::\d+)?)?/,
   // Match common source directory paths: src/components/button.tsx
-  /(?:src|app|lib|utils|components|pages|api|test|tests|spec|examples|docs|types|hooks)\/[\w./-]+\.\w+/i,
+  /(?:src|app|lib|utils|components|pages|api|test|tests|spec|examples|docs|types|hooks)\/[\w./-]+\.\w+(?::\d+(?::\d+)?)?/i,
+  // Match absolute paths: /Users/name/file.ts, /home/user/file.ts
+  /(?:\/Users\/[^/]+|\/home\/[^/]+|\/var\/log|\/tmp|\/opt|\/etc)\/[\w./-]+\.\w+(?::\d+(?::\d+)?)?/,
 ];
 
 /**
@@ -141,15 +144,8 @@ export class FileLinksAddon implements IDisposable {
     const lineText = line.translateToString(false);
     if (!lineText) return links;
 
-    // File path patterns
-    const patterns = [
-      // Match relative paths: ./file.ts, ../file.ts
-      /\.{1,2}\/[\w./-]+\.\w+(?::\d+(?::\d+)?)?/g,
-      // Match common source directories: src/components/button.tsx
-      /(?:src|app|lib|utils|components|pages|api|test|tests|spec|examples|docs)\/[\w./-]+\.\w+(?::\d+(?::\d+)?)?/gi,
-      // Match absolute paths: /Users/name/file.ts, /home/user/file.ts
-      /(?:\/Users\/[^\/]+|\/home\/[^\/]+|\/var\/log|\/tmp|\/opt|\/etc)\/[\w./-]+\.\w+(?::\d+(?::\d+)?)?/g,
-    ];
+    // Use global patterns with 'g' flag for iteration
+    const patterns = FILE_PATH_PATTERNS.map((p) => new RegExp(p.source, p.flags + "g"));
 
     for (const pattern of patterns) {
       pattern.lastIndex = 0;
@@ -417,7 +413,7 @@ export function detectFilePath(text: string): { path: string; line?: number } | 
     }
   }
 
-  // Also allow absolute paths
+  // Also allow absolute paths that don't match specific prefixes
   if (cleanPath.startsWith("/") && /\/[^/]+\.[^/]+$/.test(cleanPath)) {
     return {
       path: cleanPath,

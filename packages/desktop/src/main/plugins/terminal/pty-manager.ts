@@ -47,7 +47,7 @@ export class PtyManager {
         ...env,
         // Ensure UTF-8 encoding for proper CJK character support
         LANG: env.LANG?.includes("UTF-8") ? env.LANG : "en_US.UTF-8",
-        LC_CTYPE: "UTF-8",
+        LC_CTYPE: env.LC_CTYPE?.includes("UTF-8") ? env.LC_CTYPE : "en_US.UTF-8",
       },
     });
 

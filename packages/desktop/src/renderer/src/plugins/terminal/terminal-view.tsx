@@ -154,9 +154,10 @@ export default function TerminalView() {
       // With modifier key pressed, try to open as file path
       const fileInfo = detectFilePath(uri);
       if (fileInfo && projectPath) {
-        const fullPath = uri.startsWith("/") ? uri : `${projectPath}/${fileInfo.path}`;
+        const fullPath = uri.startsWith("/") ? fileInfo.path : `${projectPath}/${fileInfo.path}`;
+        const pathWithLine = fileInfo.line ? `${fullPath}:${fileInfo.line}` : fullPath;
 
-        app.opener.open(fullPath);
+        app.opener.open(pathWithLine);
       } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
         // Fall back to opening URL
         window.open(uri, "_blank");
