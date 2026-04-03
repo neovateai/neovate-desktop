@@ -36,6 +36,7 @@ const remoteSkillSchema = z.object({
   sourceRef: z.string(),
   skillName: z.string(),
   version: z.string().optional(),
+  badges: z.array(z.enum(["recommended", "new", "deprecated", "official", "popular"])).optional(),
 });
 
 const remoteRegistryGroupSchema = z.object({

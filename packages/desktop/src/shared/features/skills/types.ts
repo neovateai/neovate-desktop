@@ -1,3 +1,5 @@
+export type SkillBadgeType = "recommended" | "new" | "deprecated" | "official" | "popular";
+
 export interface SkillFrontmatter {
   disableModelInvocation?: boolean;
   userInvocable?: boolean;
@@ -28,6 +30,7 @@ export interface RecommendedSkill {
   sourceRef: string;
   skillName: string;
   version?: string;
+  badges?: SkillBadgeType[];
   installed: boolean;
 }
 

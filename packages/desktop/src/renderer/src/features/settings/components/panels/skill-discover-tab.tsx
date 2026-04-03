@@ -6,6 +6,7 @@ import type { Project } from "../../../../../../shared/features/project/types";
 import type {
   RecommendedSkill,
   RegistryGroup,
+  SkillBadgeType,
   SkillMeta,
 } from "../../../../../../shared/features/skills/types";
 
@@ -14,6 +15,25 @@ import { Button } from "../../../../components/ui/button";
 import { Spinner } from "../../../../components/ui/spinner";
 import { cn } from "../../../../lib/utils";
 import { SkillDetailModal } from "./skill-detail-modal";
+
+const skillBadgeVariantMap: Record<
+  SkillBadgeType,
+  "success" | "info" | "secondary" | "default" | "warning"
+> = {
+  recommended: "success",
+  official: "info",
+  popular: "secondary",
+  new: "default",
+  deprecated: "warning",
+};
+
+const skillBadgeRenderPriority: Record<SkillBadgeType, number> = {
+  official: 1,
+  recommended: 2,
+  popular: 3,
+  new: 4,
+  deprecated: 5,
+};
 
 const getInitials = (name: string): string => {
   const words = name.split(/[\s-_]+/);
@@ -114,12 +134,18 @@ export const SkillDiscoverTab = ({
   const renderSkillCard = (skill: RecommendedSkill) => {
     const initials = getInitials(skill.name);
     const isInstalling = installingRef === skill.sourceRef;
+    const isDeprecated = skill.badges?.includes("deprecated") ?? false;
+    const sortedBadges = skill.badges
+      ?.slice()
+      .sort((a, b) => skillBadgeRenderPriority[a] - skillBadgeRenderPriority[b])
+      .slice(0, 2);
     return (
       <div
         key={skill.sourceRef}
         className={cn(
           "group relative flex flex-col p-4 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200",
           skill.installed && "opacity-60",
+          isDeprecated && !skill.installed && "opacity-60",
         )}
         onClick={() => {
           if (skill.installed) {
@@ -169,6 +195,11 @@ export const SkillDiscoverTab = ({
               v{skill.version}
             </Badge>
           )}
+          {sortedBadges?.map((badge) => (
+            <Badge key={badge} variant={skillBadgeVariantMap[badge]} size="sm">
+              {t(`settings.skills.badge.${badge}`)}
+            </Badge>
+          ))}
         </div>
       </div>
     );
