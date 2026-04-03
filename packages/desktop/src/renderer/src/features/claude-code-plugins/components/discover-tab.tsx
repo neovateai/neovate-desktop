@@ -1,4 +1,4 @@
-import { CheckCircle, Download, Plus, X } from "lucide-react";
+import { Download, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -132,8 +132,7 @@ export const DiscoverTab = ({
                   {initials}
                 </div>
                 {plugin.installedScopes.length > 0 ? (
-                  <Badge variant="secondary" size="sm" className="gap-1">
-                    <CheckCircle className="size-3" />
+                  <Badge variant="secondary" size="sm">
                     {t("settings.plugins.installedBadge")}
                   </Badge>
                 ) : (
