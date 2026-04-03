@@ -5,37 +5,29 @@
   "workspaces": [
     "packages/*"
   ],
+  "type": "module",
   "scripts": {
     "dev": "bun run --filter=neovate-desktop dev",
     "build": "bun run --filter=neovate-desktop build",
     "typecheck": "bun run --filter=neovate-desktop typecheck",
-    "lint": "oxlint",
-    "lint:format": "oxfmt --check .",
-    "format": "oxfmt --write .",
-    "test": "vitest",
-    "test:run": "vitest run",
+    "lint": "vp lint",
+    "lint:format": "vp fmt --check",
+    "format": "vp fmt",
+    "test": "vp test",
+    "test:run": "vp test run",
     "test:e2e": "bun run --filter=neovate-desktop test:e2e",
-    "check": "npm-run-all --parallel typecheck lint lint:format",
+    "check": "vp check && bun run typecheck",
     "build:unpack": "bun run --filter=neovate-desktop build:unpack",
     "build:mac": "bun run --filter=neovate-desktop build:mac",
     "build:mac:dev": "bun run --filter=neovate-desktop build:mac:dev",
     "release": "bunx bumpp packages/desktop/package.json",
-    "ready": "bun scripts/ready.ts",
-    "prepare": "husky"
+    "ready": "bun scripts/ready.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.3.10",
     "@typescript/native-preview": "7.0.0-dev.20260314.1",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
-    "npm-run-all2": "^8.0.4",
-    "oxfmt": "^0.40.0",
-    "oxlint": "^1.55.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
-  },
-  "lint-staged": {
-    "*": "oxfmt --no-error-on-unmatched-pattern"
+    "vite-plus": "latest"
   },
   "packageManager": "bun@1.3.10"
 }
