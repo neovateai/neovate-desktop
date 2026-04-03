@@ -19,10 +19,6 @@ import {
 
 // ── Helpers not exported by AI SDK ──────────────────────────────────────────
 
-function isDynamicToolUIPart(part: { type: string }): boolean {
-  return part.type === "dynamic-tool";
-}
-
 function isDataUIMessageChunk(chunk: { type: string }): boolean {
   return chunk.type.startsWith("data-");
 }
@@ -90,7 +86,7 @@ export class ChunkProcessor<M extends UIMessage> {
   private activeReasoningParts: Record<string, M["parts"][number]> = {};
   private partialToolCalls: Record<
     string,
-    { text: string; toolName: string; index: number; dynamic?: boolean; title?: string }
+    { text: string; index: number; toolName: string; dynamic?: boolean; title?: string }
   > = {};
   finishReason: string | undefined;
 
@@ -107,123 +103,103 @@ export class ChunkProcessor<M extends UIMessage> {
   }
 
   async processChunk(chunk: UIMessageChunk) {
-    switch (chunk.type) {
-      // ── Message lifecycle ─────────────────────────────────────
-      case "start": {
-        // Adaptation: AI SDK's write() conditionally pushes or replaces via
-        // activeResponse shadow state. We explicitly push on start since our
-        // architecture requires the message in the array from the beginning.
-        if (chunk.messageId != null) {
-          (this.message as { id: string }).id = chunk.messageId;
-        }
-        this.updateMessageMetadata(chunk.messageMetadata);
-        this.state.pushMessage(this.message);
-        this.messageIndex = this.state.messages.length - 1;
-        if (chunk.messageId != null || chunk.messageMetadata != null) {
-          this.flush();
-        }
-        break;
-      }
+    // The AI SDK source uses fully-typed chunk narrowing. We cast to `any` because:
+    // 1. Some chunk types (custom, reasoning-file) aren't in the published union yet
+    // 2. Some fields (providerMetadata on tool-output-*) aren't in the published types yet
+    // This preserves 1:1 structural parity with the AI SDK switch statement.
+    const c = chunk as any;
 
-      case "finish": {
-        if (chunk.finishReason != null) {
-          this.finishReason = chunk.finishReason;
-        }
-        this.updateMessageMetadata(chunk.messageMetadata);
-        if (chunk.messageMetadata != null) {
-          this.flush();
-        }
-        break;
-      }
-
-      case "message-metadata": {
-        this.updateMessageMetadata(chunk.messageMetadata);
-        if (chunk.messageMetadata != null) {
-          this.flush();
-        }
-        break;
-      }
-
-      // ── Text ──────────────────────────────────────────────────
+    switch (c.type) {
       case "text-start": {
         const textPart = {
           type: "text" as const,
           text: "",
-          providerMetadata: chunk.providerMetadata,
+          providerMetadata: c.providerMetadata,
           state: "streaming" as const,
         };
-        this.activeTextParts[chunk.id] = textPart as M["parts"][number];
+        this.activeTextParts[c.id] = textPart as M["parts"][number];
         this.message.parts.push(textPart as M["parts"][number]);
         this.flush();
         break;
       }
 
       case "text-delta": {
+        const textPart = this.activeTextParts[c.id];
         // Adaptation: AI SDK throws UIMessageStreamError on missing part.
-        // We silently skip for long-lived connection robustness (same as getToolInvocation).
-        const textPart = this.activeTextParts[chunk.id];
+        // We silently skip for long-lived connection robustness.
         if (textPart == null) break;
-        const anyPart = textPart as any;
-        anyPart.text += chunk.delta;
-        anyPart.providerMetadata = chunk.providerMetadata ?? anyPart.providerMetadata;
+        (textPart as any).text += c.delta;
+        (textPart as any).providerMetadata =
+          c.providerMetadata ?? (textPart as any).providerMetadata;
         this.flush();
         break;
       }
 
       case "text-end": {
-        const textPart = this.activeTextParts[chunk.id];
+        const textPart = this.activeTextParts[c.id];
         if (textPart == null) break;
-        const anyPart = textPart as any;
-        anyPart.state = "done";
-        anyPart.providerMetadata = chunk.providerMetadata ?? anyPart.providerMetadata;
-        delete this.activeTextParts[chunk.id];
+        (textPart as any).state = "done";
+        (textPart as any).providerMetadata =
+          c.providerMetadata ?? (textPart as any).providerMetadata;
+        delete this.activeTextParts[c.id];
         this.flush();
         break;
       }
 
-      // ── Reasoning ─────────────────────────────────────────────
+      case "custom": {
+        this.message.parts.push({
+          type: "custom",
+          kind: c.kind,
+          providerMetadata: c.providerMetadata,
+        } as unknown as M["parts"][number]);
+        this.flush();
+        break;
+      }
+
       case "reasoning-start": {
         const reasoningPart = {
           type: "reasoning" as const,
           text: "",
-          providerMetadata: chunk.providerMetadata,
+          providerMetadata: c.providerMetadata,
           state: "streaming" as const,
         };
-        this.activeReasoningParts[chunk.id] = reasoningPart as M["parts"][number];
+        this.activeReasoningParts[c.id] = reasoningPart as M["parts"][number];
         this.message.parts.push(reasoningPart as M["parts"][number]);
         this.flush();
         break;
       }
 
       case "reasoning-delta": {
-        const reasoningPart = this.activeReasoningParts[chunk.id];
+        const reasoningPart = this.activeReasoningParts[c.id];
         if (reasoningPart == null) break;
-        const anyPart = reasoningPart as any;
-        anyPart.text += chunk.delta;
-        anyPart.providerMetadata = chunk.providerMetadata ?? anyPart.providerMetadata;
+        (reasoningPart as any).text += c.delta;
+        (reasoningPart as any).providerMetadata =
+          c.providerMetadata ?? (reasoningPart as any).providerMetadata;
         this.flush();
         break;
       }
 
       case "reasoning-end": {
-        const reasoningPart = this.activeReasoningParts[chunk.id];
+        const reasoningPart = this.activeReasoningParts[c.id];
         if (reasoningPart == null) break;
-        const anyPart = reasoningPart as any;
-        anyPart.providerMetadata = chunk.providerMetadata ?? anyPart.providerMetadata;
-        anyPart.state = "done";
-        delete this.activeReasoningParts[chunk.id];
+        (reasoningPart as any).providerMetadata =
+          c.providerMetadata ?? (reasoningPart as any).providerMetadata;
+        (reasoningPart as any).state = "done";
+        delete this.activeReasoningParts[c.id];
+
         this.flush();
         break;
       }
 
-      // ── File / Source ─────────────────────────────────────────
-      case "file": {
+      case "file":
+      case "reasoning-file": {
         this.message.parts.push({
-          type: chunk.type,
-          mediaType: chunk.mediaType,
-          url: chunk.url,
-          ...(chunk.providerMetadata != null ? { providerMetadata: chunk.providerMetadata } : {}),
+          type: c.type,
+          mediaType: c.mediaType,
+          url: c.url,
+          ...(c.providerMetadata != null ? { providerMetadata: c.providerMetadata } : {}),
         } as unknown as M["parts"][number]);
+
         this.flush();
         break;
       }
@@ -231,11 +207,12 @@ export class ChunkProcessor<M extends UIMessage> {
       case "source-url": {
         this.message.parts.push({
           type: "source-url",
-          sourceId: chunk.sourceId,
-          url: chunk.url,
-          title: chunk.title,
-          providerMetadata: chunk.providerMetadata,
+          sourceId: c.sourceId,
+          url: c.url,
+          title: c.title,
+          providerMetadata: c.providerMetadata,
         } as M["parts"][number]);
+
         this.flush();
         break;
       }
@@ -243,59 +220,68 @@ export class ChunkProcessor<M extends UIMessage> {
       case "source-document": {
         this.message.parts.push({
           type: "source-document",
-          sourceId: chunk.sourceId,
-          mediaType: chunk.mediaType,
-          title: chunk.title,
-          filename: chunk.filename,
-          providerMetadata: chunk.providerMetadata,
+          sourceId: c.sourceId,
+          mediaType: c.mediaType,
+          title: c.title,
+          filename: c.filename,
+          providerMetadata: c.providerMetadata,
         } as M["parts"][number]);
+
         this.flush();
         break;
       }
 
-      // ── Tool input ────────────────────────────────────────────
       case "tool-input-start": {
         const toolInvocations = this.message.parts.filter(isStaticToolUIPart);
-        this.partialToolCalls[chunk.toolCallId] = {
+
+        // add the partial tool call to the map
+        this.partialToolCalls[c.toolCallId] = {
           text: "",
-          toolName: chunk.toolName,
+          toolName: c.toolName,
           index: toolInvocations.length,
-          dynamic: chunk.dynamic,
-          title: chunk.title,
+          dynamic: c.dynamic,
+          title: c.title,
         };
-        if (chunk.dynamic) {
+
+        if (c.dynamic) {
           this.updateDynamicToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
             state: "input-streaming",
             input: undefined,
-            providerExecuted: chunk.providerExecuted,
-            title: chunk.title,
-            providerMetadata: chunk.providerMetadata,
+            providerExecuted: c.providerExecuted,
+            title: c.title,
+            providerMetadata: c.providerMetadata,
           });
         } else {
           this.updateToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
             state: "input-streaming",
             input: undefined,
-            providerExecuted: chunk.providerExecuted,
-            title: chunk.title,
-            providerMetadata: chunk.providerMetadata,
+            providerExecuted: c.providerExecuted,
+            title: c.title,
+            providerMetadata: c.providerMetadata,
           });
         }
+
         this.flush();
         break;
       }
 
       case "tool-input-delta": {
-        const partialToolCall = this.partialToolCalls[chunk.toolCallId];
+        const partialToolCall = this.partialToolCalls[c.toolCallId];
+        // Adaptation: AI SDK throws UIMessageStreamError on missing partial tool call.
+        // We silently skip for long-lived connection robustness.
         if (partialToolCall == null) break;
-        partialToolCall.text += chunk.inputTextDelta;
+
+        partialToolCall.text += c.inputTextDelta;
+
         const { value: partialArgs } = await parsePartialJson(partialToolCall.text);
+
         if (partialToolCall.dynamic) {
           this.updateDynamicToolPart({
-            toolCallId: chunk.toolCallId,
+            toolCallId: c.toolCallId,
             toolName: partialToolCall.toolName,
             state: "input-streaming",
             input: partialArgs,
@@ -303,237 +289,254 @@ export class ChunkProcessor<M extends UIMessage> {
           });
         } else {
           this.updateToolPart({
-            toolCallId: chunk.toolCallId,
+            toolCallId: c.toolCallId,
             toolName: partialToolCall.toolName,
             state: "input-streaming",
             input: partialArgs,
             title: partialToolCall.title,
           });
         }
+
         this.flush();
         break;
       }
 
       case "tool-input-available": {
-        if (chunk.dynamic) {
+        if (c.dynamic) {
           this.updateDynamicToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
             state: "input-available",
-            input: chunk.input,
-            providerExecuted: chunk.providerExecuted,
-            providerMetadata: chunk.providerMetadata,
-            title: chunk.title,
+            input: c.input,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
+            title: c.title,
           });
         } else {
           this.updateToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
             state: "input-available",
-            input: chunk.input,
-            providerExecuted: chunk.providerExecuted,
-            providerMetadata: chunk.providerMetadata,
-            title: chunk.title,
+            input: c.input,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
+            title: c.title,
           });
         }
+
         this.flush();
         break;
       }
 
       case "tool-input-error": {
+        // When a part already exists for this toolCallId (e.g. from
+        // tool-input-start), honour its type so we update in place
+        // instead of creating a duplicate with a mismatched type.
         const existingPart = this.message.parts
           .filter(isToolUIPart)
-          .find((p) => p.toolCallId === chunk.toolCallId);
-        const isDynamic =
-          existingPart != null ? isDynamicToolUIPart(existingPart) : !!chunk.dynamic;
+          .find((p) => p.toolCallId === c.toolCallId);
+        const isDynamic = existingPart != null ? existingPart.type === "dynamic-tool" : !!c.dynamic;
+
         if (isDynamic) {
           this.updateDynamicToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
             state: "output-error",
-            input: chunk.input,
-            errorText: chunk.errorText,
-            providerExecuted: chunk.providerExecuted,
-            providerMetadata: chunk.providerMetadata,
+            input: c.input,
+            errorText: c.errorText,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
           });
         } else {
           this.updateToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
             state: "output-error",
             input: undefined,
-            rawInput: chunk.input,
-            errorText: chunk.errorText,
-            providerExecuted: chunk.providerExecuted,
-            providerMetadata: chunk.providerMetadata,
+            rawInput: c.input,
+            errorText: c.errorText,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
           });
         }
+
         this.flush();
         break;
       }
 
       case "tool-approval-request": {
-        const inv = this.getToolInvocation(chunk.toolCallId);
-        if (inv) {
-          const anyInv = inv as any;
-          anyInv.state = "approval-requested";
-          anyInv.approval = { id: chunk.approvalId };
-        }
+        const toolInvocation = this.getToolInvocation(c.toolCallId);
+        // Adaptation: AI SDK throws on missing tool invocation.
+        // We silently skip for long-lived connection robustness.
+        if (toolInvocation == null) break;
+        (toolInvocation as any).state = "approval-requested";
+        (toolInvocation as any).approval = { id: c.approvalId };
         this.flush();
         break;
       }
 
       case "tool-output-denied": {
-        const inv = this.getToolInvocation(chunk.toolCallId);
-        if (inv) {
-          const anyInv = inv as any;
-          anyInv.state = "output-denied";
-        }
+        const toolInvocation = this.getToolInvocation(c.toolCallId);
+        if (toolInvocation == null) break;
+        (toolInvocation as any).state = "output-denied";
         this.flush();
         break;
       }
 
-      // ── Tool output ───────────────────────────────────────────
       case "tool-output-available": {
-        const inv = this.getToolInvocation(chunk.toolCallId);
-        if (inv == null) break;
-        const anyInv = inv as any;
-        if (isDynamicToolUIPart(inv)) {
+        const toolInvocation = this.getToolInvocation(c.toolCallId);
+        if (toolInvocation == null) break;
+
+        if (toolInvocation.type === "dynamic-tool") {
           this.updateDynamicToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: anyInv.toolName,
+            toolCallId: c.toolCallId,
+            toolName: (toolInvocation as any).toolName,
             state: "output-available",
-            input: anyInv.input,
-            output: chunk.output,
-            preliminary: chunk.preliminary,
-            providerExecuted: chunk.providerExecuted,
-            title: anyInv.title,
+            input: (toolInvocation as any).input,
+            output: c.output,
+            preliminary: c.preliminary,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
+            title: (toolInvocation as any).title,
           });
         } else {
           this.updateToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: getStaticToolName(inv as any),
+            toolCallId: c.toolCallId,
+            toolName: getStaticToolName(toolInvocation as any),
             state: "output-available",
-            input: anyInv.input,
-            output: chunk.output,
-            providerExecuted: chunk.providerExecuted,
-            preliminary: chunk.preliminary,
-            title: anyInv.title,
+            input: (toolInvocation as any).input,
+            output: c.output,
+            providerExecuted: c.providerExecuted,
+            preliminary: c.preliminary,
+            providerMetadata: c.providerMetadata,
+            title: (toolInvocation as any).title,
           });
         }
+
         this.flush();
         break;
       }
 
       case "tool-output-error": {
-        const inv = this.getToolInvocation(chunk.toolCallId);
-        if (inv == null) break;
-        const anyInv = inv as any;
-        if (isDynamicToolUIPart(inv)) {
+        const toolInvocation = this.getToolInvocation(c.toolCallId);
+        if (toolInvocation == null) break;
+
+        if (toolInvocation.type === "dynamic-tool") {
           this.updateDynamicToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: anyInv.toolName,
+            toolCallId: c.toolCallId,
+            toolName: (toolInvocation as any).toolName,
             state: "output-error",
-            input: anyInv.input,
-            errorText: chunk.errorText,
-            providerExecuted: chunk.providerExecuted,
-            title: anyInv.title,
+            input: (toolInvocation as any).input,
+            errorText: c.errorText,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
+            title: (toolInvocation as any).title,
           });
         } else {
           this.updateToolPart({
-            toolCallId: chunk.toolCallId,
-            toolName: getStaticToolName(inv as any),
+            toolCallId: c.toolCallId,
+            toolName: getStaticToolName(toolInvocation as any),
             state: "output-error",
-            input: anyInv.input,
-            rawInput: anyInv.rawInput,
-            errorText: chunk.errorText,
-            providerExecuted: chunk.providerExecuted,
-            title: anyInv.title,
+            input: (toolInvocation as any).input,
+            rawInput: (toolInvocation as any).rawInput,
+            errorText: c.errorText,
+            providerExecuted: c.providerExecuted,
+            providerMetadata: c.providerMetadata,
+            title: (toolInvocation as any).title,
           });
         }
+
         this.flush();
         break;
       }
 
-      // ── Steps ─────────────────────────────────────────────────
       case "start-step": {
+        // add a step boundary part to the message
         this.message.parts.push({ type: "step-start" } as M["parts"][number]);
         break;
       }
 
       case "finish-step": {
+        // reset the current text and reasoning parts
         this.activeTextParts = {};
         this.activeReasoningParts = {};
         break;
       }
 
-      // ── Error ─────────────────────────────────────────────────
+      case "start": {
+        if (c.messageId != null) {
+          (this.message as { id: string }).id = c.messageId;
+        }
+
+        this.updateMessageMetadata(c.messageMetadata);
+
+        // Adaptation: AI SDK's write() conditionally pushes or replaces via
+        // activeResponse shadow state. We explicitly push on start since our
+        // architecture requires the message in the array from the beginning.
+        this.state.pushMessage(this.message);
+        this.messageIndex = this.state.messages.length - 1;
+
+        if (c.messageId != null || c.messageMetadata != null) {
+          this.flush();
+        }
+        break;
+      }
+
+      case "finish": {
+        if (c.finishReason != null) {
+          this.finishReason = c.finishReason;
+        }
+        this.updateMessageMetadata(c.messageMetadata);
+        if (c.messageMetadata != null) {
+          this.flush();
+        }
+        break;
+      }
+
+      case "message-metadata": {
+        this.updateMessageMetadata(c.messageMetadata);
+        if (c.messageMetadata != null) {
+          this.flush();
+        }
+        break;
+      }
+
       case "error": {
-        this.state.error = new Error(chunk.errorText);
+        // Adaptation: AI SDK calls onError callback.
+        // We set state.error and state.status directly.
+        this.state.error = new Error(c.errorText);
         this.state.status = "error";
         break;
       }
 
-      // ── Data / custom / reasoning-file parts ─────────────────
       default: {
-        const anyChunk = chunk as any;
-        const chunkType = chunk.type as string;
+        if (isDataUIMessageChunk(c)) {
+          const dataChunk = c;
 
-        // custom chunk (not yet in UIMessageChunk union)
-        if (chunkType === "custom") {
-          this.message.parts.push({
-            type: "custom",
-            kind: anyChunk.kind,
-            providerMetadata: anyChunk.providerMetadata,
-          } as unknown as M["parts"][number]);
-          this.flush();
-          break;
-        }
+          // transient parts are not added to the message state
+          if (dataChunk.transient) break;
 
-        // reasoning-file chunk (not yet in UIMessageChunk union)
-        if (chunkType === "reasoning-file") {
-          this.message.parts.push({
-            type: "reasoning-file",
-            mediaType: anyChunk.mediaType,
-            url: anyChunk.url,
-            ...(anyChunk.providerMetadata != null
-              ? { providerMetadata: anyChunk.providerMetadata }
-              : {}),
-          } as unknown as M["parts"][number]);
-          this.flush();
-          break;
-        }
-
-        // data-* chunks
-        if (isDataUIMessageChunk(chunk)) {
-          if (anyChunk.transient) break;
           const existingUIPart =
-            anyChunk.id != null
+            dataChunk.id != null
               ? this.message.parts.find(
-                  (p) => anyChunk.type === p.type && anyChunk.id === (p as any).id,
+                  (chunkArg: any) =>
+                    dataChunk.type === chunkArg.type && dataChunk.id === chunkArg.id,
                 )
               : undefined;
+
           if (existingUIPart != null) {
-            (existingUIPart as any).data = anyChunk.data;
+            (existingUIPart as any).data = dataChunk.data;
           } else {
-            this.message.parts.push(anyChunk as M["parts"][number]);
+            this.message.parts.push(dataChunk as M["parts"][number]);
           }
+
           this.flush();
         }
-        break;
       }
     }
   }
 
   // ── Private helpers (1:1 with AI SDK) ─────────────────────────
-
-  private updateMessageMetadata(metadata: unknown) {
-    if (metadata != null) {
-      const msg = this.message as { metadata: unknown };
-      msg.metadata =
-        msg.metadata != null ? mergeObjects(msg.metadata as object, metadata as object) : metadata;
-    }
-  }
 
   // Adaptation: AI SDK throws UIMessageStreamError when tool invocation is not found.
   // We return undefined and callers silently skip — more robust for a long-lived
@@ -544,37 +547,52 @@ export class ChunkProcessor<M extends UIMessage> {
 
   private updateToolPart(options: Record<string, unknown>) {
     const part = this.message.parts.find(
-      (p) => isStaticToolUIPart(p) && p.toolCallId === options.toolCallId,
+      (part) => isStaticToolUIPart(part) && part.toolCallId === options.toolCallId,
     );
 
     const anyOptions = options as any;
+    const anyPart = part as any;
 
     if (part != null) {
-      const anyPart = part as any;
       anyPart.state = options.state;
       anyPart.input = anyOptions.input;
       anyPart.output = anyOptions.output;
       anyPart.errorText = anyOptions.errorText;
       anyPart.rawInput = anyOptions.rawInput;
       anyPart.preliminary = anyOptions.preliminary;
-      if (options.title !== undefined) anyPart.title = options.title;
+      if (options.title !== undefined) {
+        anyPart.title = options.title;
+      }
+      // once providerExecuted is set, it stays for streaming
       anyPart.providerExecuted = anyOptions.providerExecuted ?? anyPart.providerExecuted;
-      if (anyOptions.providerMetadata != null) {
-        anyPart.callProviderMetadata = anyOptions.providerMetadata;
+
+      const providerMetadata = anyOptions.providerMetadata;
+
+      if (providerMetadata != null) {
+        if (options.state === "output-available" || options.state === "output-error") {
+          anyPart.resultProviderMetadata = providerMetadata;
+        } else {
+          anyPart.callProviderMetadata = providerMetadata;
+        }
       }
     } else {
       this.message.parts.push({
-        type: `tool-${anyOptions.toolName}`,
-        toolCallId: anyOptions.toolCallId,
-        state: anyOptions.state,
-        title: anyOptions.title,
+        type: `tool-${options.toolName}`,
+        toolCallId: options.toolCallId,
+        state: options.state,
+        title: options.title,
         input: anyOptions.input,
         output: anyOptions.output,
         rawInput: anyOptions.rawInput,
         errorText: anyOptions.errorText,
         providerExecuted: anyOptions.providerExecuted,
         preliminary: anyOptions.preliminary,
-        ...(anyOptions.providerMetadata != null
+        ...(anyOptions.providerMetadata != null &&
+        (options.state === "output-available" || options.state === "output-error")
+          ? { resultProviderMetadata: anyOptions.providerMetadata }
+          : {}),
+        ...(anyOptions.providerMetadata != null &&
+        !(options.state === "output-available" || options.state === "output-error")
           ? { callProviderMetadata: anyOptions.providerMetadata }
           : {}),
       } as M["parts"][number]);
@@ -583,13 +601,13 @@ export class ChunkProcessor<M extends UIMessage> {
 
   private updateDynamicToolPart(options: Record<string, unknown>) {
     const part = this.message.parts.find(
-      (p) => p.type === "dynamic-tool" && p.toolCallId === options.toolCallId,
+      (part) => part.type === "dynamic-tool" && part.toolCallId === options.toolCallId,
     );
 
     const anyOptions = options as any;
+    const anyPart = part as any;
 
     if (part != null) {
-      const anyPart = part as any;
       anyPart.state = options.state;
       anyPart.toolName = options.toolName;
       anyPart.input = anyOptions.input;
@@ -597,27 +615,53 @@ export class ChunkProcessor<M extends UIMessage> {
       anyPart.errorText = anyOptions.errorText;
       anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
       anyPart.preliminary = anyOptions.preliminary;
-      if (options.title !== undefined) anyPart.title = options.title;
+      if (options.title !== undefined) {
+        anyPart.title = options.title;
+      }
+      // once providerExecuted is set, it stays for streaming
       anyPart.providerExecuted = anyOptions.providerExecuted ?? anyPart.providerExecuted;
-      if (anyOptions.providerMetadata != null) {
-        anyPart.callProviderMetadata = anyOptions.providerMetadata;
+
+      const providerMetadata = anyOptions.providerMetadata;
+
+      if (providerMetadata != null) {
+        if (options.state === "output-available" || options.state === "output-error") {
+          anyPart.resultProviderMetadata = providerMetadata;
+        } else {
+          anyPart.callProviderMetadata = providerMetadata;
+        }
       }
     } else {
       this.message.parts.push({
         type: "dynamic-tool",
-        toolName: anyOptions.toolName,
-        toolCallId: anyOptions.toolCallId,
-        state: anyOptions.state,
+        toolName: options.toolName,
+        toolCallId: options.toolCallId,
+        state: options.state,
         input: anyOptions.input,
         output: anyOptions.output,
         errorText: anyOptions.errorText,
         preliminary: anyOptions.preliminary,
         providerExecuted: anyOptions.providerExecuted,
-        title: anyOptions.title,
-        ...(anyOptions.providerMetadata != null
+        title: options.title,
+        ...(anyOptions.providerMetadata != null &&
+        (options.state === "output-available" || options.state === "output-error")
+          ? { resultProviderMetadata: anyOptions.providerMetadata }
+          : {}),
+        ...(anyOptions.providerMetadata != null &&
+        !(options.state === "output-available" || options.state === "output-error")
           ? { callProviderMetadata: anyOptions.providerMetadata }
           : {}),
       } as M["parts"][number]);
+    }
+  }
+
+  private updateMessageMetadata(metadata: unknown) {
+    if (metadata != null) {
+      const mergedMetadata =
+        this.message.metadata != null
+          ? mergeObjects(this.message.metadata as object, metadata as object)
+          : metadata;
+
+      (this.message as { metadata: unknown }).metadata = mergedMetadata;
     }
   }
 
