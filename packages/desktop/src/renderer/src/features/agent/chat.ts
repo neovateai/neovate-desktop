@@ -174,7 +174,6 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     }
 
     if (message.kind === "chunk") {
-      log("[DEBUG] chunk type=%s data=%s", message.chunk.type, JSON.stringify(message.chunk));
       // Turn boundaries driven by SDKMessageTransformer native chunks:
       // "start" chunk (emitted on system/init) → streaming
       // "finish" chunk (emitted on result) → ready
@@ -184,7 +183,6 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       }
       await this.#chunkProcessor.processChunk(message.chunk);
       if (message.chunk.type === "finish") {
-        log("[DEBUG] turn complete messages=%s", JSON.stringify(this.#state.messages, null, 2));
         this.#state.status = "ready";
       }
       return;
