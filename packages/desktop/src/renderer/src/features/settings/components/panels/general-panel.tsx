@@ -7,6 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import type { ThemeStyle } from "../../../../../../shared/features/config/types";
 
+import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
@@ -38,6 +39,7 @@ export const GeneralPanel = () => {
     terminalFont,
     developerMode,
     showSessionInitStatus,
+    claudeCodeBinPath,
   } = useConfigStore(
     useShallow((s) => ({
       theme: s.theme,
@@ -50,6 +52,7 @@ export const GeneralPanel = () => {
       terminalFont: s.terminalFont,
       developerMode: s.developerMode,
       showSessionInitStatus: s.showSessionInitStatus,
+      claudeCodeBinPath: s.claudeCodeBinPath,
     })),
   );
   const setConfig = useConfigStore((s) => s.setConfig);
@@ -75,6 +78,10 @@ export const GeneralPanel = () => {
   const [localTerminalFont, setLocalTerminalFont] = useState(terminalFont);
   const terminalFontTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Debounced Claude Code binary path input
+  const [localClaudeCodeBinPath, setLocalClaudeCodeBinPath] = useState(claudeCodeBinPath);
+  const claudeCodeBinPathTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
   // Debounced npm registry input with validation
   const npmRegistry = useConfigStore((s) => s.npmRegistry);
   const [localNpmRegistry, setLocalNpmRegistry] = useState(npmRegistry);
@@ -84,6 +91,10 @@ export const GeneralPanel = () => {
   useEffect(() => {
     setLocalTerminalFont(terminalFont);
   }, [terminalFont]);
+
+  useEffect(() => {
+    setLocalClaudeCodeBinPath(claudeCodeBinPath);
+  }, [claudeCodeBinPath]);
 
   useEffect(() => {
     setLocalNpmRegistry(npmRegistry);
@@ -99,6 +110,16 @@ export const GeneralPanel = () => {
       if (terminalFontTimerRef.current) clearTimeout(terminalFontTimerRef.current);
     };
   }, [localTerminalFont]);
+
+  useEffect(() => {
+    if (localClaudeCodeBinPath === claudeCodeBinPath) return;
+    claudeCodeBinPathTimerRef.current = setTimeout(() => {
+      setConfig("claudeCodeBinPath", localClaudeCodeBinPath.trim());
+    }, 500);
+    return () => {
+      if (claudeCodeBinPathTimerRef.current) clearTimeout(claudeCodeBinPathTimerRef.current);
+    };
+  }, [localClaudeCodeBinPath]);
 
   useEffect(() => {
     if (localNpmRegistry === npmRegistry) {
@@ -270,6 +291,36 @@ export const GeneralPanel = () => {
               checked={developerMode}
               onCheckedChange={(v) => setConfig("developerMode", v)}
             />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.claudeCodeBinPath")}
+            description={t("settings.general.claudeCodeBinPath.description")}
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={localClaudeCodeBinPath}
+                onChange={(e) => setLocalClaudeCodeBinPath(e.target.value)}
+                placeholder="Bundled (default)"
+                className="w-64"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const result = await client.electron.dialog.showOpenDialog({
+                    properties: ["openFile", "showHiddenFiles"],
+                    filters: [{ name: "All Files", extensions: ["*"] }],
+                  });
+                  if (!result.canceled && result.filePaths[0]) {
+                    setLocalClaudeCodeBinPath(result.filePaths[0]);
+                  }
+                }}
+              >
+                {t("settings.general.claudeCodeBinPath.browse")}
+              </Button>
+            </div>
           </SettingsRow>
         </SettingsGroup>
 

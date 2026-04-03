@@ -6,6 +6,7 @@ import { Button } from "../../../../components/ui/button";
 import { Spinner } from "../../../../components/ui/spinner";
 import { useRendererApp } from "../../../../core/app";
 import { client } from "../../../../orpc";
+import { useConfigStore } from "../../../config/store";
 import { useUpdaterState } from "../../../updater/hooks";
 import { SettingsRow } from "../settings-row";
 
@@ -13,6 +14,7 @@ export const AboutPanel = () => {
   const { t } = useTranslation();
   const state = useUpdaterState();
 
+  const claudeCodeBinPath = useConfigStore((s) => s.claudeCodeBinPath);
   const [appVersion, setAppVersion] = useState("");
   const [sdkVersion, setSdkVersion] = useState("");
   const [checkError, setCheckError] = useState<string | null>(null);
@@ -113,7 +115,14 @@ export const AboutPanel = () => {
         {/* Claude Code SDK Version */}
         <SettingsRow
           title={t("settings.about.sdkVersion")}
-          description={t("settings.about.sdkVersion.description", { version: sdkVersion })}
+          description={
+            claudeCodeBinPath
+              ? t("settings.about.sdkVersion.descriptionCustom", {
+                  version: sdkVersion,
+                  path: claudeCodeBinPath,
+                })
+              : t("settings.about.sdkVersion.description", { version: sdkVersion })
+          }
         />
 
         {/* Feedback */}

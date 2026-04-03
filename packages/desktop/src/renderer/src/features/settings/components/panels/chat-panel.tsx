@@ -75,6 +75,9 @@ export const ChatPanel = () => {
   const setConfig = useConfigStore((s) => s.setConfig);
   const loaded = useConfigStore((s) => s.loaded);
 
+  const isStandaloneBinary =
+    !!config.claudeCodeBinPath && !config.claudeCodeBinPath.trim().endsWith(".js");
+
   if (!loaded) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -205,11 +208,16 @@ export const ChatPanel = () => {
 
           <SettingsRow
             title={t("settings.chat.networkInspector")}
-            description={t("settings.chat.networkInspector.description")}
+            description={
+              isStandaloneBinary
+                ? t("settings.chat.networkInspector.unsupported")
+                : t("settings.chat.networkInspector.description")
+            }
           >
             <Switch
-              checked={config.networkInspector}
+              checked={config.networkInspector && !isStandaloneBinary}
               onCheckedChange={(v) => setConfig("networkInspector", v)}
+              disabled={isStandaloneBinary}
             />
           </SettingsRow>
 

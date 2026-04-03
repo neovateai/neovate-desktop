@@ -64,6 +64,7 @@ export const configContract = {
         z.object({ key: z.literal("keepAwake"), value: booleanValueSchema }),
         z.object({ key: z.literal("preWarmSessions"), value: booleanValueSchema }),
         z.object({ key: z.literal("auxiliaryModelSelection"), value: z.string() }),
+        z.object({ key: z.literal("claudeCodeBinPath"), value: z.string() }),
         z.object({ key: z.literal("sidebarSortBy"), value: sidebarSortByValueSchema }),
         z.object({
           key: z.literal("skillsRegistries"),

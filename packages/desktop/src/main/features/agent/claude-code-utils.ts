@@ -63,6 +63,24 @@ export function resolveInterceptorPath(): string {
  * Check if a file-based RTK PreToolUse hook already exists in ~/.claude/settings.json.
  * Returns true if found, so the programmatic hook can be skipped to avoid double-rewriting.
  */
+export type ClaudeCodeExecutableInfo = {
+  executable: string;
+  cliPath: string | undefined;
+  standalone: boolean;
+};
+
+export function resolveClaudeCodeExecutable(customPath?: string): ClaudeCodeExecutableInfo {
+  const normalized = customPath?.trim().replace(/^~(?=\/|$)/, homedir()) || undefined;
+
+  if (!normalized) {
+    return { executable: resolveBunPath(), cliPath: resolveSDKCliPath(), standalone: false };
+  }
+  if (normalized.endsWith(".js")) {
+    return { executable: resolveBunPath(), cliPath: normalized, standalone: false };
+  }
+  return { executable: normalized, cliPath: undefined, standalone: true };
+}
+
 export function detectRtkHookInSettings(): boolean {
   try {
     const settingsPath = path.join(homedir(), ".claude", "settings.json");

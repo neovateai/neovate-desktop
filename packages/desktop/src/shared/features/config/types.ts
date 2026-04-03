@@ -20,6 +20,7 @@ export type AppConfig = {
   terminalFont: string;
   developerMode: boolean;
   showSessionInitStatus: boolean;
+  claudeCodeBinPath: string;
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: SidebarOrganize;

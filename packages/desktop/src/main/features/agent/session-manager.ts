@@ -4,6 +4,7 @@ import type {
   SDKUserMessage,
   SDKSessionInfo,
   PermissionMode as SDKPermissionMode,
+  SpawnedProcess,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { EventPublisher } from "@orpc/server";
@@ -45,9 +46,9 @@ import { PowerBlockerService } from "../../core/power-blocker-service";
 import { shellEnvService } from "../../core/shell-service";
 import {
   resolveBunPath,
+  resolveClaudeCodeExecutable,
   resolveInterceptorPath,
   resolveRtkPath,
-  resolveSDKCliPath,
   detectRtkHookInSettings,
 } from "./claude-code-utils";
 import { readModelSetting, readProviderSetting, readProviderModelSetting } from "./claude-settings";
@@ -149,13 +150,15 @@ export class SessionManager {
     model?: string;
     cwd: string;
   }): Options {
-    const cliPath = resolveSDKCliPath();
+    const resolved = resolveClaudeCodeExecutable(
+      this.configStore.get("claudeCodeBinPath") || undefined,
+    );
     return {
       sessionId,
       model,
       cwd,
-      pathToClaudeCodeExecutable: cliPath,
-      executable: "bun",
+      pathToClaudeCodeExecutable: resolved.cliPath ?? resolved.executable,
+      ...(resolved.standalone ? {} : { executable: "bun" as const }),
       settingSources: ["local", "project", "user"],
       enableFileCheckpointing: true,
       includePartialMessages: true,
@@ -493,8 +496,18 @@ export class SessionManager {
       }
     };
 
+    // Resolve custom Claude Code binary
+    const resolved = resolveClaudeCodeExecutable(
+      this.configStore.get("claudeCodeBinPath") || undefined,
+    );
+
     // Network inspector: conditionally inject fetch interceptor via --preload
-    const networkInspector = this.configStore.get("networkInspector") === true;
+    // Not supported with standalone binaries (--preload is a bun flag)
+    const networkInspector =
+      this.configStore.get("networkInspector") === true && !resolved.standalone;
+    if (resolved.standalone && this.configStore.get("networkInspector") === true) {
+      log("initSession: network inspector skipped (standalone binary)");
+    }
     if (networkInspector) {
       this.requestTracker.markInspectorEnabled(sessionId);
     }
@@ -510,6 +523,78 @@ export class SessionManager {
       (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
     }
 
+    // Build spawnClaudeCodeProcess override:
+    // - Standalone binary: spawn the binary directly
+    // - Network inspector (non-standalone only): inject --preload for fetch interception
+    let spawnOverride:
+      | ((spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions) => SpawnedProcess)
+      | undefined;
+
+    if (resolved.standalone) {
+      spawnOverride = (spawnOpts) =>
+        spawn(resolved.executable, spawnOpts.args, {
+          cwd: spawnOpts.cwd,
+          env: spawnOpts.env,
+          signal: spawnOpts.signal,
+          stdio: ["pipe", "pipe", "pipe"],
+        }) as unknown as SpawnedProcess;
+    } else if (networkInspector) {
+      spawnOverride = (spawnOpts) => {
+        const interceptorPath = resolveInterceptorPath();
+        log("spawnClaudeCodeProcess: interceptor=%s sessionId=%s", interceptorPath, sessionId);
+
+        const child = spawn(spawnOpts.command, ["--preload", interceptorPath, ...spawnOpts.args], {
+          cwd: spawnOpts.cwd,
+          env: {
+            ...spawnOpts.env,
+            NV_SESSION_ID: sessionId,
+            ...(settingsEnv?.ANTHROPIC_BASE_URL
+              ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
+              : {}),
+          },
+          signal: spawnOpts.signal,
+          stdio: ["pipe", "pipe", "pipe", "pipe"],
+        });
+
+        // Read interceptor data from fd 3 (dedicated IPC pipe)
+        let interceptorReady = false;
+        const ipcStream = child.stdio[3];
+        if (ipcStream && "on" in ipcStream) {
+          const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
+          rl.on("line", (line: string) => {
+            if (line === "__NV_READY") {
+              interceptorReady = true;
+              log("interceptor ready: sessionId=%s", sessionId);
+              return;
+            }
+            if (!line.startsWith("__NV_REQ:")) {
+              log("interceptor fd3 unknown line: %s", line.slice(0, 100));
+              return;
+            }
+            try {
+              const msg = JSON.parse(line.slice("__NV_REQ:".length));
+              this.requestTracker.onMessage(sessionId, msg);
+            } catch (err) {
+              log(
+                "interceptor fd3 parse error: %s line=%s",
+                err instanceof Error ? err.message : err,
+                line.slice(0, 200),
+              );
+            }
+          });
+        }
+
+        setTimeout(() => {
+          if (!interceptorReady) {
+            log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
+            this.requestTracker.markInspectorFailed(sessionId);
+          }
+        }, 5000);
+
+        return child as unknown as SpawnedProcess;
+      };
+    }
+
     const options: Options = {
       ...queryOpts,
       allowDangerouslySkipPermissions: true,
@@ -520,74 +605,7 @@ export class SessionManager {
       },
       hooks: mergedHooks,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
-      ...(networkInspector
-        ? {
-            spawnClaudeCodeProcess: (
-              spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions,
-            ) => {
-              const interceptorPath = resolveInterceptorPath();
-              log(
-                "spawnClaudeCodeProcess: interceptor=%s sessionId=%s",
-                interceptorPath,
-                sessionId,
-              );
-
-              const child = spawn(
-                spawnOpts.command,
-                ["--preload", interceptorPath, ...spawnOpts.args],
-                {
-                  cwd: spawnOpts.cwd,
-                  env: {
-                    ...spawnOpts.env,
-                    NV_SESSION_ID: sessionId,
-                    ...(settingsEnv?.ANTHROPIC_BASE_URL
-                      ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
-                      : {}),
-                  },
-                  signal: spawnOpts.signal,
-                  stdio: ["pipe", "pipe", "pipe", "pipe"],
-                },
-              );
-
-              // Read interceptor data from fd 3 (dedicated IPC pipe)
-              let interceptorReady = false;
-              const ipcStream = child.stdio[3];
-              if (ipcStream && "on" in ipcStream) {
-                const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
-                rl.on("line", (line: string) => {
-                  if (line === "__NV_READY") {
-                    interceptorReady = true;
-                    log("interceptor ready: sessionId=%s", sessionId);
-                    return;
-                  }
-                  if (!line.startsWith("__NV_REQ:")) {
-                    log("interceptor fd3 unknown line: %s", line.slice(0, 100));
-                    return;
-                  }
-                  try {
-                    const msg = JSON.parse(line.slice("__NV_REQ:".length));
-                    this.requestTracker.onMessage(sessionId, msg);
-                  } catch (err) {
-                    log(
-                      "interceptor fd3 parse error: %s line=%s",
-                      err instanceof Error ? err.message : err,
-                      line.slice(0, 200),
-                    );
-                  }
-                });
-              }
-
-              setTimeout(() => {
-                if (!interceptorReady) {
-                  log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
-                  this.requestTracker.markInspectorFailed(sessionId);
-                }
-              }, 5000);
-
-              return child;
-            },
-          }
-        : {}),
+      ...(spawnOverride ? { spawnClaudeCodeProcess: spawnOverride } : {}),
     };
 
     const { query } = await import("@anthropic-ai/claude-agent-sdk");

@@ -26,6 +26,7 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   terminalFont: "",
   developerMode: false,
   showSessionInitStatus: false,
+  claudeCodeBinPath: "",
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: "byProject",
