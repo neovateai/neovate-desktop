@@ -99,13 +99,15 @@ export function AgentChat() {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const setAgentSessions = useAgentStore((s) => s.setAgentSessions);
-  const sessions = useAgentStore((s) => s.sessions);
+  const hasActiveChat = useAgentStore((s) => {
+    if (!s.activeSessionId) return false;
+    const session = s.sessions.get(s.activeSessionId);
+    return session != null && !session.isNew;
+  });
   const sessionInitError = useAgentStore((s) => s.sessionInitError);
   const setSessionInitError = useAgentStore((s) => s.setSessionInitError);
 
   const { createNewSession } = useNewSession();
-
-  const activeSession = activeSessionId ? sessions.get(activeSessionId) : undefined;
 
   // Track the project path we last initialized for
   const initializedPathRef = useRef<string | null>(null);
@@ -234,7 +236,7 @@ export function AgentChat() {
   }
 
   // State 2: No session yet (or new empty session) — show welcome panel with input
-  if (!activeSession || activeSession.isNew) {
+  if (!hasActiveChat) {
     return (
       <div className="flex h-full flex-col">
         <WelcomePanel hasProject />
@@ -258,25 +260,11 @@ export function AgentChat() {
   }
 
   // State 3: Active session — full chat
-  return (
-    <AgentChatSession
-      key={activeSessionId}
-      sessionId={activeSessionId!}
-      cwd={cwd}
-      tasks={activeSession?.tasks}
-    />
-  );
+  return <AgentChatSession key={activeSessionId} sessionId={activeSessionId!} cwd={cwd} />;
 }
 
-function AgentChatSession({
-  sessionId,
-  cwd,
-  tasks,
-}: {
-  sessionId: string;
-  cwd: string;
-  tasks: Map<string, import("../store").TaskState>;
-}) {
+function AgentChatSession({ sessionId, cwd }: { sessionId: string; cwd: string }) {
+  const tasks = useAgentStore((s) => s.sessions.get(sessionId)?.tasks);
   const { messages, status, error, pendingRequests, sendMessage, stop } =
     useClaudeCodeChat(sessionId);
   const hasPendingRequest = pendingRequests.length > 0;

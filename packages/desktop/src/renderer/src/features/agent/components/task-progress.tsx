@@ -1,10 +1,11 @@
 import type { TaskState } from "../store";
 
 type Props = {
-  tasks: Map<string, TaskState>;
+  tasks?: Map<string, TaskState>;
 };
 
 export function TaskProgress({ tasks }: Props) {
+  if (!tasks) return null;
   const activeTasks = Array.from(tasks.values()).filter((t) => t.status === "running");
 
   if (activeTasks.length === 0) return null;

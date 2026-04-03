@@ -21,13 +21,6 @@ export function useScrollPosition(
   const savedScrollTop = scrollPositions.get(sessionId);
   const hasSavedPosition = savedScrollTop != null;
 
-  log(
-    "render: sid=%s savedScrollTop=%s hasSaved=%s",
-    sessionId.slice(0, 8),
-    savedScrollTop ?? "none",
-    hasSavedPosition,
-  );
-
   // Restore scroll position before paint
   useLayoutEffect(() => {
     if (savedScrollTop == null) {
