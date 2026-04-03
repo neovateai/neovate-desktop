@@ -1,5 +1,5 @@
 import { is } from "@electron-toolkit/utils";
-import { app, shell, screen, BrowserWindow } from "electron";
+import { app, dialog, shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
 import { join } from "path";
@@ -7,6 +7,7 @@ import { join } from "path";
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 import icon from "../../../resources/icon.png?asset";
+import { APP_NAME } from "../../shared/constants";
 import { APP_DATA_DIR } from "./app-paths";
 import log from "./logger";
 
@@ -31,6 +32,8 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
   #isQuitting = false;
+  #quitConfirmed = false;
+  #showingQuitDialog = false;
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: APP_DATA_DIR,
@@ -39,6 +42,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
   prepareForQuit(): void {
     this.#isQuitting = true;
+    this.#quitConfirmed = true;
   }
 
   get mainWindow(): BrowserWindow | null {
@@ -110,8 +114,17 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     win.on("leave-full-screen", debouncedSave);
 
     if (process.platform === "darwin") {
-      app.on("before-quit", () => {
-        this.#isQuitting = true;
+      app.on("before-quit", (e) => {
+        if (this.#quitConfirmed) {
+          this.#isQuitting = true;
+          return;
+        }
+        e.preventDefault();
+        if (this.#showingQuitDialog) return;
+        this.#showQuitConfirmation(() => {
+          this.#quitConfirmed = true;
+          app.quit();
+        });
       });
     }
 
@@ -121,6 +134,17 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       if (process.platform === "darwin" && !this.#isQuitting) {
         e.preventDefault();
         win.hide();
+        return;
+      }
+      // Windows/Linux: confirm before closing (which triggers quit)
+      if (process.platform !== "darwin" && !this.#quitConfirmed) {
+        e.preventDefault();
+        if (this.#showingQuitDialog) return;
+        this.#showQuitConfirmation(() => {
+          this.#quitConfirmed = true;
+          win.close();
+        });
+        return;
       }
     });
 
@@ -212,6 +236,28 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     if (currentWidth < capped) {
       mainWindow.setSize(capped, currentHeight);
     }
+  }
+
+  #showQuitConfirmation(onConfirm: () => void): void {
+    this.#showingQuitDialog = true;
+    const win = this.#mainWindow && !this.#mainWindow.isDestroyed() ? this.#mainWindow : undefined;
+    if (win && !win.isVisible()) win.show();
+
+    const opts: Electron.MessageBoxOptions = {
+      type: "question",
+      title: `Quit ${APP_NAME}?`,
+      message: `Quit ${APP_NAME}?`,
+      detail: "Any running sessions will be interrupted.",
+      buttons: ["Cancel", "Quit Anyway"],
+      defaultId: 0,
+      cancelId: 0,
+    };
+
+    const promise = win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+    promise.then(({ response }) => {
+      this.#showingQuitDialog = false;
+      if (response === 1) onConfirm();
+    });
   }
 
   /** Check that saved bounds overlap at least partially with a connected display. */
