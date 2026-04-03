@@ -200,7 +200,6 @@ export const BUILT_IN_PROVIDER_TEMPLATES: ProviderTemplate[] = [
       "deepseek/deepseek-chat": { displayName: "DeepSeek Chat" },
       "moonshotai/kimi-k2.5": { displayName: "Kimi K2.5" },
       "minimax/minimax-m2.5": { displayName: "MiniMax-M2.5" },
-      "qwen/qwen3.6-plus": { displayName: "Qwen3.6-Plus" },
     },
     modelMap: {},
     envOverrides: {},
