@@ -2,6 +2,7 @@ import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type { ChatInit, ChatRequestOptions, FileUIPart } from "ai";
 
 import { consumeEventIterator } from "@orpc/client";
+import { convertFileListToFileUIParts } from "ai";
 import { AbstractChat } from "ai";
 import debug from "debug";
 import { StoreApi } from "zustand";
@@ -194,61 +195,78 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   // ── sendMessage / stop (fire-and-forget, bypasses AbstractChat.makeRequest) ──
 
-  // Mirrors AbstractChat.sendMessage logic, but calls transport.send() instead of makeRequest().
+  // Copied from AbstractChat.sendMessage, replacing makeRequest() with transport.send().
   private _sendMessage = async (
-    message?: {
-      text?: string;
-      files?: FileList | FileUIPart[];
-      metadata?: ClaudeCodeUIMessage["metadata"];
-      messageId?: string;
-    },
+    message?: Parameters<typeof this.sendMessage>[0],
     _options?: ChatRequestOptions,
   ) => {
-    if (message == null) return;
+    if (message == null) {
+      // Re-submit last message (same as AI SDK's makeRequest with no new message)
+      const lastMsg = this.#state.messages.at(-1);
+      if (!lastMsg) return;
+      this.#state.status = "submitted";
+      try {
+        await this.#transport.send(this.id, lastMsg);
+      } catch (err: unknown) {
+        this.#state.status = "ready";
+        this.#state.error = err instanceof Error ? err : new Error(String(err));
+      }
+      return;
+    }
 
-    // Build parts — same order as AI SDK: files first, then text
-    const fileParts: FileUIPart[] = Array.isArray(message.files) ? message.files : [];
-    const uiMessage = {
-      parts: [
-        ...fileParts,
-        ...("text" in message && message.text != null
-          ? [{ type: "text" as const, text: message.text }]
-          : []),
-      ],
-    };
+    let uiMessage: Partial<ClaudeCodeUIMessage>;
+    if ("text" in message || "files" in message) {
+      const fileParts: FileUIPart[] = Array.isArray(message.files)
+        ? message.files
+        : await convertFileListToFileUIParts(message.files);
+      uiMessage = {
+        parts: [
+          ...fileParts,
+          ...("text" in message && message.text != null
+            ? [{ type: "text" as const, text: message.text }]
+            : []),
+        ],
+      };
+    } else {
+      uiMessage = message;
+    }
 
     if (message.messageId != null) {
-      // Replace existing message
       const messageIndex = this.#state.messages.findIndex((m) => m.id === message.messageId);
-      if (messageIndex === -1) throw new Error(`message with id ${message.messageId} not found`);
+      if (messageIndex === -1) {
+        throw new Error(`message with id ${message.messageId} not found`);
+      }
+      if (this.#state.messages[messageIndex].role !== "user") {
+        throw new Error(`message with id ${message.messageId} is not a user message`);
+      }
       this.#state.messages = this.#state.messages.slice(0, messageIndex + 1);
       this.#state.replaceMessage(messageIndex, {
         ...uiMessage,
         id: message.messageId,
-        role: "user",
+        role: uiMessage.role ?? "user",
         metadata: message.metadata,
       } as ClaudeCodeUIMessage);
     } else {
-      // Push new message
       this.#state.pushMessage({
         ...uiMessage,
-        id: this.generateId(),
-        role: "user",
+        id: uiMessage.id ?? this.generateId(),
+        role: uiMessage.role ?? "user",
         metadata: message.metadata,
       } as ClaudeCodeUIMessage);
     }
 
     this.#state.status = "submitted";
 
-    log("sendMessage: sessionId=%s", this.id);
-
-    // Fire and forget — subscribe handles the response
+    // Fire and forget — subscribe handles the response (replaces makeRequest)
     try {
-      const lastMessage = this.#state.messages.at(-1)!;
-      await this.#transport.send(this.id, lastMessage);
+      const lastMsg = this.#state.messages.at(-1)!;
+      await this.#transport.send(this.id, lastMsg);
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      log("sendMessage: FAILED sessionId=%s error=%s", this.id, errMsg);
+      log(
+        "sendMessage: FAILED sessionId=%s error=%s",
+        this.id,
+        err instanceof Error ? err.message : String(err),
+      );
       this.#state.popMessage();
       this.#state.status = "ready";
       this.#state.error = err instanceof Error ? err : new Error(String(err));
