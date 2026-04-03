@@ -64,53 +64,10 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
     log("init: sessionId=%s messages=%d", id, messages?.length ?? 0);
 
-    // ── Reassign sendMessage (arrow property on AbstractChat) ──────────
-    // AbstractChat assigns sendMessage as an arrow function in its constructor,
-    // so we must reassign after super() — prototype overrides would be shadowed.
-    type SendMessageInput = {
-      text?: string;
-      files?: FileList | FileUIPart[];
-      metadata?: ClaudeCodeUIMessage["metadata"];
-      messageId?: string;
-    };
-
-    this.sendMessage = async (message?: SendMessageInput, _options?: ChatRequestOptions) => {
-      const text = message?.text ?? "";
-      const metadata = message?.metadata ?? { sessionId: id, parentToolUseId: null };
-      const fileParts = message?.files ?? [];
-
-      const userMessage: ClaudeCodeUIMessage = {
-        id: this.generateId(),
-        role: "user",
-        parts: [...(text ? [{ type: "text" as const, text }] : []), ...fileParts],
-        metadata,
-      } as ClaudeCodeUIMessage;
-
-      log("sendMessage: sessionId=%s textLen=%d", id, text.length);
-
-      // Push through ChatState interface (triggers timing logic)
-      this.#state.pushMessage(userMessage);
-      this.#state.status = "submitted";
-
-      // Fire and forget — subscribe handles the rest
-      try {
-        await this.#transport.send(id, userMessage);
-      } catch (err: unknown) {
-        // Send failed → rollback: remove optimistically added user message, restore status
-        const errMsg = err instanceof Error ? err.message : String(err);
-        log("sendMessage: FAILED sessionId=%s error=%s", id, errMsg);
-        this.#state.popMessage();
-        this.#state.status = "ready";
-        this.#state.error = err instanceof Error ? err : new Error(String(err));
-      }
-    };
-
-    // ── Reassign stop (arrow property on AbstractChat) ────────────────
-    this.stop = async () => {
-      log("stop: sessionId=%s", id);
-      await this.dispatch({ kind: "interrupt" });
-      this.store.setState({ pendingRequests: [] });
-    };
+    // AbstractChat defines sendMessage/stop as arrow properties in its constructor,
+    // which shadow prototype methods. Reassign to our implementations after super().
+    this.sendMessage = this._sendMessage;
+    this.stop = this._stop;
 
     // ── Subscribe to events (single long-lived connection) ────────────
     this.#unsubscribe = consumeEventIterator(transport.subscribe({ chatId: id }), {
@@ -234,6 +191,53 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       this.store.setState({ promptSuggestion: suggestion });
     }
   }
+
+  // ── sendMessage / stop (fire-and-forget, bypasses AbstractChat.makeRequest) ──
+
+  private _sendMessage = async (
+    message?: {
+      text?: string;
+      files?: FileList | FileUIPart[];
+      metadata?: ClaudeCodeUIMessage["metadata"];
+      messageId?: string;
+    },
+    _options?: ChatRequestOptions,
+  ) => {
+    const text = message?.text ?? "";
+    const metadata = message?.metadata ?? {
+      sessionId: this.id,
+      parentToolUseId: null,
+    };
+    const fileParts = message?.files ?? [];
+
+    const userMessage: ClaudeCodeUIMessage = {
+      id: this.generateId(),
+      role: "user",
+      parts: [...(text ? [{ type: "text" as const, text }] : []), ...fileParts],
+      metadata,
+    } as ClaudeCodeUIMessage;
+
+    log("sendMessage: sessionId=%s textLen=%d", this.id, text.length);
+
+    this.#state.pushMessage(userMessage);
+    this.#state.status = "submitted";
+
+    try {
+      await this.#transport.send(this.id, userMessage);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      log("sendMessage: FAILED sessionId=%s error=%s", this.id, errMsg);
+      this.#state.popMessage();
+      this.#state.status = "ready";
+      this.#state.error = err instanceof Error ? err : new Error(String(err));
+    }
+  };
+
+  private _stop = async () => {
+    log("stop: sessionId=%s", this.id);
+    await this.dispatch({ kind: "interrupt" });
+    this.store.setState({ pendingRequests: [] });
+  };
 
   // ── Methods unchanged ───────────────────────────────────────────────
 
