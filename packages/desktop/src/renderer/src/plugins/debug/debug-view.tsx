@@ -1,30 +1,103 @@
+import type { ChatStatus } from "ai";
+
 import {
-  Lightbulb,
-  Maximize2,
-  RefreshCw,
-  X,
   ChevronDown,
   ChevronRight,
-  BrainCircuit,
+  Lightbulb,
+  Maximize2,
+  Play,
+  RefreshCw,
+  X,
+  XCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ActiveSessionInfo } from "../../../../shared/features/agent/types";
 
 import { Button } from "../../components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../../components/ui/collapsible";
 import { usePluginContext, useRendererApp } from "../../core/app";
 import { claudeCodeChatManager } from "../../features/agent/chat-manager";
 import { useAgentStore } from "../../features/agent/store";
 import { useProjectStore } from "../../features/project/store";
 import { client } from "../../orpc";
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function projectNameFromCwd(cwd: string, projects: { name: string; path: string }[]): string {
   const match = projects.find((p) => p.path === cwd);
   if (match) return match.name;
-  // Fallback to last path segment
   return cwd.split("/").pop() || cwd;
 }
+
+const STORAGE_KEY = "debug-view-sections";
+
+function loadSectionState(defaults: Record<string, boolean>): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...defaults, ...JSON.parse(raw) };
+  } catch {
+    // ignore
+  }
+  return defaults;
+}
+
+function saveSectionState(state: Record<string, boolean>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SectionGroup
+// ---------------------------------------------------------------------------
+
+function SectionGroup({
+  id,
+  title,
+  open,
+  onToggle,
+  badge,
+  children,
+}: {
+  id: string;
+  title: string;
+  open: boolean;
+  onToggle: (id: string) => void;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Collapsible open={open} className="border-b border-border">
+      <CollapsibleTrigger
+        className="flex w-full items-center gap-2 px-3 py-2"
+        onClick={() => onToggle(id)}
+      >
+        {open ? (
+          <ChevronDown className="size-3 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="size-3 text-muted-foreground" />
+        )}
+        <span className="text-xs font-medium uppercase text-muted-foreground">{title}</span>
+        {badge}
+      </CollapsibleTrigger>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SessionRow (unchanged)
+// ---------------------------------------------------------------------------
 
 function SessionRow({ session, onClosed }: { session: ActiveSessionInfo; onClosed: () => void }) {
   const { t } = useTranslation();
@@ -86,6 +159,168 @@ function SessionRow({ session, onClosed }: { session: ActiveSessionInfo; onClose
   );
 }
 
+// ---------------------------------------------------------------------------
+// PromptSuggestionLiveRow
+// ---------------------------------------------------------------------------
+
+function PromptSuggestionLiveRow({
+  sessionId,
+  isActive,
+}: {
+  sessionId: string;
+  isActive: boolean;
+}) {
+  const store = claudeCodeChatManager.getChat(sessionId)?.store;
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [status, setStatus] = useState<ChatStatus>("ready");
+
+  useEffect(() => {
+    if (!store) return;
+    const s = store.getState();
+    setSuggestion(s.promptSuggestion);
+    setStatus(s.status);
+    return store.subscribe((state) => {
+      setSuggestion(state.promptSuggestion);
+      setStatus(state.status);
+    });
+  }, [store]);
+
+  if (!store) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1 text-xs text-muted-foreground">
+        <span className="font-mono">{sessionId.slice(0, 8)}</span>
+        <span className="italic">(no chat)</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 text-xs">
+      {isActive ? (
+        <span className="size-2 shrink-0 rounded-full bg-green-500" />
+      ) : (
+        <span className="size-2 shrink-0" />
+      )}
+      <span
+        className={`font-mono ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}
+      >
+        {sessionId.slice(0, 8)}
+      </span>
+      <StatusBadge status={status} />
+      <span className="truncate text-muted-foreground">
+        {suggestion ? `"${suggestion}"` : "(none)"}
+      </span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: ChatStatus }) {
+  const colors: Record<ChatStatus, string> = {
+    ready: "bg-green-500/15 text-green-600",
+    submitted: "bg-yellow-500/15 text-yellow-600",
+    streaming: "bg-blue-500/15 text-blue-600",
+    error: "bg-red-500/15 text-red-600",
+  };
+
+  return (
+    <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-medium ${colors[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PromptSuggestionsSection
+// ---------------------------------------------------------------------------
+
+const SIMULATE_SUGGESTIONS = [
+  { label: "Short", value: "run the tests" },
+  {
+    label: "Long",
+    value:
+      "now refactor the authentication module to use the new token validation strategy we discussed and make sure all edge cases are covered",
+  },
+];
+
+function PromptSuggestionsSection({ sessions }: { sessions: ActiveSessionInfo[] }) {
+  const activeSessionId = useAgentStore((s) => s.activeSessionId);
+
+  const handleSimulate = (value: string | null) => {
+    if (!activeSessionId) return;
+    const store = claudeCodeChatManager.getChat(activeSessionId)?.store;
+    if (!store) return;
+    store.setState({ promptSuggestion: value });
+  };
+
+  return (
+    <div className="space-y-2 px-3 py-2">
+      {/* Live State */}
+      <div>
+        <div className="flex items-center gap-1.5 pb-1">
+          <Lightbulb className="size-3 text-muted-foreground" />
+          <span className="text-[10px] font-medium uppercase text-muted-foreground">
+            Live State
+          </span>
+        </div>
+        {sessions.length === 0 ? (
+          <div className="text-xs text-muted-foreground italic px-3 py-1">No sessions</div>
+        ) : (
+          <div className="rounded-md border border-border">
+            {sessions.map((s) => (
+              <PromptSuggestionLiveRow
+                key={s.sessionId}
+                sessionId={s.sessionId}
+                isActive={s.sessionId === activeSessionId}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Simulate */}
+      <div>
+        <div className="flex items-center gap-1.5 pb-1">
+          <Play className="size-3 text-muted-foreground" />
+          <span className="text-[10px] font-medium uppercase text-muted-foreground">Simulate</span>
+        </div>
+        <div className="space-y-1">
+          {SIMULATE_SUGGESTIONS.map((s) => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-auto py-1 px-2 text-xs justify-start flex-1 text-left"
+                onClick={() => handleSimulate(s.value)}
+                disabled={!activeSessionId}
+              >
+                <span className="truncate">
+                  [{s.label}] {s.value}
+                </span>
+              </Button>
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto py-1 px-2 text-xs"
+              onClick={() => handleSimulate(null)}
+              disabled={!activeSessionId}
+            >
+              <XCircle className="size-3 mr-1" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LlmTestSection (unchanged)
+// ---------------------------------------------------------------------------
+
 function LlmTestSection() {
   const { llm } = usePluginContext();
   const [result, setResult] = useState<string>("");
@@ -129,38 +364,51 @@ function LlmTestSection() {
     });
 
   return (
-    <div className="border-t border-border">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-        <BrainCircuit className="size-3 text-muted-foreground" />
-        <span className="text-xs font-medium uppercase text-muted-foreground">Auxiliary LLM</span>
+    <div className="px-3 py-2 space-y-2">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Button variant="outline" size="sm" onClick={handleIsConfigured} disabled={loading}>
+          isConfigured
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleQuery} disabled={loading}>
+          query
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleQueryMessages} disabled={loading}>
+          queryMessages
+        </Button>
       </div>
-      <div className="px-3 py-2 space-y-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Button variant="outline" size="sm" onClick={handleIsConfigured} disabled={loading}>
-            isConfigured
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleQuery} disabled={loading}>
-            query
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleQueryMessages} disabled={loading}>
-            queryMessages
-          </Button>
-        </div>
-        {result && (
-          <pre className="text-xs bg-muted/50 rounded-md p-2 whitespace-pre-wrap break-all max-h-40 overflow-auto font-mono text-muted-foreground">
-            {result}
-          </pre>
-        )}
-      </div>
+      {result && (
+        <pre className="text-xs bg-muted/50 rounded-md p-2 whitespace-pre-wrap break-all max-h-40 overflow-auto font-mono text-muted-foreground">
+          {result}
+        </pre>
+      )}
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// DebugView (main)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_SECTIONS: Record<string, boolean> = {
+  activeSessions: false,
+  promptSuggestions: true,
+  auxiliaryLlm: true,
+};
 
 export default function DebugView() {
   const { t } = useTranslation();
   const app = useRendererApp();
   const [sessions, setSessions] = useState<ActiveSessionInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sections, setSections] = useState(() => loadSectionState(DEFAULT_SECTIONS));
+
+  const toggleSection = useCallback((id: string) => {
+    setSections((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveSectionState(next);
+      return next;
+    });
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -180,36 +428,22 @@ export default function DebugView() {
     void app.workbench.layout.maximizePart("contentPanel");
   };
 
-  const activeSessionId = useAgentStore((s) => s.activeSessionId);
-  const handleSimulateSuggestion = () => {
-    if (!activeSessionId) return;
-    const store = claudeCodeChatManager.getChat(activeSessionId)?.store;
-    if (!store) return;
-    const suggestions = [
-      "run the tests",
-      "now refactor the authentication module to use the new token validation strategy we discussed and make sure all edge cases are covered",
-    ];
-    const current = store.getState().promptSuggestion;
-    const next = current === suggestions[0] ? suggestions[1] : suggestions[0];
-    store.setState({ promptSuggestion: next });
-  };
+  const sessionCountBadge = useMemo(
+    () =>
+      sessions.length > 0 ? (
+        <span className="rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+          {sessions.length}
+        </span>
+      ) : null,
+    [sessions.length],
+  );
 
   return (
     <div className="flex h-full flex-col">
+      {/* Panel header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-xs font-medium uppercase text-muted-foreground">
-          {t("debug.activeSessions")}
-        </span>
+        <span className="text-xs font-medium uppercase text-muted-foreground">Debug View</span>
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleSimulateSuggestion}
-            title="Simulate prompt suggestion"
-            className="size-5"
-          >
-            <Lightbulb className="size-3" />
-          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -231,17 +465,49 @@ export default function DebugView() {
           </Button>
         </div>
       </div>
+
+      {/* Scrollable content */}
       <div className="flex-1 overflow-auto">
-        {sessions.length === 0 ? (
-          <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
-            {t("debug.noActiveSessions")}
+        {/* Active Sessions */}
+        <SectionGroup
+          id="activeSessions"
+          title={t("debug.activeSessions")}
+          open={sections.activeSessions}
+          onToggle={toggleSection}
+          badge={sessionCountBadge}
+        >
+          <div className="max-h-60 overflow-y-auto">
+            {sessions.length === 0 ? (
+              <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                {t("debug.noActiveSessions")}
+              </div>
+            ) : (
+              sessions.map((session) => (
+                <SessionRow key={session.sessionId} session={session} onClosed={refresh} />
+              ))
+            )}
           </div>
-        ) : (
-          sessions.map((session) => (
-            <SessionRow key={session.sessionId} session={session} onClosed={refresh} />
-          ))
-        )}
-        <LlmTestSection />
+        </SectionGroup>
+
+        {/* Prompt Suggestions */}
+        <SectionGroup
+          id="promptSuggestions"
+          title="Prompt Suggestions"
+          open={sections.promptSuggestions}
+          onToggle={toggleSection}
+        >
+          <PromptSuggestionsSection sessions={sessions} />
+        </SectionGroup>
+
+        {/* Auxiliary LLM */}
+        <SectionGroup
+          id="auxiliaryLlm"
+          title="Auxiliary LLM"
+          open={sections.auxiliaryLlm}
+          onToggle={toggleSection}
+        >
+          <LlmTestSection />
+        </SectionGroup>
       </div>
     </div>
   );
