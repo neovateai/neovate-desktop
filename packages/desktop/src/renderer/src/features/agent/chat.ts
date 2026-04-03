@@ -196,9 +196,9 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   // ── sendMessage / stop (fire-and-forget, bypasses AbstractChat.makeRequest) ──
 
   /**
-   * AI SDK 1:1 PORT — AbstractChat.sendMessage (ai/dist/index.js, search "this.sendMessage = async")
+   * AI SDK 1:1 PORT — AbstractChat.sendMessage (ai/packages/ai/src/ui/chat.ts:335)
    * Only change: makeRequest() replaced with transport.send() (fire-and-forget).
-   * To update: copy from AbstractChat.sendMessage, replace makeRequest() call.
+   * To update: copy from AbstractChat.sendMessage in ai-sdk source, replace makeRequest() call.
    */
   private _sendMessage = async (
     message?: Parameters<typeof this.sendMessage>[0],
