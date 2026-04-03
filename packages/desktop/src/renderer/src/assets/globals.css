@@ -380,6 +380,12 @@
     font-weight: 500;
   }
 
+  .tiptap .inline-slash-ghost {
+    opacity: 0.4;
+    pointer-events: none;
+    user-select: none;
+  }
+
   .tiptap pre {
     background: var(--muted);
     border-radius: 0.375rem;
