@@ -29,7 +29,7 @@ function makeCtx() {
     app: createMockApp(),
     orpcClient: {},
     llm: {
-      isConfigured: () => false,
+      isAvailable: () => Promise.resolve(false),
       query: vi.fn(),
       queryMessages: vi.fn(),
     },

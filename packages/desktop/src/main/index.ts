@@ -77,7 +77,7 @@ const sessionManager = new SessionManager(
   () => mainApp.pluginManager.contributions.agents,
 );
 const stateStore = new StateStore();
-const llmService = new LlmService(configStore);
+const llmService = new LlmService(configStore, shellEnvService);
 const mainApp = new MainApp({
   plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
   llmService,

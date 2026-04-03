@@ -15,8 +15,8 @@ function toORPCError(err: unknown): never {
 }
 
 export const llmRouter = os.llm.router({
-  isConfigured: os.llm.isConfigured.handler(({ context }) => {
-    return { configured: context.llmService.isConfigured() };
+  isAvailable: os.llm.isAvailable.handler(async ({ context }) => {
+    return { available: await context.llmService.isAvailable() };
   }),
 
   query: os.llm.query.handler(async ({ input, signal, context }) => {

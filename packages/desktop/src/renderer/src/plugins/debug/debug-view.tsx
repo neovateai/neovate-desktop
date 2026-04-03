@@ -339,10 +339,11 @@ function LlmTestSection() {
     }
   };
 
-  const handleIsConfigured = () => {
-    const configured = llm.isConfigured();
-    setResult(`isConfigured: ${configured}`);
-  };
+  const handleIsAvailable = () =>
+    run("isAvailable", async () => {
+      const available = await llm.isAvailable();
+      return `isAvailable: ${available}`;
+    });
 
   const handleQuery = () =>
     run("query", async () => {
@@ -366,8 +367,8 @@ function LlmTestSection() {
   return (
     <div className="px-3 py-2 space-y-2">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Button variant="outline" size="sm" onClick={handleIsConfigured} disabled={loading}>
-          isConfigured
+        <Button variant="outline" size="sm" onClick={handleIsAvailable} disabled={loading}>
+          isAvailable
         </Button>
         <Button variant="outline" size="sm" onClick={handleQuery} disabled={loading}>
           query

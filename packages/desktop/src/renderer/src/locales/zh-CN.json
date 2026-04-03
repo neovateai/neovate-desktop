@@ -65,7 +65,7 @@
   "settings.chat.model": "模型",
   "settings.chat.model.description": "选择主要 AI 模型",
   "settings.chat.auxiliaryModel": "辅助模型",
-  "settings.chat.auxiliaryModel.description": "用于后台任务（如摘要、代码分析等）的模型。需要自定义提供商。",
+  "settings.chat.auxiliaryModel.description": "用于后台任务（如摘要、代码分析等）的模型。未配置时，如果凭据可用，将自动使用主模型。",
   "settings.chat.auxiliaryModel.notConfigured": "未配置",
   "settings.chat.smallModel": "小型模型",
   "settings.chat.smallModel.description": "用于轻量级任务的模型",

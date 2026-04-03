@@ -16,7 +16,7 @@ const llmQueryOptionsSchema = z.object({
 });
 
 export const llmContract = {
-  isConfigured: oc.output(type<{ configured: boolean }>()),
+  isAvailable: oc.output(type<{ available: boolean }>()),
 
   query: oc
     .input(z.object({ prompt: z.string() }).merge(llmQueryOptionsSchema))

@@ -19,8 +19,8 @@ export type LlmQueryResult = {
 };
 
 export interface ILlmService {
-  /** Check if auxiliary LLM is configured (has a provider with credentials). */
-  isConfigured(): boolean;
+  /** Check if auxiliary LLM is available (explicit selection or auto-fallback to primary model). */
+  isAvailable(): Promise<boolean>;
 
   /** Simple text-in/text-out query. Default maxTokens: 4096, temperature: 0. */
   query(prompt: string, opts?: LlmQueryOptions): Promise<string>;
