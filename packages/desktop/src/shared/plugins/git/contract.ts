@@ -36,6 +36,12 @@ export interface GitDiffResponse {
   error?: string;
 }
 
+export interface GitRawDiffResponse {
+  success: boolean;
+  data?: string;
+  error?: string;
+}
+
 export interface GitBranch {
   name: string;
   current: boolean;
@@ -93,6 +99,11 @@ export const gitContract = {
   add: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
   reset: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
   checkout: oc.input(type<{ cwd: string; files: string[] }>()).output(type<GitOperationResponse>()),
+  commit: oc.input(type<{ cwd: string; message: string }>()).output(type<GitOperationResponse>()),
+  push: oc
+    .input(type<{ cwd: string; setUpstream?: boolean }>())
+    .output(type<GitOperationResponse>()),
+  cachedDiff: oc.input(type<{ cwd: string }>()).output(type<GitRawDiffResponse>()),
   diff: oc
     .input(type<{ cwd: string; file: string; type: "working" | "staged" }>())
     .output(type<GitDiffResponse>()),
