@@ -106,7 +106,7 @@
     "react": "^19.2.1",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.1",
-    "react-grab": "^0.1.28",
+    "react-grab": "^0.1.29",
     "react-i18next": "^16.5.4",
     "react-scan": "^0.5.3",
     "shiki": "^4.0.1",
