@@ -30,6 +30,21 @@ export function invalidateDryRunCache(sessionId: string) {
   }
 }
 
+function archiveOriginalSession(
+  sessionId: string,
+  meta: {
+    forkedSessionId: string;
+    rewindMessageId: string;
+    restoreFiles: boolean;
+    title?: string;
+    cwd?: string;
+  },
+) {
+  import("../../../orpc").then(({ client }) => {
+    client.agent.archiveSessionFile({ sessionId, ...meta }).catch(() => {});
+  });
+}
+
 type Props = {
   sessionId: string;
   messageId: string;
@@ -109,13 +124,17 @@ export function MessageRewindButton({ sessionId, messageId, disabled }: Props) {
           await chat?.interrupt();
         }
 
-        // Finalize any existing undo buffer — delete old session file
+        // Finalize any existing undo buffer — archive old session file
         if (store.rewindUndoBuffer) {
           await claudeCodeChatManager.disposeChat(store.rewindUndoBuffer.originalSessionId);
-          const { client } = await import("../../../orpc");
-          client.agent
-            .deleteSessionFile({ sessionId: store.rewindUndoBuffer.originalSessionId })
-            .catch(() => {});
+          const orig = store.sessions.get(store.rewindUndoBuffer.originalSessionId);
+          archiveOriginalSession(store.rewindUndoBuffer.originalSessionId, {
+            forkedSessionId: store.rewindUndoBuffer.forkedSessionId,
+            rewindMessageId: messageId,
+            restoreFiles,
+            title: orig?.title,
+            cwd: orig?.cwd,
+          });
           store.setRewindUndoBuffer(null);
         }
 
@@ -181,21 +200,30 @@ export function MessageRewindButton({ sessionId, messageId, disabled }: Props) {
               children: t("chat.rewind.undo"),
               onClick: () => handleUndo(sessionId, result.forkedSessionId),
             },
-            onClose: async () => {
-              // Timeout expired or dismissed — finalize by disposing original chat and deleting file
+            onClose: () => {
+              // Timeout expired or dismissed — finalize by disposing original chat and archiving file
               const buf = useAgentStore.getState().rewindUndoBuffer;
               if (buf && buf.originalSessionId === sessionId) {
                 claudeCodeChatManager.disposeChat(sessionId);
-                const { client } = await import("../../../orpc");
-                client.agent.deleteSessionFile({ sessionId }).catch(() => {});
+                archiveOriginalSession(sessionId, {
+                  forkedSessionId: result.forkedSessionId,
+                  rewindMessageId: messageId,
+                  restoreFiles: false,
+                  title: original?.title,
+                  cwd: original?.cwd,
+                });
                 useAgentStore.getState().setRewindUndoBuffer(null);
               }
             },
           });
         } else {
-          // File restore — no undo, delete old session immediately
-          import("../../../orpc").then(({ client }) => {
-            client.agent.deleteSessionFile({ sessionId }).catch(() => {});
+          // File restore — no undo, archive old session immediately
+          archiveOriginalSession(sessionId, {
+            forkedSessionId: result.forkedSessionId,
+            rewindMessageId: messageId,
+            restoreFiles: true,
+            title: original?.title,
+            cwd: original?.cwd,
           });
         }
       } catch (error) {

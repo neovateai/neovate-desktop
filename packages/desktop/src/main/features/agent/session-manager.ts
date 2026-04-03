@@ -11,7 +11,7 @@ import debug from "debug";
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
-import { appendFile } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -40,6 +40,7 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { RequestTracker } from "./request-tracker";
 
+import { APP_DATA_DIR } from "../../core/app-paths";
 import { PowerBlockerService } from "../../core/power-blocker-service";
 import { shellEnvService } from "../../core/shell-service";
 import {
@@ -858,6 +859,67 @@ export class SessionManager {
       } catch (error) {
         log(
           "deleteSessionFile: failed to delete %s error=%s",
+          file,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Back up a session's .jsonl to ~/.neovate-desktop/rewind-history/ then delete the original.
+   * Backup is atomic: delete only runs after the copy succeeds.
+   */
+  async archiveSessionFile(
+    sessionId: string,
+    meta: {
+      forkedSessionId: string;
+      rewindMessageId: string;
+      restoreFiles: boolean;
+      title?: string;
+      cwd?: string;
+    },
+  ): Promise<void> {
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
+    if (matches.length === 0) {
+      log("archiveSessionFile: no file found for sessionId=%s", sessionId);
+      return;
+    }
+
+    const backupDir = path.join(APP_DATA_DIR, "rewind-history", sessionId);
+    await mkdir(backupDir, { recursive: true });
+
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/:/g, "-").replace(/\./g, "-");
+
+    await copyFile(matches[0], path.join(backupDir, `${timestamp}.jsonl`));
+
+    const metaJson = JSON.stringify(
+      {
+        originalSessionId: sessionId,
+        forkedSessionId: meta.forkedSessionId,
+        rewindMessageId: meta.rewindMessageId,
+        restoreFiles: meta.restoreFiles,
+        title: meta.title,
+        cwd: meta.cwd,
+        backedUpAt: now.toISOString(),
+      },
+      null,
+      2,
+    );
+    await writeFile(path.join(backupDir, `${timestamp}.meta.json`), metaJson, "utf-8");
+
+    log("archiveSessionFile: backed up sessionId=%s to %s", sessionId, backupDir);
+
+    // Delete original only after backup succeeds
+    const { unlink } = await import("node:fs/promises");
+    for (const file of matches) {
+      try {
+        await unlink(file);
+        log("archiveSessionFile: deleted %s", file);
+      } catch (error) {
+        log(
+          "archiveSessionFile: failed to delete %s error=%s",
           file,
           error instanceof Error ? error.message : error,
         );

@@ -111,6 +111,19 @@ export const agentContract = {
 
   deleteSessionFile: oc.input(z.object({ sessionId: z.string() })).output(type<void>()),
 
+  archiveSessionFile: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        forkedSessionId: z.string(),
+        rewindMessageId: z.string(),
+        restoreFiles: z.boolean(),
+        title: z.string().optional(),
+        cwd: z.string().optional(),
+      }),
+    )
+    .output(type<void>()),
+
   savePlan: oc
     .input(
       z.object({
