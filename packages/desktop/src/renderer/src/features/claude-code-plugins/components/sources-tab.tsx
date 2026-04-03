@@ -129,7 +129,11 @@ export const SourcesTab = ({ marketplaces, onBrowse, onRefresh }: SourcesTabProp
                       onClick={() => handleRemove(mp.name)}
                       disabled={removingId !== null}
                     >
-                      {removingId === mp.name ? <Spinner className="size-3.5" /> : {t("settings.plugins.remove")}}
+                      {removingId === mp.name ? (
+                        <Spinner className="size-3.5" />
+                      ) : (
+                        t("settings.plugins.remove")
+                      )}
                     </Button>
                   </div>
                 ) : (
