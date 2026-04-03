@@ -154,3 +154,7 @@
   color: #519aba;
   content: "\E0A0";
 }
+.seti-icon[data-name$=".test.ts"]::before {
+  color: #e37933;
+  content: "\E099";
+}

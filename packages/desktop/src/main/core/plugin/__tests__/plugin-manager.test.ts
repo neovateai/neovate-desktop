@@ -17,9 +17,23 @@ function makeCtx(): PluginContext {
         ensureMinWidth: vi.fn(),
         prepareForQuit: vi.fn(),
       },
+      deeplink: {
+        register: vi.fn(),
+        handle: vi.fn(),
+        activate: vi.fn(),
+        consumePending: vi.fn(),
+        dispose: vi.fn(),
+        publisher: { size: 0, publish: vi.fn(), subscribe: vi.fn() },
+      } as any,
+      analytics: { track: vi.fn() } as any,
     },
     orpcServer: { router: vi.fn(), handler: vi.fn() } as any,
     shell: { getEnv: vi.fn() } as any,
+    llm: {
+      isAvailable: () => Promise.resolve(false),
+      query: vi.fn(),
+      queryMessages: vi.fn(),
+    },
   };
 }
 

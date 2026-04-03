@@ -41,5 +41,21 @@
   "git.diff.showingLines": "Showing {{current}}/{{total}} lines",
   "git.diff.showMore": "Show {{count}} more lines",
   "git.diff.showAll": "Show all",
-  "git.diff.loadingMore": "Loading more content..."
+  "git.diff.loadingMore": "Loading more content...",
+  "git.commit": "Commit",
+  "git.commitPlaceholder": "Enter commit message...",
+  "git.generateMessage": "Generate commit message",
+  "git.commitOnly": "Commit Only",
+  "git.commitAndPush": "Commit & Push",
+  "git.committing": "Committing...",
+  "git.pushing": "Pushing...",
+  "git.generating": "Generating...",
+  "git.generateMessageFailed": "Failed to generate commit message",
+  "git.commitFailed": "Commit Failed",
+  "git.commitSuccess": "Committed Successfully",
+  "git.pushFailed": "Push Failed",
+  "git.pushSuccess": "Pushed Successfully",
+  "git.noUpstreamBranch": "No Upstream Branch",
+  "git.noUpstreamBranchDesc": "Current branch \"{{branch}}\" has no upstream branch",
+  "git.setUpstreamAndPush": "Set Upstream & Push"
 }

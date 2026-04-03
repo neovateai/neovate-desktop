@@ -70,26 +70,42 @@ beforeEach(() => {
 describe("MainApp", () => {
   it("exposes pluginManager", async () => {
     const { MainApp } = await import("../app");
-    const app = new MainApp({});
+    const app = new MainApp({ appName: "test" });
     expect(app.pluginManager).toBeDefined();
   });
 
   it("exposes subscriptions", async () => {
     const { MainApp } = await import("../app");
-    const app = new MainApp({});
+    const app = new MainApp({ appName: "test" });
     expect(typeof app.subscriptions.push).toBe("function");
   });
 
   it("exposes windowManager", async () => {
     const { MainApp } = await import("../app");
-    const app = new MainApp({});
+    const app = new MainApp({ appName: "test" });
     expect(app.windowManager).toBeDefined();
+  });
+
+  it("exposes analytics instance", async () => {
+    const { MainApp } = await import("../app");
+    const app = new MainApp({ appName: "test" });
+    expect(app.analytics).toBeDefined();
+    expect(typeof app.analytics.track).toBe("function");
+  });
+
+  it("creates analytics with provided plugins", async () => {
+    const { MainApp } = await import("../app");
+    const trackSpy = vi.fn();
+    const plugin = { name: "test-sink", track: trackSpy };
+    const app = new MainApp({ appName: "test", analyticsPlugins: [plugin] });
+    await app.analytics.track("test.event.fired", { key: "value" });
+    expect(trackSpy).toHaveBeenCalled();
   });
 
   it("registers plugins passed in options", async () => {
     const { MainApp } = await import("../app");
     const plugin: MainPlugin = { name: "test" };
-    const app = new MainApp({ plugins: [plugin] });
+    const app = new MainApp({ appName: "test", plugins: [plugin] });
     expect(app.pluginManager.getPlugins()).toContain(plugin);
   });
 
@@ -111,7 +127,7 @@ describe("MainApp", () => {
       return {};
     });
 
-    const app = new MainApp({ plugins: [plugin] });
+    const app = new MainApp({ appName: "test", plugins: [plugin] });
     await app.start();
 
     expect(order).toEqual(["config", "activate", "createMainWindow"]);
@@ -119,7 +135,7 @@ describe("MainApp", () => {
 
   it("stop() calls deactivate, destroyAll, and subscriptions.dispose", async () => {
     const { MainApp } = await import("../app");
-    const app = new MainApp({});
+    const app = new MainApp({ appName: "test" });
     const deactivateSpy = vi.spyOn(app.pluginManager, "deactivate");
     const disposeSpy = vi.spyOn(app.subscriptions, "dispose");
 

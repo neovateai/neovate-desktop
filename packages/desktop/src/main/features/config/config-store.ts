@@ -1,7 +1,7 @@
 import debug from "debug";
 import Store from "electron-store";
 
-import type { AppConfig } from "../../../shared/features/config/types";
+import type { AppConfig, SkillsRegistry } from "../../../shared/features/config/types";
 import type { Provider } from "../../../shared/features/provider/types";
 
 import { APP_DATA_DIR } from "../../core/app-paths";
@@ -20,11 +20,12 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   themeStyle: "default",
   locale: "en-US",
   runOnStartup: false,
-  multiProjectSupport: false,
+  multiProjectSupport: true,
   appFontSize: 15,
   terminalFontSize: 12,
   terminalFont: "",
   developerMode: false,
+  showSessionInitStatus: false,
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: "byProject",
@@ -39,12 +40,13 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   networkInspector: false,
   keepAwake: false,
   preWarmSessions: true,
+  auxiliaryModelSelection: "",
 
   // Keybindings
   keybindings: {},
 
   // Skills
-  skillsRegistryUrls: [],
+  skillsRegistries: [],
   npmRegistry: "",
 };
 
@@ -63,6 +65,27 @@ export class ConfigStore {
       defaults: STORE_DEFAULTS,
       serialize: (value) => JSON.stringify(value, null, 2) + "\n",
     });
+    this.migrateRegistryUrls();
+  }
+
+  /** Migrate legacy `skillsRegistryUrls: string[]` → `skillsRegistries` */
+  private migrateRegistryUrls(): void {
+    const raw = this.store.store as Record<string, unknown>;
+    const legacy = raw["skillsRegistryUrls"];
+    if (!Array.isArray(legacy) || legacy.length === 0) return;
+
+    const migrated: SkillsRegistry[] = legacy
+      .filter((u): u is string => typeof u === "string")
+      .map((url) => ({ url }));
+
+    if (
+      migrated.length > 0 &&
+      (!raw["skillsRegistries"] || (raw["skillsRegistries"] as any[]).length === 0)
+    ) {
+      this.store.set("skillsRegistries", migrated);
+      log("migrated %d legacy skillsRegistryUrls → skillsRegistries", migrated.length);
+    }
+    this.store.delete("skillsRegistryUrls" as keyof ConfigStoreSchema);
   }
 
   getAll(): AppConfig {
@@ -127,6 +150,12 @@ export class ConfigStore {
       provider: this.store.get("provider") as string | undefined,
       model: this.store.get("model") as string | undefined,
     };
+  }
+
+  onAnyChange(cb: (newValue: ConfigStoreSchema, oldValue: ConfigStoreSchema) => void): () => void {
+    return this.store.onDidAnyChange((newVal, oldVal) => {
+      cb(newVal as ConfigStoreSchema, oldVal as ConfigStoreSchema);
+    });
   }
 
   setGlobalSelection(provider?: string | null, model?: string | null): void {

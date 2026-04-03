@@ -1,3 +1,4 @@
+import type { ILlmService } from "../../../../shared/features/llm/types";
 import type { I18nContributions } from "../i18n/i18next";
 import type { IRendererApp } from "../types";
 import type {
@@ -9,6 +10,8 @@ import type {
 export interface PluginContext {
   app: IRendererApp;
   orpcClient: Record<string, unknown>;
+  /** Auxiliary LLM query — delegates to main process via oRPC */
+  llm: ILlmService;
 }
 
 export interface RendererPluginHooks {

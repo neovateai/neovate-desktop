@@ -10,7 +10,13 @@ import type {
   ClaudeCodeUIDispatchResult,
 } from "../../claude-code/types";
 import type { InspectorState, RequestDetail, RequestSummary } from "./request-types";
-import type { ActiveSessionInfo, ModelScope, SessionInfo } from "./types";
+import type {
+  ActiveSessionInfo,
+  ModelScope,
+  RewindFilesResult,
+  RewindResult,
+  SessionInfo,
+} from "./types";
 
 export const agentContract = {
   activeSessions: oc.input(z.object({})).output(type<ActiveSessionInfo[]>()),
@@ -86,6 +92,36 @@ export const agentContract = {
       .input(type<{ sessionId: string }>())
       .output(eventIterator(type<RequestSummary>())),
   },
+
+  rewindFilesDryRun: oc
+    .input(z.object({ sessionId: z.string(), messageId: z.string() }))
+    .output(type<RewindFilesResult>()),
+
+  rewindToMessage: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        messageId: z.string(),
+        restoreFiles: z.boolean(),
+        title: z.string().optional(),
+      }),
+    )
+    .output(type<RewindResult>()),
+
+  deleteSessionFile: oc.input(z.object({ sessionId: z.string() })).output(type<void>()),
+
+  archiveSessionFile: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        forkedSessionId: z.string(),
+        rewindMessageId: z.string(),
+        restoreFiles: z.boolean(),
+        title: z.string().optional(),
+        cwd: z.string().optional(),
+      }),
+    )
+    .output(type<void>()),
 
   savePlan: oc
     .input(

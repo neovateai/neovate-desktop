@@ -101,6 +101,12 @@ export const ChatPanel = () => {
           >
             <GlobalModelSelect />
           </SettingsRow>
+          <SettingsRow
+            title={t("settings.chat.auxiliaryModel")}
+            description={t("settings.chat.auxiliaryModel.description")}
+          >
+            <AuxiliaryModelSelect />
+          </SettingsRow>
         </SettingsGroup>
 
         {/* Behavior */}
@@ -247,6 +253,83 @@ export const ChatPanel = () => {
 };
 
 const log = debug("neovate:settings:chat");
+
+function AuxiliaryModelSelect() {
+  const { t } = useTranslation();
+
+  // Providers — only custom providers (SDK Default can't be used with @anthropic-ai/sdk)
+  const providers = useProviderStore((s) => s.providers);
+  const providersLoaded = useProviderStore((s) => s.loaded);
+  const loadProviders = useProviderStore((s) => s.load);
+
+  const currentSelection = useConfigStore((s) => s.auxiliaryModelSelection);
+  const setConfig = useConfigStore((s) => s.setConfig);
+
+  useEffect(() => {
+    if (!providersLoaded) loadProviders();
+  }, [providersLoaded, loadProviders]);
+
+  const enabledProviders = providers.filter((p) => p.enabled);
+
+  const handleSelect = useCallback(
+    (value: unknown) => {
+      const encoded = value as string;
+      log("auxiliary model selection: %s", encoded);
+      setConfig("auxiliaryModelSelection", encoded);
+    },
+    [setConfig],
+  );
+
+  // Build display label from current selection
+  const { providerId, model } = decodeValue(currentSelection);
+  const activeProvider = providerId ? enabledProviders.find((p) => p.id === providerId) : undefined;
+
+  let displayLabel: string;
+  if (!currentSelection) {
+    displayLabel = t("settings.chat.auxiliaryModel.notConfigured");
+  } else if (activeProvider && model) {
+    const modelDisplay = activeProvider.models[model]?.displayName ?? model;
+    displayLabel = `${activeProvider.name} / ${modelDisplay}`;
+  } else {
+    displayLabel = t("settings.chat.auxiliaryModel.notConfigured");
+  }
+
+  return (
+    <Menu>
+      <MenuTrigger className="inline-flex h-8 max-w-[220px] items-center gap-1 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none hover:bg-accent cursor-pointer">
+        <span className="truncate">{displayLabel}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+      </MenuTrigger>
+      <MenuPopup side="bottom" align="end" className="max-h-80 overflow-y-auto">
+        <MenuRadioGroup value={currentSelection} onValueChange={handleSelect}>
+          {/* Not configured — clears selection */}
+          <MenuRadioItem value="">{t("settings.chat.auxiliaryModel.notConfigured")}</MenuRadioItem>
+
+          {/* Custom provider groups only */}
+          {enabledProviders.map((p) => (
+            <MenuGroup key={p.id}>
+              <MenuSeparator />
+              <MenuGroupLabel>{p.name}</MenuGroupLabel>
+              {Object.entries(p.models).map(([key, entry]) => {
+                const aliases: string[] = [];
+                if (p.modelMap.model === key) aliases.push("default");
+                if (p.modelMap.haiku === key) aliases.push("haiku");
+                if (p.modelMap.opus === key) aliases.push("opus");
+                if (p.modelMap.sonnet === key) aliases.push("sonnet");
+                const badge = aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
+                return (
+                  <MenuRadioItem key={key} value={encodeValue(p.id, key)} className="pl-6">
+                    {(entry.displayName ?? key) + badge}
+                  </MenuRadioItem>
+                );
+              })}
+            </MenuGroup>
+          ))}
+        </MenuRadioGroup>
+      </MenuPopup>
+    </Menu>
+  );
+}
 
 function GlobalModelSelect() {
   const { t } = useTranslation();

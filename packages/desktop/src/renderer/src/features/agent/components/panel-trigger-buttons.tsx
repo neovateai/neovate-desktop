@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { SquarePen, Wand2 } from "lucide-react";
+import { Puzzle, SquarePen, Wand2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { layoutStore, useLayoutStore } from "../../../components/app-layout/store";
@@ -62,6 +62,16 @@ export function PanelTriggerGroup({ projectPath }: { projectPath?: string }) {
             : openFullRightPanel("skills")
         }
         active={fullRightPanelId === "skills"}
+      />
+      <SidebarActionButton
+        icon={Puzzle}
+        label={t("settings.plugins")}
+        onClick={() =>
+          fullRightPanelId === "plugins"
+            ? layoutStore.getState().closeFullRightPanel()
+            : openFullRightPanel("plugins")
+        }
+        active={fullRightPanelId === "plugins"}
       />
       <div className="mt-2 mx-3 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
     </div>

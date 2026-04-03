@@ -6,6 +6,11 @@ import git from "simple-git";
 import type { GitBranch, GitBranchFile } from "../../../shared/plugins/git/contract";
 import type { PluginContext } from "../../core/plugin/types";
 
+import { gitAdd } from "./utils/add";
+import { gitCommit } from "./utils/commit";
+import { getFileDiff, gitDiffCached } from "./utils/diff";
+import { gitPush } from "./utils/push";
+
 const log = debug("neovate:git");
 
 const GIT_TIMEOUT_MS = 10_000;
@@ -51,8 +56,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
       const { cwd, files } = input as { cwd: string; files: string[] };
       log("add: staging files", { cwd, files });
       try {
-        const gitClient = git(cwd);
-        await gitClient.add(files);
+        await gitAdd(cwd, files);
         return { success: true, data: {} };
       } catch (error) {
         return {
@@ -91,6 +95,48 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
         };
       }
     }),
+    commit: orpcServer.handler(async ({ input }) => {
+      const { cwd, message } = input as { cwd: string; message: string };
+      log("commit: creating commit", { cwd, message });
+      try {
+        await gitCommit(cwd, message);
+        return { success: true, data: {} };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
+    push: orpcServer.handler(async ({ input }) => {
+      const { cwd, setUpstream } = input as {
+        cwd: string;
+        setUpstream?: boolean;
+      };
+      log("push: pushing to remote", { cwd, setUpstream });
+      try {
+        await gitPush(cwd, { setUpstream });
+        return { success: true, data: {} };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
+    cachedDiff: orpcServer.handler(async ({ input }) => {
+      const { cwd } = input as { cwd: string };
+      log("cachedDiff: getting staged diff", { cwd });
+      try {
+        const diff = await gitDiffCached(cwd);
+        return { success: true, data: diff };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+      }
+    }),
     diff: orpcServer.handler(async ({ input }) => {
       const {
         cwd,
@@ -99,62 +145,11 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
       } = input as { cwd: string; file: string; type: "working" | "staged" };
       log("diff: loading", { cwd, file, diffType });
       try {
-        const gitClient = git(cwd);
-
-        let oldContent = "";
-        let newContent = "";
-        let fileStatus = "";
-
-        try {
-          const status = await gitClient.status();
-
-          if (status.not_added.includes(file)) {
-            fileStatus = "untracked";
-          } else if (status.created.includes(file)) {
-            fileStatus = "added";
-          } else if (status.modified.includes(file)) {
-            fileStatus = "modified";
-          } else if (status.deleted.includes(file)) {
-            fileStatus = "deleted";
-          }
-          log("diff: file status determined", { file, fileStatus });
-
-          if (diffType === "staged") {
-            try {
-              newContent = await gitClient.show([`:${file}`]);
-            } catch {
-              newContent = "";
-            }
-
-            try {
-              oldContent = await gitClient.show([`HEAD:${file}`]);
-            } catch {
-              oldContent = "";
-            }
-          } else {
-            const filePath = path.resolve(cwd, file);
-
-            try {
-              newContent = fs.readFileSync(filePath, "utf8");
-            } catch {
-              newContent = "";
-            }
-
-            try {
-              const isStaged = status.staged.includes(file);
-
-              if (isStaged) {
-                oldContent = await gitClient.show([`:${file}`]);
-              } else {
-                oldContent = await gitClient.show([`HEAD:${file}`]);
-              }
-            } catch {
-              oldContent = "";
-            }
-          }
-        } catch (error) {
-          console.error("Error reading file contents:", error);
-        }
+        const {
+          oldContent = "",
+          newContent = "",
+          fileStatus,
+        } = await getFileDiff(cwd, file, diffType);
 
         return {
           success: true,
@@ -262,7 +257,11 @@ async function getFiles(cwd: string) {
   const stagedStats = parseNumstat(numstatStagedRaw);
 
   const working: Array<
-    ReturnType<typeof str2file> & { status: string; insertions?: number; deletions?: number }
+    ReturnType<typeof str2file> & {
+      status: string;
+      insertions?: number;
+      deletions?: number;
+    }
   > = [];
   const staged: Array<
     ReturnType<typeof str2file> & {

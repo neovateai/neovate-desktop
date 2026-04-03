@@ -11,7 +11,7 @@ import debug from "debug";
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
-import { appendFile } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -28,8 +28,12 @@ import type {
   ActiveSessionInfo,
   ModelScope,
   RewindFilesResult,
+  RewindResult,
   SessionInfo,
 } from "../../../shared/features/agent/types";
+import type { Contributions } from "../../core/plugin/contributions";
+
+import { mergeAgentHooks } from "../../core/plugin/contributions";
 
 const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
@@ -37,6 +41,7 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { RequestTracker } from "./request-tracker";
 
+import { APP_DATA_DIR } from "../../core/app-paths";
 import { PowerBlockerService } from "../../core/power-blocker-service";
 import { shellEnvService } from "../../core/shell-service";
 import {
@@ -81,9 +86,6 @@ function listSessionFiles(filter?: string): string[] {
   return results;
 }
 
-/** Auto-cancel permission requests after 5 minutes of no UI response. */
-export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
-
 /** Timeout for SDK initializationResult() to prevent hanging sessions. */
 const INIT_TIMEOUT_MS = 10_000;
 
@@ -113,11 +115,12 @@ export class SessionManager {
       lastUserMessageId?: string;
       preTurnRef?: string;
       consumeExited: boolean;
+      /** Maps UI message IDs to SDK UUIDs for rewind. */
+      uiToSdkMessageIds: Map<string, string>;
       pendingRequests: Map<
         string,
         {
           resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
-          timer: ReturnType<typeof setTimeout>;
         }
       >;
     }
@@ -128,6 +131,7 @@ export class SessionManager {
     private projectStore: ProjectStore,
     private requestTracker: RequestTracker,
     private powerBlocker: PowerBlockerService,
+    private getAgentContributions: () => Contributions["agents"] = () => [],
   ) {}
 
   /** Return all in-memory (active) sessions. */
@@ -180,7 +184,6 @@ export class SessionManager {
         ): boolean => {
           if (settled) return false;
           settled = true;
-          clearTimeout(timer);
           signal.removeEventListener("abort", onAbort);
           session.pendingRequests.delete(requestId);
           // SDK expects updatedInput on allow results to execute the tool
@@ -191,17 +194,12 @@ export class SessionManager {
           );
           return true;
         };
-        const timer = setTimeout(() => {
-          if (settle({ behavior: "deny", message: "Permission request timed out" })) {
-            this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
-          }
-        }, PERMISSION_TIMEOUT_MS);
         const onAbort = () => {
           if (settle({ behavior: "deny", message: "Permission request cancelled" })) {
             this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
           }
         };
-        session.pendingRequests.set(requestId, { resolve: settle, timer });
+        session.pendingRequests.set(requestId, { resolve: settle });
         this.eventPublisher.publish(sessionId, {
           kind: "request",
           requestId,
@@ -509,6 +507,12 @@ export class SessionManager {
       cwd,
       model: opts?.model,
     });
+    // Merge plugin-contributed hooks with built-in hooks (RTK)
+    const mergedHooks = mergeAgentHooks(this.getAgentContributions());
+    if (registerRtkHook) {
+      (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+    }
+
     const options: Options = {
       ...queryOpts,
       allowDangerouslySkipPermissions: true,
@@ -517,9 +521,7 @@ export class SessionManager {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
-      ...(registerRtkHook
-        ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
-        : {}),
+      hooks: mergedHooks,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
       ...(networkInspector
         ? {
@@ -599,6 +601,7 @@ export class SessionManager {
       cwd,
       providerId: provider?.id,
       consumeExited: false,
+      uiToSdkMessageIds: new Map(),
       pendingRequests,
     });
     const initResult = await q.initializationResult();
@@ -690,7 +693,6 @@ export class SessionManager {
     }
     session.query.close();
     for (const [requestId, pending] of session.pendingRequests) {
-      clearTimeout(pending.timer);
       pending.resolve({ behavior: "deny", message: "Session closed" });
       this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
     }
@@ -774,6 +776,181 @@ export class SessionManager {
     }
   }
 
+  /** Resolve a UI message ID to the SDK UUID used for rewind operations. */
+  private resolveSdkMessageId(
+    session: { uiToSdkMessageIds: Map<string, string> },
+    uiMessageId: string,
+  ): string {
+    return session.uiToSdkMessageIds.get(uiMessageId) ?? uiMessageId;
+  }
+
+  /** Dry-run: get the list of files that would change if we rewound to this message. */
+  async rewindFilesDryRun(sessionId: string, messageId: string): Promise<RewindFilesResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const sdkMessageId = this.resolveSdkMessageId(session, messageId);
+    try {
+      return await session.query.rewindFiles(sdkMessageId, { dryRun: true });
+    } catch (error) {
+      return {
+        canRewind: false,
+        error: error instanceof Error ? error.message : "Failed to get rewind files",
+      };
+    }
+  }
+
+  /**
+   * Rewind to a specific user message: optionally restore files, then fork the
+   * conversation so the SDK's in-memory state matches the truncated history.
+   */
+  async rewindToMessage(
+    sessionId: string,
+    messageId: string,
+    restoreFiles: boolean,
+    title?: string,
+  ): Promise<RewindResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const sdkMessageId = this.resolveSdkMessageId(session, messageId);
+
+    // 1. Restore files if requested (on the ORIGINAL session, which has file history)
+    if (restoreFiles) {
+      await session.query.rewindFiles(sdkMessageId, { dryRun: false });
+    }
+
+    // 2. Resolve the message immediately before the target for the fork point
+    const prevMessageId = await this.findPrevMessageId(sessionId, sdkMessageId);
+
+    // 3. Fork the conversation
+    const { forkSession } = await import("@anthropic-ai/claude-agent-sdk");
+    let forkedSessionId: string;
+    if (prevMessageId) {
+      const result = await forkSession(sessionId, {
+        upToMessageId: prevMessageId,
+        dir: session.cwd,
+        title,
+      });
+      forkedSessionId = result.sessionId;
+    } else {
+      // Rewinding to first message — create a fresh session
+      const result = await this.createSession(session.cwd);
+      forkedSessionId = result.sessionId;
+    }
+
+    // 4. Close original session's Query (keep .jsonl on disk)
+    await this.closeSession(sessionId);
+
+    log(
+      "rewindToMessage: original=%s forked=%s restoreFiles=%s",
+      sessionId,
+      forkedSessionId,
+      restoreFiles,
+    );
+
+    return { forkedSessionId, originalSessionId: sessionId };
+  }
+
+  /** Delete a session's .jsonl file from disk. */
+  async deleteSessionFile(sessionId: string): Promise<void> {
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
+    if (matches.length === 0) {
+      log("deleteSessionFile: no file found for sessionId=%s", sessionId);
+      return;
+    }
+    const { unlink } = await import("node:fs/promises");
+    for (const file of matches) {
+      try {
+        await unlink(file);
+        log("deleteSessionFile: deleted %s", file);
+      } catch (error) {
+        log(
+          "deleteSessionFile: failed to delete %s error=%s",
+          file,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Back up a session's .jsonl to ~/.neovate-desktop/rewind-history/ then delete the original.
+   * Backup is atomic: delete only runs after the copy succeeds.
+   */
+  async archiveSessionFile(
+    sessionId: string,
+    meta: {
+      forkedSessionId: string;
+      rewindMessageId: string;
+      restoreFiles: boolean;
+      title?: string;
+      cwd?: string;
+    },
+  ): Promise<void> {
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
+    if (matches.length === 0) {
+      log("archiveSessionFile: no file found for sessionId=%s", sessionId);
+      return;
+    }
+
+    const backupDir = path.join(APP_DATA_DIR, "rewind-history", sessionId);
+    await mkdir(backupDir, { recursive: true });
+
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/:/g, "-").replace(/\./g, "-");
+
+    await copyFile(matches[0], path.join(backupDir, `${timestamp}.jsonl`));
+
+    const metaJson = JSON.stringify(
+      {
+        originalSessionId: sessionId,
+        forkedSessionId: meta.forkedSessionId,
+        rewindMessageId: meta.rewindMessageId,
+        restoreFiles: meta.restoreFiles,
+        title: meta.title,
+        cwd: meta.cwd,
+        backedUpAt: now.toISOString(),
+      },
+      null,
+      2,
+    );
+    await writeFile(path.join(backupDir, `${timestamp}.meta.json`), metaJson, "utf-8");
+
+    log("archiveSessionFile: backed up sessionId=%s to %s", sessionId, backupDir);
+
+    // Delete original only after backup succeeds
+    const { unlink } = await import("node:fs/promises");
+    for (const file of matches) {
+      try {
+        await unlink(file);
+        log("archiveSessionFile: deleted %s", file);
+      } catch (error) {
+        log(
+          "archiveSessionFile: failed to delete %s error=%s",
+          file,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Find the SDK UUID of the message immediately before the target in the
+   * session transcript. Returns undefined if the target is the first message.
+   */
+  private async findPrevMessageId(
+    sessionId: string,
+    targetMessageId: string,
+  ): Promise<string | undefined> {
+    const { getSessionMessages } = await import("@anthropic-ai/claude-agent-sdk");
+    const messages = await getSessionMessages(sessionId);
+    let prevUuid: string | undefined;
+    for (const msg of messages) {
+      if (msg.uuid === targetMessageId) return prevUuid;
+      prevUuid = msg.uuid;
+    }
+    return undefined;
+  }
+
   /**
    * Send a user message into the session's input Pushable.
    * Does NOT consume the query iterator — that is handled by consume().
@@ -837,6 +1014,10 @@ export class SessionManager {
 
     const userMessageId = randomUUID();
     session.lastUserMessageId = userMessageId;
+    // Track UI message ID → SDK UUID mapping for rewind
+    if (message.id) {
+      session.uiToSdkMessageIds.set(message.id, userMessageId);
+    }
 
     this.requestTracker.startTurn(sessionId);
     this.powerBlocker.onTurnStart(sessionId);
@@ -950,7 +1131,6 @@ export class SessionManager {
       }
       pending.resolve(dispatch.respond.result);
       session.pendingRequests.delete(dispatch.requestId);
-      clearTimeout(pending.timer);
       return { kind: "respond", ok: true };
     }
     const session = this.sessions.get(sessionId);

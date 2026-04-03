@@ -32,6 +32,7 @@ const DEFAULT_CONFIG: AppConfig = {
   terminalFontSize: 12,
   terminalFont: "",
   developerMode: false,
+  showSessionInitStatus: false,
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: "byProject",
@@ -46,12 +47,13 @@ const DEFAULT_CONFIG: AppConfig = {
   networkInspector: false,
   keepAwake: false,
   preWarmSessions: true,
+  auxiliaryModelSelection: "",
 
   // Keybindings
   keybindings: {},
 
   // Skills
-  skillsRegistryUrls: [],
+  skillsRegistries: [],
   npmRegistry: "",
 };
 

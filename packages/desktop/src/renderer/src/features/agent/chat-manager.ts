@@ -34,6 +34,10 @@ export class ClaudeCodeChatManager {
         void this.#handleContextClear(id, pending);
       }
 
+      window.dispatchEvent(
+        new CustomEvent("neovate:turn-completed", { detail: { sessionId: id } }),
+      );
+
       const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
       if (activeSessionId !== id) {
         markTurnCompleted(id, result);
@@ -79,6 +83,61 @@ export class ClaudeCodeChatManager {
 
   getChat(sessionId: string) {
     return this.chats.get(sessionId);
+  }
+
+  async rewindToMessage(
+    sessionId: string,
+    messageId: string,
+    restoreFiles: boolean,
+    title?: string,
+  ): Promise<{ forkedSessionId: string; originalSessionId: string }> {
+    const cwd = useAgentStore.getState().sessions.get(sessionId)?.cwd ?? "";
+    log(
+      "rewindToMessage: sessionId=%s messageId=%s restoreFiles=%s cwd=%s",
+      sessionId.slice(0, 8),
+      messageId.slice(0, 8),
+      restoreFiles,
+      cwd,
+    );
+
+    // 1. Call backend to rewind files (if requested), fork session, close original
+    const result = await this.rpc.rewindToMessage({
+      sessionId,
+      messageId,
+      restoreFiles,
+      title,
+    });
+
+    // 2. Load the forked session via the normal loadSession flow
+    const loaded = await this.loadSession(result.forkedSessionId, cwd);
+
+    // 3. For file restores, dispose original chat immediately.
+    //    For conversation-only, keep original alive during undo window.
+    if (restoreFiles) {
+      await this.disposeChat(sessionId);
+    }
+
+    log(
+      "rewindToMessage: forked=%s model=%s",
+      result.forkedSessionId.slice(0, 8),
+      loaded.currentModel,
+    );
+
+    return {
+      forkedSessionId: result.forkedSessionId,
+      originalSessionId: sessionId,
+    };
+  }
+
+  /** Dispose a chat without closing the backend session (already closed). */
+  async disposeChat(sessionId: string): Promise<void> {
+    const chat = this.chats.get(sessionId);
+    if (!chat) return;
+    chat.store.setState({ pendingContextClear: undefined });
+    await chat.stop();
+    await chat.dispose();
+    this.chats.delete(sessionId);
+    scrollPositions.delete(sessionId);
   }
 
   async removeSession(sessionId: string): Promise<void> {

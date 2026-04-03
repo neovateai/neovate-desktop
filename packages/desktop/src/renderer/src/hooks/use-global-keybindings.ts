@@ -1,12 +1,14 @@
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../shared/features/project/constants";
 import { layoutStore } from "../components/app-layout/store";
 import { toastManager } from "../components/ui/toast";
 import { useRendererApp } from "../core/app";
 import { useNewSession } from "../features/agent/hooks/use-new-session";
 import { navigateSession } from "../features/agent/navigate-session";
 import { useAgentStore } from "../features/agent/store";
+import { useCommandPaletteStore } from "../features/command-palette/store";
 import { useConfigStore } from "../features/config/store";
 import { useProjectStore } from "../features/project/store";
 import { useSettingsStore } from "../features/settings/store";
@@ -48,6 +50,13 @@ export function useGlobalKeybindings(): void {
         const newTheme = resolvedTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
         config.setConfig("theme", newTheme);
+        return;
+      }
+
+      // Command Palette
+      if (matchesBinding(e, keybindings.openCommandPalette)) {
+        e.preventDefault();
+        useCommandPaletteStore.getState().toggle();
         return;
       }
 
@@ -129,6 +138,19 @@ export function useGlobalKeybindings(): void {
         const projectPath = useProjectStore.getState().activeProject?.path;
         if (projectPath) {
           createNewSession(projectPath);
+        }
+        return;
+      }
+
+      // Quick Chat (new session in playground project)
+      if (matchesBinding(e, keybindings.quickChat)) {
+        e.preventDefault();
+        const playground = useProjectStore
+          .getState()
+          .projects.find((p) => p.id === PLAYGROUND_PROJECT_ID);
+        if (playground) {
+          useProjectStore.getState().switchToProjectByPath(playground.path);
+          createNewSession(playground.path);
         }
         return;
       }

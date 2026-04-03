@@ -20,11 +20,20 @@ function createMockApp(): IRendererApp {
       contentPanel: {} as any,
     },
     project: {} as any,
+    options: {},
   };
 }
 
 function makeCtx() {
-  return { app: createMockApp(), orpcClient: {} };
+  return {
+    app: createMockApp(),
+    orpcClient: {},
+    llm: {
+      isAvailable: () => Promise.resolve(false),
+      query: vi.fn(),
+      queryMessages: vi.fn(),
+    },
+  };
 }
 
 const mockComponent: SecondarySidebarView["component"] = () =>
@@ -133,8 +142,7 @@ describe("PluginManager", () => {
     it("calls activate on each plugin with PluginContext", async () => {
       const activateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", activate: activateFn }]);
-      const mockApp = createMockApp();
-      const ctx = { app: mockApp, orpcClient: {} };
+      const ctx = makeCtx();
       await pm.activate(ctx);
       expect(activateFn).toHaveBeenCalledWith(ctx);
     });

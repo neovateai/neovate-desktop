@@ -7,6 +7,7 @@ import path from "node:path";
 
 import type { AppContext } from "../../router";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../shared/features/project/constants";
 import { projectContract } from "../../../shared/features/project/contract";
 
 const log = debug("neovate:project");
@@ -83,6 +84,9 @@ export const projectRouter = os.project.router({
   }),
 
   remove: os.project.remove.handler(({ input, context }) => {
+    if (input.id === PLAYGROUND_PROJECT_ID) {
+      throw new ORPCError("BAD_REQUEST", { message: "Cannot remove the playground project" });
+    }
     log("remove project", { id: input.id });
     context.projectStore.remove(input.id);
   }),
@@ -105,9 +109,23 @@ export const projectRouter = os.project.router({
     if (project && !existsSync(project.path)) {
       log("active project path missing, clearing: %s", project.path);
       context.projectStore.setActive(null);
-      return null;
+      // Fall through to playground fallback below
+    } else if (project) {
+      return project;
     }
-    return project;
+
+    // Fallback: if no active project and no user projects exist, activate playground
+    const all = context.projectStore.getAll();
+    const hasUserProjects = all.some((p) => p.id !== PLAYGROUND_PROJECT_ID);
+    if (!hasUserProjects) {
+      const playground = context.projectStore.getPlayground();
+      if (playground) {
+        log("no user projects, falling back to playground");
+        context.projectStore.setActive(PLAYGROUND_PROJECT_ID);
+        return playground;
+      }
+    }
+    return null;
   }),
 
   pickDirectory: os.project.pickDirectory.handler(async () => {

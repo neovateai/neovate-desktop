@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { Project } from "../../../../../../shared/features/project/types";
 import type {
   RecommendedSkill,
+  SkillBadgeType,
   SkillMeta,
   SkillUpdate,
 } from "../../../../../../shared/features/skills/types";
@@ -33,6 +34,25 @@ import { Switch } from "../../../../components/ui/switch";
 import { client } from "../../../../orpc";
 
 const log = debug("neovate:settings:skills");
+
+const skillBadgeVariantMap: Record<
+  SkillBadgeType,
+  "success" | "info" | "secondary" | "default" | "warning"
+> = {
+  recommended: "success",
+  official: "info",
+  popular: "secondary",
+  new: "default",
+  deprecated: "warning",
+};
+
+const skillBadgeRenderPriority: Record<SkillBadgeType, number> = {
+  official: 1,
+  recommended: 2,
+  popular: 3,
+  new: 4,
+  deprecated: 5,
+};
 
 interface SkillDetailModalProps {
   skill?: SkillMeta;
@@ -216,6 +236,15 @@ export const SkillDetailModal = ({
                   v{recommendedSkill.version}
                 </Badge>
               )}
+              {recommendedSkill.badges
+                ?.slice()
+                .sort((a, b) => skillBadgeRenderPriority[a] - skillBadgeRenderPriority[b])
+                .slice(0, 2)
+                .map((badge) => (
+                  <Badge key={badge} variant={skillBadgeVariantMap[badge]} size="sm">
+                    {t(`settings.skills.badge.${badge}`)}
+                  </Badge>
+                ))}
             </div>
           )}
         </DialogHeader>

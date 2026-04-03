@@ -161,6 +161,8 @@ function resolveShellEnv(): Promise<Record<string, string>> {
 
         delete resolved["__RESOLVING_SHELL_ENVIRONMENT"];
         delete resolved["XDG_RUNTIME_DIR"];
+        delete resolved["DISABLE_AUTO_UPDATE"];
+        delete resolved["ZSH_TMUX_AUTOSTARTED"];
 
         const elapsed = Date.now() - startTime;
         log("resolved in %dms", elapsed);

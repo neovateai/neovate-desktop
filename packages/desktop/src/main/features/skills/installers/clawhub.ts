@@ -8,7 +8,12 @@ import path from "node:path";
 import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
-import { deriveInstallName, resolveSkillSource, scanSkillDirs } from "../skill-utils";
+import {
+  deriveInstallName,
+  findSkillPath,
+  resolveSkillSource,
+  scanSkillDirs,
+} from "../skill-utils";
 
 const log = debug("neovate:skills:clawhub");
 
@@ -68,7 +73,8 @@ export class ClawhubInstaller implements SkillInstaller {
 
     try {
       await this.downloadAndExtract(parsed, tmpDir);
-      const src = resolveSkillSource(tmpDir, skillName);
+      const skillPath = await findSkillPath(tmpDir, skillName);
+      const src = resolveSkillSource(tmpDir, skillPath);
       const destName = deriveInstallName(skillName, sourceRef);
       const dest = path.join(targetDir, destName);
       await cp(src, dest, { recursive: true });

@@ -30,6 +30,7 @@ export const providerContract = {
         modelMap: providerModelMapSchema,
         envOverrides: z.record(z.string(), z.string()).optional(),
         builtInId: z.string().optional(),
+        dismissedSyncModels: z.array(z.string()).optional(),
       }),
     )
     .output(type<Provider>()),
@@ -48,6 +49,7 @@ export const providerContract = {
           .optional(),
         modelMap: providerModelMapSchema.optional(),
         envOverrides: z.record(z.string(), z.string()).optional(),
+        dismissedSyncModels: z.array(z.string()).optional(),
       }),
     )
     .output(type<Provider>()),

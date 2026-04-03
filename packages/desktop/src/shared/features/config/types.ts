@@ -19,6 +19,7 @@ export type AppConfig = {
   terminalFontSize: number;
   terminalFont: string;
   developerMode: boolean;
+  showSessionInitStatus: boolean;
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: SidebarOrganize;
@@ -33,11 +34,17 @@ export type AppConfig = {
   networkInspector: boolean;
   keepAwake: boolean;
   preWarmSessions: boolean;
+  /** Encoded "providerId:modelId" for auxiliary LLM calls (plugins, background tasks). Empty = not configured. */
+  auxiliaryModelSelection: string;
 
   // Keybindings
   keybindings: Record<string, string>;
 
   // Skills
-  skillsRegistryUrls: string[];
+  skillsRegistries: SkillsRegistry[];
   npmRegistry: string;
+};
+
+export type SkillsRegistry = {
+  url: string;
 };

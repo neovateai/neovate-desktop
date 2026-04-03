@@ -17,6 +17,7 @@ export type Provider = {
   modelMap: ProviderModelMap;
   envOverrides: Record<string, string>;
   builtInId?: string;
+  dismissedSyncModels?: string[];
 };
 
 export type QuickCheckModelTestResult = {

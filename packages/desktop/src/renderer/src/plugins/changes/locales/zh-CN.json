@@ -12,7 +12,7 @@
   "review.empty.staged.title": "没有已暂存的更改",
   "review.empty.staged.description": "运行 git add 暂存更改",
   "review.empty.last-turn.title": "上次轮次没有更改",
-  "review.empty.last-turn.description": "Claude 修改文件后更改将显示在这里",
+  "review.empty.last-turn.description": "当前回合完成后更改将显示在这里。按 {{shortcut}} 刷新。",
   "review.empty.branch.title": "分支已是最新",
   "review.empty.branch.description": "没有领先于跟踪分支的提交",
   "review.noSession": "无活动会话",

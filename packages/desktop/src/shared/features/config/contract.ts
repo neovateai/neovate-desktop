@@ -52,6 +52,7 @@ export const configContract = {
         z.object({ key: z.literal("terminalFontSize"), value: terminalFontSizeValueSchema }),
         z.object({ key: z.literal("terminalFont"), value: terminalFontValueSchema }),
         z.object({ key: z.literal("developerMode"), value: booleanValueSchema }),
+        z.object({ key: z.literal("showSessionInitStatus"), value: booleanValueSchema }),
         z.object({ key: z.literal("sendMessageWith"), value: sendMessageWithValueSchema }),
         z.object({ key: z.literal("agentLanguage"), value: agentLanguageValueSchema }),
         z.object({ key: z.literal("permissionMode"), value: permissionModeValueSchema }),
@@ -62,10 +63,11 @@ export const configContract = {
         z.object({ key: z.literal("networkInspector"), value: booleanValueSchema }),
         z.object({ key: z.literal("keepAwake"), value: booleanValueSchema }),
         z.object({ key: z.literal("preWarmSessions"), value: booleanValueSchema }),
+        z.object({ key: z.literal("auxiliaryModelSelection"), value: z.string() }),
         z.object({ key: z.literal("sidebarSortBy"), value: sidebarSortByValueSchema }),
         z.object({
-          key: z.literal("skillsRegistryUrls"),
-          value: z.array(z.string().url()),
+          key: z.literal("skillsRegistries"),
+          value: z.array(z.object({ url: z.string().url() })),
         }),
         z.object({
           key: z.literal("npmRegistry"),
