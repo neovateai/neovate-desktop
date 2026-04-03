@@ -138,6 +138,17 @@ export const agentRouter = os.agent.router({
     await context.sessionManager.deleteSessionFile(input.sessionId);
   }),
 
+  archiveSessionFile: os.agent.archiveSessionFile.handler(async ({ input, context }) => {
+    agentLog("archiveSessionFile: sessionId=%s", input.sessionId);
+    await context.sessionManager.archiveSessionFile(input.sessionId, {
+      forkedSessionId: input.forkedSessionId,
+      rewindMessageId: input.rewindMessageId,
+      restoreFiles: input.restoreFiles,
+      title: input.title,
+      cwd: input.cwd,
+    });
+  }),
+
   savePlan: os.agent.savePlan.handler(async ({ input }) => {
     const slug = input.title
       ? input.title
