@@ -13,6 +13,7 @@ interface UnifiedSessionItemProps {
   activeSessionId: string | null;
   isPinned: boolean;
   restoring: string | null;
+  optionHeld?: boolean;
   onActivate: (sessionId: string, projectPath: string) => void;
   onLoad: (sessionId: string, projectPath: string) => void;
 }
@@ -23,6 +24,7 @@ export const UnifiedSessionItem = memo(
     activeSessionId,
     isPinned,
     restoring,
+    optionHeld,
     onActivate,
     onLoad,
   }: UnifiedSessionItemProps) {
@@ -58,6 +60,7 @@ export const UnifiedSessionItem = memo(
         hasPendingPermission={hasPendingRequests}
         turnResult={turnResult}
         isInitialized={item.kind === "memory"}
+        optionHeld={optionHeld}
         onClick={handleClick}
         projectPath={item.projectPath}
       />
@@ -67,6 +70,7 @@ export const UnifiedSessionItem = memo(
     prev.activeSessionId === next.activeSessionId &&
     prev.isPinned === next.isPinned &&
     prev.restoring === next.restoring &&
+    prev.optionHeld === next.optionHeld &&
     prev.onActivate === next.onActivate &&
     prev.onLoad === next.onLoad &&
     prev.item.projectPath === next.item.projectPath &&

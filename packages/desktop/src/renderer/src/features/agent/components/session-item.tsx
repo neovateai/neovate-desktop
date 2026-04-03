@@ -31,6 +31,8 @@ interface SessionItemProps {
   turnResult?: TurnResult;
   /** Session has an active backend process (loaded in SessionManager) */
   isInitialized?: boolean;
+  /** When true, show project name instead of relative time */
+  optionHeld?: boolean;
   onClick: () => void;
   projectPath: string;
 }
@@ -46,6 +48,7 @@ export const SessionItem = memo(function SessionItem({
   hasPendingPermission = false,
   turnResult,
   isInitialized = false,
+  optionHeld = false,
   onClick,
   projectPath,
 }: SessionItemProps) {
@@ -69,6 +72,7 @@ export const SessionItem = memo(function SessionItem({
   const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
   const relativeTime = useRelativeTime(createdAt);
+  const projectName = projectPath ? projectPath.split("/").pop() : undefined;
 
   log(
     "render: sid=%s isInitialized=%s isActive=%s",
@@ -226,11 +230,12 @@ export const SessionItem = memo(function SessionItem({
           )}
           <span
             className={cn(
-              "text-xs tabular-nums text-muted-foreground/70 group-hover:hidden",
+              "text-xs text-muted-foreground/70 group-hover:hidden truncate",
               isConfirming && "hidden",
+              !optionHeld && "tabular-nums",
             )}
           >
-            {relativeTime}
+            {optionHeld && projectName ? projectName : relativeTime}
           </span>
           {isConfirming ? (
             <button

@@ -9,7 +9,11 @@ import { UnifiedSessionItem } from "./unified-session-item";
 
 const log = debug("neovate:pinned-session-list");
 
-export const PinnedSessionList = memo(function PinnedSessionList() {
+export const PinnedSessionList = memo(function PinnedSessionList({
+  optionHeld,
+}: {
+  optionHeld?: boolean;
+}) {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const loadSession = useLoadSession();
@@ -55,6 +59,7 @@ export const PinnedSessionList = memo(function PinnedSessionList() {
               activeSessionId={activeSessionId}
               isPinned
               restoring={restoring}
+              optionHeld={optionHeld}
               onActivate={handleActivate}
               onLoad={handleLoad}
             />
