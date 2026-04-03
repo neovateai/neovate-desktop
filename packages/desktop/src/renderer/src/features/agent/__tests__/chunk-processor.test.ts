@@ -294,21 +294,22 @@ describe("ChunkProcessor", () => {
 
   // ── no-op chunks ──────────────────────────────────────────────────────────
 
-  it("start-step, finish-step, finish are structural only", async () => {
-    await processor.processChunk({ type: "start", messageId: "msg-1" });
-    await processor.processChunk({ type: "text-start", id: "t-1" });
-    await processor.processChunk({ type: "text-delta", id: "t-1", delta: "hi" });
-    await processor.processChunk({ type: "text-end", id: "t-1" });
+  it("start-step adds step-start part (visible after next flush)", async () => {
+    // AI SDK: start-step pushes a step-start part but does NOT write/flush.
+    // The part becomes visible in state after the next chunk that flushes.
+    const msg = await processAll(processor, [
+      { type: "start", messageId: "msg-1" },
+      { type: "start-step" },
+      { type: "text-start", id: "t-1" },
+      { type: "text-delta", id: "t-1", delta: "hi" },
+      { type: "text-end", id: "t-1" },
+      { type: "finish-step" },
+      { type: "finish" },
+    ]);
 
-    const partsBefore = structuredClone(state.messages[0].parts);
-
-    await processor.processChunk({ type: "start-step" });
-    await processor.processChunk({ type: "finish-step" });
-    await processor.processChunk({ type: "finish" });
-
-    // start-step adds a step-start part, finish-step/finish don't add parts
-    expect(state.messages[0].parts).toHaveLength(partsBefore.length + 1);
-    expect(state.messages[0].parts.at(-1)).toEqual({ type: "step-start" });
+    // step-start is the first part, text follows
+    expect(msg.parts[0]).toEqual({ type: "step-start" });
+    expect((msg.parts[1] as Record<string, unknown>).text).toBe("hi");
   });
 
   // ── message metadata merging ──────────────────────────────────────────────

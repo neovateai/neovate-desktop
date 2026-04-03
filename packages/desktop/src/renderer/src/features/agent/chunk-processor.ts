@@ -110,6 +110,9 @@ export class ChunkProcessor<M extends UIMessage> {
     switch (chunk.type) {
       // ── Message lifecycle ─────────────────────────────────────
       case "start": {
+        // Adaptation: AI SDK's write() conditionally pushes or replaces via
+        // activeResponse shadow state. We explicitly push on start since our
+        // architecture requires the message in the array from the beginning.
         if (chunk.messageId != null) {
           (this.message as { id: string }).id = chunk.messageId;
         }
@@ -392,7 +395,6 @@ export class ChunkProcessor<M extends UIMessage> {
       case "tool-output-available": {
         const inv = this.getToolInvocation(chunk.toolCallId);
         if (inv == null) break;
-        const anyChunk = chunk as any;
         const anyInv = inv as any;
         if (isDynamicToolUIPart(inv)) {
           this.updateDynamicToolPart({
@@ -403,7 +405,6 @@ export class ChunkProcessor<M extends UIMessage> {
             output: chunk.output,
             preliminary: chunk.preliminary,
             providerExecuted: chunk.providerExecuted,
-            providerMetadata: anyChunk.providerMetadata,
             title: anyInv.title,
           });
         } else {
@@ -415,7 +416,6 @@ export class ChunkProcessor<M extends UIMessage> {
             output: chunk.output,
             providerExecuted: chunk.providerExecuted,
             preliminary: chunk.preliminary,
-            providerMetadata: anyChunk.providerMetadata,
             title: anyInv.title,
           });
         }
@@ -426,7 +426,6 @@ export class ChunkProcessor<M extends UIMessage> {
       case "tool-output-error": {
         const inv = this.getToolInvocation(chunk.toolCallId);
         if (inv == null) break;
-        const anyChunk = chunk as any;
         const anyInv = inv as any;
         if (isDynamicToolUIPart(inv)) {
           this.updateDynamicToolPart({
@@ -436,7 +435,6 @@ export class ChunkProcessor<M extends UIMessage> {
             input: anyInv.input,
             errorText: chunk.errorText,
             providerExecuted: chunk.providerExecuted,
-            providerMetadata: anyChunk.providerMetadata,
             title: anyInv.title,
           });
         } else {
@@ -448,7 +446,6 @@ export class ChunkProcessor<M extends UIMessage> {
             rawInput: anyInv.rawInput,
             errorText: chunk.errorText,
             providerExecuted: chunk.providerExecuted,
-            providerMetadata: anyChunk.providerMetadata,
             title: anyInv.title,
           });
         }
@@ -459,7 +456,6 @@ export class ChunkProcessor<M extends UIMessage> {
       // ── Steps ─────────────────────────────────────────────────
       case "start-step": {
         this.message.parts.push({ type: "step-start" } as M["parts"][number]);
-        this.flush();
         break;
       }
 
@@ -537,6 +533,9 @@ export class ChunkProcessor<M extends UIMessage> {
     }
   }
 
+  // Adaptation: AI SDK throws UIMessageStreamError when tool invocation is not found.
+  // We return undefined and callers silently skip — more robust for a long-lived
+  // subscribe connection where an out-of-order chunk shouldn't crash the entire stream.
   private getToolInvocation(toolCallId: string): M["parts"][number] | undefined {
     return this.message.parts.filter(isToolUIPart).find((p) => p.toolCallId === toolCallId);
   }
@@ -559,11 +558,7 @@ export class ChunkProcessor<M extends UIMessage> {
       if (options.title !== undefined) anyPart.title = options.title;
       anyPart.providerExecuted = anyOptions.providerExecuted ?? anyPart.providerExecuted;
       if (anyOptions.providerMetadata != null) {
-        if (options.state === "output-available" || options.state === "output-error") {
-          anyPart.resultProviderMetadata = anyOptions.providerMetadata;
-        } else {
-          anyPart.callProviderMetadata = anyOptions.providerMetadata;
-        }
+        anyPart.callProviderMetadata = anyOptions.providerMetadata;
       }
     } else {
       this.message.parts.push({
@@ -577,12 +572,7 @@ export class ChunkProcessor<M extends UIMessage> {
         errorText: anyOptions.errorText,
         providerExecuted: anyOptions.providerExecuted,
         preliminary: anyOptions.preliminary,
-        ...(anyOptions.providerMetadata != null &&
-        (anyOptions.state === "output-available" || anyOptions.state === "output-error")
-          ? { resultProviderMetadata: anyOptions.providerMetadata }
-          : {}),
-        ...(anyOptions.providerMetadata != null &&
-        !(anyOptions.state === "output-available" || anyOptions.state === "output-error")
+        ...(anyOptions.providerMetadata != null
           ? { callProviderMetadata: anyOptions.providerMetadata }
           : {}),
       } as M["parts"][number]);
@@ -608,11 +598,7 @@ export class ChunkProcessor<M extends UIMessage> {
       if (options.title !== undefined) anyPart.title = options.title;
       anyPart.providerExecuted = anyOptions.providerExecuted ?? anyPart.providerExecuted;
       if (anyOptions.providerMetadata != null) {
-        if (options.state === "output-available" || options.state === "output-error") {
-          anyPart.resultProviderMetadata = anyOptions.providerMetadata;
-        } else {
-          anyPart.callProviderMetadata = anyOptions.providerMetadata;
-        }
+        anyPart.callProviderMetadata = anyOptions.providerMetadata;
       }
     } else {
       this.message.parts.push({
@@ -626,12 +612,7 @@ export class ChunkProcessor<M extends UIMessage> {
         preliminary: anyOptions.preliminary,
         providerExecuted: anyOptions.providerExecuted,
         title: anyOptions.title,
-        ...(anyOptions.providerMetadata != null &&
-        (anyOptions.state === "output-available" || anyOptions.state === "output-error")
-          ? { resultProviderMetadata: anyOptions.providerMetadata }
-          : {}),
-        ...(anyOptions.providerMetadata != null &&
-        !(anyOptions.state === "output-available" || anyOptions.state === "output-error")
+        ...(anyOptions.providerMetadata != null
           ? { callProviderMetadata: anyOptions.providerMetadata }
           : {}),
       } as M["parts"][number]);
