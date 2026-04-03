@@ -1,15 +1,8 @@
-// @ts-nocheck — This file is a verbatim copy of AI SDK source.
-// Type mismatches are due to installed ai@6.0.x vs source head differences.
-// Do not modify logic — only imports are adapted.
 /**
  * Copied from AI SDK source: ai/packages/ai/src/ui/process-ui-message-stream.ts
- *
- * Only the imports are changed (point to 'ai' package instead of relative paths).
- * All logic is identical to the AI SDK source.
- *
- * We also export processUIMessageChunk() — a thin wrapper that feeds a single
- * chunk through processUIMessageStream without needing a ReadableStream.
+ * Only imports are adapted (relative → packages). Logic is identical.
  */
+import { type FlexibleSchema, type ToolCall, validateTypes } from "@ai-sdk/provider-utils";
 import {
   getStaticToolName,
   isStaticToolUIPart,
@@ -21,52 +14,91 @@ import {
   type ErrorHandler,
   type FinishReason,
   type InferUIMessageChunk,
-  type InferUIMessageData,
-  type InferUIMessageMetadata,
-  type InferUIMessageToolCall,
-  type InferUIMessageTools,
   type ProviderMetadata,
   type ReasoningUIPart,
   type TextUIPart,
   type ToolUIPart,
+  type UIDataTypes,
   type UIMessage,
   type UIMessageChunk,
   type UIMessagePart,
+  type UITools,
 } from "ai";
 
 import { mergeObjects } from "./merge-objects";
 
-// Not exported from ai package — copied from ai/src/ui-message-stream/ui-message-chunks.ts
-type DataUIMessageChunk<DATA_TYPES extends Record<string, unknown>> = {
-  type: `data-${string & keyof DATA_TYPES}`;
-  id?: string;
-  data: DATA_TYPES[keyof DATA_TYPES];
-  transient?: boolean;
+// ── Types not exported from ai@6.0.145 ─────────────────────────────────────
+// Copied verbatim from AI SDK source: ai/packages/ai/src/ui/ui-messages.ts
+
+type ValueOf<
+  ObjectType,
+  ValueType extends keyof ObjectType = keyof ObjectType,
+> = ObjectType[ValueType];
+
+type InferUIMessageMetadata<T extends UIMessage> =
+  T extends UIMessage<infer METADATA> ? METADATA : unknown;
+
+type InferUIMessageData<T extends UIMessage> =
+  T extends UIMessage<unknown, infer DATA_TYPES> ? DATA_TYPES : UIDataTypes;
+
+type InferUIMessageTools<T extends UIMessage> =
+  T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
+
+type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
+  | ValueOf<{
+      [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+        NAME & string,
+        InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT } ? INPUT : never
+      > & { dynamic?: false };
+    }>
+  | (ToolCall<string, unknown> & { dynamic: true });
+
+// Copied from AI SDK source: ai/packages/ai/src/ui-message-stream/ui-message-chunks.ts
+type DataUIMessageChunk<DATA_TYPES extends UIDataTypes> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id?: string;
+    data: DATA_TYPES[NAME];
+    transient?: boolean;
+  };
+}>;
+
+type UIDataTypesToSchemas<T extends UIDataTypes> = {
+  [K in keyof T]: FlexibleSchema<T[K]>;
 };
 
-function isDataUIMessageChunk(chunk: UIMessageChunk): chunk is UIMessageChunk & {
-  type: `data-${string}`;
-  id?: string;
-  data: unknown;
-  transient?: boolean;
-} {
+// ── Not exported from ai package ────────────────────────────────────────────
+
+// ai/src/ui-message-stream/ui-message-chunks.ts
+function isDataUIMessageChunk(
+  chunk: ExtendedUIMessageChunk,
+): chunk is DataUIMessageChunk<Record<string, unknown>> {
   return chunk.type.startsWith("data-");
 }
 
-// Not exported from ai package — copied from ai/src/ui/ui-messages.ts
+// ai/src/ui/ui-messages.ts
+// In AI SDK head this is part of UIMessagePart union, but not in 6.0.145
 type CustomContentUIPart = {
   type: "custom";
   kind: string;
   providerMetadata?: ProviderMetadata;
 };
 
-// Not used but kept for original function signature compatibility
-type FlexibleSchema<T> = unknown;
-type UIDataTypesToSchemas<T> = unknown;
-
-// Stub — we don't have @ai-sdk/provider-utils, schema validation is skipped
-async function validateTypes(_opts: unknown): Promise<void> {}
-type TypeValidationContext = unknown;
+// Extended chunk type that includes chunk types present in AI SDK source head
+// but not yet in ai@6.0.145's UIMessageChunk union
+type ExtendedUIMessageChunk =
+  | UIMessageChunk
+  | {
+      type: "custom";
+      kind: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: "reasoning-file";
+      url: string;
+      mediaType: string;
+      providerMetadata?: ProviderMetadata;
+    };
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
@@ -121,7 +153,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onData,
 }: {
   // input stream is not fully typed yet:
-  stream: ReadableStream<UIMessageChunk>;
+  stream: ReadableStream<ExtendedUIMessageChunk>;
   messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
@@ -137,7 +169,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError: ErrorHandler;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
-    new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
+    new TransformStream<ExtendedUIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function getToolInvocation(toolCallId: string) {
@@ -421,7 +453,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 kind: chunk.kind,
                 providerMetadata: chunk.providerMetadata,
               };
-              state.message.parts.push(customPart);
+              state.message.parts.push(
+                customPart as unknown as UIMessagePart<
+                  InferUIMessageData<UI_MESSAGE>,
+                  InferUIMessageTools<UI_MESSAGE>
+                >,
+              );
               write();
               break;
             }
@@ -478,15 +515,19 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case "file":
-            case "reasoning-file": {
+            case "reasoning-file" as ExtendedUIMessageChunk["type"]: {
+              const fileChunk = chunk as Extract<
+                ExtendedUIMessageChunk,
+                { type: "file" | "reasoning-file" }
+              >;
               state.message.parts.push({
-                type: chunk.type,
-                mediaType: chunk.mediaType,
-                url: chunk.url,
-                ...(chunk.providerMetadata != null
-                  ? { providerMetadata: chunk.providerMetadata }
+                type: fileChunk.type,
+                mediaType: fileChunk.mediaType,
+                url: fileChunk.url,
+                ...(fileChunk.providerMetadata != null
+                  ? { providerMetadata: fileChunk.providerMetadata }
                   : {}),
-              });
+              } as UIMessagePart<InferUIMessageData<UI_MESSAGE>, InferUIMessageTools<UI_MESSAGE>>);
 
               write();
               break;
@@ -832,7 +873,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   dataChunk.id != null
                     ? (state.message.parts.find(
                         (chunkArg) =>
-                          dataChunk.type === chunkArg.type && dataChunk.id === chunkArg.id,
+                          dataChunk.type === chunkArg.type && dataChunk.id === (chunkArg as any).id,
                       ) as DataUIPart<InferUIMessageData<UI_MESSAGE>> | undefined)
                     : undefined;
 
@@ -857,10 +898,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 }
 
 // ── processUIMessageChunk ───────────────────────────────────────────────────
-//
-// Thin wrapper: feeds a single chunk through processUIMessageStream's
-// transform logic without needing a ReadableStream. Uses the same
-// runUpdateMessageJob / state / write pattern as the original.
+// Thin wrapper: feeds a single chunk through processUIMessageStream without
+// needing a ReadableStream.
 
 export async function processUIMessageChunk<UI_MESSAGE extends UIMessage>({
   chunk,
@@ -870,7 +909,7 @@ export async function processUIMessageChunk<UI_MESSAGE extends UIMessage>({
   onToolCall,
   onData,
 }: {
-  chunk: UIMessageChunk;
+  chunk: ExtendedUIMessageChunk;
   state: StreamingUIMessageState<UI_MESSAGE>;
   write: () => void;
   onError?: ErrorHandler;
@@ -879,8 +918,7 @@ export async function processUIMessageChunk<UI_MESSAGE extends UIMessage>({
   }) => void | PromiseLike<void>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
 }) {
-  // Create a single-chunk stream and run it through processUIMessageStream
-  const stream = new ReadableStream<UIMessageChunk>({
+  const stream = new ReadableStream<ExtendedUIMessageChunk>({
     start(controller) {
       controller.enqueue(chunk);
       controller.close();
@@ -897,7 +935,6 @@ export async function processUIMessageChunk<UI_MESSAGE extends UIMessage>({
     onData,
   });
 
-  // Consume the output stream to ensure the transform runs
   const reader = output.getReader();
   while (true) {
     const { done } = await reader.read();

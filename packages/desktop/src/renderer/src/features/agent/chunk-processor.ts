@@ -3,7 +3,7 @@
  * AI SDK's processUIMessageStream.
  *
  * Manages StreamingUIMessageState and flushes updates to Zustand store
- * via ChunkProcessorState.replaceMessage().
+ * via ChunkProcessorState.pushMessage() / replaceMessage().
  */
 import type { UIMessage, UIMessageChunk } from "ai";
 
@@ -45,17 +45,15 @@ export class ChunkProcessor<M extends UIMessage> {
   }
 
   async processChunk(chunk: UIMessageChunk) {
-    // On start chunk, push the message into our state
-    if (chunk.type === "start") {
-      this.state.pushMessage(this.sdkState.message);
-      this.messageIndex = this.state.messages.length - 1;
-    }
-
     await processUIMessageChunk<M>({
       chunk,
       state: this.sdkState,
       write: () => {
-        if (this.messageIndex >= 0) {
+        if (this.messageIndex < 0) {
+          // First write — push message into state
+          this.state.pushMessage(this.sdkState.message);
+          this.messageIndex = this.state.messages.length - 1;
+        } else {
           this.state.replaceMessage(this.messageIndex, this.sdkState.message);
         }
       },

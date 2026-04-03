@@ -26,6 +26,8 @@
     "test:e2e": "bun run build && playwright test"
   },
   "dependencies": {
+    "@ai-sdk/provider": "^3.0.8",
+    "@ai-sdk/provider-utils": "^4.0.22",
     "@anthropic-ai/claude-agent-sdk": "0.2.91",
     "@anthropic-ai/sdk": "^0.80.0",
     "@electron-toolkit/preload": "^3.0.2",
@@ -33,7 +35,7 @@
     "@orpc/contract": "^1.13.5",
     "@orpc/server": "^1.13.5",
     "adm-zip": "^0.5.16",
-    "ai": "^6.0.116",
+    "ai": "^6.0.145",
     "chokidar": "^5.0.0",
     "debug": "^4.4.3",
     "electron-log": "^5.4.3",
