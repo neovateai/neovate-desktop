@@ -1,12 +1,73 @@
 import { SearchIcon, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { type ElementRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ElementRef,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { CommandItem as CommandItemType } from "./types";
 
 import { cn } from "../../lib/utils";
 import { useCommandPaletteStore } from "./store";
 import { useCommandRegistry } from "./use-command-registry";
+
+function highlightMatches(text: string, query: string): ReactNode {
+  if (!query || !text) return text;
+
+  const words = query.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return text;
+
+  // Find all match ranges
+  const lowerText = text.toLowerCase();
+  const ranges: [number, number][] = [];
+  for (const word of words) {
+    const lowerWord = word.toLowerCase();
+    let idx = 0;
+    while ((idx = lowerText.indexOf(lowerWord, idx)) !== -1) {
+      ranges.push([idx, idx + lowerWord.length]);
+      idx += 1;
+    }
+  }
+
+  if (ranges.length === 0) return text;
+
+  // Merge overlapping/adjacent ranges
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const prev = merged[merged.length - 1];
+    if (ranges[i][0] <= prev[1]) {
+      prev[1] = Math.max(prev[1], ranges[i][1]);
+    } else {
+      merged.push(ranges[i]);
+    }
+  }
+
+  // Build React nodes
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  for (const [start, end] of merged) {
+    if (cursor < start) {
+      parts.push(text.slice(cursor, start));
+    }
+    parts.push(
+      <mark key={start} className="bg-primary/15 font-semibold rounded-xs text-inherit">
+        {text.slice(start, end)}
+      </mark>,
+    );
+    cursor = end;
+  }
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor));
+  }
+
+  return parts;
+}
 
 const PLACEHOLDERS = ["Search sessions and commands...", "Type > for commands..."];
 const PLACEHOLDER_INTERVAL = 4000;
@@ -227,6 +288,7 @@ export function CommandPalette() {
                         item={item}
                         onMouseEnter={() => setHighlightIndex(filteredItems.indexOf(item))}
                         onSelect={() => executeItem(item)}
+                        searchQuery={searchQuery}
                       />
                     ))}
                   </PaletteGroup>
@@ -270,6 +332,7 @@ export function CommandPalette() {
                         item={item}
                         onMouseEnter={() => setHighlightIndex(filteredItems.indexOf(item))}
                         onSelect={() => executeItem(item)}
+                        searchQuery={searchQuery}
                       />
                     ))}
                   </PaletteGroup>
@@ -316,12 +379,14 @@ function PaletteItem({
   confirmingId,
   onSelect,
   onMouseEnter,
+  searchQuery,
 }: {
   item: CommandItemType;
   highlighted: boolean;
   confirmingId: string | null;
   onSelect: () => void;
   onMouseEnter: () => void;
+  searchQuery: string;
 }) {
   const isConfirming = confirmingId === item.id;
   const Icon = item.icon;
@@ -347,16 +412,20 @@ function PaletteItem({
           </span>
         ) : (
           <>
-            <span className="truncate">{item.label}</span>
+            <span className="truncate">{highlightMatches(item.label, searchQuery)}</span>
             {item.preview && (
-              <span className="ml-2 truncate text-xs text-muted-foreground">{item.preview}</span>
+              <span className="ml-2 truncate text-xs text-muted-foreground">
+                {highlightMatches(item.preview, searchQuery)}
+              </span>
             )}
           </>
         )}
       </div>
 
       {item.metadata && !isConfirming && (
-        <span className="shrink-0 text-xs text-muted-foreground">{item.metadata}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {highlightMatches(item.metadata, searchQuery)}
+        </span>
       )}
 
       {stateLabel && !isConfirming && (
