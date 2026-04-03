@@ -1,1 +1,5 @@
-{}
+{
+  "fileLinks.tooltip": "{{modifier}} + Click to open file",
+  "search.noResults": "No results",
+  "search.results": "{{current}} of {{total}}"
+}

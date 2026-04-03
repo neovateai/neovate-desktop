@@ -31,10 +31,16 @@ export class FileLinksAddon implements IDisposable {
   private _handler: (event: MouseEvent, uri: string) => void;
   private _tooltipElement: HTMLElement | undefined;
   private _theme: ITheme | undefined;
+  private _tooltipText: string;
 
-  constructor(handler: (event: MouseEvent, uri: string) => void, theme?: ITheme) {
+  constructor(
+    handler: (event: MouseEvent, uri: string) => void,
+    theme?: ITheme,
+    tooltipText?: string,
+  ) {
     this._handler = handler;
     this._theme = theme;
+    this._tooltipText = tooltipText ?? "Cmd/Ctrl + Click to open file";
   }
 
   activate(terminal: XTermTerminal): void {
@@ -96,8 +102,7 @@ export class FileLinksAddon implements IDisposable {
   private _showTooltip(event: MouseEvent, _text: string): void {
     if (!this._tooltipElement) return;
 
-    const modifierKey = this._getModifierKey();
-    this._tooltipElement.textContent = `${modifierKey} + 点击打开文件`;
+    this._tooltipElement.textContent = this._tooltipText;
     this._tooltipElement.style.display = "block";
     this._updateTooltipPosition(event);
   }
@@ -121,14 +126,6 @@ export class FileLinksAddon implements IDisposable {
 
     this._tooltipElement.style.left = `${x}px`;
     this._tooltipElement.style.top = `${y}px`;
-  }
-
-  /**
-   * Get the modifier key name based on platform
-   */
-  private _getModifierKey(): string {
-    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-    return isMac ? "Cmd" : "Ctrl";
   }
 
   /**

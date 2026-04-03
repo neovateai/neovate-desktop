@@ -10,14 +10,13 @@ import debug from "debug";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import "@xterm/xterm/css/xterm.css";
-import { useTranslation } from "react-i18next";
-
 import { terminalContract } from "../../../../shared/plugins/terminal/contract";
 import { usePluginContext, useRendererApp } from "../../core/app";
 import { useConfigStore } from "../../features/config/store";
 import { useContentPanelViewContext } from "../../features/content-panel/components/view-context";
 import { useProjectStore } from "../../features/project/store";
 import { FileLinksAddon, detectFilePath } from "./file-links-addon";
+import { useTerminalTranslation } from "./i18n";
 
 type TerminalClient = ContractRouterClient<{ terminal: typeof terminalContract }>;
 
@@ -75,7 +74,7 @@ const DEFAULT_FONT_FAMILY = 'JetBrains Mono, Menlo, Monaco, "Courier New", monos
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 export default function TerminalView() {
-  const { t } = useTranslation();
+  const { t } = useTerminalTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const { orpcClient } = usePluginContext();
   const { resolvedTheme } = useTheme();
@@ -187,7 +186,13 @@ export default function TerminalView() {
     xterm.loadAddon(webLinksAddon);
 
     // Custom FileLinksAddon for file path handling
-    const fileLinksAddon = new FileLinksAddon(openLink, xtermRef.current.options.theme);
+    const modifierKey = isMac ? "Cmd" : "Ctrl";
+    const tooltipText = t("fileLinks.tooltip", { modifier: modifierKey });
+    const fileLinksAddon = new FileLinksAddon(
+      openLink,
+      xtermRef.current.options.theme,
+      tooltipText,
+    );
     fileLinksAddonRef.current = fileLinksAddon;
     xterm.loadAddon(fileLinksAddon);
 
@@ -351,8 +356,8 @@ export default function TerminalView() {
     searchResults === null
       ? null
       : searchResults.resultCount === 0
-        ? t("terminal.search.noResults")
-        : t("terminal.search.results", {
+        ? t("search.noResults")
+        : t("search.results", {
             current: searchResults.resultIndex + 1,
             total: searchResults.resultCount,
           });
