@@ -166,18 +166,19 @@ app.whenReady().then(async () => {
       win.show();
     }
   });
-});
 
-app.on("window-all-closed", () => {
-  if (!isMac) app.quit();
-});
+  // Cleanup handler — registered after mainApp.start() so the BWM's
+  // quit-confirmation before-quit handler fires first (Electron preserves
+  // listener registration order). The e.defaultPrevented guard ensures
+  // cleanup only runs when the quit is actually proceeding.
+  app.on("before-quit", (e) => {
+    if (e.defaultPrevented) return;
 
-app.on("before-quit", () => {
-  const qt0 = performance.now();
-  const qel = (label: string) =>
-    startupLog("QUIT %s %dms", label, Math.round(performance.now() - qt0));
+    const qt0 = performance.now();
+    const qel = (label: string) =>
+      startupLog("QUIT %s %dms", label, Math.round(performance.now() - qt0));
 
-  startupLog("QUIT before-quit fired");
+    startupLog("QUIT before-quit fired");
 
   popupShortcut?.dispose();
   qel("popupShortcut.dispose");
@@ -185,18 +186,23 @@ app.on("before-quit", () => {
   menu?.dispose();
   qel("menu.dispose");
 
-  updaterService.dispose();
-  qel("updaterService.dispose");
+    updaterService.dispose();
+    qel("updaterService.dispose");
 
-  powerBlocker.dispose();
-  qel("powerBlocker.dispose");
+    powerBlocker.dispose();
+    qel("powerBlocker.dispose");
 
-  llmService.dispose();
-  qel("llmService.dispose");
+    llmService.dispose();
+    qel("llmService.dispose");
 
-  const sessCount = sessionManager.getActiveSessions().length;
-  startupLog("QUIT closing %d sessions", sessCount);
+    const sessCount = sessionManager.getActiveSessions().length;
+    startupLog("QUIT closing %d sessions", sessCount);
 
-  void sessionManager.closeAll().then(() => qel("sessionManager.closeAll DONE"));
-  void mainApp.stop().then(() => qel("mainApp.stop DONE"));
+    void sessionManager.closeAll().then(() => qel("sessionManager.closeAll DONE"));
+    void mainApp.stop().then(() => qel("mainApp.stop DONE"));
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (!isMac) app.quit();
 });
