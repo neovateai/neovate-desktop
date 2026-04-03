@@ -159,6 +159,8 @@ export class ChunkProcessor<M extends UIMessage> {
       }
 
       case "text-delta": {
+        // Adaptation: AI SDK throws UIMessageStreamError on missing part.
+        // We silently skip for long-lived connection robustness (same as getToolInvocation).
         const textPart = this.activeTextParts[chunk.id];
         if (textPart == null) break;
         const anyPart = textPart as any;
