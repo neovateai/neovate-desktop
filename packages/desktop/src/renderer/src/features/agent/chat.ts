@@ -194,6 +194,7 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
   // ── sendMessage / stop (fire-and-forget, bypasses AbstractChat.makeRequest) ──
 
+  // Mirrors AbstractChat.sendMessage logic, but calls transport.send() instead of makeRequest().
   private _sendMessage = async (
     message?: {
       text?: string;
@@ -203,27 +204,48 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     },
     _options?: ChatRequestOptions,
   ) => {
-    const text = message?.text ?? "";
-    const metadata = message?.metadata ?? {
-      sessionId: this.id,
-      parentToolUseId: null,
+    if (message == null) return;
+
+    // Build parts — same order as AI SDK: files first, then text
+    const fileParts: FileUIPart[] = Array.isArray(message.files) ? message.files : [];
+    const uiMessage = {
+      parts: [
+        ...fileParts,
+        ...("text" in message && message.text != null
+          ? [{ type: "text" as const, text: message.text }]
+          : []),
+      ],
     };
-    const fileParts = message?.files ?? [];
 
-    const userMessage: ClaudeCodeUIMessage = {
-      id: this.generateId(),
-      role: "user",
-      parts: [...(text ? [{ type: "text" as const, text }] : []), ...fileParts],
-      metadata,
-    } as ClaudeCodeUIMessage;
+    if (message.messageId != null) {
+      // Replace existing message
+      const messageIndex = this.#state.messages.findIndex((m) => m.id === message.messageId);
+      if (messageIndex === -1) throw new Error(`message with id ${message.messageId} not found`);
+      this.#state.messages = this.#state.messages.slice(0, messageIndex + 1);
+      this.#state.replaceMessage(messageIndex, {
+        ...uiMessage,
+        id: message.messageId,
+        role: "user",
+        metadata: message.metadata,
+      } as ClaudeCodeUIMessage);
+    } else {
+      // Push new message
+      this.#state.pushMessage({
+        ...uiMessage,
+        id: this.generateId(),
+        role: "user",
+        metadata: message.metadata,
+      } as ClaudeCodeUIMessage);
+    }
 
-    log("sendMessage: sessionId=%s textLen=%d", this.id, text.length);
-
-    this.#state.pushMessage(userMessage);
     this.#state.status = "submitted";
 
+    log("sendMessage: sessionId=%s", this.id);
+
+    // Fire and forget — subscribe handles the response
     try {
-      await this.#transport.send(this.id, userMessage);
+      const lastMessage = this.#state.messages.at(-1)!;
+      await this.#transport.send(this.id, lastMessage);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       log("sendMessage: FAILED sessionId=%s error=%s", this.id, errMsg);
