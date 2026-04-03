@@ -81,6 +81,7 @@ export function CommandPalette() {
   const { commands, sessionItems } = useCommandRegistry();
 
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [highlightIndex, setHighlightIndex] = useState(0);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -92,6 +93,7 @@ export function CommandPalette() {
   useEffect(() => {
     if (isOpen) {
       setQuery("");
+      setDebouncedQuery("");
       setHighlightIndex(0);
       setConfirmingId(null);
       setPlaceholderIndex(0);
@@ -109,11 +111,21 @@ export function CommandPalette() {
     return () => clearInterval(timer);
   }, [isOpen]);
 
+  // Debounce search query for filtering (instant bypass for empty/mode-switch)
+  useEffect(() => {
+    if (!query || query === ">") {
+      setDebouncedQuery(query);
+      return;
+    }
+    const timer = setTimeout(() => setDebouncedQuery(query), 150);
+    return () => clearTimeout(timer);
+  }, [query]);
+
   // Determine mode and filter
-  const isCommandMode = query.startsWith(">");
+  const isCommandMode = debouncedQuery.startsWith(">");
   const searchQuery = isCommandMode
-    ? query.slice(1).trim().toLowerCase()
-    : query.trim().toLowerCase();
+    ? debouncedQuery.slice(1).trim().toLowerCase()
+    : debouncedQuery.trim().toLowerCase();
 
   const DESTRUCTIVE_IDS = useMemo(() => new Set(["archiveSession"]), []);
 
