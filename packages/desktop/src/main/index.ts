@@ -180,11 +180,11 @@ app.whenReady().then(async () => {
 
     startupLog("QUIT before-quit fired");
 
-  popupShortcut?.dispose();
-  qel("popupShortcut.dispose");
+    popupShortcut?.dispose();
+    qel("popupShortcut.dispose");
 
-  menu?.dispose();
-  qel("menu.dispose");
+    menu?.dispose();
+    qel("menu.dispose");
 
     updaterService.dispose();
     qel("updaterService.dispose");
