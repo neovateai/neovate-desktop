@@ -1,3 +1,13 @@
+/**
+ * AI SDK 1:1 PORT (tests) — ai/packages/ai/src/ui/process-ui-message-stream.test.ts
+ *
+ * Ported from AI SDK test file. Adapted for our function signature:
+ * - createUIMessageStream + consumeStream → direct processUIMessageStream() calls per chunk
+ * - runUpdateMessageJob → explicit state + write params
+ *
+ * To update: diff against ai-sdk test file, port new test sections.
+ * Skipped: lastMessage resume tests, messageMetadataSchema, onToolCall/onData callbacks.
+ */
 import type { UIMessage, UIMessageChunk } from "ai";
 
 import { UIMessageStreamError } from "ai";

@@ -1,4 +1,7 @@
 /**
+ * AI SDK 1:1 PORT — ai/packages/ai/src/util/merge-objects.ts
+ * To update: copy verbatim from ai-sdk repo. No changes needed.
+ *
  * Deeply merges two objects together.
  * - Properties from the `overrides` object override those in the `base` object with the same key.
  * - For nested objects, the merge is performed recursively (deep merge).

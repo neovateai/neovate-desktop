@@ -1,6 +1,15 @@
 /**
- * Copied from AI SDK source: ai/packages/ai/src/ui/process-ui-message-stream.ts
- * Only imports are adapted (relative → packages). Logic is identical.
+ * AI SDK 1:1 PORT — ai/packages/ai/src/ui/process-ui-message-stream.ts
+ *
+ * To update: copy the source file from the ai-sdk repo, then re-apply these changes:
+ * 1. Imports: relative paths → 'ai' + '@ai-sdk/provider-utils' + local types (see "Not exported" section below)
+ * 2. Function signature: removed stream/runUpdateMessageJob, added chunk/state/write as direct params
+ * 3. Removed stream.pipeThrough(TransformStream) wrapper — switch body is called directly
+ * 4. Removed controller.enqueue() at the end of each chunk
+ * 5. onError changed from required to optional
+ *
+ * Everything between the switch cases is IDENTICAL to the AI SDK source.
+ * Run `critique` against the original to verify after updating.
  */
 import { type FlexibleSchema, type ToolCall, validateTypes } from "@ai-sdk/provider-utils";
 import {
