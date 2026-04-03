@@ -483,6 +483,7 @@
   "settings.plugins.noSources": "No plugin sources configured",
   "settings.plugins.noSourcesDescription": "Add the official Claude Code marketplace to discover and install plugins.",
   "settings.plugins.addOfficialMarketplace": "Add Official Marketplace",
+  "settings.plugins.officialMarketplaceError": "Failed to add official marketplace",
   "settings.plugins.noPluginsFound": "No plugins found matching your search.",
   "settings.plugins.source": "Source:",
   "settings.plugins.installedBadge": "Installed",

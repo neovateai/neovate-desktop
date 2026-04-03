@@ -1,5 +1,5 @@
 import debug from "debug";
-import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -429,9 +429,46 @@ export class PluginsService {
     const installLocation = path.join(MARKETPLACES_DIR, name);
 
     await mkdir(MARKETPLACES_DIR, { recursive: true });
+
+    // Idempotency: handle existing directory
+    const dirExists = await stat(installLocation)
+      .then(() => true)
+      .catch(() => false);
+
+    if (dirExists) {
+      const known = await readJsonSafe<Record<string, KnownMarketplaceEntry>>(
+        KNOWN_MARKETPLACES_FILE,
+        {},
+      );
+      // Already a known marketplace — update instead of re-clone
+      if (known[name] || Object.values(known).some((e) => e.installLocation === installLocation)) {
+        const existingName =
+          Object.entries(known).find((e) => e[1].installLocation === installLocation)?.[0] ?? name;
+        try {
+          return await this.updateMarketplace(existingName);
+        } catch (e) {
+          throw new Error(
+            `Marketplace already configured. Update failed: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
+      // Orphan directory from a failed attempt — clean up
+      log("removing orphan marketplace dir %s", installLocation);
+      await rm(installLocation, { recursive: true, force: true });
+    }
+
     await gitClone(cloneUrl, installLocation);
 
     const manifest = await this.readMarketplaceManifest(installLocation);
+
+    // Validate manifest has plugins
+    if (!manifest.plugins || manifest.plugins.length === 0) {
+      await rm(installLocation, { recursive: true, force: true });
+      throw new Error(
+        "Not a valid marketplace: no plugins found in .claude-plugin/marketplace.json",
+      );
+    }
+
     const marketplaceName = manifest.name ?? name;
 
     const entry: KnownMarketplaceEntry = {

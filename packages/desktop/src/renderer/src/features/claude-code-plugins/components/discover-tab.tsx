@@ -11,6 +11,7 @@ import type { Project } from "../../../../../shared/features/project/types";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Spinner } from "../../../components/ui/spinner";
+import { toastManager } from "../../../components/ui/toast";
 import { client } from "../../../orpc";
 import { PluginDetailModal } from "./plugin-detail-modal";
 
@@ -63,10 +64,17 @@ export const DiscoverTab = ({
   };
 
   const handleAddOfficial = async () => {
+    if (addingOfficial) return;
     setAddingOfficial(true);
     try {
       await client.plugins.addMarketplace({ source: "anthropics/claude-plugins-official" });
       await onRefresh();
+    } catch (e: any) {
+      toastManager.add({
+        type: "error",
+        title: t("settings.plugins.officialMarketplaceError"),
+        description: e.message,
+      });
     } finally {
       setAddingOfficial(false);
     }
