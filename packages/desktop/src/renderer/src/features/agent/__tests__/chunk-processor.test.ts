@@ -362,7 +362,7 @@ describe("ChunkProcessor", () => {
         toolCallId: "tc-1",
         toolName: "Read",
         input: {},
-        providerMetadata: { key: "val" },
+        providerMetadata: { key: "val" } as any,
       },
       { type: "tool-output-available", toolCallId: "tc-1", output: "ok" },
       { type: "finish-step" },
