@@ -52,6 +52,7 @@
   "git.generating": "正在生成...",
   "git.generateMessageFailed": "生成提交信息失败",
   "git.commitFailed": "提交失败",
+  "git.commitSuccess": "提交成功",
   "git.pushFailed": "推送失败",
   "git.pushSuccess": "推送成功",
   "git.noUpstreamBranch": "未设置上游分支",

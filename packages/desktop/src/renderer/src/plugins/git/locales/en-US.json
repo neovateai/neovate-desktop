@@ -52,6 +52,7 @@
   "git.generating": "Generating...",
   "git.generateMessageFailed": "Failed to generate commit message",
   "git.commitFailed": "Commit Failed",
+  "git.commitSuccess": "Committed Successfully",
   "git.pushFailed": "Push Failed",
   "git.pushSuccess": "Pushed Successfully",
   "git.noUpstreamBranch": "No Upstream Branch",
