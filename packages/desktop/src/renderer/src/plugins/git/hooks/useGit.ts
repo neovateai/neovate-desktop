@@ -12,6 +12,7 @@ import { utilsContract } from "../../../../../shared/features/utils/contract";
 import { gitContract } from "../../../../../shared/plugins/git/contract";
 import { usePluginContext } from "../../../core/app";
 import { GIT_COMMIT_MSG_PROMPT, GIT_COMMIT_MSG_PROMPT_SUFFIX } from "./commit-rule";
+import { truncateDiff } from "./truncate";
 
 export type Client = ContractRouterClient<{
   git: typeof gitContract;
@@ -212,8 +213,16 @@ export function useGit(cwd: string) {
       if (!rawDiff) {
         throw new Error("Diff content not found");
       }
+      // 截断过长的 diff 内容，避免超出 LLM token 限制
+      const truncatedDiff = truncateDiff(rawDiff);
+      if (truncatedDiff !== rawDiff) {
+        log("genCommitMsg: diff truncated", {
+          originalLength: rawDiff.length,
+          truncatedLength: truncatedDiff.length,
+        });
+      }
       const res = await client.llm.query({
-        prompt: [GIT_COMMIT_MSG_PROMPT, rawDiff, GIT_COMMIT_MSG_PROMPT_SUFFIX].join("------"),
+        prompt: [GIT_COMMIT_MSG_PROMPT, truncatedDiff, GIT_COMMIT_MSG_PROMPT_SUFFIX].join("------"),
       });
       result = res?.content || "";
     } catch (_e) {
@@ -272,6 +281,7 @@ export function useGit(cwd: string) {
           results.needsUpstream = true;
           results.branch = upstreamInfo?.branch ?? "";
           results.push = false;
+          await refreshGitStatus(cwd);
           return results;
         }
         const pushRes = await client.git.push({ cwd });

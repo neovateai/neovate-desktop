@@ -130,6 +130,7 @@ export default memo(function GitView() {
                   type: "success",
                   title: t("git.pushSuccess"),
                 });
+                setCommitMsg("");
               }
             },
           },
@@ -150,12 +151,14 @@ export default memo(function GitView() {
         type: "success",
         title: t("git.pushSuccess"),
       });
+      setCommitMsg("");
     } else {
       // 仅 commit 成功
       toastManager.add({
         type: "success",
         title: t("git.commitSuccess"),
       });
+      setCommitMsg("");
     }
   };
 
@@ -527,7 +530,6 @@ export default memo(function GitView() {
               <MenuItem
                 onClick={() => {
                   handleCommit(commitMsg, false);
-                  setCommitMsg("");
                 }}
               >
                 <Check className="w-3.5 h-3.5" />
@@ -536,7 +538,6 @@ export default memo(function GitView() {
               <MenuItem
                 onClick={() => {
                   handleCommit(commitMsg, true);
-                  setCommitMsg("");
                 }}
               >
                 <Upload className="w-3.5 h-3.5" />
