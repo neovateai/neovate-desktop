@@ -7,7 +7,9 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  Info,
   Plus,
+  RefreshCw,
   RotateCcw,
   Server,
   Trash2,
@@ -23,6 +25,10 @@ import {
   type ProviderBadgeType,
   type ProviderTemplate,
 } from "../../../../../../shared/features/provider/built-in";
+import {
+  getModelMapDrift,
+  getNewTemplateModels,
+} from "../../../../../../shared/features/provider/sync";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -64,6 +70,7 @@ type ProviderFormData = {
   envOverrides: Record<string, string>;
   enabled: boolean;
   builtInId?: string;
+  dismissedSyncModels?: string[];
 };
 
 const emptyForm: ProviderFormData = {
@@ -107,6 +114,7 @@ function providerToForm(p: Provider): ProviderFormData {
     envOverrides: { ...p.envOverrides },
     enabled: p.enabled,
     builtInId: p.builtInId,
+    dismissedSyncModels: p.dismissedSyncModels ? [...p.dismissedSyncModels] : undefined,
   };
 }
 
@@ -163,6 +171,9 @@ export const ProvidersPanel = () => {
 
   // Reset confirmation state
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
+  // ModelMap drift dismiss state (component-local, not persisted)
+  const [dismissedMapSlots, setDismissedMapSlots] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loaded) load();
@@ -228,6 +239,7 @@ export const ProvidersPanel = () => {
       setShowApiKey(false);
       setForm(providerToForm(p));
       setError(null);
+      setDismissedMapSlots(new Set());
     },
     [clearTestResults],
   );
@@ -287,6 +299,7 @@ export const ProvidersPanel = () => {
           modelMap: form.modelMap,
           envOverrides: Object.keys(form.envOverrides).length > 0 ? form.envOverrides : undefined,
           builtInId: form.builtInId,
+          dismissedSyncModels: form.dismissedSyncModels,
         });
       } else if (editingId) {
         await updateProvider(editingId, {
@@ -297,6 +310,7 @@ export const ProvidersPanel = () => {
           modelMap: form.modelMap,
           envOverrides: form.envOverrides,
           enabled: form.enabled,
+          dismissedSyncModels: form.dismissedSyncModels,
         });
       }
       cancel();
@@ -348,18 +362,29 @@ export const ProvidersPanel = () => {
     setNewModelDisplay("");
   }, [newModelKey, newModelDisplay]);
 
-  const removeModel = useCallback((key: string) => {
-    setForm((f) => {
-      const models = { ...f.models };
-      delete models[key];
-      // Clean up modelMap references
-      const modelMap = { ...f.modelMap };
-      for (const [slot, val] of Object.entries(modelMap)) {
-        if (val === key) delete modelMap[slot as keyof ProviderModelMap];
-      }
-      return { ...f, models, modelMap };
-    });
-  }, []);
+  const removeModel = useCallback(
+    (key: string) => {
+      setForm((f) => {
+        const models = { ...f.models };
+        delete models[key];
+        // Clean up modelMap references
+        const modelMap = { ...f.modelMap };
+        for (const [slot, val] of Object.entries(modelMap)) {
+          if (val === key) delete modelMap[slot as keyof ProviderModelMap];
+        }
+        // Auto-dismiss if this model is from the template
+        const template = f.builtInId
+          ? providerTemplates.find((t) => t.id === f.builtInId)
+          : undefined;
+        let dismissedSyncModels = f.dismissedSyncModels;
+        if (template && key in template.models) {
+          dismissedSyncModels = [...(dismissedSyncModels ?? []), key];
+        }
+        return { ...f, models, modelMap, dismissedSyncModels };
+      });
+    },
+    [providerTemplates],
+  );
 
   const addEnvOverride = useCallback(() => {
     if (!newEnvKey.trim()) return;
@@ -394,9 +419,24 @@ export const ProvidersPanel = () => {
       models: { ...template.models },
       modelMap: { ...template.modelMap },
       envOverrides: { ...template.envOverrides },
+      dismissedSyncModels: undefined,
     }));
     setResetConfirmOpen(false);
   }, [form.builtInId, providerTemplates]);
+
+  // Compute new template models available for each provider (for list badge)
+  const providerSyncInfo = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of providers) {
+      if (!p.builtInId) continue;
+      const template = providerTemplates.find((t) => t.id === p.builtInId);
+      if (!template) continue;
+      const newModels = getNewTemplateModels(p, template);
+      const count = Object.keys(newModels).length;
+      if (count > 0) map.set(p.id, count);
+    }
+    return map;
+  }, [providers, providerTemplates]);
 
   const activeBuiltIn = useMemo(
     () => (form.builtInId ? providerTemplates.find((t) => t.id === form.builtInId) : undefined),
@@ -405,6 +445,75 @@ export const ProvidersPanel = () => {
 
   const activeApiKeyURL = activeBuiltIn?.apiKeyURL;
   const activeDocURL = activeBuiltIn?.docURL;
+
+  // Compute new models and modelMap drift for the current form state
+  const formAsProvider = useMemo(
+    (): Provider => ({
+      id: editingId ?? "",
+      name: form.name,
+      enabled: form.enabled,
+      baseURL: form.baseURL,
+      apiKey: form.apiKey,
+      models: form.models,
+      modelMap: form.modelMap,
+      envOverrides: form.envOverrides,
+      builtInId: form.builtInId,
+      dismissedSyncModels: form.dismissedSyncModels,
+    }),
+    [form, editingId],
+  );
+
+  const formNewModels = useMemo(() => {
+    if (!activeBuiltIn) return {};
+    return getNewTemplateModels(formAsProvider, activeBuiltIn);
+  }, [formAsProvider, activeBuiltIn]);
+
+  const formMapDrift = useMemo(() => {
+    if (!activeBuiltIn) return {};
+    return getModelMapDrift(formAsProvider, activeBuiltIn);
+  }, [formAsProvider, activeBuiltIn]);
+
+  const newModelEntries = Object.entries(formNewModels);
+  const mapDriftEntries = Object.entries(formMapDrift) as [keyof ProviderModelMap, string][];
+
+  const handleSyncModels = useCallback(() => {
+    setForm((f) => {
+      const models = { ...f.models, ...formNewModels };
+      const modelMap = { ...f.modelMap };
+      // Fill empty modelMap slots from template
+      if (activeBuiltIn) {
+        for (const slot of ["model", "haiku", "opus", "sonnet"] as const) {
+          const templateVal = activeBuiltIn.modelMap[slot];
+          if (templateVal && !modelMap[slot] && templateVal in models) {
+            modelMap[slot] = templateVal;
+          }
+        }
+      }
+      return { ...f, models, modelMap };
+    });
+    // Clear test results for new models
+    if (form.baseURL) clearTestResults(form.baseURL);
+  }, [formNewModels, activeBuiltIn, form.baseURL, clearTestResults]);
+
+  const handleDismissSync = useCallback(() => {
+    const newDismissed = Object.keys(formNewModels);
+    setForm((f) => ({
+      ...f,
+      dismissedSyncModels: [...(f.dismissedSyncModels ?? []), ...newDismissed],
+    }));
+  }, [formNewModels]);
+
+  const handleApplyMapDrift = useCallback((slot: keyof ProviderModelMap, value: string) => {
+    setForm((f) => ({
+      ...f,
+      modelMap: { ...f.modelMap, [slot]: value },
+    }));
+    setDismissedMapSlots((s) => new Set(s).add(slot));
+  }, []);
+
+  const handleDismissMapDrift = useCallback((slot: string) => {
+    setDismissedMapSlots((s) => new Set(s).add(slot));
+  }, []);
 
   const isEditing = isCreating || editingId !== null;
   const modelKeys = Object.keys(form.models);
@@ -474,7 +583,23 @@ export const ProvidersPanel = () => {
       {!isEditing && !showTemplatePicker && (
         <div className="space-y-0 rounded-xl bg-muted/30 border border-border/50 px-5 py-2">
           {providers.map((p) => (
-            <SettingsRow key={p.id} title={p.name} description={p.baseURL}>
+            <SettingsRow
+              key={p.id}
+              title={
+                <span className="flex items-center gap-2">
+                  {p.name}
+                  {providerSyncInfo.has(p.id) && (
+                    <Badge variant="default" size="sm">
+                      <RefreshCw className="h-3 w-3 mr-0.5" />
+                      {t("settings.providers.sync.newModels", {
+                        count: providerSyncInfo.get(p.id),
+                      })}
+                    </Badge>
+                  )}
+                </span>
+              }
+              description={p.baseURL}
+            >
               <div className="flex items-center gap-2">
                 <Switch checked={p.enabled} onCheckedChange={() => handleToggle(p)} />
                 <Button
@@ -686,6 +811,34 @@ export const ProvidersPanel = () => {
                 />
               )}
             </div>
+            {/* Sync new models section */}
+            {editingId && newModelEntries.length > 0 && (
+              <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-primary flex items-center gap-1.5">
+                    <RefreshCw className="h-3 w-3" />
+                    {t("settings.providers.sync.newModels", { count: newModelEntries.length })}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="outline" size="xs" onClick={handleSyncModels}>
+                      {t("settings.providers.sync.syncAll")}
+                    </Button>
+                    <Button variant="ghost" size="xs" onClick={handleDismissSync}>
+                      {t("settings.providers.sync.dismiss")}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  {newModelEntries.map(([id, entry]) => (
+                    <div key={id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <code className="bg-muted px-1.5 py-0.5 rounded">{id}</code>
+                      {entry.displayName && <span>{entry.displayName}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-1 space-y-1">
               {Object.entries(form.models).map(([key, entry]) => {
                 const testKey = `${form.baseURL}:${key}`;
@@ -798,6 +951,40 @@ export const ProvidersPanel = () => {
                 </div>
               ))}
             </div>
+            {/* ModelMap drift hints */}
+            {editingId &&
+              mapDriftEntries
+                .filter(([slot]) => !dismissedMapSlots.has(slot))
+                .map(([slot, recommended]) => (
+                  <div
+                    key={slot}
+                    className="mt-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-2.5 py-1.5"
+                  >
+                    <Info className="h-3 w-3 shrink-0" />
+                    <span className="flex-1">
+                      {t(
+                        form.modelMap[slot]
+                          ? "settings.providers.sync.modelMapDrift"
+                          : "settings.providers.sync.modelMapDriftEmpty",
+                        {
+                          slot,
+                          recommended,
+                          current: form.modelMap[slot] ?? "",
+                        },
+                      )}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => handleApplyMapDrift(slot, recommended)}
+                    >
+                      {t("settings.providers.sync.apply")}
+                    </Button>
+                    <Button variant="ghost" size="xs" onClick={() => handleDismissMapDrift(slot)}>
+                      {t("settings.providers.sync.dismiss")}
+                    </Button>
+                  </div>
+                ))}
           </div>
 
           {/* Env Overrides */}

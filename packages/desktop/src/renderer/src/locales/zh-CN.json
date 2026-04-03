@@ -210,6 +210,12 @@
   "settings.providers.badge.internal": "内部",
   "settings.providers.badge.new": "新",
   "settings.providers.badge.deprecated": "已弃用",
+  "settings.providers.sync.newModels": "{{count}} 个新模型",
+  "settings.providers.sync.syncAll": "同步",
+  "settings.providers.sync.dismiss": "忽略",
+  "settings.providers.sync.modelMapDrift": "模板推荐：{{slot}} → {{recommended}}（当前为 {{current}}）",
+  "settings.providers.sync.modelMapDriftEmpty": "模板推荐：{{slot}} → {{recommended}}（当前未设置）",
+  "settings.providers.sync.apply": "应用",
 
   "settings.mcp.title": "MCP",
   "settings.mcp.comingSoon": "MCP 配置即将推出...",

@@ -210,6 +210,12 @@
   "settings.providers.badge.internal": "Internal",
   "settings.providers.badge.new": "New",
   "settings.providers.badge.deprecated": "Deprecated",
+  "settings.providers.sync.newModels": "{{count}} new models",
+  "settings.providers.sync.syncAll": "Sync",
+  "settings.providers.sync.dismiss": "Dismiss",
+  "settings.providers.sync.modelMapDrift": "Template recommends: {{slot}} \u2192 {{recommended}} (currently {{current}})",
+  "settings.providers.sync.modelMapDriftEmpty": "Template recommends: {{slot}} \u2192 {{recommended}} (currently unset)",
+  "settings.providers.sync.apply": "Apply",
 
   "settings.skills": "Skills",
   "settings.skills.addSkill": "Add Skill",

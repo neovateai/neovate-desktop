@@ -224,6 +224,7 @@ export const providerRouter = os.provider.router({
       modelMap: input.modelMap,
       envOverrides: input.envOverrides ?? {},
       ...(input.builtInId ? { builtInId: input.builtInId } : {}),
+      ...(input.dismissedSyncModels ? { dismissedSyncModels: input.dismissedSyncModels } : {}),
     };
 
     context.configStore.addProvider(provider);
