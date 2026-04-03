@@ -485,6 +485,7 @@
   "settings.plugins.noSources": "未配置插件源",
   "settings.plugins.noSourcesDescription": "添加官方 Claude Code 市场以发现和安装插件。",
   "settings.plugins.addOfficialMarketplace": "添加官方市场",
+  "settings.plugins.officialMarketplaceError": "添加官方市场失败",
   "settings.plugins.noPluginsFound": "未找到匹配的插件。",
   "settings.plugins.source": "来源：",
   "settings.plugins.installedBadge": "已安装",
