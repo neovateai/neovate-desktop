@@ -61,20 +61,20 @@ if (import.meta.hot) {
 
 /** Renderer-side ILlmService that delegates to main via oRPC. */
 function createRendererLlmClient(): ILlmService {
-  let configured = false;
+  let available = false;
   const refresh = () => {
-    client.llm.isConfigured().then((r) => {
-      configured = r.configured;
+    client.llm.isAvailable().then((r) => {
+      available = r.available;
     });
   };
   // Prefetch on init
   refresh();
-  // Re-fetch when auxiliaryModelSelection changes
-  useConfigStore.subscribe((state, prev) => {
-    if (state.auxiliaryModelSelection !== prev.auxiliaryModelSelection) refresh();
+  // Re-fetch when any config change could affect availability
+  useConfigStore.subscribe(() => {
+    refresh();
   });
   return {
-    isConfigured: () => configured,
+    isAvailable: () => Promise.resolve(available),
     async query(prompt: string, opts?: LlmQueryOptions): Promise<string> {
       const { signal, ...input } = opts ?? {};
       const result = await client.llm.query({ prompt, ...input }, { signal });

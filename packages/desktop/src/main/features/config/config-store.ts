@@ -152,6 +152,12 @@ export class ConfigStore {
     };
   }
 
+  onAnyChange(cb: (newValue: ConfigStoreSchema, oldValue: ConfigStoreSchema) => void): () => void {
+    return this.store.onDidAnyChange((newVal, oldVal) => {
+      cb(newVal as ConfigStoreSchema, oldVal as ConfigStoreSchema);
+    });
+  }
+
   setGlobalSelection(provider?: string | null, model?: string | null): void {
     if (provider === null) {
       this.store.delete("provider" as keyof ConfigStoreSchema);

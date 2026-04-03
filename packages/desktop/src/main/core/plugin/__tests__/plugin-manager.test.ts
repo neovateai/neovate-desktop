@@ -29,7 +29,7 @@ function makeCtx(): PluginContext {
     orpcServer: { router: vi.fn(), handler: vi.fn() } as any,
     shell: { getEnv: vi.fn() } as any,
     llm: {
-      isConfigured: () => false,
+      isAvailable: () => Promise.resolve(false),
       query: vi.fn(),
       queryMessages: vi.fn(),
     },

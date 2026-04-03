@@ -65,7 +65,7 @@
   "settings.chat.model": "Model",
   "settings.chat.model.description": "Select the primary AI model",
   "settings.chat.auxiliaryModel": "Auxiliary Model",
-  "settings.chat.auxiliaryModel.description": "Model for background tasks like summaries, code analysis, etc. Requires a custom provider.",
+  "settings.chat.auxiliaryModel.description": "Model for background tasks like summaries, code analysis, etc. When not configured, automatically uses the primary model if credentials are available.",
   "settings.chat.auxiliaryModel.notConfigured": "Not configured",
   "settings.chat.smallModel": "Small Model",
   "settings.chat.smallModel.description": "Model for lightweight tasks",

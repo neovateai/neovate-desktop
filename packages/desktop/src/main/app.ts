@@ -41,9 +41,9 @@ export class MainApp implements IMainApp {
     this.windowManager = new BrowserWindowManager();
     this.deeplink = new DeeplinkService();
     this.storage = new StorageService();
-    // Fallback to a stub that always reports unconfigured
+    // Fallback to a stub that always reports unavailable
     this.llmService = options.llmService ?? {
-      isConfigured: () => false,
+      isAvailable: () => Promise.resolve(false),
       query: () => Promise.reject(new Error("LLM service not available")),
       queryMessages: () => Promise.reject(new Error("LLM service not available")),
     };
