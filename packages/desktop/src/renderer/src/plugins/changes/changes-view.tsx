@@ -622,7 +622,9 @@ export default memo(function ChangesView() {
                   ? t("review.branchUpToDate", {
                       tracking: branchInfo.tracking,
                     })
-                  : t(`review.empty.${category}.description`)}
+                  : t(`review.empty.${category}.description`, {
+                      shortcut: /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? "⌘R" : "Ctrl+R",
+                    })}
               </p>
             </div>
           ) : (
