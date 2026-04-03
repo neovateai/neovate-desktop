@@ -680,19 +680,31 @@ export class SessionManager {
   }
 
   async closeSession(sessionId: string): Promise<void> {
+    const t0 = performance.now();
+    const el = (step: string) =>
+      log(
+        "closeSession TIMING %s sessionId=%s %dms",
+        step,
+        sessionId,
+        Math.round(performance.now() - t0),
+      );
+
     const session = this.sessions.get(sessionId);
     if (!session) {
       log("closeSession: no-op, unknown sessionId=%s", sessionId);
       return;
     }
     session.query.close();
+    el("query.close");
     for (const [requestId, pending] of session.pendingRequests) {
       pending.resolve({ behavior: "deny", message: "Session closed" });
       this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
     }
+    el("pendingRequests.settled");
     this.sessions.delete(sessionId);
     this.requestTracker.clearSession(sessionId);
     this.powerBlocker.onSessionClosed(sessionId);
+    el("cleanup.done");
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);
   }
 

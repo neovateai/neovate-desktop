@@ -167,10 +167,27 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  const qt0 = performance.now();
+  const qel = (label: string) =>
+    startupLog("QUIT %s %dms", label, Math.round(performance.now() - qt0));
+
+  startupLog("QUIT before-quit fired");
+
   menu?.dispose();
+  qel("menu.dispose");
+
   updaterService.dispose();
+  qel("updaterService.dispose");
+
   powerBlocker.dispose();
+  qel("powerBlocker.dispose");
+
   llmService.dispose();
-  void sessionManager.closeAll();
-  void mainApp.stop();
+  qel("llmService.dispose");
+
+  const sessCount = sessionManager.getActiveSessions().length;
+  startupLog("QUIT closing %d sessions", sessCount);
+
+  void sessionManager.closeAll().then(() => qel("sessionManager.closeAll DONE"));
+  void mainApp.stop().then(() => qel("mainApp.stop DONE"));
 });

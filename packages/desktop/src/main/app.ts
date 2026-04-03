@@ -87,10 +87,18 @@ export class MainApp implements IMainApp {
   }
 
   async stop(): Promise<void> {
+    const t0 = performance.now();
+    const el = (step: string) => log("QUIT stop %s %dms", step, Math.round(performance.now() - t0));
+
     this.deeplink.dispose();
+    el("deeplink.dispose");
     this.storage.dispose();
+    el("storage.dispose");
     await this.pluginManager.deactivate();
+    el("pluginManager.deactivate");
     this.windowManager.destroyAll();
+    el("windowManager.destroyAll");
     this.subscriptions.dispose();
+    el("subscriptions.dispose");
   }
 }
