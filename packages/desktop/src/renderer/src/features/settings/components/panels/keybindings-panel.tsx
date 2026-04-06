@@ -14,30 +14,53 @@ import {
 } from "../../../../lib/keybindings";
 import { cn } from "../../../../lib/utils";
 import { useConfigStore } from "../../../config/store";
+import { SettingsGroup } from "../settings-group";
 
 const log = debug("neovate:settings:keybindings");
 
-const KEYBINDING_ACTIONS: KeybindingAction[] = [
-  "openSettings",
-  "newChat",
-  "quickChat",
-  "toggleSidebar",
-  "toggleChanges",
-  "toggleTerminal",
-  "toggleBrowser",
-  "toggleFiles",
-  "toggleMultiProject",
-  "togglePinSession",
-  "prevSession",
-  "nextSession",
-  "copyPath",
-  "closeSettings",
-  "toggleTheme",
-  "clearTerminal",
+const GROUP_LABEL_KEYS = {
+  app: "settings.keybindings.group.app",
+  sessions: "settings.keybindings.group.sessions",
+  panels: "settings.keybindings.group.panels",
+} as const;
+
+type GroupKey = keyof typeof GROUP_LABEL_KEYS;
+
+interface KeybindingGroup {
+  key: GroupKey;
+  actions: KeybindingAction[];
+}
+
+const KEYBINDING_GROUPS: KeybindingGroup[] = [
+  {
+    key: "app",
+    actions: [
+      "openSettings",
+      "closeSettings",
+      "toggleTheme",
+      "clearTerminal",
+      "openCommandPalette",
+    ],
+  },
+  {
+    key: "sessions",
+    actions: ["newChat", "quickChat", "prevSession", "nextSession", "togglePinSession", "copyPath"],
+  },
+  {
+    key: "panels",
+    actions: [
+      "toggleSidebar",
+      "toggleTerminal",
+      "toggleChanges",
+      "toggleBrowser",
+      "toggleFiles",
+      "toggleMultiProject",
+    ],
+  },
 ];
 
-// Actions that can be customized by user
-const EDITABLE_ACTIONS = KEYBINDING_ACTIONS.filter((action) => !READONLY_ACTIONS.includes(action));
+const ALL_ACTIONS = KEYBINDING_GROUPS.flatMap((g) => g.actions);
+const EDITABLE_ACTIONS = ALL_ACTIONS.filter((action) => !READONLY_ACTIONS.includes(action));
 
 interface KeyBadgeProps {
   keyStr: string;
@@ -166,7 +189,7 @@ export const KeybindingsPanel = () => {
 
   const findConflict = useCallback(
     (newBinding: string, forAction: KeybindingAction): string | null => {
-      for (const action of KEYBINDING_ACTIONS) {
+      for (const action of ALL_ACTIONS) {
         if (action !== forAction && keybindings[action] === newBinding) {
           return t(KEYBINDING_LABEL_KEYS[action]);
         }
@@ -223,18 +246,22 @@ export const KeybindingsPanel = () => {
         {t("settings.keybindings")}
       </h1>
 
-      <div className="space-y-0 rounded-xl bg-muted/30 border border-border/50 px-5 py-2">
-        {KEYBINDING_ACTIONS.map((action) => (
-          <KeybindingRow
-            key={action}
-            action={action}
-            binding={keybindings[action] ?? DEFAULT_KEYBINDINGS[action]}
-            isReadonly={READONLY_ACTIONS.includes(action)}
-            isRecording={recordingAction === action}
-            conflict={conflictInfo?.action === action ? conflictInfo.conflictWith : null}
-            onStartRecording={() => handleStartRecording(action)}
-            onStopRecording={(newBinding) => handleStopRecording(action, newBinding)}
-          />
+      <div className="space-y-5">
+        {KEYBINDING_GROUPS.map((group) => (
+          <SettingsGroup key={group.key} title={t(GROUP_LABEL_KEYS[group.key])}>
+            {group.actions.map((action) => (
+              <KeybindingRow
+                key={action}
+                action={action}
+                binding={keybindings[action] ?? DEFAULT_KEYBINDINGS[action]}
+                isReadonly={READONLY_ACTIONS.includes(action)}
+                isRecording={recordingAction === action}
+                conflict={conflictInfo?.action === action ? conflictInfo.conflictWith : null}
+                onStartRecording={() => handleStartRecording(action)}
+                onStopRecording={(newBinding) => handleStopRecording(action, newBinding)}
+              />
+            ))}
+          </SettingsGroup>
         ))}
       </div>
 

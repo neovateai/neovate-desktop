@@ -102,9 +102,39 @@ Single global rules editor with @file references.
 
 Dynamic platform cards with enable/token/test/pair.
 
-### 6. Keybindings (unchanged)
+### 6. Keybindings (grouped)
 
-Keybinding list with readonly + editable actions.
+#### Group: App (all readonly)
+
+| Action          | Default        |
+| --------------- | -------------- |
+| Open Settings   | `Cmd+,`        |
+| Close Settings  | `Cmd+Esc`      |
+| Toggle Theme    | `Cmd+Option+T` |
+| Clear Terminal  | `Cmd+Shift+K`  |
+| Command Palette | `Cmd+K`        |
+
+#### Group: Sessions
+
+| Action           | Default                 |
+| ---------------- | ----------------------- |
+| New Chat         | `Cmd+N`                 |
+| Quick Chat       | `Cmd+Shift+N`           |
+| Previous Session | `Cmd+Option+ArrowLeft`  |
+| Next Session     | `Cmd+Option+ArrowRight` |
+| Toggle Pin       | `Cmd+D`                 |
+| Copy Path        | `Cmd+Shift+C`           |
+
+#### Group: Panels
+
+| Action               | Default       |
+| -------------------- | ------------- |
+| Toggle Sidebar       | `Cmd+B`       |
+| Toggle Terminal      | `Cmd+J`       |
+| Toggle Changes       | `Cmd+E`       |
+| Toggle Browser       | `Cmd+Shift+B` |
+| Toggle Files         | `Cmd+G`       |
+| Toggle Multi-Project | `Cmd+Shift+E` |
 
 ### 7. About (unchanged)
 

@@ -147,6 +147,9 @@
   "updater.genericError": "Update failed",
 
   "settings.keybindings": "Keybindings",
+  "settings.keybindings.group.app": "App",
+  "settings.keybindings.group.sessions": "Sessions",
+  "settings.keybindings.group.panels": "Panels",
   "settings.keybindings.pressShortcut": "Press shortcut...",
   "settings.keybindings.resetToDefaults": "Reset to Defaults",
   "settings.keybindings.openSettings": "Open Settings",

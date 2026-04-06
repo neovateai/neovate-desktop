@@ -147,6 +147,9 @@
   "updater.genericError": "更新失败",
 
   "settings.keybindings": "快捷键",
+  "settings.keybindings.group.app": "应用",
+  "settings.keybindings.group.sessions": "会话",
+  "settings.keybindings.group.panels": "面板",
   "settings.keybindings.pressShortcut": "按下快捷键...",
   "settings.keybindings.resetToDefaults": "重置为默认",
   "settings.keybindings.openSettings": "打开设置",
