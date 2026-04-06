@@ -25,6 +25,7 @@ function makeContext(overrides?: Partial<AppContext>): AppContext {
     skillsService: {} as any,
     stateStore: {} as any,
     updaterService: {} as any,
+    messagingService: {} as any,
     ...overrides,
   };
 }

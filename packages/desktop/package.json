@@ -43,6 +43,7 @@
     "electron-updater": "^6.3.9",
     "fuse.js": "^7.1.0",
     "get-port": "^7.1.0",
+    "grammy": "^1.42.0",
     "minimatch": "^10.2.4",
     "node-pty": "^1.1.0",
     "react-error-boundary": "^6.1.1",

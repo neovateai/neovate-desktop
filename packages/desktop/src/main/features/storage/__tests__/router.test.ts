@@ -35,6 +35,7 @@ beforeEach(() => {
     mainApp: {} as any,
     stateStore: {} as any,
     updaterService: {} as any,
+    messagingService: {} as any,
   };
 });
 
