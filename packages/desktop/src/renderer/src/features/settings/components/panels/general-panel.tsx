@@ -22,6 +22,12 @@ import { SettingsGroup } from "../settings-group";
 import { SettingsRow } from "../settings-row";
 import { ThemeStylePicker } from "../theme-style-picker";
 
+// Check if a standalone binary (not .js) is configured — Network Inspector not supported
+function useIsStandaloneBinary() {
+  const claudeCodeBinPath = useConfigStore((s) => s.claudeCodeBinPath);
+  return !!claudeCodeBinPath && !claudeCodeBinPath.trim().endsWith(".js");
+}
+
 const log = createDebug("neovate:settings");
 
 export const GeneralPanel = () => {
@@ -41,6 +47,7 @@ export const GeneralPanel = () => {
     developerMode,
     showSessionInitStatus,
     claudeCodeBinPath,
+    networkInspector,
     popupWindowEnabled,
     popupWindowShortcut,
     popupWindowStayOpen,
@@ -57,11 +64,14 @@ export const GeneralPanel = () => {
       developerMode: s.developerMode,
       showSessionInitStatus: s.showSessionInitStatus,
       claudeCodeBinPath: s.claudeCodeBinPath,
+      networkInspector: s.networkInspector,
       popupWindowEnabled: s.popupWindowEnabled,
       popupWindowShortcut: s.popupWindowShortcut,
       popupWindowStayOpen: s.popupWindowStayOpen,
     })),
   );
+
+  const isStandaloneBinary = useIsStandaloneBinary();
   const setConfig = useConfigStore((s) => s.setConfig);
   const loaded = useConfigStore((s) => s.loaded);
 
@@ -261,8 +271,8 @@ export const GeneralPanel = () => {
           </SettingsRow>
         </SettingsGroup>
 
-        {/* Advanced */}
-        <SettingsGroup title={t("settings.general.group.advanced")}>
+        {/* System */}
+        <SettingsGroup title={t("settings.general.group.system")}>
           <SettingsRow
             title={t("settings.general.runOnStartup")}
             description={t("settings.general.runOnStartup.description")}
@@ -278,56 +288,6 @@ export const GeneralPanel = () => {
               checked={multiProjectSupport}
               onCheckedChange={(v) => setConfig("multiProjectSupport", v)}
             />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.general.showSessionInitStatus")}
-            description={t("settings.general.showSessionInitStatus.description")}
-          >
-            <Switch
-              checked={showSessionInitStatus}
-              onCheckedChange={(v) => setConfig("showSessionInitStatus", v)}
-            />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.general.developerMode")}
-            description={t("settings.general.developerMode.description")}
-          >
-            <Switch
-              checked={developerMode}
-              onCheckedChange={(v) => setConfig("developerMode", v)}
-            />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.general.claudeCodeBinPath")}
-            description={t("settings.general.claudeCodeBinPath.description")}
-          >
-            <div className="flex items-center gap-2">
-              <Input
-                type="text"
-                value={localClaudeCodeBinPath}
-                onChange={(e) => setLocalClaudeCodeBinPath(e.target.value)}
-                placeholder="Bundled (default)"
-                className="w-64"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  const result = await client.electron.dialog.showOpenDialog({
-                    properties: ["openFile", "showHiddenFiles"],
-                    filters: [{ name: "All Files", extensions: ["*"] }],
-                  });
-                  if (!result.canceled && result.filePaths[0]) {
-                    setLocalClaudeCodeBinPath(result.filePaths[0]);
-                  }
-                }}
-              >
-                {t("settings.general.claudeCodeBinPath.browse")}
-              </Button>
-            </div>
           </SettingsRow>
 
           <SettingsRow
@@ -371,8 +331,73 @@ export const GeneralPanel = () => {
           )}
         </SettingsGroup>
 
-        {/* Skills */}
-        <SettingsGroup title={t("settings.general.group.skills")}>
+        {/* Developer */}
+        <SettingsGroup title={t("settings.general.group.developer")}>
+          <SettingsRow
+            title={t("settings.general.developerMode")}
+            description={t("settings.general.developerMode.description")}
+          >
+            <Switch
+              checked={developerMode}
+              onCheckedChange={(v) => setConfig("developerMode", v)}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.claudeCodeBinPath")}
+            description={t("settings.general.claudeCodeBinPath.description")}
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={localClaudeCodeBinPath}
+                onChange={(e) => setLocalClaudeCodeBinPath(e.target.value)}
+                placeholder="Bundled (default)"
+                className="w-64"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const result = await client.electron.dialog.showOpenDialog({
+                    properties: ["openFile", "showHiddenFiles"],
+                    filters: [{ name: "All Files", extensions: ["*"] }],
+                  });
+                  if (!result.canceled && result.filePaths[0]) {
+                    setLocalClaudeCodeBinPath(result.filePaths[0]);
+                  }
+                }}
+              >
+                {t("settings.general.claudeCodeBinPath.browse")}
+              </Button>
+            </div>
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.general.showSessionInitStatus")}
+            description={t("settings.general.showSessionInitStatus.description")}
+          >
+            <Switch
+              checked={showSessionInitStatus}
+              onCheckedChange={(v) => setConfig("showSessionInitStatus", v)}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.agents.networkInspector")}
+            description={
+              isStandaloneBinary
+                ? t("settings.agents.networkInspector.unsupported")
+                : t("settings.agents.networkInspector.description")
+            }
+          >
+            <Switch
+              checked={networkInspector && !isStandaloneBinary}
+              onCheckedChange={(v) => setConfig("networkInspector", v)}
+              disabled={isStandaloneBinary}
+            />
+          </SettingsRow>
+
           <SettingsRow
             title={t("settings.general.npmRegistry")}
             description={

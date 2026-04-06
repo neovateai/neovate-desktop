@@ -166,12 +166,12 @@ export function InputToolbar({
 }
 
 const PERMISSION_MODE_I18N_KEYS = {
-  default: "settings.chat.permissionMode.default",
-  acceptEdits: "settings.chat.permissionMode.acceptEdits",
-  plan: "settings.chat.permissionMode.plan",
-  bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
-  dontAsk: "settings.chat.permissionMode.dontAsk",
-  auto: "settings.chat.permissionMode.auto",
+  default: "settings.agents.permissionMode.default",
+  acceptEdits: "settings.agents.permissionMode.acceptEdits",
+  plan: "settings.agents.permissionMode.plan",
+  bypassPermissions: "settings.agents.permissionMode.bypassPermissions",
+  dontAsk: "settings.agents.permissionMode.dontAsk",
+  auto: "settings.agents.permissionMode.auto",
 } as const satisfies Record<PermissionMode, string>;
 
 function PermissionModeSelect({
@@ -236,9 +236,9 @@ function ConnectedPermissionModeSelect({
             <div className="flex items-start gap-2">
               <Hand className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
-                <span className="text-xs">{t("settings.chat.permissionMode.default")}</span>
+                <span className="text-xs">{t("settings.agents.permissionMode.default")}</span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.default.desc")}
+                  {t("settings.agents.permissionMode.default.desc")}
                 </span>
               </div>
             </div>
@@ -250,9 +250,9 @@ function ConnectedPermissionModeSelect({
             <div className="flex items-start gap-2">
               <Code className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
-                <span className="text-xs">{t("settings.chat.permissionMode.acceptEdits")}</span>
+                <span className="text-xs">{t("settings.agents.permissionMode.acceptEdits")}</span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.acceptEdits.desc")}
+                  {t("settings.agents.permissionMode.acceptEdits.desc")}
                 </span>
               </div>
             </div>
@@ -264,9 +264,9 @@ function ConnectedPermissionModeSelect({
             <div className="flex items-start gap-2">
               <ClipboardList className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
-                <span className="text-xs">{t("settings.chat.permissionMode.plan")}</span>
+                <span className="text-xs">{t("settings.agents.permissionMode.plan")}</span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.plan.desc")}
+                  {t("settings.agents.permissionMode.plan.desc")}
                 </span>
               </div>
             </div>
@@ -279,10 +279,10 @@ function ConnectedPermissionModeSelect({
               <TriangleAlert className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
                 <span className="text-xs">
-                  {t("settings.chat.permissionMode.bypassPermissions")}
+                  {t("settings.agents.permissionMode.bypassPermissions")}
                 </span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.bypassPermissions.desc")}
+                  {t("settings.agents.permissionMode.bypassPermissions.desc")}
                 </span>
               </div>
             </div>

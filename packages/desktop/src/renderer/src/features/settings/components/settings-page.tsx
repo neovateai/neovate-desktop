@@ -5,7 +5,7 @@ import { useTrackPageView } from "../../analytics/hooks";
 import { useConfigStore } from "../../config/store";
 import { useSettingsStore } from "../store";
 import { AboutPanel } from "./panels/about-panel";
-import { ChatPanel } from "./panels/chat-panel";
+import { AgentsPanel } from "./panels/agents-panel";
 import { GeneralPanel } from "./panels/general-panel";
 import { KeybindingsPanel } from "./panels/keybindings-panel";
 import { MessagingPanel } from "./panels/messaging-panel";
@@ -56,7 +56,7 @@ export const SettingsPage = () => {
           }}
         />
         <div className="mx-auto max-w-3xl px-8 pb-12">
-          {activeMenu === "chat" && <ChatPanel />}
+          {activeMenu === "agents" && <AgentsPanel />}
           {activeMenu === "rules" && <RulesPanel />}
           {activeMenu === "general" && <GeneralPanel />}
           {activeMenu === "keybindings" && <KeybindingsPanel />}

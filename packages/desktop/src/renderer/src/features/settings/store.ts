@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export type SettingsMenuId =
   | "general"
-  | "chat"
+  | "agents"
   | "rules"
   | "keybindings"
   | "providers"

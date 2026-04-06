@@ -1,5 +1,5 @@
 import debug from "debug";
-import { ChevronDown, Code, Hand, MessageSquare, TriangleAlert } from "lucide-react";
+import { Bot, ChevronDown, Code, Hand, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -40,14 +40,14 @@ import { SettingsRow } from "../settings-row";
 
 // Translation key mappings
 const agentLanguageKeys = {
-  English: "settings.chat.agentLanguage.english",
-  Chinese: "settings.chat.agentLanguage.chinese",
+  English: "settings.agents.agentLanguage.english",
+  Chinese: "settings.agents.agentLanguage.chinese",
 } as const satisfies Record<AgentLanguage, string>;
 
 const permissionModeKeys = {
-  default: "settings.chat.permissionMode.default",
-  acceptEdits: "settings.chat.permissionMode.acceptEdits",
-  bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
+  default: "settings.agents.permissionMode.default",
+  acceptEdits: "settings.agents.permissionMode.acceptEdits",
+  bypassPermissions: "settings.agents.permissionMode.bypassPermissions",
 } as const satisfies Record<ConfigPermissionMode, string>;
 
 const EMPTY_MODELS: import("../../../../../../shared/features/agent/types").ModelInfo[] = [];
@@ -67,16 +67,13 @@ function decodeValue(value: string): { providerId: string | null; model: string 
   return { providerId, model };
 }
 
-export const ChatPanel = () => {
+export const AgentsPanel = () => {
   const { t } = useTranslation();
 
   // Get all config values and the generic setter
   const config = useConfigStore();
   const setConfig = useConfigStore((s) => s.setConfig);
   const loaded = useConfigStore((s) => s.loaded);
-
-  const isStandaloneBinary =
-    !!config.claudeCodeBinPath && !config.claudeCodeBinPath.trim().endsWith(".js");
 
   if (!loaded) {
     return (
@@ -90,53 +87,58 @@ export const ChatPanel = () => {
     <div>
       <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
         <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
-          <MessageSquare className="size-5 text-primary" />
+          <Bot className="size-5 text-primary" />
         </span>
-        {t("settings.chat")}
+        {t("settings.agents")}
       </h1>
 
       <div className="space-y-5">
-        {/* Model */}
-        <SettingsGroup title={t("settings.chat.group.model")}>
+        {/* Models */}
+        <SettingsGroup title={t("settings.agents.group.models")}>
           <SettingsRow
-            title={t("settings.chat.model")}
-            description={t("settings.chat.model.description")}
+            title={t("settings.agents.model")}
+            description={t("settings.agents.model.description")}
           >
             <GlobalModelSelect />
           </SettingsRow>
           <SettingsRow
-            title={t("settings.chat.auxiliaryModel")}
-            description={t("settings.chat.auxiliaryModel.description")}
+            title={t("settings.agents.auxiliaryModel")}
+            description={t("settings.agents.auxiliaryModel.description")}
           >
             <AuxiliaryModelSelect />
           </SettingsRow>
         </SettingsGroup>
 
         {/* Behavior */}
-        <SettingsGroup title={t("settings.chat.group.behavior")}>
+        <SettingsGroup title={t("settings.agents.group.behavior")}>
+          {/* Preferences */}
           <SettingsRow
-            title={t("settings.chat.agentLanguage")}
-            description={t("settings.chat.agentLanguage.description")}
+            title={t("settings.agents.agentLanguage")}
+            description={t("settings.agents.agentLanguage.description")}
           >
             <Select
               value={config.agentLanguage}
               onValueChange={(val) => setConfig("agentLanguage", val as AgentLanguage)}
             >
               <SelectTrigger size="sm" className="min-w-36">
-                <SelectValue placeholder={t("settings.chat.selectPlaceholder")}>
+                <SelectValue placeholder={t("settings.agents.selectPlaceholder")}>
                   {t(agentLanguageKeys[config.agentLanguage])}
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup>
-                <SelectItem value="English">{t("settings.chat.agentLanguage.english")}</SelectItem>
-                <SelectItem value="Chinese">{t("settings.chat.agentLanguage.chinese")}</SelectItem>
+                <SelectItem value="English">
+                  {t("settings.agents.agentLanguage.english")}
+                </SelectItem>
+                <SelectItem value="Chinese">
+                  {t("settings.agents.agentLanguage.chinese")}
+                </SelectItem>
               </SelectPopup>
             </Select>
           </SettingsRow>
 
           <SettingsRow
-            title={t("settings.chat.permissionMode")}
-            description={t("settings.chat.permissionMode.description")}
+            title={t("settings.agents.permissionMode")}
+            description={t("settings.agents.permissionMode.description")}
           >
             <Select
               value={config.permissionMode}
@@ -153,9 +155,9 @@ export const ChatPanel = () => {
                   <div className="flex items-start gap-2">
                     <Hand className="size-3.5 mt-px shrink-0 opacity-60" />
                     <div className="flex flex-col">
-                      <span className="text-xs">{t("settings.chat.permissionMode.default")}</span>
+                      <span className="text-xs">{t("settings.agents.permissionMode.default")}</span>
                       <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                        {t("settings.chat.permissionMode.default.desc")}
+                        {t("settings.agents.permissionMode.default.desc")}
                       </span>
                     </div>
                   </div>
@@ -168,10 +170,10 @@ export const ChatPanel = () => {
                     <Code className="size-3.5 mt-px shrink-0 opacity-60" />
                     <div className="flex flex-col">
                       <span className="text-xs">
-                        {t("settings.chat.permissionMode.acceptEdits")}
+                        {t("settings.agents.permissionMode.acceptEdits")}
                       </span>
                       <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                        {t("settings.chat.permissionMode.acceptEdits.desc")}
+                        {t("settings.agents.permissionMode.acceptEdits.desc")}
                       </span>
                     </div>
                   </div>
@@ -184,10 +186,10 @@ export const ChatPanel = () => {
                     <TriangleAlert className="size-3.5 mt-px shrink-0 opacity-60" />
                     <div className="flex flex-col">
                       <span className="text-xs">
-                        {t("settings.chat.permissionMode.bypassPermissions")}
+                        {t("settings.agents.permissionMode.bypassPermissions")}
                       </span>
                       <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                        {t("settings.chat.permissionMode.bypassPermissions.desc")}
+                        {t("settings.agents.permissionMode.bypassPermissions.desc")}
                       </span>
                     </div>
                   </div>
@@ -197,50 +199,8 @@ export const ChatPanel = () => {
           </SettingsRow>
 
           <SettingsRow
-            title={t("settings.chat.tokenOptimization")}
-            description={t("settings.chat.tokenOptimization.description")}
-          >
-            <Switch
-              checked={config.tokenOptimization}
-              onCheckedChange={(v) => setConfig("tokenOptimization", v)}
-            />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.chat.networkInspector")}
-            description={
-              isStandaloneBinary
-                ? t("settings.chat.networkInspector.unsupported")
-                : t("settings.chat.networkInspector.description")
-            }
-          >
-            <Switch
-              checked={config.networkInspector && !isStandaloneBinary}
-              onCheckedChange={(v) => setConfig("networkInspector", v)}
-              disabled={isStandaloneBinary}
-            />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.chat.keepAwake")}
-            description={t("settings.chat.keepAwake.description")}
-          >
-            <Switch checked={config.keepAwake} onCheckedChange={(v) => setConfig("keepAwake", v)} />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.chat.preWarmSessions")}
-            description={t("settings.chat.preWarmSessions.description")}
-          >
-            <Switch
-              checked={config.preWarmSessions}
-              onCheckedChange={(v) => setConfig("preWarmSessions", v)}
-            />
-          </SettingsRow>
-
-          <SettingsRow
-            title={t("settings.chat.sendMessage")}
-            description={t("settings.chat.sendMessage.description")}
+            title={t("settings.agents.sendMessage")}
+            description={t("settings.agents.sendMessage.description")}
           >
             <ToggleOptions
               value={config.sendMessageWith}
@@ -254,13 +214,44 @@ export const ChatPanel = () => {
               ]}
             />
           </SettingsRow>
+
+          {/* Visual gap between preferences and engine settings */}
+          <div className="pt-2" />
+
+          {/* Engine */}
+          <SettingsRow
+            title={t("settings.agents.tokenOptimization")}
+            description={t("settings.agents.tokenOptimization.description")}
+          >
+            <Switch
+              checked={config.tokenOptimization}
+              onCheckedChange={(v) => setConfig("tokenOptimization", v)}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.agents.keepAwake")}
+            description={t("settings.agents.keepAwake.description")}
+          >
+            <Switch checked={config.keepAwake} onCheckedChange={(v) => setConfig("keepAwake", v)} />
+          </SettingsRow>
+
+          <SettingsRow
+            title={t("settings.agents.preWarmSessions")}
+            description={t("settings.agents.preWarmSessions.description")}
+          >
+            <Switch
+              checked={config.preWarmSessions}
+              onCheckedChange={(v) => setConfig("preWarmSessions", v)}
+            />
+          </SettingsRow>
         </SettingsGroup>
       </div>
     </div>
   );
 };
 
-const log = debug("neovate:settings:chat");
+const log = debug("neovate:settings:agents");
 
 function AuxiliaryModelSelect() {
   const { t } = useTranslation();
@@ -294,12 +285,12 @@ function AuxiliaryModelSelect() {
 
   let displayLabel: string;
   if (!currentSelection) {
-    displayLabel = t("settings.chat.auxiliaryModel.notConfigured");
+    displayLabel = t("settings.agents.auxiliaryModel.notConfigured");
   } else if (activeProvider && model) {
     const modelDisplay = activeProvider.models[model]?.displayName ?? model;
     displayLabel = `${activeProvider.name} / ${modelDisplay}`;
   } else {
-    displayLabel = t("settings.chat.auxiliaryModel.notConfigured");
+    displayLabel = t("settings.agents.auxiliaryModel.notConfigured");
   }
 
   return (
@@ -311,7 +302,9 @@ function AuxiliaryModelSelect() {
       <MenuPopup side="bottom" align="end" className="max-h-80 overflow-y-auto">
         <MenuRadioGroup value={currentSelection} onValueChange={handleSelect}>
           {/* Not configured — clears selection */}
-          <MenuRadioItem value="">{t("settings.chat.auxiliaryModel.notConfigured")}</MenuRadioItem>
+          <MenuRadioItem value="">
+            {t("settings.agents.auxiliaryModel.notConfigured")}
+          </MenuRadioItem>
 
           {/* Custom provider groups only */}
           {enabledProviders.map((p) => (
@@ -395,7 +388,7 @@ function GlobalModelSelect() {
   const activeProvider = selectedProviderId
     ? enabledProviders.find((p) => p.id === selectedProviderId)
     : undefined;
-  const autoLabel = t("settings.chat.model.auto");
+  const autoLabel = t("settings.agents.model.auto");
 
   let displayLabel: string;
   if (!selectedModel) {
@@ -426,7 +419,7 @@ function GlobalModelSelect() {
           {/* SDK Default models */}
           {enabledProviders.length > 0 && (
             <MenuGroup>
-              <MenuGroupLabel>{t("settings.chat.model.sdkDefault")}</MenuGroupLabel>
+              <MenuGroupLabel>{t("settings.agents.model.sdkDefault")}</MenuGroupLabel>
             </MenuGroup>
           )}
           {sdkModels.map((m) => (
