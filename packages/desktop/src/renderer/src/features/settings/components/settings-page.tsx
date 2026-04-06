@@ -8,6 +8,7 @@ import { AboutPanel } from "./panels/about-panel";
 import { ChatPanel } from "./panels/chat-panel";
 import { GeneralPanel } from "./panels/general-panel";
 import { KeybindingsPanel } from "./panels/keybindings-panel";
+import { MessagingPanel } from "./panels/messaging-panel";
 import { ProvidersPanel } from "./panels/providers-panel";
 import { RulesPanel } from "./panels/rules-panel";
 import { SettingsMenu } from "./settings-menu";
@@ -60,6 +61,7 @@ export const SettingsPage = () => {
           {activeMenu === "general" && <GeneralPanel />}
           {activeMenu === "keybindings" && <KeybindingsPanel />}
           {activeMenu === "providers" && <ProvidersPanel />}
+          {activeMenu === "messaging" && <MessagingPanel />}
           {activeMenu === "about" && <AboutPanel />}
         </div>
       </div>

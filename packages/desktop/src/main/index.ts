@@ -16,6 +16,8 @@ import { SessionManager } from "./features/agent/session-manager";
 import { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import { ConfigStore } from "./features/config/config-store";
 import { LlmService } from "./features/llm/llm-service";
+import { MessagingService } from "./features/messaging/messaging-service";
+import { TelegramAdapter } from "./features/messaging/platforms/telegram";
 import { PopupWindowShortcut } from "./features/popup-window/global-shortcut";
 import { ProjectStore } from "./features/project/project-store";
 import { SkillsService } from "./features/skills/skills-service";
@@ -89,6 +91,8 @@ const updaterService = new UpdaterService({
 });
 const pluginsService = new PluginsService();
 const skillsService = new SkillsService(projectStore, configStore, process.resourcesPath);
+const messagingService = new MessagingService(sessionManager, projectStore, mainApp.getStorage());
+messagingService.registerAdapter(new TelegramAdapter());
 
 const appContext: AppContext = {
   sessionManager,
@@ -99,6 +103,7 @@ const appContext: AppContext = {
   pluginsService,
   skillsService,
   stateStore,
+  messagingService,
   updaterService,
   mainApp,
   storage: mainApp.getStorage(),
@@ -141,6 +146,9 @@ app.whenReady().then(async () => {
   await mainApp.start();
   startupLog("mainApp.start done %s", elapsed());
   void updaterService.init();
+
+  // Start messaging platform adapters (fire-and-forget — must not block window)
+  void messagingService.startEnabledAdapters();
 
   // Setup application menu (for menu items, shortcuts handled in renderer)
   menu = new ApplicationMenu(updaterService);
@@ -194,6 +202,11 @@ app.whenReady().then(async () => {
 
     llmService.dispose();
     qel("llmService.dispose");
+
+    void messagingService
+      .notifyShutdown()
+      .then(() => messagingService.stopAll())
+      .then(() => qel("messagingService.stopAll DONE"));
 
     const sessCount = sessionManager.getActiveSessions().length;
     startupLog("QUIT closing %d sessions", sessCount);

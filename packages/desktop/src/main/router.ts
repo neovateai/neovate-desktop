@@ -10,6 +10,7 @@ import type { SessionManager } from "./features/agent/session-manager";
 import type { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import type { ConfigStore } from "./features/config/config-store";
 import type { LlmService } from "./features/llm/llm-service";
+import type { MessagingService } from "./features/messaging/messaging-service";
 import type { ProjectStore } from "./features/project/project-store";
 import type { SkillsService } from "./features/skills/skills-service";
 import type { StateStore } from "./features/state/state-store";
@@ -23,6 +24,7 @@ import { configRouter } from "./features/config/router";
 import { deeplinkRouter } from "./features/deeplink/router";
 import { electronRouter } from "./features/electron/router";
 import { llmRouter } from "./features/llm/router";
+import { messagingRouter } from "./features/messaging/router";
 import { projectRouter } from "./features/project/router";
 import { providerRouter } from "./features/provider/router";
 import { rulesRouter } from "./features/rules/router";
@@ -40,6 +42,7 @@ export type AppContext = {
   pluginsService: PluginsService;
   skillsService: SkillsService;
   stateStore: StateStore;
+  messagingService: MessagingService;
   updaterService: UpdaterService;
   mainApp: IMainApp;
   storage: StorageService;
@@ -58,6 +61,7 @@ export function buildRouter(pluginRouters: Contribution<AnyRouter>[]) {
     deeplink: deeplinkRouter,
     electron: electronRouter,
     llm: llmRouter,
+    messaging: messagingRouter,
     project: projectRouter,
     provider: providerRouter,
     rules: rulesRouter,
