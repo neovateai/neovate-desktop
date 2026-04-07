@@ -32,12 +32,12 @@ RendererApp.analytics                   MainApp.analytics
 
 Events are **not** duplicated. Each process tracks its own events:
 
-| Source                              | Instance                | Example events                                    |
-| ----------------------------------- | ----------------------- | ------------------------------------------------- |
-| `data-track-id` clicks (core UI)    | `RendererApp.analytics` | `chat.send-button.clicked`                        |
-| `data-track-id` clicks (plugin)     | `RendererApp.analytics` | `plugin-git.branch.clicked`                       |
-| `useAnalyticsTrack()` in components | `RendererApp.analytics` | `page.viewed`, `settings.changed`                 |
-| Plugin/agent lifecycle              | `MainApp.analytics`     | `agent.session.created`                           |
+| Source                              | Instance                | Example events                    |
+| ----------------------------------- | ----------------------- | --------------------------------- |
+| `data-track-id` clicks (core UI)    | `RendererApp.analytics` | `chat.send-button.clicked`        |
+| `data-track-id` clicks (plugin)     | `RendererApp.analytics` | `plugin-git.branch.clicked`       |
+| `useAnalyticsTrack()` in components | `RendererApp.analytics` | `page.viewed`, `settings.changed` |
+| Plugin/agent lifecycle              | `MainApp.analytics`     | `agent.session.created`           |
 
 The oRPC `analytics.track` route is **removed** — it was only a renderer→main bridge. Main-process code calls `this.analytics.track()` directly.
 
@@ -127,11 +127,11 @@ export function useAnalyticsTrack() {
 
 All event names follow `<namespace>.<object>.<action>`:
 
-| Source                        | Namespace          | Example                          |
-| ----------------------------- | ------------------ | -------------------------------- |
-| Core renderer UI              | `<feature>`        | `page.viewed`, `chat.sent`       |
-| Plugin-originated events      | `plugin-<name>`    | `plugin-git.branch.switched`     |
-| Main process / agent events   | `agent`            | `agent.session.created`          |
+| Source                      | Namespace       | Example                      |
+| --------------------------- | --------------- | ---------------------------- |
+| Core renderer UI            | `<feature>`     | `page.viewed`, `chat.sent`   |
+| Plugin-originated events    | `plugin-<name>` | `plugin-git.branch.switched` |
+| Main process / agent events | `agent`         | `agent.session.created`      |
 
 Rules:
 
