@@ -21,6 +21,7 @@ export class TelegramAdapter implements RemoteControlPlatformAdapter {
   readonly id = "telegram";
   readonly displayName = "Telegram";
   readonly maxMessageLength = 4096;
+  readonly supportsEditing = true;
 
   private bot: Bot | null = null;
   private emitter = new EventEmitter();

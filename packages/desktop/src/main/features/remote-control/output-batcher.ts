@@ -19,11 +19,14 @@ export class OutputBatcher {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  private readonly supportsEditing: boolean;
 
   constructor(
     private ref: ConversationRef,
     private adapter: RemoteControlPlatformAdapter,
-  ) {}
+  ) {
+    this.supportsEditing = adapter.supportsEditing;
+  }
 
   /** Append text delta to the buffer. Flushes when debounce or threshold is hit. */
   append(text: string): void {
@@ -38,6 +41,10 @@ export class OutputBatcher {
     }
 
     this.buffer += text;
+
+    // When platform doesn't support editing, buffer everything and only send on onTurnComplete.
+    // Flushing incrementally would send a new message each time, flooding the chat.
+    if (!this.supportsEditing) return;
 
     if (this.buffer.length >= EAGER_THRESHOLD) {
       log("eager flush: buffer=%d chars (threshold=%d)", this.buffer.length, EAGER_THRESHOLD);
@@ -143,7 +150,7 @@ export class OutputBatcher {
       log("edit window expired for msgId=%s, sending new message", this.currentMessageId);
     }
 
-    if (this.currentMessageId && !editExpired) {
+    if (this.supportsEditing && this.currentMessageId && !editExpired) {
       try {
         // Split if needed
         if (text.length > maxLen) {
