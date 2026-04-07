@@ -59,7 +59,7 @@ export function createEditorRouter(
     ping: orpcServer.handler(async ({ input }) => {
       const { cwd } = input as { cwd: string };
       const connected = extBridge.isConnected(cwd);
-      return { success: true, connected };
+      return { connected };
     }),
     open: orpcServer.handler(async ({ input }) => {
       log("open file", input);
