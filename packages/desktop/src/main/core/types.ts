@@ -1,6 +1,8 @@
+import type { AnalyticsInstance } from "analytics";
 import type { BrowserWindow } from "electron";
 
 import type { SessionManager } from "../features/agent/session-manager";
+import type { DeeplinkService } from "./deeplink/deeplink-service";
 import type { Disposable } from "./disposable";
 
 export type AppContext = {
@@ -12,9 +14,19 @@ export interface OpenWindowOptions {
   windowType: string;
   width?: number;
   height?: number;
+  x?: number;
+  y?: number;
   title?: string;
   /** If true, uses the main window as the parent (modal-style) */
   parent?: boolean;
+  /** Keep window always on top of other windows */
+  alwaysOnTop?: boolean;
+  /** Hide from taskbar (Windows) */
+  skipTaskbar?: boolean;
+  /** macOS window type — "panel" for utility window */
+  type?: "normal" | "panel";
+  /** If true, hide instead of destroy on close (for fast re-open) */
+  hideOnClose?: boolean;
   /** Additional URL search params passed to the renderer */
   urlSearchParams?: Record<string, string>;
 }
@@ -24,12 +36,17 @@ export interface IBrowserWindowManager {
   createMainWindow(): BrowserWindow;
   open(options: OpenWindowOptions): void;
   close(windowId: string): void;
+  toggle(windowType: string): boolean;
+  getByType(windowType: string): BrowserWindow | null;
   destroyAll(): void;
   ensureMinWidth(minWidth: number): void;
+  prepareForQuit(): void;
 }
 
 /** Abstract app interface — plugins depend on this, MainApp implements it. */
 export interface IMainApp {
   readonly subscriptions: { push(...disposables: Disposable[]): void };
   readonly windowManager: IBrowserWindowManager;
+  readonly deeplink: DeeplinkService;
+  readonly analytics: AnalyticsInstance;
 }

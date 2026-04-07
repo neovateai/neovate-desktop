@@ -1,5 +1,5 @@
 import { is } from "@electron-toolkit/utils";
-import { app, shell, screen, BrowserWindow } from "electron";
+import { app, dialog, shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
 import { join } from "path";
@@ -7,8 +7,12 @@ import { join } from "path";
 import type { IBrowserWindowManager, OpenWindowOptions } from "./types";
 
 import icon from "../../../resources/icon.png?asset";
+import { APP_NAME } from "../../shared/constants";
 import { APP_DATA_DIR } from "./app-paths";
 import log from "./logger";
+
+// fixed(48) + primarySidebar.min(250) + chatPanel comfortable min(480) + 1 handle(5)
+const MAIN_WINDOW_MIN_WIDTH = 783;
 
 type WindowStore = {
   bounds: Electron.Rectangle;
@@ -28,11 +32,18 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
   #isQuitting = false;
+  #quitConfirmed = false;
+  #showingQuitDialog = false;
   #store = new Store<WindowStore>({
     name: "window-state",
     cwd: APP_DATA_DIR,
     serialize: (value) => JSON.stringify(value, null, 2) + "\n",
   });
+
+  prepareForQuit(): void {
+    this.#isQuitting = true;
+    this.#quitConfirmed = true;
+  }
 
   get mainWindow(): BrowserWindow | null {
     return this.#mainWindow;
@@ -47,7 +58,7 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
     const win = new BrowserWindow({
       ...bounds,
-      minWidth: 900,
+      minWidth: MAIN_WINDOW_MIN_WIDTH,
       minHeight: 600,
       show: false,
       autoHideMenuBar: true,
@@ -103,8 +114,17 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     win.on("leave-full-screen", debouncedSave);
 
     if (process.platform === "darwin") {
-      app.on("before-quit", () => {
-        this.#isQuitting = true;
+      app.on("before-quit", (e) => {
+        if (this.#quitConfirmed) {
+          this.#isQuitting = true;
+          return;
+        }
+        e.preventDefault();
+        if (this.#showingQuitDialog) return;
+        this.#showQuitConfirmation(() => {
+          this.#quitConfirmed = true;
+          app.quit();
+        });
       });
     }
 
@@ -114,6 +134,17 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       if (process.platform === "darwin" && !this.#isQuitting) {
         e.preventDefault();
         win.hide();
+        return;
+      }
+      // Windows/Linux: confirm before closing (which triggers quit)
+      if (process.platform !== "darwin" && !this.#quitConfirmed) {
+        e.preventDefault();
+        if (this.#showingQuitDialog) return;
+        this.#showQuitConfirmation(() => {
+          this.#quitConfirmed = true;
+          win.close();
+        });
+        return;
       }
     });
 
@@ -130,15 +161,31 @@ export class BrowserWindowManager implements IBrowserWindowManager {
   /**
    * Open a secondary window.
    * Singleton by windowType — focuses existing window of the same type.
+   * If the existing window was hidden (hideOnClose), show+focus instead of creating.
    * Renderer reads `windowType` and `windowId` from URL params.
    */
   open(options: OpenWindowOptions): void {
-    const { windowType, width = 800, height = 600, title, parent = false } = options;
+    const {
+      windowType,
+      width = 800,
+      height = 600,
+      x,
+      y,
+      title,
+      parent = false,
+      alwaysOnTop = false,
+      skipTaskbar = false,
+      type: winType,
+      hideOnClose = false,
+    } = options;
 
-    // Singleton: focus existing window of the same type
+    // Singleton: focus/show existing window of the same type
     for (const [id, entry] of this.#windows) {
       if (entry.windowType === windowType) {
         if (!entry.win.isDestroyed()) {
+          if (!entry.win.isVisible()) {
+            entry.win.show();
+          }
           entry.win.focus();
           return;
         }
@@ -150,8 +197,13 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     const win = new BrowserWindow({
       width,
       height,
+      ...(x !== undefined && y !== undefined ? { x, y } : {}),
       title: title ?? windowType,
       show: false,
+      alwaysOnTop,
+      skipTaskbar,
+      ...(winType ? { type: winType } : {}),
+      autoHideMenuBar: true,
       ...(parent && this.#mainWindow ? { parent: this.#mainWindow } : {}),
       webPreferences: {
         preload: join(__dirname, "../preload/index.js"),
@@ -166,15 +218,56 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     const params = new URLSearchParams({ windowId, windowType, ...safeParams });
     this.#loadURL(win, params);
 
-    win.on("closed", () => this.#windows.delete(windowId));
+    if (hideOnClose) {
+      win.on("close", (e) => {
+        if (!this.#isQuitting) {
+          e.preventDefault();
+          win.hide();
+        }
+      });
+    } else {
+      win.on("closed", () => this.#windows.delete(windowId));
+    }
+
     win.webContents.on("did-fail-load", () => {
       this.#windows.delete(windowId);
-      if (!win.isDestroyed()) win.close();
+      if (!win.isDestroyed()) win.destroy();
     });
 
     this.#pipeConsole(win);
     this.#fixDevToolsFonts(win);
     this.#windows.set(windowId, { win, windowType });
+  }
+
+  /**
+   * Toggle a secondary window — show if hidden/unfocused, hide if focused.
+   * Returns true if the window is now visible.
+   */
+  toggle(windowType: string): boolean {
+    for (const [, entry] of this.#windows) {
+      if (entry.windowType === windowType && !entry.win.isDestroyed()) {
+        if (entry.win.isVisible() && entry.win.isFocused()) {
+          entry.win.hide();
+          return false;
+        }
+        if (!entry.win.isVisible()) {
+          entry.win.show();
+        }
+        entry.win.focus();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Get a secondary window by windowType */
+  getByType(windowType: string): BrowserWindow | null {
+    for (const [, entry] of this.#windows) {
+      if (entry.windowType === windowType && !entry.win.isDestroyed()) {
+        return entry.win;
+      }
+    }
+    return null;
   }
 
   close(windowId: string): void {
@@ -198,13 +291,35 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     if (!mainWindow) return;
     const display = screen.getDisplayMatching(mainWindow.getBounds());
     const maxWidth = display.workAreaSize.width;
-    const capped = Math.min(minWidth, maxWidth);
+    const capped = Math.max(Math.min(minWidth, maxWidth), MAIN_WINDOW_MIN_WIDTH);
     const [currentWidth, currentHeight] = mainWindow.getSize();
     const [, currentMinHeight] = mainWindow.getMinimumSize();
     mainWindow.setMinimumSize(capped, currentMinHeight);
     if (currentWidth < capped) {
       mainWindow.setSize(capped, currentHeight);
     }
+  }
+
+  #showQuitConfirmation(onConfirm: () => void): void {
+    this.#showingQuitDialog = true;
+    const win = this.#mainWindow && !this.#mainWindow.isDestroyed() ? this.#mainWindow : undefined;
+    if (win && !win.isVisible()) win.show();
+
+    const opts: Electron.MessageBoxOptions = {
+      type: "question",
+      title: `Quit ${APP_NAME}?`,
+      message: `Quit ${APP_NAME}?`,
+      detail: "Any running sessions will be interrupted.",
+      buttons: ["Cancel", "Quit Anyway"],
+      defaultId: 0,
+      cancelId: 0,
+    };
+
+    const promise = win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+    promise.then(({ response }) => {
+      this.#showingQuitDialog = false;
+      if (response === 1) onConfirm();
+    });
   }
 
   /** Check that saved bounds overlap at least partially with a connected display. */

@@ -5,6 +5,7 @@ import type { EditorEvent } from "../../../shared/plugins/editor/contract";
 import type { PluginContext } from "../../core/plugin/types";
 
 import { CodeServerManager, ExtensionBridgeServer } from "./utils";
+import { waitForConnect } from "./utils/bridge";
 
 const log = debug("neovate:editor:router");
 
@@ -41,14 +42,24 @@ export function createEditorRouter(
         };
       }
     }),
-    connect: orpcServer.handler(() => {
-      log("waiting for extension bridge ping");
-      return new Promise((resolve) => {
-        extBridge.register("ping", async () => {
-          log("extension bridge connected");
-          resolve({});
-        });
-      });
+    connect: orpcServer.handler(async () => {
+      log("waiting for extension bridge notification");
+      try {
+        const res = await waitForConnect(extBridge);
+        log("extension bridge connected", res);
+        return { success: true, data: res };
+      } catch (error) {
+        log("extension bridge failed", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }),
+    ping: orpcServer.handler(async ({ input }) => {
+      const { cwd } = input as { cwd: string };
+      const connected = extBridge.isConnected(cwd);
+      return { connected };
     }),
     open: orpcServer.handler(async ({ input }) => {
       log("open file", input);

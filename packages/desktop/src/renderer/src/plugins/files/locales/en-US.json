@@ -5,6 +5,9 @@
   "contextMenu.newFile": "New File",
   "contextMenu.newFolder": "New Folder",
   "contextMenu.rename": "Rename",
+  "contextMenu.copy": "Copy",
+  "contextMenu.cut": "Cut",
+  "contextMenu.paste": "Paste",
   "contextMenu.delete": "Delete",
   "confirmDelete": "Are you sure you want to delete {{fileName}}?",
   "newFilePlaceholder": "New file.txt",
@@ -13,6 +16,11 @@
   "delete.description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
   "error.deleteFailed": "Delete failed: {{error}}",
   "error.renameFailed": "Rename failed: {{error}}",
-  "error.createFileFailed": "Failed to create file",
-  "error.createFolderFailed": "Failed to create folder"
+  "error.createFileFailed": "Failed to create file: {{error}}",
+  "error.createFolderFailed": "Failed to create folder: {{error}}",
+  "error.copyFailed": "Copy failed: {{error}}",
+  "error.moveFailed": "Move failed: {{error}}",
+  "error.fileAlreadyExists": "File already exists",
+  "error.folderAlreadyExists": "Folder already exists",
+  "error.pathRequired": "Path is required"
 }

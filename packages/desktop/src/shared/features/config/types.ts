@@ -19,6 +19,8 @@ export type AppConfig = {
   terminalFontSize: number;
   terminalFont: string;
   developerMode: boolean;
+  showSessionInitStatus: boolean;
+  claudeCodeBinPath: string;
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: SidebarOrganize;
@@ -32,10 +34,23 @@ export type AppConfig = {
   tokenOptimization: boolean;
   networkInspector: boolean;
   keepAwake: boolean;
+  preWarmSessions: boolean;
+  /** Encoded "providerId:modelId" for auxiliary LLM calls (plugins, background tasks). Empty = not configured. */
+  auxiliaryModelSelection: string;
 
   // Keybindings
   keybindings: Record<string, string>;
 
+  // Popup Window
+  popupWindowEnabled: boolean;
+  popupWindowShortcut: string;
+  popupWindowStayOpen: boolean;
+
   // Skills
-  skillsRegistryUrls: string[];
+  skillsRegistries: SkillsRegistry[];
+  npmRegistry: string;
+};
+
+export type SkillsRegistry = {
+  url: string;
 };

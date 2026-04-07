@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { client } from "../../../orpc";
 import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
+import { isImeComposingKeyEvent } from "../utils/keyboard";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session-info-bar");
@@ -58,6 +59,8 @@ export function SessionInfoBar() {
           onChange={(e) => setRenameValue(e.target.value)}
           onBlur={handleSaveRename}
           onKeyDown={(e) => {
+            if (isImeComposingKeyEvent(e.nativeEvent)) return;
+
             if (e.key === "Enter") handleSaveRename();
             if (e.key === "Escape") setIsRenaming(false);
           }}

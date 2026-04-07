@@ -26,6 +26,7 @@ type ProviderState = {
     modelMap: { model?: string; haiku?: string; opus?: string; sonnet?: string };
     envOverrides?: Record<string, string>;
     builtInId?: string;
+    dismissedSyncModels?: string[];
   }) => Promise<Provider>;
   updateProvider: (id: string, updates: Partial<Omit<Provider, "id">>) => Promise<Provider>;
   removeProvider: (id: string) => Promise<void>;

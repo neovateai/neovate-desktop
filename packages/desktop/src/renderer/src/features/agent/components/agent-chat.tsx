@@ -36,6 +36,7 @@ import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
 import { useScrollPosition } from "../hooks/use-scroll-position";
+import { useSessionLifecycleSubscription } from "../hooks/use-session-lifecycle-subscription";
 import { BranchSwitcher } from "./branch-switcher";
 import { ContextLeft } from "./context-left";
 import { MessageInput } from "./message-input";
@@ -99,13 +100,17 @@ export function AgentChat() {
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
   const setAgentSessions = useAgentStore((s) => s.setAgentSessions);
-  const sessions = useAgentStore((s) => s.sessions);
+  const hasActiveChat = useAgentStore((s) => {
+    if (!s.activeSessionId) return false;
+    const session = s.sessions.get(s.activeSessionId);
+    return session != null && !session.isNew;
+  });
   const sessionInitError = useAgentStore((s) => s.sessionInitError);
   const setSessionInitError = useAgentStore((s) => s.setSessionInitError);
 
   const { createNewSession } = useNewSession();
 
-  const activeSession = activeSessionId ? sessions.get(activeSessionId) : undefined;
+  useSessionLifecycleSubscription(cwd);
 
   // Track the project path we last initialized for
   const initializedPathRef = useRef<string | null>(null);
@@ -177,6 +182,7 @@ export function AgentChat() {
     createNewSession(activeProjectPath)
       .then((sessionId) => {
         chatLog("effect[auto-create]: session created sessionId=%s", sessionId);
+        // Don't pre-warm here — this session is itself unused. Pre-warm triggers on first message send.
       })
       .catch((error) => {
         chatLog(
@@ -204,6 +210,12 @@ export function AgentChat() {
       files: files.length > 0 ? files : undefined,
       metadata: { sessionId: activeSessionId, parentToolUseId: null },
     });
+
+    // This handleSend is only reachable from the welcome panel (isNew state).
+    // Pre-warm a replacement session in the background for the next "New Chat".
+    if (activeProjectPath) {
+      claudeCodeChatManager.preWarmForProject(activeProjectPath);
+    }
   };
 
   const sessionInitializing = !!activeProjectPath && !activeSessionId;
@@ -226,7 +238,7 @@ export function AgentChat() {
   }
 
   // State 2: No session yet (or new empty session) — show welcome panel with input
-  if (!activeSession || activeSession.isNew) {
+  if (!hasActiveChat) {
     return (
       <div className="flex h-full flex-col">
         <WelcomePanel hasProject />
@@ -250,25 +262,11 @@ export function AgentChat() {
   }
 
   // State 3: Active session — full chat
-  return (
-    <AgentChatSession
-      key={activeSessionId}
-      sessionId={activeSessionId!}
-      cwd={cwd}
-      tasks={activeSession?.tasks}
-    />
-  );
+  return <AgentChatSession key={activeSessionId} sessionId={activeSessionId!} cwd={cwd} />;
 }
 
-function AgentChatSession({
-  sessionId,
-  cwd,
-  tasks,
-}: {
-  sessionId: string;
-  cwd: string;
-  tasks: Map<string, import("../store").TaskState>;
-}) {
+function AgentChatSession({ sessionId, cwd }: { sessionId: string; cwd: string }) {
+  const tasks = useAgentStore((s) => s.sessions.get(sessionId)?.tasks);
   const { messages, status, error, pendingRequests, sendMessage, stop } =
     useClaudeCodeChat(sessionId);
   const hasPendingRequest = pendingRequests.length > 0;
@@ -312,6 +310,8 @@ function AgentChatSession({
                 (status !== "streaming" && status !== "submitted") || i !== messages.length - 1
               }
               renderToolPart={(_partMessage, part) => <ClaudeCodeToolUIPart part={part} />}
+              sessionId={sessionId}
+              isStreaming={status === "streaming" || status === "submitted"}
             />
           ))}
         </ConversationContent>

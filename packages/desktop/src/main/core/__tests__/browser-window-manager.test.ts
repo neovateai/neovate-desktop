@@ -67,13 +67,13 @@ describe("BrowserWindowManager.ensureMinWidth", () => {
     expect(win.setSize).not.toHaveBeenCalled();
   });
 
-  it("lowers minimum size when panels collapse", () => {
+  it("never lowers minimum size below 900 even when panels collapse", () => {
     const win = mockBrowserWindow(1200, 800, 1000, 600);
     const manager = createManagerWithWindow(win);
 
     manager.ensureMinWidth(700);
 
-    expect(win.setMinimumSize).toHaveBeenCalledWith(700, 600);
+    expect(win.setMinimumSize).toHaveBeenCalledWith(783, 600);
     expect(win.setSize).not.toHaveBeenCalled();
   });
 

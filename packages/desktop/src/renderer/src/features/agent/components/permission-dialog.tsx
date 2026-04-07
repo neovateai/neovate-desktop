@@ -13,6 +13,7 @@ import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useAgentStore } from "../store";
 import { AskUserQuestionRequestDialog } from "./ask-user-question-request-dialog";
 import { ExitPlanModeRequestDialog } from "./exit-plan-mode-request-dialog";
+import { GradientBorderWrapper } from "./gradient-border-wrapper";
 import { PermissionRequestDialog } from "./permission-request-dialog";
 
 const chatLog = debug("neovate:agent-chat");
@@ -169,5 +170,9 @@ export function PermissionDialog({ sessionId }: Props) {
     );
   }
 
-  return <div className="relative z-10 mx-4 min-w-0 max-w-full">{content}</div>;
+  return (
+    <div className="relative z-10 mx-4 min-w-0 max-w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <GradientBorderWrapper>{content}</GradientBorderWrapper>
+    </div>
+  );
 }

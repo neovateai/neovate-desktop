@@ -2,15 +2,23 @@ import { consumeEventIterator } from "@orpc/client";
 import { ContractRouterClient } from "@orpc/contract";
 import debug from "debug";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { editorContract, EditorOpenOption } from "../../../../shared/plugins/editor/contract";
+import {
+  editorContract,
+  EditorOpenOption,
+  IEditorTab,
+} from "../../../../shared/plugins/editor/contract";
 import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { useAliveConnection } from "./hooks/useAliveConnection";
+import { useWebview } from "./hooks/useWebview";
+import { useEditorTranslation } from "./i18n";
 import { ErrorState, LoadingState } from "./status";
 import { EditorStatus } from "./type";
-import { handleEditorEvents } from "./utils";
+import { handleEditorEvents } from "./utils/events";
+import { executeInject } from "./utils/injector";
 
 const log = debug("neovate:editor:view");
 
@@ -20,28 +28,66 @@ function EditorViewCore(props: { cwd: string }) {
   const { cwd = "" } = props;
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [status, setStatus] = useState<EditorStatus>("idle");
+  const [tabs, setTabs] = useState<IEditorTab[]>([]);
   const initRef = useRef(false);
   const [extReady, seExtReady] = useState(false); // vscode 扩展就绪情况
   const { resolvedTheme } = useTheme();
+  const { t } = useEditorTranslation();
 
   const { orpcClient } = usePluginContext();
   const client = orpcClient as EditorClient;
+
+  const { webviewRef } = useWebview(serverUrl, (instance) => {
+    executeInject(instance);
+  });
+
+  const initEditor = async () => {
+    if (status === "starting") return;
+    initRef.current = true;
+
+    await startEditor();
+    const res = await client.editor.connect();
+    if (res.success) {
+      log("extension bridge connected");
+      seExtReady(true);
+    } else {
+      log("extension bridge failed", res.error);
+      setError(res.error || t("editor.overlay.connectFailed"));
+      setStatus("error");
+    }
+  };
+
+  const handleRetry = () => {
+    // 重置所有状态，触发 webview 刷新
+    setServerUrl(null);
+    seExtReady(false);
+    setTabs([]);
+    initRef.current = false;
+    initEditor();
+  };
 
   useEffect(() => {
     if (!cwd) {
       return;
     }
     if (initRef.current && status === "ready") return;
-    initRef.current = true;
 
-    startEditor();
-    client.editor.connect().then(() => {
-      log("extension bridge connected");
-      seExtReady(true);
-    });
+    initEditor();
   }, [cwd]);
+
+  // 暴露 mock 方法用于测试错误状态
+  // useEffect(() => {
+  //   window.mockEditorError = (errorMessage = "Mock error for testing") => {
+  //     log("mock editor error triggered:", errorMessage);
+  //     setError(errorMessage);
+  //     setStatus("error");
+  //     seExtReady(false);
+  //   };
+  //   return () => {
+  //     delete window.mockEditorError;
+  //   };
+  // }, []);
 
   useEffect(() => {
     if (extReady) {
@@ -56,10 +102,29 @@ function EditorViewCore(props: { cwd: string }) {
 
   useEffect(() => {
     if (extReady) {
-      log("setting theme", { theme: resolvedTheme });
       client.editor.setTheme({ cwd, theme: resolvedTheme || "dark" });
     }
   }, [resolvedTheme, extReady]);
+
+  const handleDisconnect = useCallback(() => {
+    log("heartbeat failed, connection lost");
+    setError(t("editor.overlay.connectionLost"));
+    setStatus("error");
+    seExtReady(false);
+  }, [t]);
+
+  const checkConnection = useCallback(async () => {
+    const res = await client.editor.ping({ cwd });
+    return res;
+  }, [client.editor, cwd]);
+
+  useAliveConnection({
+    checkFn: checkConnection,
+    isAlive: (res) => res.connected,
+    interval: 15000,
+    enabled: extReady && !!cwd,
+    onDisconnect: handleDisconnect,
+  });
 
   const initExtensionHandlers = () => {
     const disposable: Array<() => void> = [];
@@ -72,7 +137,11 @@ function EditorViewCore(props: { cwd: string }) {
     const cancel = consumeEventIterator(client.editor.events({ cwd }), {
       onEvent: (e) => {
         log("editor events received", e);
-        handleEditorEvents(e);
+        handleEditorEvents(e, {
+          onTabsChange: (newTabs) => {
+            setTabs(newTabs);
+          },
+        });
       },
       onError: (e) => {
         log("editor events error", e);
@@ -101,12 +170,13 @@ function EditorViewCore(props: { cwd: string }) {
           line = 1,
           focus = false,
         } = (e as CustomEvent<EditorOpenOption>)?.detail || {};
+        // console.log("打开编辑器事件", e);
         openInEditor({ fullPath, line, focus });
       };
       window.addEventListener("neovate:open-editor", openEditorEvent);
 
       return () => {
-        window.addEventListener("neovate:open-editor", openEditorEvent);
+        window.removeEventListener("neovate:open-editor", openEditorEvent);
       };
     }
   };
@@ -167,7 +237,7 @@ function EditorViewCore(props: { cwd: string }) {
 
   const renderHolder = () => {
     if (status === "error" && error) {
-      return <ErrorState message={error} onRetry={startEditor} />;
+      return <ErrorState message={error} onRetry={handleRetry} />;
     }
     if (status !== "ready" || !serverUrl) {
       return <LoadingState status={status} />;
@@ -175,17 +245,46 @@ function EditorViewCore(props: { cwd: string }) {
     return null;
   };
 
+  const renderOverlay = () => {
+    if (status === "starting" || !serverUrl || tabs.length > 0) {
+      return null;
+    }
+
+    const message = !extReady
+      ? t("editor.overlay.extensionPreparing")
+      : t("editor.overlay.noFileOpened");
+
+    return (
+      <div className="absolute inset-0 z-10 bg-card backdrop-blur-sm flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src={
+              resolvedTheme === "dark"
+                ? "https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*hgaTTZvoTicAAAAAQDAAAAgAenyRAQ/original"
+                : "https://mdn.alipayobjects.com/huamei_puljkc/afts/img/A*Wrd1TL3S_pYAAAAAQFAAAAgAenyRAQ/original"
+            }
+            alt="Editor Logo"
+            className="w-32 h-24 object-contain"
+          />
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {renderHolder()}
       {!!serverUrl && (
-        <iframe
-          ref={iframeRef}
-          src={serverUrl}
-          title="Code Editor"
-          className={`flex-1 w-full h-full border-0 bg-background min-h-0 block`}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-        />
+        <div className="relative flex-1 w-full h-full">
+          <webview
+            ref={webviewRef}
+            src={serverUrl}
+            title="Code Editor"
+            className="absolute inset-0 w-full h-full border-0 bg-background"
+          />
+          {renderOverlay()}
+        </div>
       )}
     </>
   );

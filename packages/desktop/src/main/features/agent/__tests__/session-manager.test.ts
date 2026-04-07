@@ -9,7 +9,7 @@ import type { ProjectStore } from "../../project/project-store";
 
 import { Pushable } from "../pushable";
 import { RequestTracker } from "../request-tracker";
-import { SessionManager, PERMISSION_TIMEOUT_MS } from "../session-manager";
+import { SessionManager } from "../session-manager";
 
 const makeStreamEventMsg = (event: any) => ({
   type: "stream_event" as const,
@@ -31,23 +31,6 @@ const makeMessageStartEvent = (id: string) => ({
     type: "message" as const,
     usage: { input_tokens: 10, output_tokens: 0 },
   },
-});
-
-const makeTextBlockStartEvent = (index: number) => ({
-  type: "content_block_start" as const,
-  index,
-  content_block: { type: "text" as const, text: "", citations: null },
-});
-
-const makeTextDeltaEvent = (index: number, text: string) => ({
-  type: "content_block_delta" as const,
-  index,
-  delta: { type: "text_delta" as const, text },
-});
-
-const makeBlockStopEvent = (index: number) => ({
-  type: "content_block_stop" as const,
-  index,
 });
 
 const makeResultMsg = () => ({
@@ -93,10 +76,6 @@ describe("SessionManager", () => {
     expect(sessions).toBeInstanceOf(Array);
   });
 
-  it("exports PERMISSION_TIMEOUT_MS", () => {
-    expect(PERMISSION_TIMEOUT_MS).toBeGreaterThan(0);
-  });
-
   it("enables partial assistant messages in query options", () => {
     const queryOptions = (manager as any).queryOptions({
       sessionId: "session-1",
@@ -106,7 +85,7 @@ describe("SessionManager", () => {
     expect(queryOptions.includePartialMessages).toBe(true);
   });
 
-  it("streams text chunks incrementally from stream_event messages", async () => {
+  it("send() converts UIMessage to SDKUserMessage and pushes to input", async () => {
     const input = { push: vi.fn() };
     const queryMessages = new Pushable<any>();
     const queryIterator = queryMessages[Symbol.asyncIterator]();
@@ -120,70 +99,16 @@ describe("SessionManager", () => {
       input,
       query,
       cwd: "/tmp/project",
+      consumeExited: false,
+      uiToSdkMessageIds: new Map(),
       pendingRequests: new Map(),
     });
 
-    const stream = manager.stream("session-1", {
+    await manager.send("session-1", {
       id: "user-msg-1",
       role: "user",
       parts: [{ type: "text", text: "Hello" }],
     } as any);
-
-    const firstChunkPromise = stream.next();
-    queryMessages.push(makeStreamEventMsg(makeMessageStartEvent("msg-stream")));
-
-    await expect(firstChunkPromise).resolves.toMatchObject({
-      done: false,
-      value: { type: "start", messageId: "msg-stream" },
-    });
-    await expect(stream.next()).resolves.toMatchObject({
-      done: false,
-      value: { type: "start-step" },
-    });
-
-    const textStartPromise = stream.next();
-    queryMessages.push(makeStreamEventMsg(makeTextBlockStartEvent(0)));
-    await expect(textStartPromise).resolves.toMatchObject({
-      done: false,
-      value: { type: "text-start", id: "text:msg-stream:0" },
-    });
-
-    const firstDeltaPromise = stream.next();
-    queryMessages.push(makeStreamEventMsg(makeTextDeltaEvent(0, "Hel")));
-    await expect(firstDeltaPromise).resolves.toMatchObject({
-      done: false,
-      value: { type: "text-delta", id: "text:msg-stream:0", delta: "Hel" },
-    });
-
-    const secondDeltaPromise = stream.next();
-    queryMessages.push(makeStreamEventMsg(makeTextDeltaEvent(0, "lo")));
-    await expect(secondDeltaPromise).resolves.toMatchObject({
-      done: false,
-      value: { type: "text-delta", id: "text:msg-stream:0", delta: "lo" },
-    });
-
-    const textEndPromise = stream.next();
-    queryMessages.push(makeStreamEventMsg(makeBlockStopEvent(0)));
-    await expect(textEndPromise).resolves.toMatchObject({
-      done: false,
-      value: { type: "text-end", id: "text:msg-stream:0" },
-    });
-
-    const finishStepPromise = stream.next();
-    queryMessages.push(makeResultMsg());
-    await expect(finishStepPromise).resolves.toMatchObject({
-      done: false,
-      value: { type: "finish-step" },
-    });
-    await expect(stream.next()).resolves.toMatchObject({
-      done: false,
-      value: { type: "finish" },
-    });
-    await expect(stream.next()).resolves.toMatchObject({
-      done: false,
-      value: { type: "data-result/success" },
-    });
-    await expect(stream.next()).resolves.toMatchObject({ done: true, value: undefined });
 
     expect(input.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -193,5 +118,175 @@ describe("SessionManager", () => {
         session_id: "session-1",
       }),
     );
+  });
+
+  it("send() throws for unknown sessionId", async () => {
+    await expect(
+      manager.send("nonexistent", {
+        id: "msg-1",
+        role: "user",
+        parts: [{ type: "text", text: "Hello" }],
+      } as any),
+    ).rejects.toThrow("Unknown session");
+  });
+
+  it("send() throws if consume loop has exited", async () => {
+    const input = { push: vi.fn() };
+    const queryMessages = new Pushable<any>();
+    const queryIterator = queryMessages[Symbol.asyncIterator]();
+    const query = {
+      next: () => queryIterator.next(),
+      interrupt: vi.fn(),
+      setPermissionMode: vi.fn(),
+    };
+
+    (manager as any).sessions.set("session-1", {
+      input,
+      query,
+      cwd: "/tmp/project",
+      consumeExited: true,
+      pendingRequests: new Map(),
+    });
+
+    await expect(
+      manager.send("session-1", {
+        id: "msg-1",
+        role: "user",
+        parts: [{ type: "text", text: "Hello" }],
+      } as any),
+    ).rejects.toThrow("consume loop has exited");
+  });
+
+  it("send() starts requestTracker turn and powerBlocker", async () => {
+    const input = { push: vi.fn() };
+    const queryMessages = new Pushable<any>();
+    const queryIterator = queryMessages[Symbol.asyncIterator]();
+    const query = {
+      next: () => queryIterator.next(),
+      interrupt: vi.fn(),
+      setPermissionMode: vi.fn(),
+    };
+
+    (manager as any).sessions.set("session-1", {
+      input,
+      query,
+      cwd: "/tmp/project",
+      consumeExited: false,
+      uiToSdkMessageIds: new Map(),
+      pendingRequests: new Map(),
+    });
+
+    await manager.send("session-1", {
+      id: "user-msg-1",
+      role: "user",
+      parts: [{ type: "text", text: "Hello" }],
+    } as any);
+
+    expect((manager as any).powerBlocker.onTurnStart).toHaveBeenCalledWith("session-1");
+  });
+
+  it("consume() publishes chunks through eventPublisher", async () => {
+    const input = { push: vi.fn() };
+    const queryMessages = new Pushable<any>();
+    const queryIterator = queryMessages[Symbol.asyncIterator]();
+    const query = {
+      next: () => queryIterator.next(),
+      interrupt: vi.fn(),
+      setPermissionMode: vi.fn(),
+    };
+
+    (manager as any).sessions.set("session-1", {
+      input,
+      query,
+      cwd: "/tmp/project",
+      consumeExited: false,
+      uiToSdkMessageIds: new Map(),
+      pendingRequests: new Map(),
+    });
+
+    const published: any[] = [];
+    const originalPublish = manager.eventPublisher.publish.bind(manager.eventPublisher);
+    vi.spyOn(manager.eventPublisher, "publish").mockImplementation((key, value) => {
+      published.push(value);
+      return originalPublish(key, value);
+    });
+
+    const consumePromise = (manager as any).consume("session-1");
+
+    // Push a message_start event
+    queryMessages.push(makeStreamEventMsg(makeMessageStartEvent("msg-1")));
+    // Allow microtask processing
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Push result to end the loop
+    queryMessages.push(makeResultMsg());
+    // End the query iterator
+    queryMessages.end();
+
+    await consumePromise;
+
+    // Should have published chunk events
+    const chunkEvents = published.filter((e) => e.kind === "chunk");
+    expect(chunkEvents.length).toBeGreaterThan(0);
+    expect(chunkEvents[0]).toMatchObject({ kind: "chunk", chunk: { type: "start" } });
+
+    // Should have published context_usage event on result
+    const contextUsageEvents = published.filter(
+      (e) => e.kind === "event" && e.event.type === "context_usage",
+    );
+    expect(contextUsageEvents.length).toBe(1);
+  });
+
+  it("consume() sets consumeExited when done", async () => {
+    const input = { push: vi.fn() };
+    const queryMessages = new Pushable<any>();
+    const queryIterator = queryMessages[Symbol.asyncIterator]();
+    const query = {
+      next: () => queryIterator.next(),
+      interrupt: vi.fn(),
+      setPermissionMode: vi.fn(),
+    };
+
+    (manager as any).sessions.set("session-1", {
+      input,
+      query,
+      cwd: "/tmp/project",
+      consumeExited: false,
+      uiToSdkMessageIds: new Map(),
+      pendingRequests: new Map(),
+    });
+
+    const consumePromise = (manager as any).consume("session-1");
+    queryMessages.end();
+    await consumePromise;
+
+    const session = (manager as any).sessions.get("session-1");
+    expect(session.consumeExited).toBe(true);
+  });
+
+  it("consume() calls powerBlocker.onTurnEnd in finally block", async () => {
+    const input = { push: vi.fn() };
+    const queryMessages = new Pushable<any>();
+    const queryIterator = queryMessages[Symbol.asyncIterator]();
+    const query = {
+      next: () => queryIterator.next(),
+      interrupt: vi.fn(),
+      setPermissionMode: vi.fn(),
+    };
+
+    (manager as any).sessions.set("session-1", {
+      input,
+      query,
+      cwd: "/tmp/project",
+      consumeExited: false,
+      uiToSdkMessageIds: new Map(),
+      pendingRequests: new Map(),
+    });
+
+    const consumePromise = (manager as any).consume("session-1");
+    queryMessages.end();
+    await consumePromise;
+
+    expect((manager as any).powerBlocker.onTurnEnd).toHaveBeenCalledWith("session-1");
   });
 });

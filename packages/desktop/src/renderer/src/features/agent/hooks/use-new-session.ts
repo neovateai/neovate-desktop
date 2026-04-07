@@ -23,6 +23,9 @@ export function useNewSession() {
       if (existing) {
         newSessionLog("createNewSession: reusing pre-warmed session %s", existing);
         setActiveSession(existing);
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent("neovate:focus-input"));
+        });
         return existing;
       }
 
@@ -52,41 +55,14 @@ export function useNewSession() {
         true,
       );
 
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent("neovate:focus-input"));
+      });
+
       return sessionId;
     },
     [setActiveSession, setSessionInitError],
   );
 
-  /** Pre-warm a new empty session in the background (no activation). */
-  const preWarmSession = useCallback(async (cwd: string) => {
-    const projectPath = cwd || useProjectStore.getState().activeProject?.path;
-    if (!projectPath) return;
-
-    // Already have one warming up
-    if (findPreWarmedSession(projectPath)) {
-      newSessionLog("preWarmSession: already have a pre-warmed session, skipping");
-      return;
-    }
-
-    newSessionLog("preWarmSession: creating background session cwd=%s", cwd);
-    try {
-      const { sessionId, commands, models, currentModel, modelScope, providerId } =
-        await claudeCodeChatManager.createSession(cwd);
-      newSessionLog("preWarmSession: created %s currentModel=%s", sessionId, currentModel);
-
-      registerSessionInStore(
-        sessionId,
-        projectPath,
-        { commands, models, currentModel, modelScope, providerId },
-        false,
-      );
-    } catch (error) {
-      newSessionLog(
-        "preWarmSession: FAILED error=%s",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }, []);
-
-  return { createNewSession, preWarmSession };
+  return { createNewSession };
 }

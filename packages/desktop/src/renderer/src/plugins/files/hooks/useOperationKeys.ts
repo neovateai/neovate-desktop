@@ -1,16 +1,16 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export function useOperationKeys() {
   const [keys, setKeys] = useState<Set<string>>(new Set());
   const keysRef = useRef<Set<string>>(new Set());
 
-  const add = (key: string) => {
+  const add = useCallback((key: string) => {
     keysRef.current.add(key);
     setKeys(new Set(keysRef.current));
     return keysRef.current;
-  };
+  }, []);
 
-  const remove = (key: string, deep = false) => {
+  const remove = useCallback((key: string, deep = false) => {
     keysRef.current.delete(key);
     if (deep) {
       const toDelete = [...keysRef.current].filter((k) => k.startsWith(key + "/"));
@@ -19,29 +19,29 @@ export function useOperationKeys() {
       }
     }
     setKeys(new Set(keysRef.current));
-  };
+  }, []);
 
-  const replace = (oldKey: string, newKey: string) => {
+  const replace = useCallback((oldKey: string, newKey: string) => {
     if (keysRef.current.has(oldKey)) {
       keysRef.current.delete(oldKey);
       keysRef.current.add(newKey);
     }
     setKeys(new Set(keysRef.current));
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     keysRef.current.clear();
     setKeys(new Set());
-  };
+  }, []);
 
-  const only = (key: string) => {
+  const only = useCallback((key: string) => {
     keysRef.current = new Set([key]);
     setKeys(new Set(keysRef.current));
-  };
+  }, []);
 
-  const has = (key: string) => {
+  const has = useCallback((key: string) => {
     return keysRef.current.has(key);
-  };
+  }, []);
 
   return { keys, size: keys.size, has, add, remove, replace, reset, only };
 }

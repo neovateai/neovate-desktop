@@ -10,13 +10,23 @@ import type { PreviewSkill } from "../../../../shared/features/skills/types";
 import type { SkillInstaller } from "./types";
 
 import { shellEnvService } from "../../../core/shell-service";
-import { deriveInstallName, resolveSkillSource, scanSkillDirs } from "../skill-utils";
+import {
+  deriveInstallName,
+  findSkillPath,
+  resolveSkillSource,
+  scanSkillDirs,
+} from "../skill-utils";
 
 const execFileAsync = promisify(execFile);
 const log = debug("neovate:skills:npm");
 
 export class NpmInstaller implements SkillInstaller {
   private previewDirs = new Map<string, { tmpDir: string; sourceRef: string }>();
+  private getDefaultRegistry: () => string | undefined;
+
+  constructor(getDefaultRegistry?: () => string | undefined) {
+    this.getDefaultRegistry = getDefaultRegistry ?? (() => undefined);
+  }
 
   detect(sourceRef: string): boolean {
     if (sourceRef.startsWith("npm:")) return true;
@@ -25,7 +35,7 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   async scan(sourceRef: string): Promise<{ previewId: string; skills: PreviewSkill[] }> {
-    const { pkg, registry } = this.parseSourceRef(sourceRef);
+    const { pkg, registry } = this.resolveRegistry(sourceRef);
     log("scan", { pkg, registry: registry ?? "default" });
     const previewId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${previewId}`);
@@ -41,7 +51,7 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   async install(sourceRef: string, skillName: string, targetDir: string): Promise<void> {
-    const { pkg, registry } = this.parseSourceRef(sourceRef);
+    const { pkg, registry } = this.resolveRegistry(sourceRef);
     log("install", { pkg, skillName, targetDir, registry: registry ?? "default" });
     const tmpId = randomUUID();
     const tmpDir = path.join(tmpdir(), `neovate-skill-preview-${tmpId}`);
@@ -50,7 +60,8 @@ export class NpmInstaller implements SkillInstaller {
     try {
       await this.fetchAndExtract(pkg, tmpDir, registry);
       const extractedDir = path.join(tmpDir, "package");
-      const src = resolveSkillSource(extractedDir, skillName);
+      const skillPath = await findSkillPath(extractedDir, skillName);
+      const src = resolveSkillSource(extractedDir, skillPath);
       const destName = deriveInstallName(skillName, sourceRef);
       const dest = path.join(targetDir, destName);
       await cp(src, dest, { recursive: true });
@@ -91,7 +102,7 @@ export class NpmInstaller implements SkillInstaller {
   }
 
   async getLatestVersion(sourceRef: string): Promise<string | undefined> {
-    const { pkg: rawPkg, registry } = this.parseSourceRef(sourceRef);
+    const { pkg: rawPkg, registry } = this.resolveRegistry(sourceRef);
     const pkg = rawPkg.replace(/@[\d.]+$/, "");
     log("getLatestVersion", { pkg, registry: registry ?? "default" });
     try {
@@ -106,6 +117,11 @@ export class NpmInstaller implements SkillInstaller {
     } catch {
       return undefined;
     }
+  }
+
+  private resolveRegistry(sourceRef: string): { pkg: string; registry?: string } {
+    const { pkg, registry } = this.parseSourceRef(sourceRef);
+    return { pkg, registry: registry ?? this.getDefaultRegistry() };
   }
 
   private parseSourceRef(sourceRef: string): { pkg: string; registry?: string } {

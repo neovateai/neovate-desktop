@@ -1,7 +1,8 @@
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
-import type { ChatInit } from "ai";
+import type { ChatInit, ChatRequestOptions, FileUIPart } from "ai";
 
 import { consumeEventIterator } from "@orpc/client";
+import { convertFileListToFileUIParts } from "ai";
 import { AbstractChat } from "ai";
 import debug from "debug";
 import { StoreApi } from "zustand";
@@ -18,6 +19,11 @@ import type {
 import type { ClaudeCodeChatTransport } from "./chat-transport";
 
 import { ClaudeCodeChatState, ClaudeCodeChatStoreState } from "./chat-state";
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  type StreamingUIMessageState,
+} from "./process-ui-message-stream";
 import { useAgentStore } from "./store";
 
 export interface ClaudeCodeChatInit extends Omit<ChatInit<ClaudeCodeUIMessage>, "transport"> {
@@ -30,9 +36,11 @@ export interface ClaudeCodeChatInit extends Omit<ChatInit<ClaudeCodeUIMessage>, 
 export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   readonly store: StoreApi<ClaudeCodeChatStoreState>;
   readonly #transport: ClaudeCodeChatTransport;
+  readonly #state: ClaudeCodeChatState;
+  #streamingState: StreamingUIMessageState<ClaudeCodeUIMessage> | null = null;
+  #messageIndex = -1;
 
   #unsubscribe?: () => Promise<void>;
-
   #unsubscribeStore?: () => void;
 
   constructor({
@@ -53,7 +61,16 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
 
     this.store = state.store;
     this.#transport = transport;
+    this.#state = state;
+
     log("init: sessionId=%s messages=%d", id, messages?.length ?? 0);
+
+    // AbstractChat defines sendMessage/stop as arrow properties in its constructor,
+    // which shadow prototype methods. Reassign to our implementations after super().
+    this.sendMessage = this._sendMessage;
+    this.stop = this._stop;
+
+    // ── Subscribe to events (single long-lived connection) ────────────
     this.#unsubscribe = consumeEventIterator(transport.subscribe({ chatId: id }), {
       onEvent: (event) => this.#handleMessage(event),
       onError: (error) => {
@@ -66,6 +83,7 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       },
     });
 
+    // ── Status change callbacks ───────────────────────────────────────
     if (onTurnComplete || onTurnStart) {
       let prev = this.store.getState().status;
       this.#unsubscribeStore = this.store.subscribe((cur) => {
@@ -89,7 +107,21 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     }
   }
 
-  #handleMessage(message: ClaudeCodeUIEvent) {
+  // ── Event handling (subscribe channel) ──────────────────────────────
+
+  async #handleMessage(message: ClaudeCodeUIEvent) {
+    if (message.kind === "user_message") {
+      this.#state.pushMessage(message.message);
+      const text = message.message.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join("");
+      if (text) {
+        useAgentStore.getState().addUserMessage(this.id, text);
+      }
+      return;
+    }
+
     if (message.kind === "request_settled") {
       this.store.setState((state) => ({
         pendingRequests: state.pendingRequests.filter((r) => r.requestId !== message.requestId),
@@ -115,6 +147,47 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       return;
     }
 
+    if (message.kind === "chunk") {
+      // Turn boundaries driven by SDKMessageTransformer native chunks:
+      // "start" chunk (emitted on system/init) → streaming
+      // "finish" chunk (emitted on result) → ready
+      if (message.chunk.type === "start") {
+        // Create streaming state per turn — matches AI SDK's AbstractChat.makeRequest()
+        this.#streamingState = createStreamingUIMessageState<ClaudeCodeUIMessage>({
+          lastMessage: undefined,
+          messageId: this.generateId(),
+        });
+        this.#messageIndex = -1;
+        this.#state.status = "streaming";
+      }
+      if (this.#streamingState) {
+        await processUIMessageStream<ClaudeCodeUIMessage>({
+          chunk: message.chunk,
+          state: this.#streamingState,
+          write: () => {
+            if (this.#messageIndex < 0) {
+              this.#state.pushMessage(this.#streamingState!.message);
+              this.#messageIndex = this.#state.messages.length - 1;
+            } else {
+              this.#state.replaceMessage(this.#messageIndex, this.#streamingState!.message);
+            }
+          },
+          onError: (error) => {
+            this.#state.error = error instanceof Error ? error : new Error(String(error));
+            this.#state.status = "error";
+          },
+        });
+      }
+      if (message.chunk.type === "finish") {
+        this.#streamingState = null;
+        // Don't overwrite error status — if onError was called, keep error state
+        if (this.#state.status !== "error") {
+          this.#state.status = "ready";
+        }
+      }
+      return;
+    }
+
     this.#handleEvent(message.event);
   }
 
@@ -134,6 +207,99 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       this.store.setState({ promptSuggestion: suggestion });
     }
   }
+
+  // ── sendMessage / stop (fire-and-forget, bypasses AbstractChat.makeRequest) ──
+
+  /**
+   * AI SDK 1:1 PORT — AbstractChat.sendMessage (ai/packages/ai/src/ui/chat.ts:335)
+   * Only change: makeRequest() replaced with transport.send() (fire-and-forget).
+   * To update: copy from AbstractChat.sendMessage in ai-sdk source, replace makeRequest() call.
+   */
+  private _sendMessage = async (
+    message?: Parameters<typeof this.sendMessage>[0],
+    _options?: ChatRequestOptions,
+  ) => {
+    if (message == null) {
+      // Re-submit last message (same as AI SDK's makeRequest with no new message)
+      const lastMsg = this.#state.messages.at(-1);
+      if (!lastMsg) return;
+      this.#state.status = "submitted";
+      try {
+        await this.#transport.send(this.id, lastMsg);
+      } catch (err: unknown) {
+        this.#state.status = "ready";
+        this.#state.error = err instanceof Error ? err : new Error(String(err));
+      }
+      return;
+    }
+
+    let uiMessage: Partial<ClaudeCodeUIMessage>;
+    if ("text" in message || "files" in message) {
+      const fileParts: FileUIPart[] = Array.isArray(message.files)
+        ? message.files
+        : await convertFileListToFileUIParts(message.files);
+      uiMessage = {
+        parts: [
+          ...fileParts,
+          ...("text" in message && message.text != null
+            ? [{ type: "text" as const, text: message.text }]
+            : []),
+        ],
+      };
+    } else {
+      uiMessage = message;
+    }
+
+    if (message.messageId != null) {
+      const messageIndex = this.#state.messages.findIndex((m) => m.id === message.messageId);
+      if (messageIndex === -1) {
+        throw new Error(`message with id ${message.messageId} not found`);
+      }
+      if (this.#state.messages[messageIndex].role !== "user") {
+        throw new Error(`message with id ${message.messageId} is not a user message`);
+      }
+      this.#state.messages = this.#state.messages.slice(0, messageIndex + 1);
+      this.#state.replaceMessage(messageIndex, {
+        ...uiMessage,
+        id: message.messageId,
+        role: uiMessage.role ?? "user",
+        metadata: message.metadata,
+      } as ClaudeCodeUIMessage);
+    } else {
+      this.#state.pushMessage({
+        ...uiMessage,
+        id: uiMessage.id ?? this.generateId(),
+        role: uiMessage.role ?? "user",
+        metadata: message.metadata,
+      } as ClaudeCodeUIMessage);
+    }
+
+    this.#state.status = "submitted";
+
+    // Fire and forget — subscribe handles the response (replaces makeRequest)
+    try {
+      const lastMsg = this.#state.messages.at(-1)!;
+      await this.#transport.send(this.id, lastMsg);
+    } catch (err: unknown) {
+      // Match AI SDK: message stays in state on send failure (no popMessage).
+      // User sees their message; error state signals the failure.
+      log(
+        "sendMessage: FAILED sessionId=%s error=%s",
+        this.id,
+        err instanceof Error ? err.message : String(err),
+      );
+      this.#state.status = "error";
+      this.#state.error = err instanceof Error ? err : new Error(String(err));
+    }
+  };
+
+  private _stop = async () => {
+    log("stop: sessionId=%s", this.id);
+    await this.dispatch({ kind: "interrupt" });
+    this.store.setState({ pendingRequests: [] });
+  };
+
+  // ── Methods unchanged ───────────────────────────────────────────────
 
   respondToRequest = async (
     requestId: string,

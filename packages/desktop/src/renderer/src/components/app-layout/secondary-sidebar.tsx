@@ -3,7 +3,7 @@ import { Activity, lazy, Suspense, useRef } from "react";
 
 import type { SecondarySidebarView } from "../../core/plugin/contributions";
 
-import { useRendererApp } from "../../core";
+import { useRendererApp } from "../../core/app";
 import { cn } from "../../lib/utils";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
 import { usePanelState, useLayoutStore } from "./store";
@@ -62,7 +62,7 @@ export function AppLayoutSecondarySidebar() {
   const { collapsed, width, isResizing } = usePanelState("secondarySidebar");
   const activeView = useLayoutStore((s) => s.panels.secondarySidebar?.activeView);
   const app = useRendererApp();
-  const views = app.pluginManager.viewContributions.secondarySidebarViews;
+  const views = app.pluginManager.viewContributions.secondarySidebarViews.map((c) => c.value);
   const lazyComponents = useLazyComponents(views);
 
   return (

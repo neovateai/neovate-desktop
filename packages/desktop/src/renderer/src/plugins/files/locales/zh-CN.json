@@ -5,6 +5,9 @@
   "contextMenu.newFile": "新建文件",
   "contextMenu.newFolder": "新建文件夹",
   "contextMenu.rename": "重命名",
+  "contextMenu.copy": "复制",
+  "contextMenu.cut": "剪切",
+  "contextMenu.paste": "粘贴",
   "contextMenu.delete": "删除",
   "confirmDelete": "确定要删除 {{fileName}} 吗？",
   "newFilePlaceholder": "新文件.txt",
@@ -13,6 +16,11 @@
   "delete.description": "确定要删除 \"{{name}}\" 吗？此操作无法撤销。",
   "error.deleteFailed": "删除失败：{{error}}",
   "error.renameFailed": "重命名失败：{{error}}",
-  "error.createFileFailed": "创建文件失败",
-  "error.createFolderFailed": "创建文件夹失败"
+  "error.createFileFailed": "创建文件失败：{{error}}",
+  "error.createFolderFailed": "创建文件夹失败：{{error}}",
+  "error.copyFailed": "复制失败：{{error}}",
+  "error.moveFailed": "移动失败：{{error}}",
+  "error.fileAlreadyExists": "文件已存在",
+  "error.folderAlreadyExists": "文件夹已存在",
+  "error.pathRequired": "路径不能为空"
 }

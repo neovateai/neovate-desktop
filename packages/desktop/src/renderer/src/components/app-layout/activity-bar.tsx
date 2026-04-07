@@ -1,6 +1,6 @@
 import type { ActivityBarItem } from "../../core/plugin/contributions";
 
-import { useRendererApp } from "../../core";
+import { useRendererApp } from "../../core/app";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { APP_LAYOUT_GRID_AREA } from "./constants";
@@ -41,7 +41,7 @@ function ActivityBarButton({ item }: { item: ActivityBarItem }) {
 
 export function AppLayoutActivityBar() {
   const app = useRendererApp();
-  const items = app.pluginManager.viewContributions.activityBarItems;
+  const items = app.pluginManager.viewContributions.activityBarItems.map((c) => c.value);
 
   return (
     <nav

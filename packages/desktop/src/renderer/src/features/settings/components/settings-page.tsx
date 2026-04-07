@@ -1,13 +1,15 @@
 import { useEffect, useMemo } from "react";
 
 import { matchesBinding, DEFAULT_KEYBINDINGS } from "../../../lib/keybindings";
+import { useTrackPageView } from "../../analytics/hooks";
 import { useConfigStore } from "../../config/store";
 import { useSettingsStore } from "../store";
 import { AboutPanel } from "./panels/about-panel";
-import { ChatPanel } from "./panels/chat-panel";
+import { AgentsPanel } from "./panels/agents-panel";
 import { GeneralPanel } from "./panels/general-panel";
 import { KeybindingsPanel } from "./panels/keybindings-panel";
 import { ProvidersPanel } from "./panels/providers-panel";
+import { RemoteControlPanel } from "./panels/remote-control-panel";
 import { RulesPanel } from "./panels/rules-panel";
 import { SettingsMenu } from "./settings-menu";
 
@@ -23,6 +25,8 @@ export const SettingsPage = () => {
     () => ({ ...DEFAULT_KEYBINDINGS, ...rawKeybindings }),
     [rawKeybindings],
   );
+
+  useTrackPageView("settings");
 
   // Cmd+Esc to close settings and go back to app
   useEffect(() => {
@@ -52,11 +56,12 @@ export const SettingsPage = () => {
           }}
         />
         <div className="mx-auto max-w-3xl px-8 pb-12">
-          {activeMenu === "chat" && <ChatPanel />}
+          {activeMenu === "agents" && <AgentsPanel />}
           {activeMenu === "rules" && <RulesPanel />}
           {activeMenu === "general" && <GeneralPanel />}
           {activeMenu === "keybindings" && <KeybindingsPanel />}
           {activeMenu === "providers" && <ProvidersPanel />}
+          {activeMenu === "remoteControl" && <RemoteControlPanel />}
           {activeMenu === "about" && <AboutPanel />}
         </div>
       </div>

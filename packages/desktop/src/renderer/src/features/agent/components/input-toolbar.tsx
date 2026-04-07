@@ -42,6 +42,8 @@ import { Spinner } from "../../../components/ui/spinner";
 import { cn } from "../../../lib/utils";
 import { client } from "../../../orpc";
 import { useConfigStore } from "../../config/store";
+import { ProjectSelector } from "../../project/components/project-selector";
+import { useProjectStore } from "../../project/store";
 import { useProviderStore } from "../../provider/store";
 import { useSettingsStore } from "../../settings/store";
 import { claudeCodeChatManager } from "../chat-manager";
@@ -60,6 +62,8 @@ type Props = {
   onCancel: () => void;
   onAttach: () => void;
   activeSessionId: string | null;
+  /** Show project selector in toolbar (popup window mode) */
+  showProjectSelector?: boolean;
 };
 
 export function InputToolbar({
@@ -72,6 +76,7 @@ export function InputToolbar({
   onCancel,
   onAttach,
   activeSessionId,
+  showProjectSelector = false,
 }: Props) {
   const sendMessageWith = useConfigStore((s) => s.sendMessageWith);
   const networkInspector = useConfigStore((s) => s.networkInspector);
@@ -92,11 +97,13 @@ export function InputToolbar({
         title={t("chat.attachImage")}
         onClick={onAttach}
         disabled={sessionInitializing}
+        data-track-id="ui.chat.attachImage"
       >
         <Paperclip className="h-4 w-4" />
       </Button>
       <ModelSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
       <PermissionModeSelect activeSessionId={activeSessionId} disabled={disabled || streaming} />
+      {showProjectSelector && <ProjectSelector variant="select" />}
       {sessionInitError ? (
         <span className="text-xs text-destructive">
           {t("chat.sessionInitFailed")}
@@ -114,8 +121,9 @@ export function InputToolbar({
         /* Streaming: subtle stop button with animated ring */
         <button
           type="button"
-          className="relative flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10 text-foreground transition-all duration-150 hover:bg-foreground/15 active:scale-95"
+          className="relative flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-foreground/10 text-foreground transition-all duration-150 hover:bg-foreground/15 active:scale-95"
           onClick={onCancel}
+          data-track-id="ui.chat.stopStreaming"
         >
           <span className="absolute inset-0 rounded-full border border-foreground/20 animate-pulse" />
           <Square className="h-2.5 w-2.5 fill-current" />
@@ -124,15 +132,16 @@ export function InputToolbar({
         /* Error: retry button */
         <button
           type="button"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-95"
+          className="flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-95"
           onClick={onRetry}
           title={t("chat.sessionInitRetry")}
+          data-track-id="ui.session.retryInit"
         >
           <RotateCw className="h-3.5 w-3.5" />
         </button>
       ) : sessionInitializing ? (
         /* Initializing: subtle spinner */
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/50">
+        <div className="flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted/50">
           <Spinner className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
       ) : (
@@ -141,12 +150,13 @@ export function InputToolbar({
           type="button"
           className={
             disabled
-              ? "flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground/40 cursor-not-allowed"
-              : "flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-primary/85 active:scale-95"
+              ? "flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted text-muted-foreground/40 cursor-not-allowed"
+              : "flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-primary/85 active:scale-95"
           }
           disabled={disabled}
           onClick={onSend}
           title={sendMessageWith === "cmdEnter" ? t("chat.sendCmdEnter") : t("chat.sendEnter")}
+          data-track-id="ui.chat.messageSent"
         >
           <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />
         </button>
@@ -156,11 +166,12 @@ export function InputToolbar({
 }
 
 const PERMISSION_MODE_I18N_KEYS = {
-  default: "settings.chat.permissionMode.default",
-  acceptEdits: "settings.chat.permissionMode.acceptEdits",
-  plan: "settings.chat.permissionMode.plan",
-  bypassPermissions: "settings.chat.permissionMode.bypassPermissions",
-  dontAsk: "settings.chat.permissionMode.dontAsk",
+  default: "settings.agents.permissionMode.default",
+  acceptEdits: "settings.agents.permissionMode.acceptEdits",
+  plan: "settings.agents.permissionMode.plan",
+  bypassPermissions: "settings.agents.permissionMode.bypassPermissions",
+  dontAsk: "settings.agents.permissionMode.dontAsk",
+  auto: "settings.agents.permissionMode.auto",
 } as const satisfies Record<PermissionMode, string>;
 
 function PermissionModeSelect({
@@ -189,27 +200,32 @@ function ConnectedPermissionModeSelect({
   const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
 
   const handleSelect = useCallback(
-    (value: unknown) => {
+    async (value: unknown) => {
       const mode = value as PermissionMode;
       log("handlePermissionModeSelect: mode=%s sessionId=%s", mode, activeSessionId);
+      const previousMode = permissionMode;
       setPermissionMode(activeSessionId, mode);
-      claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
+      const result = await claudeCodeChatManager.getChat(activeSessionId)?.dispatch({
         kind: "configure",
         configure: { type: "set_permission_mode", mode },
       });
+      if (result && !result.ok) {
+        log("handlePermissionModeSelect: failed, reverting to %s", previousMode);
+        setPermissionMode(activeSessionId, previousMode);
+      }
     },
-    [activeSessionId, setPermissionMode],
+    [activeSessionId, permissionMode, setPermissionMode],
   );
 
   return (
     <Menu>
       <MenuTrigger
         disabled={disabled}
-        className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
+        className="inline-flex h-7 min-w-0 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
       >
-        <Shield className="h-3 w-3" />
-        <span>{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
-        <ChevronDown className="h-3 w-3 opacity-50" />
+        <Shield className="h-3 w-3 shrink-0" />
+        <span className="min-w-0 truncate">{t(PERMISSION_MODE_I18N_KEYS[permissionMode])}</span>
+        <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
       </MenuTrigger>
       <MenuPopup side="top" align="start" className="min-w-52">
         <MenuRadioGroup value={permissionMode} onValueChange={handleSelect}>
@@ -220,9 +236,9 @@ function ConnectedPermissionModeSelect({
             <div className="flex items-start gap-2">
               <Hand className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
-                <span className="text-xs">{t("settings.chat.permissionMode.default")}</span>
+                <span className="text-xs">{t("settings.agents.permissionMode.default")}</span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.default.desc")}
+                  {t("settings.agents.permissionMode.default.desc")}
                 </span>
               </div>
             </div>
@@ -234,9 +250,9 @@ function ConnectedPermissionModeSelect({
             <div className="flex items-start gap-2">
               <Code className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
-                <span className="text-xs">{t("settings.chat.permissionMode.acceptEdits")}</span>
+                <span className="text-xs">{t("settings.agents.permissionMode.acceptEdits")}</span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.acceptEdits.desc")}
+                  {t("settings.agents.permissionMode.acceptEdits.desc")}
                 </span>
               </div>
             </div>
@@ -248,9 +264,9 @@ function ConnectedPermissionModeSelect({
             <div className="flex items-start gap-2">
               <ClipboardList className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
-                <span className="text-xs">{t("settings.chat.permissionMode.plan")}</span>
+                <span className="text-xs">{t("settings.agents.permissionMode.plan")}</span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.plan.desc")}
+                  {t("settings.agents.permissionMode.plan.desc")}
                 </span>
               </div>
             </div>
@@ -263,10 +279,10 @@ function ConnectedPermissionModeSelect({
               <TriangleAlert className="size-3.5 mt-px shrink-0 opacity-60" />
               <div className="flex flex-col">
                 <span className="text-xs">
-                  {t("settings.chat.permissionMode.bypassPermissions")}
+                  {t("settings.agents.permissionMode.bypassPermissions")}
                 </span>
                 <span className="text-[10px] leading-tight text-muted-foreground/80 font-normal">
-                  {t("settings.chat.permissionMode.bypassPermissions.desc")}
+                  {t("settings.agents.permissionMode.bypassPermissions.desc")}
                 </span>
               </div>
             </div>
@@ -377,18 +393,27 @@ function ConnectedModelSelect({
         activeSessionId,
         providerId ?? "(sdk)",
       );
+      const invalidatePrewarm = () => {
+        // Only invalidate background prewarmed sessions when the active session
+        // has messages (not isNew). If the active session is still new, it would
+        // be destroyed too — which is disruptive.
+        const store = useAgentStore.getState();
+        const activeSession = store.sessions.get(store.activeSessionId ?? "");
+        if (!activeSession || activeSession.messages.length === 0) return;
+        const projectPath = useProjectStore.getState().activeProject?.path;
+        claudeCodeChatManager.invalidateNewSessions(projectPath);
+      };
       if (providerId) {
         if (!model) return;
         // Provider active: only write to our provider config files
-        client.provider.setSelection({
-          sessionId: activeSessionId,
-          providerId,
-          model,
-          scope,
-        });
+        client.provider
+          .setSelection({ sessionId: activeSessionId, providerId, model, scope })
+          .then(invalidatePrewarm);
       } else {
         // SDK Default: write to .claude/ settings files (model can be null to just clear provider)
-        client.agent.setModelSetting({ sessionId: activeSessionId, model, scope });
+        client.agent
+          .setModelSetting({ sessionId: activeSessionId, model, scope })
+          .then(invalidatePrewarm);
       }
     },
     [activeSessionId, currentModel, providerId, setCurrentModel, setModelScope],
@@ -473,15 +498,15 @@ function ConnectedModelSelect({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="inline-flex">
+      <ContextMenuTrigger className="inline-flex min-w-0">
         <Menu open={menuOpen} onOpenChange={setMenuOpen}>
           <MenuTrigger
             disabled={disabled}
-            className="inline-flex h-7 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
+            className="inline-flex h-7 min-w-0 items-center gap-1 rounded-md bg-background-secondary px-2 text-xs text-muted-foreground outline-none disabled:opacity-50 hover:!bg-background/80 cursor-pointer"
           >
             <ScopeBadge scope={modelScope} />
-            <span className="max-w-[200px] truncate">{buttonLabel}</span>
-            <ChevronDown className="h-3 w-3 opacity-50" />
+            <span className="min-w-0 truncate">{buttonLabel}</span>
+            <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
           </MenuTrigger>
           <MenuPopup side="top" align="start" className="max-h-80 min-w-48 overflow-y-auto">
             {/* Provider groups — only show when providers exist */}
@@ -599,6 +624,7 @@ function ConnectedModelSelect({
                 useSettingsStore.getState().setActiveTab("providers");
                 useSettingsStore.getState().setShowSettings(true);
               }}
+              data-track-id="ui.settings.openProviders"
             >
               <Settings className="h-3 w-3" />
               {t("chat.manageProviders")}

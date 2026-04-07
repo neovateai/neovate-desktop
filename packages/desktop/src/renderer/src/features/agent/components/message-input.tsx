@@ -1,6 +1,6 @@
 import Placeholder from "@tiptap/extension-placeholder";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { Extension, useEditor, EditorContent } from "@tiptap/react";
+import { Extension, useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import debug from "debug";
 import { AnimatePresence, motion } from "motion/react";
@@ -22,6 +22,7 @@ import { extractText } from "../utils/extract-text";
 import { buildInsertChatContent, type InsertChatDetail } from "../utils/insert-chat";
 import { readFileAsAttachment } from "../utils/read-file-as-attachment";
 import { AttachmentPreview } from "./attachment-preview";
+import { GradientBorderWrapper } from "./gradient-border-wrapper";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
 import { createMentionExtension } from "./mention-extension";
@@ -40,9 +41,18 @@ type Props = {
   onRetry?: () => void;
   cwd: string;
   dockAttached?: boolean;
+  /** Show project selector in toolbar (popup window mode) */
+  showProjectSelector?: boolean;
 };
 
 const NEW_CHAT_EASTER_EGGS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
+
+type SessionDraft = {
+  content: JSONContent;
+  attachments: ImageAttachment[];
+};
+
+const sessionDrafts = new Map<string, SessionDraft>();
 
 export function MessageInput({
   onSend,
@@ -54,10 +64,12 @@ export function MessageInput({
   onRetry,
   cwd,
   dockAttached = false,
+  showProjectSelector = false,
 }: Props) {
   const { t } = useTranslation();
   const cwdRef = useLatestRef(cwd);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorJsonRef = useRef<JSONContent | null>(null);
   const { createNewSession } = useNewSession();
 
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
@@ -106,7 +118,9 @@ export function MessageInput({
     });
   });
 
-  const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+  const [attachments, setAttachments] = useState<ImageAttachment[]>(() =>
+    activeSessionId ? (sessionDrafts.get(activeSessionId)?.attachments ?? []) : [],
+  );
   const attachmentsRef = useLatestRef(attachments);
 
   const addAttachments = useCallback((images: ImageAttachment[]) => {
@@ -312,8 +326,15 @@ export function MessageInput({
           .join("");
       },
     },
-    editable: !disabled && !streaming,
+    editable: !disabled,
     autofocus: "end",
+    content: activeSessionId ? sessionDrafts.get(activeSessionId)?.content : undefined,
+    onCreate: ({ editor: e }) => {
+      editorJsonRef.current = e.getJSON();
+    },
+    onUpdate: ({ editor: e }) => {
+      editorJsonRef.current = e.getJSON();
+    },
   });
 
   const send = useEventCallback(() => {
@@ -341,17 +362,58 @@ export function MessageInput({
     onSend(text, imgs.length > 0 ? imgs : undefined);
     editor.commands.clearContent();
     setAttachments([]);
+    if (activeSessionId) sessionDrafts.delete(activeSessionId);
   });
 
   // Keep editable in sync with props
   useEffect(() => {
-    editor?.setEditable(!disabled && !streaming);
-  }, [editor, disabled, streaming]);
+    editor?.setEditable(!disabled);
+  }, [editor, disabled]);
+
+  // Save draft on unmount so it persists across session switches
+  useEffect(() => {
+    return () => {
+      if (!activeSessionId) return;
+      const json = editorJsonRef.current;
+      if (!json) return;
+      const imgs = attachmentsRef.current;
+      if (extractText(json).trim() || imgs.length > 0) {
+        sessionDrafts.set(activeSessionId, { content: json, attachments: imgs });
+      } else {
+        sessionDrafts.delete(activeSessionId);
+      }
+    };
+  }, [activeSessionId]);
+
+  // Restore draft when session switches without remount (e.g., between new sessions in welcome panel)
+  const prevSessionIdRef = useRef(activeSessionId);
+  useEffect(() => {
+    if (prevSessionIdRef.current === activeSessionId) return;
+    prevSessionIdRef.current = activeSessionId;
+    if (!editor || editor.isDestroyed) return;
+    const draft = activeSessionId ? sessionDrafts.get(activeSessionId) : undefined;
+    if (draft) {
+      editor.commands.setContent(draft.content);
+      setAttachments(draft.attachments);
+    } else {
+      editor.commands.clearContent();
+      setAttachments([]);
+    }
+  }, [editor, activeSessionId]);
 
   // Force placeholder re-render when suggestion changes
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     editor.view.dispatch(editor.state.tr.setMeta("promptSuggestion", promptSuggestion));
+    // Focus input so Tab/Enter work immediately on the suggestion.
+    // Guard with document.hasFocus() because MessageInput is used in both
+    // the main window and popup window (shared activeSessionId) — without
+    // this, both windows would try to steal focus simultaneously.
+    if (promptSuggestion && document.hasFocus()) {
+      requestAnimationFrame(() => {
+        editor.commands.focus("end");
+      });
+    }
   }, [editor, promptSuggestion]);
 
   // Close suggestion popups when settings opens
@@ -415,66 +477,50 @@ export function MessageInput({
         aria-label={t("chat.attachImages")}
         onChange={handleFileSelect}
       />
-      <div
-        className="rounded-[12px] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
-        style={{
-          border: "3px solid transparent",
-          background:
-            "linear-gradient(var(--color-background), var(--color-background)) padding-box,linear-gradient(180deg,var(--color-background) 0%, color-mix(in srgb, var(--color-background) 50%, transparent) 100%) border-box",
-        }}
+      <GradientBorderWrapper
+        innerClassName={cn(
+          "focus-within:!border-primary/50",
+          dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
+        )}
       >
-        <div
-          className={cn(
-            "border border-input focus-within:!border-primary/50 overflow-hidden",
-            dockAttached ? "rounded-b-lg rounded-t-[18px]" : "rounded-lg",
-          )}
-          style={{
-            border: "2px solid transparent",
-            backgroundColor: "var(--background)",
-            color: "var(--foreground)",
-            transition: "all .2s",
-            background:
-              "linear-gradient(var(--background-secondary)) padding-box,linear-gradient(0deg,color-mix(in srgb, var(--primary) 30%, transparent) 0,transparent 80%,transparent)border-box",
-          }}
-        >
-          <AnimatePresence>
-            {permissionMode === "plan" && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden"
+        <AnimatePresence>
+          {permissionMode === "plan" && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden"
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 border-b border-info/20 bg-info/5 px-3 py-1 text-xs text-info-foreground",
+                  dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
+                )}
               >
-                <div
-                  className={cn(
-                    "flex items-center gap-1.5 border-b border-info/20 bg-info/5 px-3 py-1 text-xs text-info-foreground",
-                    dockAttached ? "rounded-t-[18px]" : "rounded-t-lg",
-                  )}
-                >
-                  <span className="font-medium">{t("chat.planMode")}</span>
-                  <span className="text-info-foreground/50">{t("chat.planModeExit")}</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div data-has-suggestion={promptSuggestion ? "" : undefined}>
-            <EditorContent editor={editor} />
-          </div>
-          <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
-          <InputToolbar
-            streaming={streaming}
-            disabled={disabled}
-            sessionInitializing={sessionInitializing}
-            sessionInitError={sessionInitError}
-            onRetry={onRetry}
-            onSend={send}
-            onCancel={onCancel}
-            onAttach={() => fileInputRef.current?.click()}
-            activeSessionId={activeSessionId}
-          />
+                <span className="font-medium">{t("chat.planMode")}</span>
+                <span className="text-info-foreground/50">{t("chat.planModeExit")}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
+        <div data-has-suggestion={promptSuggestion ? "" : undefined}>
+          <EditorContent editor={editor} />
         </div>
-      </div>
+        <InputToolbar
+          streaming={streaming}
+          disabled={disabled}
+          sessionInitializing={sessionInitializing}
+          sessionInitError={sessionInitError}
+          onRetry={onRetry}
+          onSend={send}
+          onCancel={onCancel}
+          onAttach={() => fileInputRef.current?.click()}
+          activeSessionId={activeSessionId}
+          showProjectSelector={showProjectSelector}
+        />
+      </GradientBorderWrapper>
     </div>
   );
 }

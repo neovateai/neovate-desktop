@@ -1,6 +1,17 @@
 import { FileSearchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ChevronDown, ChevronRight, RefreshCw, Undo2, Plus, Minus, File } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Undo2,
+  Plus,
+  Minus,
+  File,
+  Sparkles,
+  Check,
+  Upload,
+} from "lucide-react";
 import { memo, useEffect, useState } from "react";
 
 import { type GitFile } from "../../../../shared/plugins/git/contract";
@@ -14,7 +25,17 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
-import { Button } from "../../components/ui/button";
+import { Button, buttonVariants } from "../../components/ui/button";
+import { Group } from "../../components/ui/button-group";
+import { Input } from "../../components/ui/input";
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../components/ui/menu";
+import { toastManager } from "../../components/ui/toast";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPopup,
+  TooltipProvider,
+} from "../../components/ui/tooltip";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
 import { useGit } from "./hooks/useGit";
@@ -33,9 +54,11 @@ export default memo(function GitView() {
   const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
   const [revertTarget, setRevertTarget] = useState<"all" | "single" | null>(null);
   const [fileToRevert, setFileToRevert] = useState<GitFile | null>(null);
+  const [commitMsg, setCommitMsg] = useState("");
 
   const {
     loading,
+    commitStatus,
     workingFiles,
     stagedFiles,
     refreshGitStatus,
@@ -45,6 +68,9 @@ export default memo(function GitView() {
     add2stage,
     removeFromStage,
     revert,
+    commit,
+    push,
+    genCommitMsg,
   } = useGit(cwd);
 
   const handleRevertRequest = (file?: GitFile) => {
@@ -66,6 +92,74 @@ export default memo(function GitView() {
     setRevertConfirmOpen(false);
     setRevertTarget(null);
     setFileToRevert(null);
+  };
+
+  const handleCommit = async (message: string, shouldPush: boolean) => {
+    const result = await commit(message, shouldPush);
+
+    // commit 失败
+    if (!result?.commit) {
+      toastManager.add({
+        type: "error",
+        title: t("git.commitFailed"),
+        description: result.error,
+      });
+      return;
+    }
+
+    if (shouldPush) {
+      // push 时需要设置上游分支
+      if (result?.needsUpstream) {
+        const toast = toastManager.add({
+          type: "warning",
+          title: t("git.noUpstreamBranch"),
+          description: t("git.noUpstreamBranchDesc", { branch: result.branch }),
+          actionProps: {
+            children: t("git.setUpstreamAndPush"),
+            onClick: async () => {
+              toastManager.close(toast);
+              const pushRes = await push(true);
+              if (!pushRes.success) {
+                toastManager.add({
+                  type: "error",
+                  title: t("git.pushFailed"),
+                  description: pushRes.error,
+                });
+              } else {
+                toastManager.add({
+                  type: "success",
+                  title: t("git.pushSuccess"),
+                });
+                setCommitMsg("");
+              }
+            },
+          },
+        });
+        return;
+      }
+      // push 失败
+      if (!result.push) {
+        toastManager.add({
+          type: "error",
+          title: t("git.pushFailed"),
+          description: result.error,
+        });
+        return;
+      }
+      // commit + push 成功
+      toastManager.add({
+        type: "success",
+        title: t("git.pushSuccess"),
+      });
+      setCommitMsg("");
+    } else {
+      // 仅 commit 成功
+      toastManager.add({
+        type: "success",
+        title: t("git.commitSuccess"),
+      });
+      setCommitMsg("");
+    }
   };
 
   const showDiff = (file: { relPath: string }, isStaged: boolean) => {
@@ -110,7 +204,13 @@ export default memo(function GitView() {
   const getFileIcon = (filePath: string) => {
     const filename = filePath.split("/").pop() || filePath;
     const suffix = filename.split(".").pop();
-    return <div className="seti-icon flex-shrink-0 w-3.5 h-3.5" data-lang={suffix}></div>;
+    return (
+      <div
+        className="seti-icon flex-shrink-0 w-3.5 h-3.5"
+        data-lang={suffix}
+        data-name={filename}
+      ></div>
+    );
   };
 
   const getStatusText = (status: string) => {
@@ -163,6 +263,7 @@ export default memo(function GitView() {
                   }}
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.viewAllStageChanges")}
+                  data-track-id="ui.git.stagedChangesViewed"
                 >
                   <HugeiconsIcon
                     icon={FileSearchIcon}
@@ -178,6 +279,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.removeAllFromStage")}
                   disabled={loading}
+                  data-track-id="ui.git.allUnstaged"
                 >
                   <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                 </button>
@@ -192,6 +294,7 @@ export default memo(function GitView() {
                   }}
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.viewAllWorkingChanges")}
+                  data-track-id="ui.git.unstagedChangesViewed"
                 >
                   <HugeiconsIcon
                     icon={FileSearchIcon}
@@ -207,6 +310,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.addAllToStage")}
                   disabled={loading}
+                  data-track-id="ui.git.allStaged"
                 >
                   <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                 </button>
@@ -218,6 +322,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.revertAllFiles")}
                   disabled={loading}
+                  data-track-id="ui.git.revertAllInitiated"
                 >
                   <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                 </button>
@@ -241,80 +346,87 @@ export default memo(function GitView() {
               >
                 {getFileIcon(file.relPath)}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm text-foreground flex-shrink-0" title={file.fileName}>
-                      {file.fileName}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate" title={file.relPath}>
-                      {file.relPath}
-                    </div>
-                  </div>
+                <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+                  <span
+                    className="text-sm text-foreground truncate flex-shrink-0 max-w-[50%]"
+                    title={file.fileName}
+                  >
+                    {file.fileName}
+                  </span>
+                  <span
+                    className="text-xs text-muted-foreground truncate flex-shrink min-w-0"
+                    title={file.relPath}
+                  >
+                    {file.relPath}
+                  </span>
                 </div>
 
-                <div className="flex-shrink-0 flex items-center gap-0.5">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openFile(file);
-                      }}
-                      className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                      title={t("git.openFile")}
-                    >
-                      <File className="w-3 h-3 text-muted-foreground hover:text-foreground pointer-events-none" />
-                    </button>
-                    {isStaged ? (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFromStage(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.unstageChanges")}
-                        >
-                          <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRevertRequest(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.discardChanges")}
-                        >
-                          <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            add2stage(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.stageChanges")}
-                        >
-                          <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRevertRequest(file);
-                          }}
-                          className="p-px hover:bg-accent rounded-sm cursor-pointer"
-                          title={t("git.discardChanges")}
-                        >
-                          <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="ml-1">{getStatusText(file.status)}</div>
+                <div className="flex-shrink-0 flex items-center gap-0.5 w-0 overflow-hidden group-hover:w-auto group-hover:overflow-visible transition-[width]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openFile(file);
+                    }}
+                    className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                    title={t("git.openFile")}
+                    data-track-id="ui.git.fileOpened"
+                  >
+                    <File className="w-3 h-3 text-muted-foreground hover:text-foreground pointer-events-none" />
+                  </button>
+                  {isStaged ? (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromStage(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.unstageChanges")}
+                        data-track-id="ui.git.fileUnstaged"
+                      >
+                        <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRevertRequest(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.discardChanges")}
+                        data-track-id="ui.git.fileRevertInitiated"
+                      >
+                        <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          add2stage(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.stageChanges")}
+                        data-track-id="ui.git.fileStaged"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRevertRequest(file);
+                        }}
+                        className="p-px hover:bg-accent rounded-sm cursor-pointer"
+                        title={t("git.discardChanges")}
+                        data-track-id="ui.git.fileRevertInitiated"
+                      >
+                        <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
+                      </button>
+                    </>
+                  )}
                 </div>
+
+                <div className="ml-1">{getStatusText(file.status)}</div>
               </div>
             ))}
           </div>
@@ -356,11 +468,100 @@ export default memo(function GitView() {
           className="p-px hover:bg-accent/50 rounded-sm cursor-pointer"
           title={t("git.refreshStatus")}
           disabled={loading}
+          data-track-id="ui.git.refreshed"
         >
           <RefreshCw
             className={`w-3.5 h-3.5 text-muted-foreground/60 hover:text-muted-foreground pointer-events-none ${loading ? "animate-spin" : ""}`}
           />
         </button>
+      </div>
+      <div className="px-3 pb-2 space-y-2">
+        <div className="relative">
+          <Input
+            placeholder={t("git.commitPlaceholder")}
+            value={commitMsg}
+            onChange={(e) => setCommitMsg(e.target.value)}
+            disabled={loading}
+            className="h-8 pr-8 text-xs bg-muted rounded-md"
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                type="button"
+                onClick={async () => {
+                  const r = await genCommitMsg();
+                  if (!r?.success) {
+                    toastManager.add({
+                      type: "error",
+                      title: t("git.generateMessageFailed"),
+                    });
+                  } else {
+                    setCommitMsg(r.result);
+                  }
+                }}
+                disabled={loading || commitStatus !== "idle"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-accent rounded-sm cursor-pointer text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {commitStatus === "generating" ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+              </TooltipTrigger>
+              <TooltipPopup>
+                {commitStatus === "generating" ? t("git.generating") : t("git.generateMessage")}
+              </TooltipPopup>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <Group className="w-full">
+          <Button
+            size="sm"
+            className="flex-1 rounded-e-none border-e-0"
+            onClick={() => {
+              handleCommit(commitMsg, false);
+            }}
+            disabled={
+              loading || commitStatus !== "idle" || stagedFiles.length === 0 || !commitMsg.trim()
+            }
+          >
+            {commitStatus === "generating" && t("git.generating")}
+            {commitStatus === "committing" && t("git.committing")}
+            {commitStatus === "pushing" && t("git.pushing")}
+            {commitStatus === "idle" && t("git.commit")}
+          </Button>
+          <Menu>
+            <MenuTrigger
+              className={buttonVariants({
+                size: "sm",
+                className: "rounded-s-none px-2 border-s-0",
+              })}
+              disabled={
+                loading || commitStatus !== "idle" || stagedFiles.length === 0 || !commitMsg.trim()
+              }
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </MenuTrigger>
+            <MenuPopup align="end" side="bottom">
+              <MenuItem
+                onClick={() => {
+                  handleCommit(commitMsg, false);
+                }}
+              >
+                <Check className="w-3.5 h-3.5" />
+                {t("git.commitOnly")}
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleCommit(commitMsg, true);
+                }}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {t("git.commitAndPush")}
+              </MenuItem>
+            </MenuPopup>
+          </Menu>
+        </Group>
       </div>
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto">
@@ -408,7 +609,11 @@ export default memo(function GitView() {
             <AlertDialogClose render={<Button variant="outline" />}>
               {t("common.cancel", { ns: "translation" })}
             </AlertDialogClose>
-            <Button variant="destructive" onClick={handleConfirmRevert}>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmRevert}
+              data-track-id="ui.git.revertConfirmed"
+            >
               {t("git.revert.confirm")}
             </Button>
           </AlertDialogFooter>

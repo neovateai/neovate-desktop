@@ -5,6 +5,13 @@ type EditorEventWrapper<T extends string, P extends Record<string, any>> = {
   detail: P;
 };
 
+export interface IEditorTab {
+  isActive: boolean;
+  isPreview: boolean;
+  relPath: string;
+  fullPath: string;
+}
+
 type EditorContextAddEvent = EditorEventWrapper<
   "context.add",
   {
@@ -15,17 +22,7 @@ type EditorContextAddEvent = EditorEventWrapper<
 
 type EditorLinkOpenEvent = EditorEventWrapper<"link.open", { url: string }>;
 
-type EditorTabsChangeEvent = EditorEventWrapper<
-  "tabs.change",
-  {
-    tabs: Array<{
-      isActive: boolean;
-      isPreview: boolean;
-      relPath: string;
-      fullPath: string;
-    }>;
-  }
->;
+type EditorTabsChangeEvent = EditorEventWrapper<"tabs.change", { tabs: IEditorTab[] }>;
 
 export type EditorEvent = EditorContextAddEvent | EditorTabsChangeEvent | EditorLinkOpenEvent;
 
@@ -38,7 +35,10 @@ export interface EditorOpenOption {
 
 export const editorContract = {
   start: oc.input(type<void>()).output(type<{ url: string; error?: string }>()),
-  connect: oc.input(type<void>()).output(type<{}>()),
+  connect: oc
+    .input(type<void>())
+    .output(type<{ success: boolean; data?: Record<string, unknown>; error?: string }>()),
+  ping: oc.input(type<{ cwd: string }>()).output(type<{ connected: boolean }>()),
   open: oc.input(type<{ cwd: string } & EditorOpenOption>()).output(
     type<{
       success: boolean;

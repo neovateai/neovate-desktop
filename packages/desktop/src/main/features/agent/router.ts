@@ -18,6 +18,38 @@ export const agentRouter = os.agent.router({
     return context.sessionManager.getActiveSessions();
   }),
 
+  subscribeSessionLifecycle: os.agent.subscribeSessionLifecycle.handler(async function* ({
+    context,
+    signal,
+  }) {
+    const queue: Array<import("../../../shared/features/agent/types").SessionLifecycleEvent> = [];
+    let resolve: (() => void) | null = null;
+
+    const unsub = context.sessionManager.onLifecycle((event) => {
+      queue.push(event);
+      resolve?.();
+    });
+
+    const onAbort = () => resolve?.();
+    signal?.addEventListener("abort", onAbort);
+
+    try {
+      while (!signal?.aborted) {
+        if (queue.length === 0) {
+          await new Promise<void>((r) => {
+            resolve = r;
+          });
+        }
+        while (queue.length > 0) {
+          yield queue.shift()!;
+        }
+      }
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+      unsub();
+    }
+  }),
+
   listSessions: os.agent.listSessions.handler(async ({ input, context }) => {
     const sessions = await context.sessionManager.listSessions(input.cwd);
     const startTimes = context.projectStore.getSessionStartTimes();
@@ -53,10 +85,8 @@ export const agentRouter = os.agent.router({
       }
     }),
 
-    stream: os.agent.claudeCode.stream.handler(async function* ({ input, context }) {
-      for await (const chunk of context.sessionManager.stream(input.sessionId, input.message)) {
-        yield chunk;
-      }
+    send: os.agent.claudeCode.send.handler(async ({ input, context }) => {
+      await context.sessionManager.send(input.sessionId, input.message);
     }),
 
     subscribe: os.agent.claudeCode.subscribe.handler(async function* ({ input, context, signal }) {
@@ -112,6 +142,41 @@ export const agentRouter = os.agent.router({
         yield summary;
       }
     }),
+  }),
+
+  rewindFilesDryRun: os.agent.rewindFilesDryRun.handler(async ({ input, context }) => {
+    return context.sessionManager.rewindFilesDryRun(input.sessionId, input.messageId);
+  }),
+
+  rewindToMessage: os.agent.rewindToMessage.handler(async ({ input, context }) => {
+    agentLog(
+      "rewindToMessage: sessionId=%s messageId=%s restoreFiles=%s",
+      input.sessionId,
+      input.messageId,
+      input.restoreFiles,
+    );
+    return context.sessionManager.rewindToMessage(
+      input.sessionId,
+      input.messageId,
+      input.restoreFiles,
+      input.title,
+    );
+  }),
+
+  deleteSessionFile: os.agent.deleteSessionFile.handler(async ({ input, context }) => {
+    agentLog("deleteSessionFile: sessionId=%s", input.sessionId);
+    await context.sessionManager.deleteSessionFile(input.sessionId);
+  }),
+
+  archiveSessionFile: os.agent.archiveSessionFile.handler(async ({ input, context }) => {
+    agentLog("archiveSessionFile: sessionId=%s", input.sessionId);
+    await context.sessionManager.archiveSessionFile(input.sessionId, {
+      forkedSessionId: input.forkedSessionId,
+      rewindMessageId: input.rewindMessageId,
+      restoreFiles: input.restoreFiles,
+      title: input.title,
+      cwd: input.cwd,
+    });
   }),
 
   savePlan: os.agent.savePlan.handler(async ({ input }) => {

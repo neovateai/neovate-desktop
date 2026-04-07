@@ -6,6 +6,7 @@ import type { SessionInfo } from "../../../../../shared/features/agent/types";
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
 import type { ChatSession } from "../store";
 
+import { useOptionHeld } from "../../../hooks/use-option-held";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useLoadSession } from "../hooks/use-load-session";
@@ -40,6 +41,8 @@ function MultiProjectSessionList() {
   const loadSessionPreferences = useProjectStore((s) => s.loadSessionPreferences);
   const projects = useProjectStore((s) => s.projects);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const optionHeld = useOptionHeld();
+  const isChronological = sidebarOrganize === "chronological";
   log("multi-project: organize=%s projects=%d", sidebarOrganize, projects.length);
 
   useEffect(() => {
@@ -50,9 +53,9 @@ function MultiProjectSessionList() {
   return (
     <div className="flex flex-1 flex-col pt-2">
       <PanelTriggerGroup projectPath={activeProject?.path} />
-      <PinnedSessionList />
+      <PinnedSessionList optionHeld={optionHeld} />
       <SidebarTitleBar />
-      {sidebarOrganize === "chronological" ? <ChronologicalList /> : <ProjectAccordionList />}
+      {isChronological ? <ChronologicalList optionHeld={optionHeld} /> : <ProjectAccordionList />}
     </div>
   );
 }

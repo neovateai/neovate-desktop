@@ -20,11 +20,20 @@ function createMockApp(): IRendererApp {
       contentPanel: {} as any,
     },
     project: {} as any,
+    options: {},
   };
 }
 
 function makeCtx() {
-  return { app: createMockApp(), orpcClient: {} };
+  return {
+    app: createMockApp(),
+    orpcClient: {},
+    llm: {
+      isAvailable: () => Promise.resolve(false),
+      query: vi.fn(),
+      queryMessages: vi.fn(),
+    },
+  };
 }
 
 const mockComponent: SecondarySidebarView["component"] = () =>
@@ -34,6 +43,14 @@ const mockContentComponent: ContentPanelView["component"] = () =>
   Promise.resolve({ default: () => null });
 
 describe("PluginManager", () => {
+  describe("duplicate name guard", () => {
+    it("throws on duplicate plugin names", () => {
+      expect(() => new PluginManager([{ name: "a" }, { name: "a" }])).toThrow(
+        'Duplicate plugin name: "a"',
+      );
+    });
+  });
+
   describe("enforce ordering", () => {
     it("sorts plugins: pre → normal → post", () => {
       const plugins: RendererPlugin[] = [
@@ -94,8 +111,8 @@ describe("PluginManager", () => {
         },
       ]);
       await pm.configViewContributions();
-      expect(pm.viewContributions.activityBarItems[0].id).toBe("a");
-      expect(pm.viewContributions.activityBarItems[1].id).toBe("z");
+      expect(pm.viewContributions.activityBarItems[0].value.id).toBe("a");
+      expect(pm.viewContributions.activityBarItems[1].value.id).toBe("z");
     });
 
     it("returns empty view contributions when no plugins", async () => {
@@ -125,8 +142,7 @@ describe("PluginManager", () => {
     it("calls activate on each plugin with PluginContext", async () => {
       const activateFn = vi.fn();
       const pm = new PluginManager([{ name: "test", activate: activateFn }]);
-      const mockApp = createMockApp();
-      const ctx = { app: mockApp, orpcClient: {} };
+      const ctx = makeCtx();
       await pm.activate(ctx);
       expect(activateFn).toHaveBeenCalledWith(ctx);
     });
@@ -194,7 +210,7 @@ describe("PluginManager", () => {
       const pm = new PluginManager(plugins);
       await pm.configWindowContributions();
       expect(pm.windowContributions).toHaveLength(1);
-      expect(pm.windowContributions[0].windowType).toBe("companion");
+      expect(pm.windowContributions[0].value.windowType).toBe("companion");
     });
 
     it("skips duplicate window type", async () => {

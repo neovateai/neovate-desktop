@@ -82,6 +82,8 @@ export const useProjectStore = create<ProjectState>()(
         if (preWarmed) {
           log("replacing active session with pre-warmed session", { preWarmed });
           useAgentStore.getState().setActiveSession(preWarmed);
+          // The pre-warmed session was consumed — create a new one
+          claudeCodeChatManager.preWarmForProject(projectPath);
         } else {
           log("no pre-warmed session, creating new session for project", { projectPath });
           claudeCodeChatManager
@@ -94,6 +96,8 @@ export const useProjectStore = create<ProjectState>()(
                 { commands, models, currentModel, modelScope },
                 true,
               );
+              // Pre-warm a background session for the next "New Chat"
+              claudeCodeChatManager.preWarmForProject(projectPath);
             })
             .catch(() => {});
         }

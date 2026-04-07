@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { PermissionMode } from "../../../../../shared/features/agent/types";
 
@@ -22,44 +23,36 @@ export type PlanApprovalChoice =
   | { action: "revise"; feedback: string }
   | { action: "dismiss" };
 
-type ApprovalOption = {
-  value: string;
-  label: string;
-  description: string;
-  mode: PermissionMode;
-  clearContext: boolean;
-};
-
-const APPROVAL_OPTIONS: ApprovalOption[] = [
+const APPROVAL_OPTIONS = [
   {
     value: "bypass",
-    label: "Yes, bypass permissions",
-    description: "YOLO mode — no permission prompts",
+    labelKey: "plan.bypassPermissions",
+    descriptionKey: "plan.bypassPermissionsDesc",
     mode: "bypassPermissions",
     clearContext: false,
   },
   {
     value: "autoEdit",
-    label: "Yes, auto-approve edits",
-    description: "Auto-approve file edits, prompt for other tools",
+    labelKey: "plan.autoApproveEdits",
+    descriptionKey: "plan.autoApproveEditsDesc",
     mode: "acceptEdits",
     clearContext: false,
   },
   {
     value: "manual",
-    label: "Yes, manually approve edits",
-    description: "Prompt for all tool usage",
+    labelKey: "plan.manualApprove",
+    descriptionKey: "plan.manualApproveDesc",
     mode: "default",
     clearContext: false,
   },
   {
     value: "clearContext",
-    label: "Yes, clear context & bypass",
-    description: "Start fresh session with the plan and bypass permissions",
+    labelKey: "plan.clearContextBypass",
+    descriptionKey: "plan.clearContextBypassDesc",
     mode: "bypassPermissions",
     clearContext: true,
   },
-];
+] as const;
 
 const REVISE_VALUE = "revise";
 
@@ -69,11 +62,12 @@ type Props = {
 };
 
 export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState("manual");
   const [feedback, setFeedback] = useState("");
 
   const isRevise = selected === REVISE_VALUE;
-  const buttonLabel = isRevise ? "Request Revision" : "Approve";
+  const buttonLabel = isRevise ? t("plan.requestRevision") : t("plan.approve");
 
   const handleSubmit = () => {
     if (isRevise) {
@@ -86,10 +80,10 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
   };
 
   return (
-    <div className="relative rounded-xl border border-border/80 bg-background">
+    <div className="relative bg-background-secondary">
       <Plan defaultOpen>
         <PlanHeader>
-          <PlanTitle>Plan to implement</PlanTitle>
+          <PlanTitle>{t("plan.title")}</PlanTitle>
           <PlanAction>
             <PlanTrigger />
           </PlanAction>
@@ -102,9 +96,20 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
       </Plan>
 
       <div className="space-y-3 px-4 py-3">
-        <p className="text-sm font-medium text-foreground">Ready to implement?</p>
+        <p className="text-sm font-medium text-foreground">{t("plan.readyToImplement")}</p>
 
-        <RadioGroup value={selected} onValueChange={setSelected} className="gap-1">
+        <RadioGroup
+          value={selected}
+          onValueChange={setSelected}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+              (
+                event as React.KeyboardEvent & { preventBaseUIHandler?: () => void }
+              ).preventBaseUIHandler?.();
+            }
+          }}
+          className="gap-1"
+        >
           {APPROVAL_OPTIONS.map((option) => (
             <Label
               key={option.value}
@@ -112,8 +117,8 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
             >
               <Radio value={option.value} />
               <div className="flex flex-col">
-                <p className="text-sm text-foreground">{option.label}</p>
-                <p className="text-xs text-muted-foreground">{option.description}</p>
+                <p className="text-sm text-foreground">{t(option.labelKey)}</p>
+                <p className="text-xs text-muted-foreground">{t(option.descriptionKey)}</p>
               </div>
             </Label>
           ))}
@@ -122,17 +127,15 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
             <Radio value={REVISE_VALUE} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-col">
-                <p className="text-sm text-foreground">Request revision</p>
-                <p className="text-xs text-muted-foreground">
-                  Send feedback to Claude to revise the plan
-                </p>
+                <p className="text-sm text-foreground">{t("plan.revisionLabel")}</p>
+                <p className="text-xs text-muted-foreground">{t("plan.revisionDescription")}</p>
               </div>
               {isRevise && (
                 <textarea
-                  placeholder="What should Claude change about this plan?"
+                  placeholder={t("plan.revisionPlaceholder")}
                   rows={2}
                   style={{ resize: "none" }}
-                  className="mt-2 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
+                  className="mt-1.5 block w-full rounded-md border border-border/70 bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring"
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
@@ -150,7 +153,7 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
             className="text-muted-foreground"
             onClick={() => onChoice({ action: "dismiss" })}
           >
-            Dismiss
+            {t("plan.dismiss")}
           </Button>
           <Button size="sm" onClick={handleSubmit} disabled={isRevise && !feedback.trim()}>
             {buttonLabel}

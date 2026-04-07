@@ -4,10 +4,11 @@ import debug from "debug";
 
 import { agentContract } from "../../../../shared/features/agent/contract";
 import { client } from "../../orpc";
+import { useConfigStore } from "../config/store";
 import { ClaudeCodeChat } from "./chat";
 import { ClaudeCodeChatTransport } from "./chat-transport";
 import { scrollPositions } from "./scroll-positions";
-import { registerSessionInStore } from "./session-utils";
+import { findPreWarmedSession, registerSessionInStore } from "./session-utils";
 import { useAgentStore } from "./store";
 
 const log = debug("neovate:chat-manager");
@@ -32,6 +33,10 @@ export class ClaudeCodeChatManager {
         log("onTurnComplete: pendingContextClear detected for session=%s", id.slice(0, 8));
         void this.#handleContextClear(id, pending);
       }
+
+      window.dispatchEvent(
+        new CustomEvent("neovate:turn-completed", { detail: { sessionId: id } }),
+      );
 
       const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
       if (activeSessionId !== id) {
@@ -80,6 +85,61 @@ export class ClaudeCodeChatManager {
     return this.chats.get(sessionId);
   }
 
+  async rewindToMessage(
+    sessionId: string,
+    messageId: string,
+    restoreFiles: boolean,
+    title?: string,
+  ): Promise<{ forkedSessionId: string; originalSessionId: string }> {
+    const cwd = useAgentStore.getState().sessions.get(sessionId)?.cwd ?? "";
+    log(
+      "rewindToMessage: sessionId=%s messageId=%s restoreFiles=%s cwd=%s",
+      sessionId.slice(0, 8),
+      messageId.slice(0, 8),
+      restoreFiles,
+      cwd,
+    );
+
+    // 1. Call backend to rewind files (if requested), fork session, close original
+    const result = await this.rpc.rewindToMessage({
+      sessionId,
+      messageId,
+      restoreFiles,
+      title,
+    });
+
+    // 2. Load the forked session via the normal loadSession flow
+    const loaded = await this.loadSession(result.forkedSessionId, cwd);
+
+    // 3. For file restores, dispose original chat immediately.
+    //    For conversation-only, keep original alive during undo window.
+    if (restoreFiles) {
+      await this.disposeChat(sessionId);
+    }
+
+    log(
+      "rewindToMessage: forked=%s model=%s",
+      result.forkedSessionId.slice(0, 8),
+      loaded.currentModel,
+    );
+
+    return {
+      forkedSessionId: result.forkedSessionId,
+      originalSessionId: sessionId,
+    };
+  }
+
+  /** Dispose a chat without closing the backend session (already closed). */
+  async disposeChat(sessionId: string): Promise<void> {
+    const chat = this.chats.get(sessionId);
+    if (!chat) return;
+    chat.store.setState({ pendingContextClear: undefined });
+    await chat.stop();
+    await chat.dispose();
+    this.chats.delete(sessionId);
+    scrollPositions.delete(sessionId);
+  }
+
   async removeSession(sessionId: string): Promise<void> {
     log("removeSession: clearing scroll position for session=%s", sessionId.slice(0, 8));
     scrollPositions.delete(sessionId);
@@ -110,6 +170,41 @@ export class ClaudeCodeChatManager {
       const result = await this.createSession(cwd);
       registerSessionInStore(result.sessionId, cwd, result, true);
     }
+
+    // Re-pre-warm after invalidation so the next "New Chat" is instant
+    if (cwd) {
+      this.preWarmForProject(cwd);
+    }
+  }
+
+  /** Pre-warm a background session for the given project if config allows. */
+  preWarmForProject(cwd: string): void {
+    if (!useConfigStore.getState().preWarmSessions) return;
+
+    // Check for an existing background pre-warmed session (exclude the active one)
+    const existing = findPreWarmedSession(cwd);
+    if (existing && existing !== useAgentStore.getState().activeSessionId) {
+      log("preWarmForProject: already have a background pre-warmed session, skipping");
+      return;
+    }
+
+    log("preWarmForProject: creating background session cwd=%s", cwd);
+    this.createSession(cwd)
+      .then(({ sessionId, commands, models, currentModel, modelScope, providerId }) => {
+        log("preWarmForProject: created %s currentModel=%s", sessionId, currentModel);
+        registerSessionInStore(
+          sessionId,
+          cwd,
+          { commands, models, currentModel, modelScope, providerId },
+          false,
+        );
+      })
+      .catch((error) => {
+        log(
+          "preWarmForProject: FAILED error=%s",
+          error instanceof Error ? error.message : String(error),
+        );
+      });
   }
 
   async #handleContextClear(

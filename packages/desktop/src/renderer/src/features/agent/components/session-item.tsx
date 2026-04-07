@@ -1,32 +1,23 @@
 import { Comment01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { formatDistanceToNowStrict } from "date-fns";
 import debug from "debug";
-import { Archive, Circle, Pin, PinOff } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { Archive, Circle, MessageCircle, Pin, PinOff } from "lucide-react";
+import { memo, useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { TurnResult } from "../store";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { Spinner } from "../../../components/ui/spinner";
+import { useRelativeTime } from "../../../hooks/use-relative-time";
 import { cn } from "../../../lib/utils";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
 import { useAgentStore } from "../store";
+import { isImeComposingKeyEvent } from "../utils/keyboard";
 import { SessionActionsMenu } from "./session-actions-menu";
 
 const log = debug("neovate:session");
-
-function formatRelativeTime(iso: string): string {
-  const distance = formatDistanceToNowStrict(new Date(iso), { addSuffix: false });
-  return distance
-    .replace(/ seconds?/, "s")
-    .replace(/ minutes?/, "m")
-    .replace(/ hours?/, "h")
-    .replace(/ days?/, "d")
-    .replace(/ months?/, "mo")
-    .replace(/ years?/, "y");
-}
 
 interface SessionItemProps {
   sessionId: string;
@@ -40,6 +31,8 @@ interface SessionItemProps {
   turnResult?: TurnResult;
   /** Session has an active backend process (loaded in SessionManager) */
   isInitialized?: boolean;
+  /** When true, show project name instead of relative time */
+  optionHeld?: boolean;
   onClick: () => void;
   projectPath: string;
 }
@@ -55,6 +48,7 @@ export const SessionItem = memo(function SessionItem({
   hasPendingPermission = false,
   turnResult,
   isInitialized = false,
+  optionHeld = false,
   onClick,
   projectPath,
 }: SessionItemProps) {
@@ -62,17 +56,23 @@ export const SessionItem = memo(function SessionItem({
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const renameSession = useAgentStore((s) => s.renameSession);
+  const sessionIsNew = useAgentStore((s) => s.sessions.get(sessionId)?.isNew ?? false);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
-  const developerMode = useConfigStore((s) => s.developerMode);
+  const showSessionInitStatus = useConfigStore((s) => s.showSessionInitStatus);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
 
+  const isPlayground = useProjectStore(
+    (s) => s.projects.find((p) => p.path === projectPath)?.id === PLAYGROUND_PROJECT_ID,
+  );
+
   const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
-  const relativeTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+  const relativeTime = useRelativeTime(createdAt);
+  const projectName = projectPath ? projectPath.split("/").pop() : undefined;
 
   log(
     "render: sid=%s isInitialized=%s isActive=%s",
@@ -95,6 +95,7 @@ export const SessionItem = memo(function SessionItem({
   };
 
   const handleStartRename = () => {
+    if (sessionIsNew || isEditing) return;
     setIsEditing(true);
     setEditingValue(displayTitle);
   };
@@ -126,8 +127,16 @@ export const SessionItem = memo(function SessionItem({
     if (isConfirming) setIsConfirming(false);
   };
 
+  const handleDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.target instanceof HTMLElement && e.target.closest("button, input")) {
+      return;
+    }
+
+    handleStartRename();
+  };
+
   return (
-    <li>
+    <li data-session-id={sessionId}>
       <SessionActionsMenu
         variant="context"
         sessionId={sessionId}
@@ -137,18 +146,20 @@ export const SessionItem = memo(function SessionItem({
         <div
           className={cn(
             "flex items-center gap-2.5 pl-2.5 pr-3 py-1 cursor-pointer rounded-lg transition-all group",
-            developerMode && "border-l-2",
-            developerMode && (isInitialized ? "border-green-500" : "border-transparent"),
+            showSessionInitStatus && "border-l-2",
+            showSessionInitStatus && (isInitialized ? "border-green-500" : "border-transparent"),
             isActive
-              ? "bg-accent/80 text-foreground"
+              ? "bg-primary/10 text-primary"
               : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
           )}
           onClick={onClick}
+          onDoubleClick={handleDoubleClick}
           onMouseLeave={handleMouseLeave}
         >
           <button
             className="hidden group-hover:flex size-5 items-center justify-center"
             onClick={handlePinToggle}
+            data-track-id="ui.session.pinToggled"
           >
             {isPinned ? (
               <PinOff size={14} strokeWidth={1.5} />
@@ -175,6 +186,14 @@ export const SessionItem = memo(function SessionItem({
               />
             ) : isPinned ? (
               <Pin size={14} strokeWidth={1.5} />
+            ) : isPlayground ? (
+              <MessageCircle
+                size={14}
+                strokeWidth={1.5}
+                className={
+                  multiProjectSupport && sidebarOrganize === "byProject" ? "invisible" : undefined
+                }
+              />
             ) : (
               <HugeiconsIcon
                 icon={Comment01Icon}
@@ -193,6 +212,8 @@ export const SessionItem = memo(function SessionItem({
               onChange={(e) => setEditingValue(e.target.value)}
               onBlur={handleSaveRename}
               onKeyDown={(e) => {
+                if (isImeComposingKeyEvent(e.nativeEvent)) return;
+
                 if (e.key === "Enter") {
                   handleSaveRename();
                 } else if (e.key === "Escape") {
@@ -210,16 +231,18 @@ export const SessionItem = memo(function SessionItem({
           )}
           <span
             className={cn(
-              "text-xs tabular-nums text-muted-foreground/70 group-hover:hidden",
+              "text-xs text-muted-foreground/70 group-hover:hidden truncate",
               isConfirming && "hidden",
+              !optionHeld && "tabular-nums",
             )}
           >
-            {relativeTime}
+            {optionHeld && projectName ? projectName : relativeTime}
           </span>
           {isConfirming ? (
             <button
               className="text-xs text-destructive-foreground cursor-pointer rounded-md bg-destructive/10 px-2 py-0.5 hover:bg-destructive/20 transition-colors"
               onClick={(e) => handleArchive(e)}
+              data-track-id="ui.session.archived"
             >
               {t("session.archiveConfirm")}
             </button>
@@ -227,6 +250,7 @@ export const SessionItem = memo(function SessionItem({
             <button
               className="hidden group-hover:flex size-5 items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
               onClick={handleStartArchive}
+              data-track-id="ui.session.archiveInitiated"
             >
               <Archive size={14} strokeWidth={1.5} />
             </button>

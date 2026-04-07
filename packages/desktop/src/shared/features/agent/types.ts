@@ -20,7 +20,13 @@ export type ModelScope = "session" | "project" | "global";
 
 export type FastModeState = "off" | "cooldown" | "on";
 
-export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";
+export type PermissionMode =
+  | "default"
+  | "acceptEdits"
+  | "bypassPermissions"
+  | "plan"
+  | "dontAsk"
+  | "auto";
 
 export type RewindFilesResult = {
   canRewind: boolean;
@@ -28,6 +34,11 @@ export type RewindFilesResult = {
   filesChanged?: string[];
   insertions?: number;
   deletions?: number;
+};
+
+export type RewindResult = {
+  forkedSessionId: string;
+  originalSessionId: string;
 };
 
 export type McpStdioServerConfig = {
@@ -89,8 +100,19 @@ export type SessionInfo = {
   createdAt: string;
 };
 
+/** Event emitted when a session is created or deleted */
+export type SessionLifecycleEvent = {
+  type: "created" | "deleted";
+  session: SessionInfo;
+  /** Where the event originated */
+  source: "local" | "remote-control";
+};
+
 /** Active in-memory session from SessionManager */
 export type ActiveSessionInfo = {
   sessionId: string;
   cwd: string;
+  createdAt: number;
+  model?: string;
+  providerId?: string;
 };

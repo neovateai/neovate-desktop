@@ -1,9 +1,12 @@
 import { FolderIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { MessageCircle } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { APP_NAME } from "../../../../../shared/constants";
+import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { getLogoUrl } from "../../../assets/images";
 import { Button } from "../../../components/ui/button";
 import { ProjectSelector } from "../../project/components/project-selector";
@@ -16,7 +19,11 @@ type WelcomePanelProps = {
 export function WelcomePanel({ hasProject }: WelcomePanelProps) {
   const { resolvedTheme } = useTheme();
   const { t } = useTranslation();
-  const { openProject, loading } = useProject();
+  const { openProject, loading, switchProject } = useProject();
+
+  const handleQuickChat = useCallback(() => {
+    switchProject(PLAYGROUND_PROJECT_ID);
+  }, [switchProject]);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 text-muted-foreground">
@@ -35,10 +42,16 @@ export function WelcomePanel({ hasProject }: WelcomePanelProps) {
       ) : (
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm text-muted-foreground">{t("project.getStarted")}</p>
-          <Button variant="outline" onClick={openProject} disabled={loading}>
-            <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
-            {t("project.openProject")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={openProject} disabled={loading}>
+              <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={1.5} />
+              {t("project.openProject")}
+            </Button>
+            <Button variant="outline" onClick={handleQuickChat} disabled={loading}>
+              <MessageCircle size={16} strokeWidth={1.5} />
+              {t("project.quickChat")}
+            </Button>
+          </div>
         </div>
       )}
     </div>

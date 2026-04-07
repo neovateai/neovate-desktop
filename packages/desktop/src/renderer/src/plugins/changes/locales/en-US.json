@@ -12,7 +12,7 @@
   "review.empty.staged.title": "No staged changes",
   "review.empty.staged.description": "Run git add to stage changes",
   "review.empty.last-turn.title": "No changes from last turn",
-  "review.empty.last-turn.description": "Changes will appear after Claude modifies files",
+  "review.empty.last-turn.description": "Changes will appear after the current turn completes. Press {{shortcut}} to refresh.",
   "review.empty.branch.title": "Branch is up to date",
   "review.empty.branch.description": "No commits ahead of the tracking branch",
   "review.noSession": "No active session",

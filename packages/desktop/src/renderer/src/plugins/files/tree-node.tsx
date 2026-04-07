@@ -1,7 +1,7 @@
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ChevronRight, ChevronDown, FilePlus, FolderPlus, Edit, Trash2, Plus } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, ChevronDown, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
 
 import type { FileTreeItem } from "../../../../shared/plugins/files/contract";
 
@@ -21,12 +21,19 @@ interface TreeNodeProps {
   expandedKeys: Set<string>;
   onToggleExpand: (key: string) => void;
   selectedKeys: Set<string>;
+  editingKey: string | null;
+  onEditingKeyChange: (key: string | null) => void;
   onSelect?: (item: FileTreeItem) => void;
   onDelete?: (item: FileTreeItem) => void;
-  onRename?: (oldPath: string, newPath: string) => void;
+  onRename?: (oldPath: string, newPath: string) => Promise<boolean | void> | boolean | void;
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
   onAdd?: (item: FileTreeItem) => void;
+  onCopy?: (item: FileTreeItem) => void;
+  onCut?: (item: FileTreeItem) => void;
+  onPaste?: (targetPath: string) => void;
+  canPaste?: (targetPath: string) => boolean;
+  cutSourcePath?: string | null;
 }
 
 function FileLangIcon(props: { path: string; size?: number }) {
@@ -50,24 +57,48 @@ export function TreeNode({
   expandedKeys,
   onToggleExpand,
   selectedKeys,
+  editingKey,
+  onEditingKeyChange,
   onSelect,
   onDelete,
   onRename,
   onCreateFile,
   onCreateFolder,
   onAdd,
+  onCopy,
+  onCut,
+  onPaste,
+  canPaste,
+  cutSourcePath,
 }: TreeNodeProps) {
   const { t } = useFilesTranslation();
   const { fileName = "" } = item || {};
-  const [isEditing, setIsEditing] = useState(false);
+  const isEditing = editingKey === item.fullPath;
   const [editingName, setEditingName] = useState(fileName);
   const [isCreating, setIsCreating] = useState(false);
   const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
   const [creatingName, setCreatingName] = useState("");
   const [isHovered, setIsHovered] = useState(false);
+  // Optimistic UI: pending name for rename operation
+  const [pendingFileName, setPendingFileName] = useState<string | null>(null);
+
+  // Sync editingName when editingKey changes to this item
+  useEffect(() => {
+    if (isEditing) {
+      setEditingName(fileName);
+    }
+  }, [isEditing, fileName]);
+
+  // Clear pendingFileName when tree refreshes with new name
+  useEffect(() => {
+    if (pendingFileName && fileName === pendingFileName) {
+      setPendingFileName(null);
+    }
+  }, [fileName, pendingFileName]);
 
   const isExpanded = expandedKeys.has(item.fullPath);
   const isSelected = selectedKeys.has(item.fullPath);
+  const isCutting = cutSourcePath === item.fullPath;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -89,32 +120,58 @@ export function TreeNode({
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onAdd) {
-      onAdd(item);
-    }
+    onAdd?.(item);
   };
 
+  const getTargetDir = () => {
+    if (item.isFolder) {
+      return item.fullPath;
+    }
+    return item.fullPath.substring(0, item.fullPath.lastIndexOf("/"));
+  };
+  const canPasteHere = canPaste?.(getTargetDir()) ?? false;
+
   const menuItems = [
-    {
-      label: t("contextMenu.newFile"),
-      icon: <FilePlus size={16} />,
-      action: () => handleCreateFile(),
-    },
-    {
-      label: t("contextMenu.newFolder"),
-      icon: <FolderPlus size={16} />,
-      action: () => handleCreateFolder(),
-    },
+    ...(item.isFolder
+      ? [
+          {
+            label: t("contextMenu.newFile"),
+            action: () => handleCreateFile(),
+          },
+          {
+            label: t("contextMenu.newFolder"),
+            action: () => handleCreateFolder(),
+          },
+        ]
+      : []),
+    ...(item.relPath !== ""
+      ? [
+          {
+            label: t("contextMenu.copy"),
+            action: () => onCopy?.(item),
+          },
+          {
+            label: t("contextMenu.cut"),
+            action: () => onCut?.(item),
+          },
+        ]
+      : []),
+    ...(item.isFolder && canPasteHere
+      ? [
+          {
+            label: t("contextMenu.paste"),
+            action: () => onPaste?.(getTargetDir()),
+          },
+        ]
+      : []),
     ...(item.relPath !== ""
       ? [
           {
             label: t("contextMenu.rename"),
-            icon: <Edit size={16} />,
             action: () => handleStartRename(),
           },
           {
             label: t("contextMenu.delete"),
-            icon: <Trash2 size={16} />,
             action: () => handleDelete(),
             variant: "destructive" as const,
           },
@@ -123,28 +180,41 @@ export function TreeNode({
   ];
 
   const handleStartRename = () => {
-    setIsEditing(true);
+    onEditingKeyChange(item.fullPath);
     setEditingName(fileName);
   };
 
-  const handleFinishRename = () => {
+  const handleFinishRename = async () => {
     if (editingName && editingName !== fileName && onRename) {
       const parentPath = item.fullPath.substring(0, item.fullPath.length - fileName.length);
       const newPath = parentPath + editingName;
-      onRename(item.fullPath, newPath);
+      // Optimistic UI: set pending name first
+      setPendingFileName(editingName);
+      onEditingKeyChange(null);
+      const result = await onRename(item.fullPath, newPath);
+      // Rollback if rename failed (result is false)
+      if (result === false) {
+        setPendingFileName(null);
+      }
+    } else {
+      onEditingKeyChange(null);
     }
-    setIsEditing(false);
   };
 
   const handleCancelRename = () => {
-    setIsEditing(false);
+    onEditingKeyChange(null);
     setEditingName(fileName);
   };
 
   const handleDelete = () => {
-    if (onDelete) {
-      onDelete(item);
-    }
+    onDelete?.(item);
+  };
+
+  const getParentPath = () => {
+    // If item is a folder, create inside it; if file, create in same directory
+    return item.isFolder
+      ? item.fullPath
+      : item.fullPath.substring(0, item.fullPath.lastIndexOf("/"));
   };
 
   const handleCreateFile = () => {
@@ -161,10 +231,11 @@ export function TreeNode({
 
   const handleFinishCreate = () => {
     if (creatingName) {
+      const parentPath = getParentPath();
       if (creatingType === "file" && onCreateFile) {
-        onCreateFile(item.fullPath, creatingName);
+        onCreateFile(parentPath, creatingName);
       } else if (creatingType === "folder" && onCreateFolder) {
-        onCreateFolder(item.fullPath, creatingName);
+        onCreateFolder(parentPath, creatingName);
       }
     }
     setIsCreating(false);
@@ -188,11 +259,13 @@ export function TreeNode({
             className={cn(
               "flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm relative group",
               isSelected && "bg-accent text-accent-foreground",
+              isCutting && "opacity-50",
             )}
             style={{ paddingLeft: `${paddingLeft}px` }}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            data-full-path={item.fullPath}
           >
             {item.isFolder ? (
               <div className="w-3 h-5 flex items-center justify-center">
@@ -212,6 +285,7 @@ export function TreeNode({
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
                 onBlur={handleFinishRename}
+                onFocus={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFinishRename();
                   if (e.key === "Escape") handleCancelRename();
@@ -222,7 +296,7 @@ export function TreeNode({
               />
             ) : (
               <span className="flex-1 text-sm ml-1 cursor-pointer truncate" title={item.fullPath}>
-                {fileName}
+                {pendingFileName || fileName}
               </span>
             )}
 
@@ -241,9 +315,8 @@ export function TreeNode({
         <ContextMenuPopup>
           {menuItems.map((menuItem, index) => (
             <div key={index}>
-              {index === 2 && <ContextMenuSeparator />}
+              {index === menuItems.length - 1 && <ContextMenuSeparator />}
               <ContextMenuItem onClick={menuItem.action} data-variant={menuItem.variant}>
-                {menuItem.icon}
                 {menuItem.label}
               </ContextMenuItem>
             </div>
@@ -290,12 +363,19 @@ export function TreeNode({
               expandedKeys={expandedKeys}
               onToggleExpand={onToggleExpand}
               selectedKeys={selectedKeys}
+              editingKey={editingKey}
+              onEditingKeyChange={onEditingKeyChange}
               onSelect={onSelect}
               onDelete={onDelete}
               onRename={onRename}
               onCreateFile={onCreateFile}
               onCreateFolder={onCreateFolder}
               onAdd={onAdd}
+              onCopy={onCopy}
+              onCut={onCut}
+              onPaste={onPaste}
+              canPaste={canPaste}
+              cutSourcePath={cutSourcePath}
             />
           ))}
         </div>

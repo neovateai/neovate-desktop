@@ -3,7 +3,6 @@ import path from "path";
 
 import { ExtensionBridgeServer } from "./bridge";
 import { downloadCodeServer, isCodeServerInstalled, type ProgressCallback } from "./download";
-import { injectStyle } from "./injector";
 import { installExtension } from "./installer";
 import { overrideCodeServerSettings } from "./settings";
 import { codeServerStarter } from "./starter";
@@ -22,7 +21,6 @@ export class CodeServerStartError extends Error {
 
 export interface CodeServerInstance {
   url: string;
-  stop: () => void;
 }
 
 /**
@@ -95,8 +93,6 @@ export class CodeServerManager {
       process.env.NEOVATE_BRIDGE_PORT = String(bridgePort);
       // preset extension
       await installExtension(extDir);
-      // overwrite vscode dist style
-      injectStyle();
     } catch (e) {
       log("extension service failed", e);
     }
@@ -110,9 +106,6 @@ export class CodeServerManager {
 
       return {
         url,
-        stop: () => {
-          bridge.stop();
-        },
       };
     } catch (error) {
       throw new CodeServerStartError((error as Error).message, error as Error);
@@ -135,7 +128,6 @@ export class CodeServerManager {
   stop(): void {
     log("stopping code server");
     if (this.instance) {
-      this.instance.stop();
       this.instance = null;
     }
     this.startPromise = null;

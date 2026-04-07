@@ -32,6 +32,8 @@ const DEFAULT_CONFIG: AppConfig = {
   terminalFontSize: 12,
   terminalFont: "",
   developerMode: false,
+  showSessionInitStatus: false,
+  claudeCodeBinPath: "",
 
   // Sidebar Settings (multi-project mode)
   sidebarOrganize: "byProject",
@@ -45,12 +47,20 @@ const DEFAULT_CONFIG: AppConfig = {
   tokenOptimization: true,
   networkInspector: false,
   keepAwake: false,
+  preWarmSessions: true,
+  auxiliaryModelSelection: "",
 
   // Keybindings
   keybindings: {},
 
+  // Popup Window
+  popupWindowEnabled: true,
+  popupWindowShortcut: "Alt+N",
+  popupWindowStayOpen: true,
+
   // Skills
-  skillsRegistryUrls: [],
+  skillsRegistries: [],
+  npmRegistry: "",
 };
 
 export const useConfigStore = create<ConfigState>()(

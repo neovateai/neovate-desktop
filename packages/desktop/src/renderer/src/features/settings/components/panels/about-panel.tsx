@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "../../../../components/ui/button";
 import { Spinner } from "../../../../components/ui/spinner";
+import { useRendererApp } from "../../../../core/app";
 import { client } from "../../../../orpc";
+import { useConfigStore } from "../../../config/store";
 import { useUpdaterState } from "../../../updater/hooks";
 import { SettingsRow } from "../settings-row";
 
@@ -12,6 +14,7 @@ export const AboutPanel = () => {
   const { t } = useTranslation();
   const state = useUpdaterState();
 
+  const claudeCodeBinPath = useConfigStore((s) => s.claudeCodeBinPath);
   const [appVersion, setAppVersion] = useState("");
   const [sdkVersion, setSdkVersion] = useState("");
   const [checkError, setCheckError] = useState<string | null>(null);
@@ -64,8 +67,11 @@ export const AboutPanel = () => {
     });
   };
 
+  const DEFAULT_FEEDBACK_URL = "https://github.com/neovateai/neovate-desktop/issues";
+  const { feedbackUrl } = useRendererApp().options.vendor ?? {};
+
   const handleSendFeedback = () => {
-    window.open("https://github.com/neovateai/neovate-desktop/issues", "_blank");
+    window.open(feedbackUrl ?? DEFAULT_FEEDBACK_URL, "_blank");
   };
 
   return (
@@ -109,7 +115,14 @@ export const AboutPanel = () => {
         {/* Claude Code SDK Version */}
         <SettingsRow
           title={t("settings.about.sdkVersion")}
-          description={t("settings.about.sdkVersion.description", { version: sdkVersion })}
+          description={
+            claudeCodeBinPath
+              ? t("settings.about.sdkVersion.descriptionCustom", {
+                  version: sdkVersion,
+                  path: claudeCodeBinPath,
+                })
+              : t("settings.about.sdkVersion.description", { version: sdkVersion })
+          }
         />
 
         {/* Feedback */}

@@ -41,5 +41,21 @@
   "git.diff.showingLines": "正在显示 {{current}}/{{total}} 行",
   "git.diff.showMore": "显示更多{{count}}行",
   "git.diff.showAll": "显示全部",
-  "git.diff.loadingMore": "正在加载更多内容..."
+  "git.diff.loadingMore": "正在加载更多内容...",
+  "git.commit": "提交",
+  "git.commitPlaceholder": "输入提交信息...",
+  "git.generateMessage": "生成提交信息",
+  "git.commitOnly": "仅提交",
+  "git.commitAndPush": "提交并推送",
+  "git.committing": "正在提交...",
+  "git.pushing": "正在推送...",
+  "git.generating": "正在生成...",
+  "git.generateMessageFailed": "生成提交信息失败",
+  "git.commitFailed": "提交失败",
+  "git.commitSuccess": "提交成功",
+  "git.pushFailed": "推送失败",
+  "git.pushSuccess": "推送成功",
+  "git.noUpstreamBranch": "未设置上游分支",
+  "git.noUpstreamBranchDesc": "当前分支「{{branch}}」没有上游分支",
+  "git.setUpstreamAndPush": "设置并推送"
 }

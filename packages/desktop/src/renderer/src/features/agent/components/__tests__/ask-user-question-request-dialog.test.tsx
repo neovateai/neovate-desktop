@@ -4,6 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AskUserQuestionRequestDialog } from "../ask-user-question-request-dialog";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 afterEach(() => {
   cleanup();
 });
@@ -40,19 +46,19 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    expect(screen.getByText("Type your own answer")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", false);
-    expect(screen.queryByRole("button", { name: "Submit" })).toBeNull();
+    expect(screen.getByText("question.other")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "question.dismiss" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "question.back" })).toBeNull();
+    expect(screen.getByRole("button", { name: "question.next" })).toHaveProperty("disabled", false);
+    expect(screen.queryByRole("button", { name: "question.submit" })).toBeNull();
     expect(
       screen.queryByText("Enter a custom response instead of choosing only predefined options."),
     ).toBeNull();
 
-    fireEvent.click(screen.getByText("Type your own answer"));
+    fireEvent.click(screen.getByText("question.other"));
     expect(screen.queryByText("Your custom answer")).toBeNull();
     const firstCustomAnswer = screen.getByPlaceholderText(
-      "Type your answer...",
+      "question.typeAnswer",
     ) as HTMLTextAreaElement;
     expect(firstCustomAnswer.getAttribute("rows")).toBe("1");
     expect(firstCustomAnswer.style.resize).toBe("none");
@@ -60,21 +66,24 @@ describe("AskUserQuestionRequestDialog", () => {
       configurable: true,
       value: 68,
     });
-    fireEvent.change(screen.getByPlaceholderText("Type your answer..."), {
+    fireEvent.change(screen.getByPlaceholderText("question.typeAnswer"), {
       target: { value: "Custom first answer" },
     });
     expect(firstCustomAnswer.style.height).toBe("68px");
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "question.next" }));
 
     expect(screen.getByText("Second question")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Back" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Submit" })).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "question.dismiss" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "question.back" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "question.next" })).toBeNull();
+    expect(screen.getByRole("button", { name: "question.submit" })).toHaveProperty(
+      "disabled",
+      false,
+    );
 
     fireEvent.click(screen.getByText("Gamma"));
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "question.submit" }));
 
     expect(onResolve).toHaveBeenCalledWith({
       behavior: "allow",
@@ -127,10 +136,10 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Type your own answer"));
+    fireEvent.click(screen.getByText("question.other"));
     expect(screen.queryByText("Your custom answer")).toBeNull();
     const savedCustomAnswer = screen.getByPlaceholderText(
-      "Type your answer...",
+      "question.typeAnswer",
     ) as HTMLTextAreaElement;
     expect(savedCustomAnswer.getAttribute("rows")).toBe("1");
     expect(savedCustomAnswer.style.resize).toBe("none");
@@ -138,7 +147,7 @@ describe("AskUserQuestionRequestDialog", () => {
       configurable: true,
       value: 52,
     });
-    fireEvent.change(screen.getByPlaceholderText("Type your answer..."), {
+    fireEvent.change(screen.getByPlaceholderText("question.typeAnswer"), {
       target: { value: "Saved custom answer" },
     });
     expect(savedCustomAnswer.style.height).toBe("52px");
@@ -178,11 +187,14 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "question.next" }));
 
-    expect(screen.getByRole("button", { name: "Submit" })).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "question.submit" })).toHaveProperty(
+      "disabled",
+      false,
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "question.submit" }));
 
     expect(onResolve).toHaveBeenCalledWith({
       behavior: "allow",
@@ -234,7 +246,7 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    const customInput = screen.getByPlaceholderText("Type your answer...");
+    const customInput = screen.getByPlaceholderText("question.typeAnswer");
     Object.defineProperty(customInput, "scrollHeight", {
       configurable: true,
       value: 44,
@@ -244,7 +256,7 @@ describe("AskUserQuestionRequestDialog", () => {
     fireEvent.change(customInput, {
       target: { value: "Focused custom answer" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "question.submit" }));
 
     expect(onResolve).toHaveBeenCalledWith({
       behavior: "allow",
@@ -289,7 +301,7 @@ describe("AskUserQuestionRequestDialog", () => {
       />,
     );
 
-    const customInput = screen.getByPlaceholderText("Type your answer...");
+    const customInput = screen.getByPlaceholderText("question.typeAnswer");
     Object.defineProperty(customInput, "scrollHeight", {
       configurable: true,
       value: 44,
@@ -299,7 +311,7 @@ describe("AskUserQuestionRequestDialog", () => {
       target: { value: "Focused custom answer" },
     });
     fireEvent.click(screen.getByText("Alpha"));
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "question.submit" }));
 
     expect(onResolve).toHaveBeenCalledWith({
       behavior: "allow",

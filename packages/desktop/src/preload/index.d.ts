@@ -4,7 +4,7 @@ interface NeovateApi {
   homedir: string;
   isDev: boolean;
   onOpenSettings: (callback: () => void) => () => void;
-  onDeeplink: (callback: (data: { sessionId: string; project: string }) => void) => () => void;
+  onPopupWindowShown: (callback: () => void) => () => void;
 }
 
 declare global {

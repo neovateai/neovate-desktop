@@ -16,9 +16,9 @@ const EMPTY_TABS: Tab[] = [];
 export function NewTabMenu() {
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const views = app.pluginManager.viewContributions.contentPanelViews.filter(
-    (v) => v.discoverable !== false,
-  );
+  const views = app.pluginManager.viewContributions.contentPanelViews
+    .map((c) => c.value)
+    .filter((v) => v.discoverable !== false);
   const projectPath = useProjectStore((s) => s.activeProject?.path ?? "");
 
   const tabs = useStore(

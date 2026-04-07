@@ -1,7 +1,7 @@
 import { oc, type } from "@orpc/contract";
 import { z } from "zod";
 
-import type { PreviewSkill, RecommendedSkill, SkillMeta, SkillUpdate } from "./types";
+import type { PreviewSkill, RegistryGroup, SkillMeta, SkillUpdate } from "./types";
 
 const scopeSchema = z.enum(["global", "project"]);
 const allScopeSchema = z.enum(["all", "global", "project"]);
@@ -20,7 +20,7 @@ export const skillsContract = {
 
   recommended: oc
     .input(z.object({ forceRefresh: z.boolean().optional() }))
-    .output(type<RecommendedSkill[]>()),
+    .output(type<RegistryGroup[]>()),
 
   preview: oc
     .input(z.object({ source: z.string() }))

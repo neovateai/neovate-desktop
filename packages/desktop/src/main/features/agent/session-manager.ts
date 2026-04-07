@@ -4,6 +4,7 @@ import type {
   SDKUserMessage,
   SDKSessionInfo,
   PermissionMode as SDKPermissionMode,
+  SpawnedProcess,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { EventPublisher } from "@orpc/server";
@@ -11,7 +12,7 @@ import debug from "debug";
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
-import { appendFile } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -20,6 +21,7 @@ import { promisify } from "node:util";
 import type {
   ClaudeCodeUIEvent,
   ClaudeCodeUIMessage,
+  ClaudeCodeUIMessageChunk,
   ClaudeCodeUIDispatch,
   ClaudeCodeUIDispatchResult,
 } from "../../../shared/claude-code/types";
@@ -27,8 +29,13 @@ import type {
   ActiveSessionInfo,
   ModelScope,
   RewindFilesResult,
+  RewindResult,
   SessionInfo,
+  SessionLifecycleEvent,
 } from "../../../shared/features/agent/types";
+import type { Contributions } from "../../core/plugin/contributions";
+
+import { mergeAgentHooks } from "../../core/plugin/contributions";
 
 const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
@@ -36,13 +43,14 @@ import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { RequestTracker } from "./request-tracker";
 
+import { APP_DATA_DIR } from "../../core/app-paths";
 import { PowerBlockerService } from "../../core/power-blocker-service";
 import { shellEnvService } from "../../core/shell-service";
 import {
   resolveBunPath,
+  resolveClaudeCodeExecutable,
   resolveInterceptorPath,
   resolveRtkPath,
-  resolveSDKCliPath,
   detectRtkHookInSettings,
 } from "./claude-code-utils";
 import { readModelSetting, readProviderSetting, readProviderModelSetting } from "./claude-settings";
@@ -80,11 +88,8 @@ function listSessionFiles(filter?: string): string[] {
   return results;
 }
 
-/** Auto-cancel permission requests after 5 minutes of no UI response. */
-export const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
-
 /** Timeout for SDK initializationResult() to prevent hanging sessions. */
-const INIT_TIMEOUT_MS = 10_000;
+const INIT_TIMEOUT_MS = 30_000;
 
 const ENV_BLOCKLIST = new Set([
   "ELECTRON_RUN_AS_NODE",
@@ -109,30 +114,59 @@ export class SessionManager {
       query: Query;
       cwd: string;
       providerId?: string;
+      model?: string;
+      createdAt: number;
+      source: SessionLifecycleEvent["source"];
       lastUserMessageId?: string;
       preTurnRef?: string;
+      consumeExited: boolean;
+      /** Maps UI message IDs to SDK UUIDs for rewind. */
+      uiToSdkMessageIds: Map<string, string>;
       pendingRequests: Map<
         string,
         {
           resolve: (result: import("@anthropic-ai/claude-agent-sdk").PermissionResult) => void;
-          timer: ReturnType<typeof setTimeout>;
         }
       >;
     }
   >();
+
+  private lifecycleListeners: Array<(event: SessionLifecycleEvent) => void> = [];
+  private emittedCreatedSessions = new Set<string>();
 
   constructor(
     private configStore: ConfigStore,
     private projectStore: ProjectStore,
     private requestTracker: RequestTracker,
     private powerBlocker: PowerBlockerService,
+    private getAgentContributions: () => Contributions["agents"] = () => [],
   ) {}
+
+  onLifecycle(listener: (event: SessionLifecycleEvent) => void): () => void {
+    this.lifecycleListeners.push(listener);
+    return () => {
+      this.lifecycleListeners = this.lifecycleListeners.filter((l) => l !== listener);
+    };
+  }
+
+  private emitLifecycle(event: SessionLifecycleEvent): void {
+    for (const listener of this.lifecycleListeners) {
+      try {
+        listener(event);
+      } catch {
+        // Ignore listener errors
+      }
+    }
+  }
 
   /** Return all in-memory (active) sessions. */
   getActiveSessions(): ActiveSessionInfo[] {
     return Array.from(this.sessions.entries()).map(([sessionId, session]) => ({
       sessionId,
       cwd: session.cwd,
+      createdAt: session.createdAt,
+      model: session.model,
+      providerId: session.providerId,
     }));
   }
 
@@ -145,13 +179,15 @@ export class SessionManager {
     model?: string;
     cwd: string;
   }): Options {
-    const cliPath = resolveSDKCliPath();
+    const resolved = resolveClaudeCodeExecutable(
+      this.configStore.get("claudeCodeBinPath") || undefined,
+    );
     return {
       sessionId,
       model,
       cwd,
-      pathToClaudeCodeExecutable: cliPath,
-      executable: "bun",
+      pathToClaudeCodeExecutable: resolved.cliPath ?? resolved.executable,
+      ...(resolved.standalone ? {} : { executable: "bun" as const }),
       settingSources: ["local", "project", "user"],
       enableFileCheckpointing: true,
       includePartialMessages: true,
@@ -178,7 +214,6 @@ export class SessionManager {
         ): boolean => {
           if (settled) return false;
           settled = true;
-          clearTimeout(timer);
           signal.removeEventListener("abort", onAbort);
           session.pendingRequests.delete(requestId);
           // SDK expects updatedInput on allow results to execute the tool
@@ -189,17 +224,12 @@ export class SessionManager {
           );
           return true;
         };
-        const timer = setTimeout(() => {
-          if (settle({ behavior: "deny", message: "Permission request timed out" })) {
-            this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
-          }
-        }, PERMISSION_TIMEOUT_MS);
         const onAbort = () => {
           if (settle({ behavior: "deny", message: "Permission request cancelled" })) {
             this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
           }
         };
-        session.pendingRequests.set(requestId, { resolve: settle, timer });
+        session.pendingRequests.set(requestId, { resolve: settle });
         this.eventPublisher.publish(sessionId, {
           kind: "request",
           requestId,
@@ -209,7 +239,7 @@ export class SessionManager {
         return promise;
       },
       stderr(data) {
-        console.error("[claude-stderr]", data.trimEnd());
+        log("stderr sessionId=%s: %s", sessionId, data.trimEnd());
       },
     };
   }
@@ -219,6 +249,7 @@ export class SessionManager {
     cwd: string,
     model?: string,
     explicitProviderId?: string | null,
+    source: SessionLifecycleEvent["source"] = "local",
   ): Promise<
     {
       sessionId: string;
@@ -297,7 +328,9 @@ export class SessionManager {
     const initResult = await this.initSessionWithTimeout(sessionId, cwd, {
       model: modelSetting?.model,
       provider,
+      source,
     });
+
     return {
       ...initResult,
       sessionId,
@@ -371,7 +404,12 @@ export class SessionManager {
   private async initSession(
     sessionId: string,
     cwd: string,
-    opts?: { model?: string; resume?: string; provider?: Provider },
+    opts?: {
+      model?: string;
+      resume?: string;
+      provider?: Provider;
+      source?: SessionLifecycleEvent["source"];
+    },
   ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     const input = new Pushable<SDKUserMessage>();
     const pendingRequests = new Map<
@@ -382,7 +420,10 @@ export class SessionManager {
       }
     >();
 
+    const t0 = performance.now();
     const shellEnv = await shellEnvService.getEnv();
+    const tShellEnv = performance.now();
+    log("initSession: TIMING shellEnv=%dms sessionId=%s", Math.round(tShellEnv - t0), sessionId);
     const bunPath = resolveBunPath();
     const bunDir = bunPath !== "bun" ? path.dirname(bunPath) : undefined;
     const rtkPath = resolveRtkPath();
@@ -391,6 +432,7 @@ export class SessionManager {
     const env: Record<string, string | undefined> = {
       ...shellEnv,
       PATH: mergedPath,
+      CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS: "1",
     };
 
     const provider = opts?.provider;
@@ -495,8 +537,25 @@ export class SessionManager {
       }
     };
 
+    // Resolve custom Claude Code binary
+    const resolved = resolveClaudeCodeExecutable(
+      this.configStore.get("claudeCodeBinPath") || undefined,
+    );
+    log(
+      "initSession: executable=%s standalone=%s cliPath=%s sessionId=%s",
+      resolved.executable,
+      resolved.standalone,
+      resolved.cliPath ?? "(none)",
+      sessionId,
+    );
+
     // Network inspector: conditionally inject fetch interceptor via --preload
-    const networkInspector = this.configStore.get("networkInspector") === true;
+    // Not supported with standalone binaries (--preload is a bun flag)
+    const networkInspector =
+      this.configStore.get("networkInspector") === true && !resolved.standalone;
+    if (resolved.standalone && this.configStore.get("networkInspector") === true) {
+      log("initSession: network inspector skipped (standalone binary)");
+    }
     if (networkInspector) {
       this.requestTracker.markInspectorEnabled(sessionId);
     }
@@ -506,111 +565,158 @@ export class SessionManager {
       cwd,
       model: opts?.model,
     });
+    // Merge plugin-contributed hooks with built-in hooks (RTK)
+    const mergedHooks = mergeAgentHooks(this.getAgentContributions());
+    if (registerRtkHook) {
+      (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+    }
+
+    // Build spawnClaudeCodeProcess override:
+    // - Standalone binary: spawn the binary directly
+    // - Network inspector (non-standalone only): inject --preload for fetch interception
+    let spawnOverride:
+      | ((spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions) => SpawnedProcess)
+      | undefined;
+
+    if (resolved.standalone) {
+      spawnOverride = (spawnOpts) =>
+        spawn(resolved.executable, spawnOpts.args, {
+          cwd: spawnOpts.cwd,
+          env: spawnOpts.env,
+          signal: spawnOpts.signal,
+          stdio: ["pipe", "pipe", "pipe"],
+        }) as unknown as SpawnedProcess;
+    } else if (networkInspector) {
+      spawnOverride = (spawnOpts) => {
+        const interceptorPath = resolveInterceptorPath();
+        log("spawnClaudeCodeProcess: interceptor=%s sessionId=%s", interceptorPath, sessionId);
+
+        const child = spawn(spawnOpts.command, ["--preload", interceptorPath, ...spawnOpts.args], {
+          cwd: spawnOpts.cwd,
+          env: {
+            ...spawnOpts.env,
+            NV_SESSION_ID: sessionId,
+            ...(settingsEnv?.ANTHROPIC_BASE_URL
+              ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
+              : {}),
+          },
+          signal: spawnOpts.signal,
+          stdio: ["pipe", "pipe", "pipe", "pipe"],
+        });
+
+        // Read interceptor data from fd 3 (dedicated IPC pipe)
+        let interceptorReady = false;
+        const ipcStream = child.stdio[3];
+        if (ipcStream && "on" in ipcStream) {
+          const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
+          rl.on("line", (line: string) => {
+            if (line === "__NV_READY") {
+              interceptorReady = true;
+              log("interceptor ready: sessionId=%s", sessionId);
+              return;
+            }
+            if (!line.startsWith("__NV_REQ:")) {
+              log("interceptor fd3 unknown line: %s", line.slice(0, 100));
+              return;
+            }
+            try {
+              const msg = JSON.parse(line.slice("__NV_REQ:".length));
+              this.requestTracker.onMessage(sessionId, msg);
+            } catch (err) {
+              log(
+                "interceptor fd3 parse error: %s line=%s",
+                err instanceof Error ? err.message : err,
+                line.slice(0, 200),
+              );
+            }
+          });
+        }
+
+        setTimeout(() => {
+          if (!interceptorReady) {
+            log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
+            this.requestTracker.markInspectorFailed(sessionId);
+          }
+        }, 5000);
+
+        return child as unknown as SpawnedProcess;
+      };
+    }
+
     const options: Options = {
       ...queryOpts,
+      allowDangerouslySkipPermissions: true,
       env,
       settings: {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
-      ...(registerRtkHook
-        ? { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [rtkHook] }] } }
-        : {}),
+      hooks: mergedHooks,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
-      ...(networkInspector
-        ? {
-            spawnClaudeCodeProcess: (
-              spawnOpts: import("@anthropic-ai/claude-agent-sdk").SpawnOptions,
-            ) => {
-              const interceptorPath = resolveInterceptorPath();
-              log(
-                "spawnClaudeCodeProcess: interceptor=%s sessionId=%s",
-                interceptorPath,
-                sessionId,
-              );
-
-              const child = spawn(
-                spawnOpts.command,
-                ["--preload", interceptorPath, ...spawnOpts.args],
-                {
-                  cwd: spawnOpts.cwd,
-                  env: {
-                    ...spawnOpts.env,
-                    NV_SESSION_ID: sessionId,
-                    ...(settingsEnv?.ANTHROPIC_BASE_URL
-                      ? { ANTHROPIC_BASE_URL: settingsEnv.ANTHROPIC_BASE_URL }
-                      : {}),
-                  },
-                  signal: spawnOpts.signal,
-                  stdio: ["pipe", "pipe", "pipe", "pipe"],
-                },
-              );
-
-              // Read interceptor data from fd 3 (dedicated IPC pipe)
-              let interceptorReady = false;
-              const ipcStream = child.stdio[3];
-              if (ipcStream && "on" in ipcStream) {
-                const rl = createInterface({ input: ipcStream as NodeJS.ReadableStream });
-                rl.on("line", (line: string) => {
-                  if (line === "__NV_READY") {
-                    interceptorReady = true;
-                    log("interceptor ready: sessionId=%s", sessionId);
-                    return;
-                  }
-                  if (!line.startsWith("__NV_REQ:")) {
-                    log("interceptor fd3 unknown line: %s", line.slice(0, 100));
-                    return;
-                  }
-                  try {
-                    const msg = JSON.parse(line.slice("__NV_REQ:".length));
-                    this.requestTracker.onMessage(sessionId, msg);
-                  } catch (err) {
-                    log(
-                      "interceptor fd3 parse error: %s line=%s",
-                      err instanceof Error ? err.message : err,
-                      line.slice(0, 200),
-                    );
-                  }
-                });
-              }
-
-              setTimeout(() => {
-                if (!interceptorReady) {
-                  log("WARNING: network interceptor did not initialize — sessionId=%s", sessionId);
-                  this.requestTracker.markInspectorFailed(sessionId);
-                }
-              }, 5000);
-
-              return child;
-            },
-          }
-        : {}),
+      ...(spawnOverride ? { spawnClaudeCodeProcess: spawnOverride } : {}),
     };
 
-    const { query } = await import("@anthropic-ai/claude-agent-sdk");
-    const q = query({ prompt: input, options });
+    const tPreSDK = performance.now();
+    log("initSession: TIMING setup=%dms sessionId=%s", Math.round(tPreSDK - tShellEnv), sessionId);
+    log("initSession: importing SDK sessionId=%s", sessionId);
+    const { query: queryFn } = await import("@anthropic-ai/claude-agent-sdk");
+    const tImport = performance.now();
+    log("initSession: creating SDK query sessionId=%s", sessionId);
+    const q = queryFn({ prompt: input, options });
+    const tQuery = performance.now();
     this.sessions.set(sessionId, {
       input,
       query: q,
       cwd,
       providerId: provider?.id,
+      model: opts?.model,
+      createdAt: Date.now(),
+      source: opts?.source ?? "local",
+      consumeExited: false,
+      uiToSdkMessageIds: new Map(),
       pendingRequests,
     });
-    return q.initializationResult();
+    log(
+      "initSession: TIMING import=%dms query=%dms sessionId=%s",
+      Math.round(tImport - tPreSDK),
+      Math.round(tQuery - tImport),
+      sessionId,
+    );
+    log("initSession: awaiting initializationResult sessionId=%s", sessionId);
+    const initResult = await q.initializationResult();
+    const tInit = performance.now();
+    log(
+      "initSession: TIMING initResult=%dms total=%dms sessionId=%s",
+      Math.round(tInit - tQuery),
+      Math.round(tInit - t0),
+      sessionId,
+    );
+    this.consume(sessionId).catch((err) => log("consume error for %s: %o", sessionId, err));
+    return initResult;
   }
 
   /** Wrap initSession with a timeout to prevent hanging sessions. */
   private async initSessionWithTimeout(
     sessionId: string,
     cwd: string,
-    opts?: { model?: string; resume?: string; provider?: Provider },
+    opts?: {
+      model?: string;
+      resume?: string;
+      provider?: Provider;
+      source?: SessionLifecycleEvent["source"];
+    },
   ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     let timer: ReturnType<typeof setTimeout>;
+    const t0 = performance.now();
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error("Session initialization timed out")),
-        INIT_TIMEOUT_MS,
-      );
+      timer = setTimeout(() => {
+        log(
+          "initSessionWithTimeout: TIMEOUT after %dms sessionId=%s",
+          Math.round(performance.now() - t0),
+          sessionId,
+        );
+        reject(new Error("Session initialization timed out"));
+      }, INIT_TIMEOUT_MS);
     });
 
     try {
@@ -676,20 +782,32 @@ export class SessionManager {
   }
 
   async closeSession(sessionId: string): Promise<void> {
+    const t0 = performance.now();
+    const el = (step: string) =>
+      log(
+        "closeSession TIMING %s sessionId=%s %dms",
+        step,
+        sessionId,
+        Math.round(performance.now() - t0),
+      );
+
     const session = this.sessions.get(sessionId);
     if (!session) {
       log("closeSession: no-op, unknown sessionId=%s", sessionId);
       return;
     }
     session.query.close();
+    el("query.close");
     for (const [requestId, pending] of session.pendingRequests) {
-      clearTimeout(pending.timer);
       pending.resolve({ behavior: "deny", message: "Session closed" });
       this.eventPublisher.publish(sessionId, { kind: "request_settled", requestId });
     }
+    el("pendingRequests.settled");
     this.sessions.delete(sessionId);
+    this.emittedCreatedSessions.delete(sessionId);
     this.requestTracker.clearSession(sessionId);
     this.powerBlocker.onSessionClosed(sessionId);
+    el("cleanup.done");
     log("closeSession: closed sessionId=%s remainingSessions=%d", sessionId, this.sessions.size);
   }
 
@@ -767,23 +885,223 @@ export class SessionManager {
     }
   }
 
-  /**
-   * Stream a user message as UIMessageChunks.
-   * Events from the SDK are routed to the event publisher.
-   */
-  async *stream(
-    sessionId: string,
-    message: import("../../../shared/claude-code/types").ClaudeCodeUIMessage,
-  ): AsyncGenerator<import("../../../shared/claude-code/types").ClaudeCodeUIMessageChunk> {
+  /** Resolve a UI message ID to the SDK UUID used for rewind operations. */
+  private resolveSdkMessageId(
+    session: { uiToSdkMessageIds: Map<string, string> },
+    uiMessageId: string,
+  ): string {
+    return session.uiToSdkMessageIds.get(uiMessageId) ?? uiMessageId;
+  }
+
+  /** Dry-run: get the list of files that would change if we rewound to this message. */
+  async rewindFilesDryRun(sessionId: string, messageId: string): Promise<RewindFilesResult> {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error(`Unknown session: ${sessionId}`);
-    const transformer = new SDKMessageTransformer();
+    const sdkMessageId = this.resolveSdkMessageId(session, messageId);
+    try {
+      return await session.query.rewindFiles(sdkMessageId, { dryRun: true });
+    } catch (error) {
+      return {
+        canRewind: false,
+        error: error instanceof Error ? error.message : "Failed to get rewind files",
+      };
+    }
+  }
+
+  /**
+   * Rewind to a specific user message: optionally restore files, then fork the
+   * conversation so the SDK's in-memory state matches the truncated history.
+   */
+  async rewindToMessage(
+    sessionId: string,
+    messageId: string,
+    restoreFiles: boolean,
+    title?: string,
+  ): Promise<RewindResult> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    const sdkMessageId = this.resolveSdkMessageId(session, messageId);
+
+    // 1. Restore files if requested (on the ORIGINAL session, which has file history)
+    if (restoreFiles) {
+      await session.query.rewindFiles(sdkMessageId, { dryRun: false });
+    }
+
+    // 2. Resolve the message immediately before the target for the fork point
+    const prevMessageId = await this.findPrevMessageId(sessionId, sdkMessageId);
+
+    // 3. Fork the conversation
+    const { forkSession } = await import("@anthropic-ai/claude-agent-sdk");
+    let forkedSessionId: string;
+    if (prevMessageId) {
+      const result = await forkSession(sessionId, {
+        upToMessageId: prevMessageId,
+        dir: session.cwd,
+        title,
+      });
+      forkedSessionId = result.sessionId;
+    } else {
+      // Rewinding to first message — create a fresh session
+      const result = await this.createSession(session.cwd);
+      forkedSessionId = result.sessionId;
+    }
+
+    // 4. Close original session's Query (keep .jsonl on disk)
+    await this.closeSession(sessionId);
+
+    log(
+      "rewindToMessage: original=%s forked=%s restoreFiles=%s",
+      sessionId,
+      forkedSessionId,
+      restoreFiles,
+    );
+
+    return { forkedSessionId, originalSessionId: sessionId };
+  }
+
+  /** Delete a session's .jsonl file from disk. */
+  async deleteSessionFile(sessionId: string): Promise<void> {
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
+    if (matches.length === 0) {
+      log("deleteSessionFile: no file found for sessionId=%s", sessionId);
+      return;
+    }
+    const { unlink } = await import("node:fs/promises");
+    for (const file of matches) {
+      try {
+        await unlink(file);
+        log("deleteSessionFile: deleted %s", file);
+      } catch (error) {
+        log(
+          "deleteSessionFile: failed to delete %s error=%s",
+          file,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+
+    const now = new Date().toISOString();
+    this.emitLifecycle({
+      type: "deleted",
+      session: { sessionId, createdAt: now, updatedAt: now },
+      source: "local",
+    });
+  }
+
+  /**
+   * Back up a session's .jsonl to ~/.neovate-desktop/rewind-history/ then delete the original.
+   * Backup is atomic: delete only runs after the copy succeeds.
+   */
+  async archiveSessionFile(
+    sessionId: string,
+    meta: {
+      forkedSessionId: string;
+      rewindMessageId: string;
+      restoreFiles: boolean;
+      title?: string;
+      cwd?: string;
+    },
+  ): Promise<void> {
+    const matches = listSessionFiles(`${sessionId}.jsonl`);
+    if (matches.length === 0) {
+      log("archiveSessionFile: no file found for sessionId=%s", sessionId);
+      return;
+    }
+
+    const backupDir = path.join(APP_DATA_DIR, "rewind-history", sessionId);
+    await mkdir(backupDir, { recursive: true });
+
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/:/g, "-").replace(/\./g, "-");
+
+    await copyFile(matches[0], path.join(backupDir, `${timestamp}.jsonl`));
+
+    const metaJson = JSON.stringify(
+      {
+        originalSessionId: sessionId,
+        forkedSessionId: meta.forkedSessionId,
+        rewindMessageId: meta.rewindMessageId,
+        restoreFiles: meta.restoreFiles,
+        title: meta.title,
+        cwd: meta.cwd,
+        backedUpAt: now.toISOString(),
+      },
+      null,
+      2,
+    );
+    await writeFile(path.join(backupDir, `${timestamp}.meta.json`), metaJson, "utf-8");
+
+    log("archiveSessionFile: backed up sessionId=%s to %s", sessionId, backupDir);
+
+    // Delete original only after backup succeeds
+    const { unlink } = await import("node:fs/promises");
+    for (const file of matches) {
+      try {
+        await unlink(file);
+        log("archiveSessionFile: deleted %s", file);
+      } catch (error) {
+        log(
+          "archiveSessionFile: failed to delete %s error=%s",
+          file,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Find the SDK UUID of the message immediately before the target in the
+   * session transcript. Returns undefined if the target is the first message.
+   */
+  private async findPrevMessageId(
+    sessionId: string,
+    targetMessageId: string,
+  ): Promise<string | undefined> {
+    const { getSessionMessages } = await import("@anthropic-ai/claude-agent-sdk");
+    const messages = await getSessionMessages(sessionId);
+    let prevUuid: string | undefined;
+    for (const msg of messages) {
+      if (msg.uuid === targetMessageId) return prevUuid;
+      prevUuid = msg.uuid;
+    }
+    return undefined;
+  }
+
+  /**
+   * Send a user message into the session's input Pushable.
+   * Does NOT consume the query iterator — that is handled by consume().
+   */
+  async send(
+    sessionId: string,
+    message: import("../../../shared/claude-code/types").ClaudeCodeUIMessage,
+    options?: { source?: { platform: string } },
+  ): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Unknown session: ${sessionId}`);
+    if (session.consumeExited) throw new Error(`Session consume loop has exited: ${sessionId}`);
 
     // UIMessage -> SDKUserMessage: extract text + image parts
     const text = message.parts
       .filter((p): p is { type: "text"; text: string } => p.type === "text")
       .map((p) => p.text)
       .join("");
+
+    // Emit lifecycle "created" on first message (not on createSession, so empty sessions don't appear)
+    if (!this.emittedCreatedSessions.has(sessionId)) {
+      this.emittedCreatedSessions.add(sessionId);
+      const now = new Date().toISOString();
+      this.emitLifecycle({
+        type: "created",
+        session: {
+          sessionId,
+          cwd: session.cwd,
+          createdAt: now,
+          updatedAt: now,
+          title: text.slice(0, 50),
+        },
+        source: session.source,
+      });
+    }
 
     const imageBlocks = message.parts
       .filter(
@@ -830,6 +1148,26 @@ export class SessionManager {
 
     const userMessageId = randomUUID();
     session.lastUserMessageId = userMessageId;
+    // Track UI message ID → SDK UUID mapping for rewind
+    if (message.id) {
+      session.uiToSdkMessageIds.set(message.id, userMessageId);
+    }
+
+    // Publish external user message to renderer BEFORE pushing to SDK input,
+    // so the user bubble appears before assistant chunks start streaming.
+    if (options?.source) {
+      this.eventPublisher.publish(sessionId, {
+        kind: "user_message",
+        message: {
+          ...message,
+          metadata: {
+            sessionId,
+            parentToolUseId: null,
+            source: options.source,
+          },
+        },
+      });
+    }
 
     this.requestTracker.startTurn(sessionId);
     this.powerBlocker.onTurnStart(sessionId);
@@ -840,6 +1178,18 @@ export class SessionManager {
       session_id: sessionId,
       uuid: userMessageId,
     });
+  }
+
+  /**
+   * Long-lived background loop that consumes the query iterator and publishes
+   * all events and chunks through the eventPublisher.
+   * Started fire-and-forget after initSession(). Does NOT break on result —
+   * continues through background turns.
+   */
+  private async consume(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+    const transformer = new SDKMessageTransformer();
 
     // Track the latest top-level message_start usage to compute context window fill
     let lastInputTokens = 0;
@@ -855,14 +1205,17 @@ export class SessionManager {
           value.event.type === "message_start" &&
           value.parent_tool_use_id === null
         ) {
+          // Non-Anthropic providers (e.g. Wohu/Kimi) may omit usage from message_start
           const usage = value.event.message.usage;
-          lastInputTokens =
-            (usage.input_tokens ?? 0) +
-            (usage.cache_creation_input_tokens ?? 0) +
-            (usage.cache_read_input_tokens ?? 0);
+          if (usage) {
+            lastInputTokens =
+              (usage.input_tokens ?? 0) +
+              (usage.cache_creation_input_tokens ?? 0) +
+              (usage.cache_read_input_tokens ?? 0);
+          }
         }
 
-        // Publish to subscribe stream (result event included — carries cost/usage/stop_reason)
+        // Publish side events to subscribe stream (result event included — carries cost/usage/stop_reason)
         const event = toUIEvent(value);
         if (event) {
           this.eventPublisher.publish(sessionId, event);
@@ -889,23 +1242,33 @@ export class SessionManager {
               remainingPct,
             },
           });
+          this.powerBlocker.onTurnEnd(sessionId);
         }
 
-        // Route to message stream (result → finish-step + finish, error → error chunk)
+        // Publish chunks through eventPublisher (wrapped as { kind: "chunk", chunk })
         for await (const chunk of transformer.transformWithAggregation(value)) {
-          yield chunk;
+          this.eventPublisher.publish(sessionId, { kind: "chunk", chunk });
         }
 
-        // Break AFTER transformer so finish/finish-step chunks are sent before closing the stream
-        if (value.type === "result") break;
+        // NO break on result — continue processing background turns
       }
+    } catch (err: unknown) {
+      const errorText = err instanceof Error ? err.message : String(err);
+      this.eventPublisher.publish(sessionId, {
+        kind: "chunk",
+        chunk: { type: "error", errorText } as ClaudeCodeUIMessageChunk,
+      });
     } finally {
+      session.consumeExited = true;
       this.powerBlocker.onTurnEnd(sessionId);
     }
   }
 
   /** Handle dispatch — respond to permission request or configure session */
-  handleDispatch(sessionId: string, dispatch: ClaudeCodeUIDispatch): ClaudeCodeUIDispatchResult {
+  async handleDispatch(
+    sessionId: string,
+    dispatch: ClaudeCodeUIDispatch,
+  ): Promise<ClaudeCodeUIDispatchResult> {
     if (dispatch.kind === "respond") {
       const session = this.sessions.get(sessionId);
       if (!session) throw new Error(`Unknown session: ${sessionId}`);
@@ -918,7 +1281,6 @@ export class SessionManager {
       }
       pending.resolve(dispatch.respond.result);
       session.pendingRequests.delete(dispatch.requestId);
-      clearTimeout(pending.timer);
       return { kind: "respond", ok: true };
     }
     const session = this.sessions.get(sessionId);
@@ -940,7 +1302,17 @@ export class SessionManager {
             sessionId,
             configure.mode,
           );
-          session.query.setPermissionMode(configure.mode as SDKPermissionMode);
+          try {
+            await session.query.setPermissionMode(configure.mode as SDKPermissionMode);
+          } catch (error) {
+            log("handleDispatch: set_permission_mode failed: %O", error);
+            return {
+              kind: "configure",
+              ok: false,
+              configure,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
           return { kind: "configure", ok: true, configure };
         }
         case "set_model": {

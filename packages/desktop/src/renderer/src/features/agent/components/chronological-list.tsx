@@ -13,7 +13,11 @@ const log = debug("neovate:chronological-list");
 
 const CHRONOLOGICAL_SESSION_LIMIT = 50;
 
-export const ChronologicalList = memo(function ChronologicalList() {
+export const ChronologicalList = memo(function ChronologicalList({
+  optionHeld,
+}: {
+  optionHeld?: boolean;
+}) {
   const { t } = useTranslation();
   const activeSessionId = useAgentStore((s) => s.activeSessionId);
   const setActiveSession = useAgentStore((s) => s.setActiveSession);
@@ -68,6 +72,7 @@ export const ChronologicalList = memo(function ChronologicalList() {
             activeSessionId={activeSessionId}
             isPinned={false}
             restoring={restoring}
+            optionHeld={optionHeld}
             onActivate={handleActivate}
             onLoad={handleLoad}
           />

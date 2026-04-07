@@ -29,17 +29,17 @@ export class ExtensionBridgeServer extends EventEmitter {
     }
   >();
 
-  start(port: number, maxRetries: number = 10): Promise<number> {
+  start(port: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      const tryListen = (currentPort: number, attempt: number) => {
-        this.server = net.createServer((socket) => {
-          let currentCwd: string | null = null;
-          // response or events
-          socket.on("data", async (raw) => {
+      this.server = net.createServer((socket) => {
+        let currentCwd: string | null = null;
+        // response or events
+        socket.on("data", async (raw) => {
+          const onData = async (dataStr: string) => {
             try {
-              const data = JSON.parse(raw.toString());
+              const data = JSON.parse(dataStr);
               log("received", data);
-              const { operationType, params, cwd, result, requestId } = data || {};
+              const { operationType, msgType, params, cwd, result, requestId } = data || {};
               // handle response data from extension (with requestId of current instance)
               if (requestId && this.pendingRequests.has(requestId)) {
                 const pending = this.pendingRequests.get(requestId);
@@ -50,21 +50,24 @@ export class ExtensionBridgeServer extends EventEmitter {
                   return;
                 }
               }
-              if (!operationType || !cwd) {
+              if (!operationType || !cwd || msgType === "RESPONSE") {
                 return;
-              }
-              // 首次连接或cwd变化时更新映射
-              if (currentCwd !== cwd) {
-                if (currentCwd) {
-                  this.clients.delete(currentCwd);
-                }
-                currentCwd = cwd;
-                this.clients.set(cwd, socket);
               }
               // handle events/request data from extension.
               const handler = this.handlers.get(operationType);
-              if (handler) {
+              if (msgType === "PUSH") {
+                if (operationType === "connected") {
+                  currentCwd = cwd;
+                  this.clients.set(cwd, socket);
+                }
+                if (handler) {
+                  await handler(params, cwd);
+                }
+              } else {
                 try {
+                  if (!handler) {
+                    throw new Error(`No handler registered for operation: ${operationType}`);
+                  }
                   const result = await handler(params, cwd);
                   const response = JSON.stringify({
                     ...result,
@@ -80,56 +83,52 @@ export class ExtensionBridgeServer extends EventEmitter {
                   socket.write(Buffer.from(response));
                 }
                 socket.write("\n\n"); // 分隔符避免粘包
-              } else {
-                const response = JSON.stringify({
-                  success: false,
-                  error: `No handler registered for operation: ${operationType}`,
-                  requestId: data.requestId,
-                });
-                socket.write(Buffer.from(response));
-                socket.write("\n\n");
               }
             } catch (error) {
               const response = JSON.stringify({
                 success: false,
-                error: "Invalid JSON format",
+                error: "Invalid JSON format:" + raw.toString(),
               });
               log("Invalid bridge data", error, raw);
               socket.write(Buffer.from(response));
+              socket.write("\n\n");
             }
-          });
-
-          socket.on("close", () => {
-            log("client disconnected", { cwd: currentCwd });
-            if (currentCwd) {
-              this.clients.delete(currentCwd);
+          };
+          try {
+            const content = raw.toString();
+            const jsonList = content.split("\n\n"); // 通过分隔符避免socket 消息粘包
+            for (const fragment of jsonList) {
+              if (!fragment.trim()) continue;
+              await onData(fragment);
             }
-            // 清理该cwd相关的所有pending请求
-            for (const [requestId, pending] of this.pendingRequests.entries()) {
-              pending.reject(new Error("Connection closed"));
-              clearTimeout(pending.timeout);
-              this.pendingRequests.delete(requestId);
-            }
-          });
-        });
-
-        this.server.once("error", (err: NodeJS.ErrnoException) => {
-          if (err.code === "EADDRINUSE" && attempt < maxRetries) {
-            log("port %d in use, trying %d", currentPort, currentPort + 1);
-            this.server?.close();
-            tryListen(currentPort + 1, attempt + 1);
-          } else {
-            reject(err);
+          } catch (error) {
+            console.error("Unknown request data:", {
+              error,
+              text: raw.toString(),
+            });
           }
         });
 
-        this.server.listen(currentPort, () => {
-          log("server started on port %d", currentPort);
-          resolve(currentPort);
+        socket.on("close", () => {
+          log("client disconnected", { cwd: currentCwd });
+          if (currentCwd) {
+            this.clients.delete(currentCwd);
+          }
+          // 清理该cwd相关的所有pending请求
+          for (const [requestId, pending] of this.pendingRequests.entries()) {
+            pending.reject(new Error("Connection closed"));
+            clearTimeout(pending.timeout);
+            this.pendingRequests.delete(requestId);
+          }
         });
-      };
+      });
 
-      tryListen(port, 0);
+      this.server.once("error", reject);
+
+      this.server.listen(port, () => {
+        log("server started on port %d", port);
+        resolve();
+      });
     });
   }
 
@@ -144,17 +143,15 @@ export class ExtensionBridgeServer extends EventEmitter {
     log("sending request", { operationType: request.operationType, cwd });
     return new Promise((resolve, reject) => {
       const requestId = randomUUID();
-      const data = Buffer.from(
-        JSON.stringify({
-          ...request,
-          requestId,
-          cwd,
-        }),
-      );
+      const data = Buffer.from(JSON.stringify({ ...request, requestId, cwd }));
 
       const client = this.clients.get(cwd);
-      if (!client || client.destroyed) {
+      if (!client) {
         reject(new Error(`No active client for cwd: ${cwd}`));
+        return;
+      }
+      if (client.destroyed) {
+        reject(new Error(`Client destroyed for cwd: ${cwd}`));
         return;
       }
 
@@ -165,11 +162,7 @@ export class ExtensionBridgeServer extends EventEmitter {
       }, timeoutMs);
 
       // 存储pending请求
-      this.pendingRequests.set(requestId, {
-        resolve,
-        reject,
-        timeout,
-      });
+      this.pendingRequests.set(requestId, { resolve, reject, timeout });
 
       // 发送请求
       client.write(data);
@@ -186,6 +179,11 @@ export class ExtensionBridgeServer extends EventEmitter {
     ) => Promise<T>,
   ) {
     this.handlers.set(operationType, handler);
+  }
+
+  isConnected(cwd: string): boolean {
+    const client = this.clients.get(cwd);
+    return client != null && !client.destroyed;
   }
 
   stop() {
@@ -208,13 +206,16 @@ export class ExtensionBridgeServer extends EventEmitter {
   }
 }
 
-// TODO: editor 链接点击通知
-// /** trigger by click link in editor */
-// bridgeServer.register('link.open', async (params, cwd, webContents) => {
-//   if (webContents) {
-//     const caller = getRendererCaller<IPCRendererHandlers>(webContents);
-//     caller.browser.open.send(params.url);
-//     return { success: true, data: { msg: 'called success' } };
-//   }
-//   return { success: false, data: {}, errorMsg: `WebContents not found` };
-// });
+export function waitForConnect(bridge: ExtensionBridgeServer) {
+  const CONNECT_TIMEOUT = 15_000;
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Connection timeout: extension bridge did not respond within 15s"));
+    }, CONNECT_TIMEOUT);
+
+    bridge.register("connected", async (params) => {
+      clearTimeout(timeout);
+      resolve(params);
+    });
+  });
+}

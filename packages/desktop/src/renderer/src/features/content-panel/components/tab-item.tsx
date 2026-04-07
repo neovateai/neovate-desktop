@@ -24,7 +24,7 @@ function TabButton({
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
   const locale = useConfigStore((s) => s.locale);
-  const views = app.pluginManager.viewContributions.contentPanelViews;
+  const views = app.pluginManager.viewContributions.contentPanelViews.map((c) => c.value);
   const view = views.find((view) => view.viewType === tab.viewType);
   return (
     <div
