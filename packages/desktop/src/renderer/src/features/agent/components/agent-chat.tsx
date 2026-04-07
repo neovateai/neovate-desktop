@@ -179,8 +179,7 @@ export function AgentChat() {
     createNewSession(activeProjectPath)
       .then((sessionId) => {
         chatLog("effect[auto-create]: session created sessionId=%s", sessionId);
-        // Eagerly pre-warm a background session so the first "New Chat" is instant
-        claudeCodeChatManager.preWarmForProject(activeProjectPath);
+        // Don't pre-warm here — this session is itself unused. Pre-warm triggers on first message send.
       })
       .catch((error) => {
         chatLog(
