@@ -405,6 +405,15 @@ export function MessageInput({
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     editor.view.dispatch(editor.state.tr.setMeta("promptSuggestion", promptSuggestion));
+    // Focus input so Tab/Enter work immediately on the suggestion.
+    // Guard with document.hasFocus() because MessageInput is used in both
+    // the main window and popup window (shared activeSessionId) — without
+    // this, both windows would try to steal focus simultaneously.
+    if (promptSuggestion && document.hasFocus()) {
+      requestAnimationFrame(() => {
+        editor.commands.focus("end");
+      });
+    }
   }, [editor, promptSuggestion]);
 
   // Close suggestion popups when settings opens
