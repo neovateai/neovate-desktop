@@ -24,7 +24,13 @@ type EditorLinkOpenEvent = EditorEventWrapper<"link.open", { url: string }>;
 
 type EditorTabsChangeEvent = EditorEventWrapper<"tabs.change", { tabs: IEditorTab[] }>;
 
-export type EditorEvent = EditorContextAddEvent | EditorTabsChangeEvent | EditorLinkOpenEvent;
+type EditorDevToolsOpenEvent = EditorEventWrapper<"devtools.open", {}>;
+
+export type EditorEvent =
+  | EditorContextAddEvent
+  | EditorTabsChangeEvent
+  | EditorLinkOpenEvent
+  | EditorDevToolsOpenEvent;
 
 export interface EditorOpenOption {
   fullPath: string;

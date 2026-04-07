@@ -7,7 +7,7 @@ const log = debug("neovate:editor:extension");
 
 /**
  * neovate-code-extension: 配合 code-server 进行编辑器操作的插件，代码暂不在此仓库，和 code-server 一样通过 cdn 动态下发。
- * 插件大小约 6K。
+ * 插件大小约 7K。
  * CHANGELOG:
  * - 0.0.7 原仓库迁移，保留基础能力 ping/editor.open/editor.theme.set/editor.inspect
  * - 0.0.8 fix: 增加了socket 通信的粘包处理
@@ -18,10 +18,11 @@ const log = debug("neovate:editor:extension");
  * - 0.1.3 fix: tabs 变化时，如果为空数据未通知问题 & 优化了socket 通信对接逻辑
  * - 0.1.4 fix: tabs 变化时，webview 类tab 没有被视为合法tab的问题
  * - 0.1.5 refactor: 建立连接的接口名称调整、响应消息增加标识
+ * - 0.1.6 feat: 支持通过editor 命令打开开发工具 & 修复editor 刷新恢复时，tabs.change 事件过早抛出的问题
  */
 const RESOURCE_PATH =
-  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*Hwu4SZZ_ZS8AAAAAQHAAAAgAegAAAQ"; // 0.1.5
-const VSIX_FILENAME = "neovate-code-extension-0.1.5.vsix";
+  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*ru2IS7aJVi8AAAAAQHAAAAgAegAAAQ"; // 0.1.6
+const VSIX_FILENAME = "neovate-code-extension-0.1.6.vsix";
 
 export function ensureExtension(extDir: string): Promise<string> {
   log("ensuring extension is available");

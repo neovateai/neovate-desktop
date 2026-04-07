@@ -38,7 +38,7 @@ function EditorViewCore(props: { cwd: string }) {
   const { orpcClient } = usePluginContext();
   const client = orpcClient as EditorClient;
 
-  const { webviewRef } = useWebview(serverUrl, (instance) => {
+  const { webviewRef, openDevtools } = useWebview(serverUrl, (instance) => {
     executeInject(instance);
   });
 
@@ -140,6 +140,12 @@ function EditorViewCore(props: { cwd: string }) {
         handleEditorEvents(e, {
           onTabsChange: (newTabs) => {
             setTabs(newTabs);
+          },
+          onDevToolsOpen: () => {
+            // dev only
+            if (import.meta.env.DEV) {
+              openDevtools();
+            }
           },
         });
       },

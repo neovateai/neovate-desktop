@@ -111,6 +111,8 @@ export function createEditorRouter(
           "context.add",
           /** active editor tabs changed, {current: File, tabs: TabFile[]} */
           "tabs.change",
+          /** open devtools of webview (for dev only) */
+          "devtools.open",
         ] as const;
         for (const e of editorEventWhiteList) {
           extBridge.register(e, async (params, _cwd) => {

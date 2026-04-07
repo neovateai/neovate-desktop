@@ -4,10 +4,11 @@ export function handleEditorEvents(
   e: EditorEvent,
   opts?: {
     onTabsChange?: (tabs: IEditorTab[]) => void;
+    onDevToolsOpen?: () => void;
   },
 ) {
   const { type, detail } = e || {};
-  const { onTabsChange } = opts || {};
+  const { onTabsChange, onDevToolsOpen } = opts || {};
   switch (type) {
     case "link.open":
       if (detail?.url) {
@@ -36,6 +37,9 @@ export function handleEditorEvents(
           detail: { tabs },
         }),
       );
+      return;
+    case "devtools.open":
+      onDevToolsOpen?.();
       return;
     default:
       return;
