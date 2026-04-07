@@ -30,6 +30,8 @@ vi.mock("../../../../resources/icon.png?asset", () => ({
 
 import { BrowserWindowManager } from "../browser-window-manager";
 
+const stubAnalytics = { track: vi.fn() } as never;
+
 function mockBrowserWindow(width: number, height: number, minWidth = 900, minHeight = 600) {
   return {
     getSize: vi.fn(() => [width, height]),
@@ -41,7 +43,7 @@ function mockBrowserWindow(width: number, height: number, minWidth = 900, minHei
 }
 
 function createManagerWithWindow(win: ReturnType<typeof mockBrowserWindow>): BrowserWindowManager {
-  const manager = new BrowserWindowManager();
+  const manager = new BrowserWindowManager({ analytics: stubAnalytics });
   Object.defineProperty(manager, "mainWindow", { get: () => win, configurable: true });
   return manager;
 }
@@ -87,7 +89,7 @@ describe("BrowserWindowManager.ensureMinWidth", () => {
   });
 
   it("no-ops when mainWindow is null", () => {
-    const manager = new BrowserWindowManager();
+    const manager = new BrowserWindowManager({ analytics: stubAnalytics });
     manager.ensureMinWidth(1000);
   });
 });
