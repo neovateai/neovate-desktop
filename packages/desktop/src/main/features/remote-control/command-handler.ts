@@ -15,6 +15,8 @@ import type { ProjectStore } from "../project/project-store";
 import type { LinkStore } from "./link-store";
 import type { SessionBridge, SessionActivity } from "./session-bridge";
 
+import { APP_NAME } from "../../../shared/constants";
+
 const log = debug("neovate:remote-control:commands");
 const execFileAsync = promisify(execFile);
 
@@ -70,14 +72,14 @@ export class CommandHandler {
     const sessions = await this.getEnrichedSessions(ref);
     if (sessions.length === 0) {
       return {
-        text: "Welcome to Neovate! No active sessions. Use /new to create one, or /repos to browse projects.",
+        text: "Welcome to ${APP_NAME}! No active sessions. Use /new to create one, or /repos to browse projects.",
       };
     }
 
     const lines = this.formatSessionList(sessions);
     return {
       text: this.truncateResponse(
-        `Welcome to Neovate! ${sessions.length} active session(s).\n\n${lines}`,
+        `Welcome to ${APP_NAME}! ${sessions.length} active session(s).\n\n${lines}`,
       ),
       actions: sessions.map((s) => ({
         label: s.title ?? shortenPath(s.cwd),
