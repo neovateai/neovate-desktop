@@ -146,9 +146,18 @@
 }
 
 /* data-name 系列，根据文件名确定图标 */
-.seti-icon[data-name="LICENSE.md"]::before {
+.seti-icon[data-name="LICENSE.md"]::before,
+.seti-icon[data-name="LICENSE"]::before {
   color: #cbcb41;
   content: "\E05A";
+}
+.seti-icon[data-name="CONTRIBUTING.md"]::before {
+  color: #cc3e44;
+  content: "\E05A";
+}
+.seti-icon[data-name="README.md"]::before {
+  color: #519aba;
+  content: "\E04D";
 }
 .seti-icon[data-name="webpack.config.js"]::before {
   color: #519aba;
