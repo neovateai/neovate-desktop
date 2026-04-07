@@ -1,4 +1,7 @@
+import type { AnalyticsInstance } from "analytics";
+
 import { is } from "@electron-toolkit/utils";
+import debug from "debug";
 import { app, dialog, shell, screen, BrowserWindow } from "electron";
 import Store from "electron-store";
 import { randomUUID } from "node:crypto";
@@ -10,6 +13,8 @@ import icon from "../../../resources/icon.png?asset";
 import { APP_NAME } from "../../shared/constants";
 import { APP_DATA_DIR } from "./app-paths";
 import log from "./logger";
+
+const analyticsLog = debug("neovate:analytics");
 
 // fixed(48) + primarySidebar.min(250) + chatPanel comfortable min(480) + 1 handle(5)
 const MAIN_WINDOW_MIN_WIDTH = 783;
@@ -28,7 +33,12 @@ function stripColors(msg: string): string {
     .trim();
 }
 
+type BrowserWindowManagerOptions = {
+  analytics: AnalyticsInstance;
+};
+
 export class BrowserWindowManager implements IBrowserWindowManager {
+  #options: BrowserWindowManagerOptions;
   #mainWindow: BrowserWindow | null = null;
   #windows = new Map<string, { win: BrowserWindow; windowType: string }>();
   #isQuitting = false;
@@ -39,6 +49,10 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     cwd: APP_DATA_DIR,
     serialize: (value) => JSON.stringify(value, null, 2) + "\n",
   });
+
+  constructor(options: BrowserWindowManagerOptions) {
+    this.#options = options;
+  }
 
   prepareForQuit(): void {
     this.#isQuitting = true;
@@ -112,6 +126,16 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     win.on("unmaximize", debouncedSave);
     win.on("enter-full-screen", debouncedSave);
     win.on("leave-full-screen", debouncedSave);
+
+    // Analytics: track foreground/background transitions
+    win.on("focus", () => {
+      analyticsLog("app.foregrounded");
+      this.#options.analytics.track("app.foregrounded");
+    });
+    win.on("blur", () => {
+      analyticsLog("app.backgrounded");
+      this.#options.analytics.track("app.backgrounded");
+    });
 
     if (process.platform === "darwin") {
       app.on("before-quit", (e) => {

@@ -47,7 +47,7 @@ export class MainApp implements IMainApp {
       plugins: options.analyticsPlugins ?? [],
     });
     this.pluginManager = new PluginManager(options.plugins ?? []);
-    this.windowManager = new BrowserWindowManager();
+    this.windowManager = new BrowserWindowManager({ analytics: this.analytics });
     this.deeplink = new DeeplinkService();
     this.storage = new StorageService();
     // Fallback to a stub that always reports unavailable
