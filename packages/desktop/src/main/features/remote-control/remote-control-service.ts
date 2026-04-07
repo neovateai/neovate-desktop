@@ -37,7 +37,10 @@ export class RemoteControlService {
   private statusListeners: StatusListener[] = [];
   private pairingState = new Map<
     string,
-    { chatId?: string; timeout?: ReturnType<typeof setTimeout> }
+    {
+      timeout?: ReturnType<typeof setTimeout>;
+      request?: { chatId: string; senderId: string; username?: string; chatTitle?: string };
+    }
   >();
 
   constructor(
@@ -247,13 +250,14 @@ export class RemoteControlService {
 
   getPlatforms(): PlatformStatus[] {
     return this.registry.getAll().map((adapter) => {
-      const pairing = this.pairingState.has(adapter.id);
+      const pState = this.pairingState.get(adapter.id);
       return {
         id: adapter.id,
         displayName: adapter.displayName,
         enabled: this.loadConfig(adapter.id)?.enabled ?? false,
         connected: adapter.isRunning(),
-        pairing,
+        pairing: !!pState,
+        pairingRequest: pState?.request,
       };
     });
   }
@@ -322,7 +326,7 @@ export class RemoteControlService {
     adapter.on("pairing-request", (req) => {
       const state = this.pairingState.get(adapter.id);
       if (state) {
-        state.chatId = req.chatId;
+        state.request = req;
       }
       this.emitStatus({
         platformId: adapter.id,

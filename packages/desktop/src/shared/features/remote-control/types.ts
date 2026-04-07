@@ -35,6 +35,13 @@ export type PlatformStatus = {
   connected: boolean;
   pairing: boolean;
   error?: string;
+  /** Present when pairing is true and a request has been received */
+  pairingRequest?: {
+    chatId: string;
+    senderId: string;
+    username?: string;
+    chatTitle?: string;
+  };
 };
 
 /** Event emitted when platform status changes */

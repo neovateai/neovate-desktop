@@ -19,6 +19,7 @@ export const RemoteControlPanel = () => {
   const { t } = useTranslation();
   const [platforms, setPlatforms] = useState<PlatformStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusEvents, setStatusEvents] = useState<Record<string, PlatformStatusEvent>>({});
 
   const loadPlatforms = useCallback(async () => {
     try {
@@ -33,6 +34,30 @@ export const RemoteControlPanel = () => {
 
   useEffect(() => {
     void loadPlatforms();
+  }, [loadPlatforms]);
+
+  // Single subscription for all platform status events
+  useEffect(() => {
+    let iter: AsyncIterableIterator<PlatformStatusEvent> | undefined;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        iter = await client.remoteControl.subscribeStatus();
+        for await (const event of iter) {
+          if (cancelled) break;
+          setStatusEvents((prev) => ({ ...prev, [event.platformId]: event }));
+        }
+      } catch {
+        // Connection lost — refresh to get latest state
+        void loadPlatforms();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      iter?.return?.(undefined);
+    };
   }, [loadPlatforms]);
 
   return (
@@ -52,7 +77,12 @@ export const RemoteControlPanel = () => {
 
       <div className="space-y-5">
         {platforms.map((platform) => (
-          <PlatformCard key={platform.id} platform={platform} onRefresh={loadPlatforms} />
+          <PlatformCard
+            key={platform.id}
+            platform={platform}
+            statusEvent={statusEvents[platform.id]}
+            onRefresh={loadPlatforms}
+          />
         ))}
         {!loading && platforms.length === 0 && (
           <div className="text-sm text-muted-foreground">
@@ -66,9 +96,11 @@ export const RemoteControlPanel = () => {
 
 function PlatformCard({
   platform,
+  statusEvent,
   onRefresh,
 }: {
   platform: PlatformStatus;
+  statusEvent?: PlatformStatusEvent;
   onRefresh: () => void;
 }) {
   const { t } = useTranslation();
@@ -76,10 +108,35 @@ function PlatformCard({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
-  const [pairing, setPairing] = useState(false);
+  const [pairing, setPairing] = useState(platform.pairing);
   const [pairingRequest, setPairingRequest] = useState<
     PlatformStatusEvent["pairingRequest"] | null
-  >(null);
+  >(platform.pairingRequest ?? null);
+
+  // React to real-time status events
+  useEffect(() => {
+    if (!statusEvent) return;
+
+    switch (statusEvent.status) {
+      case "pairing-request":
+        setPairingRequest(statusEvent.pairingRequest ?? null);
+        break;
+      case "pairing":
+        setPairing(true);
+        break;
+      case "connected":
+        setPairing(false);
+        setPairingRequest(null);
+        onRefresh();
+        break;
+      case "disconnected":
+      case "error":
+        setPairing(false);
+        setPairingRequest(null);
+        onRefresh();
+        break;
+    }
+  }, [statusEvent, onRefresh]);
 
   const handleToggle = async (enabled: boolean) => {
     await client.remoteControl.togglePlatform({ platformId: platform.id, enabled });
