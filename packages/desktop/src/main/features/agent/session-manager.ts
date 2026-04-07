@@ -89,7 +89,7 @@ function listSessionFiles(filter?: string): string[] {
 }
 
 /** Timeout for SDK initializationResult() to prevent hanging sessions. */
-const INIT_TIMEOUT_MS = 10_000;
+const INIT_TIMEOUT_MS = 30_000;
 
 const ENV_BLOCKLIST = new Set([
   "ELECTRON_RUN_AS_NODE",
@@ -420,7 +420,10 @@ export class SessionManager {
       }
     >();
 
+    const t0 = performance.now();
     const shellEnv = await shellEnvService.getEnv();
+    const tShellEnv = performance.now();
+    log("initSession: TIMING shellEnv=%dms sessionId=%s", Math.round(tShellEnv - t0), sessionId);
     const bunPath = resolveBunPath();
     const bunDir = bunPath !== "bun" ? path.dirname(bunPath) : undefined;
     const rtkPath = resolveRtkPath();
@@ -653,10 +656,14 @@ export class SessionManager {
       ...(spawnOverride ? { spawnClaudeCodeProcess: spawnOverride } : {}),
     };
 
+    const tPreSDK = performance.now();
+    log("initSession: TIMING setup=%dms sessionId=%s", Math.round(tPreSDK - tShellEnv), sessionId);
     log("initSession: importing SDK sessionId=%s", sessionId);
     const { query: queryFn } = await import("@anthropic-ai/claude-agent-sdk");
+    const tImport = performance.now();
     log("initSession: creating SDK query sessionId=%s", sessionId);
     const q = queryFn({ prompt: input, options });
+    const tQuery = performance.now();
     this.sessions.set(sessionId, {
       input,
       query: q,
@@ -669,9 +676,21 @@ export class SessionManager {
       uiToSdkMessageIds: new Map(),
       pendingRequests,
     });
+    log(
+      "initSession: TIMING import=%dms query=%dms sessionId=%s",
+      Math.round(tImport - tPreSDK),
+      Math.round(tQuery - tImport),
+      sessionId,
+    );
     log("initSession: awaiting initializationResult sessionId=%s", sessionId);
     const initResult = await q.initializationResult();
-    log("initSession: initialized sessionId=%s", sessionId);
+    const tInit = performance.now();
+    log(
+      "initSession: TIMING initResult=%dms total=%dms sessionId=%s",
+      Math.round(tInit - tQuery),
+      Math.round(tInit - t0),
+      sessionId,
+    );
     this.consume(sessionId).catch((err) => log("consume error for %s: %o", sessionId, err));
     return initResult;
   }
