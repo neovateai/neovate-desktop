@@ -8,9 +8,9 @@ import { configContract } from "./features/config/contract";
 import { deeplinkContract } from "./features/deeplink/contract";
 import { electronContract } from "./features/electron/contract";
 import { llmContract } from "./features/llm/contract";
-import { messagingContract } from "./features/messaging/contract";
 import { projectContract } from "./features/project/contract";
 import { providerContract } from "./features/provider/contract";
+import { remoteControlContract } from "./features/remote-control/contract";
 import { rulesContract } from "./features/rules/contract";
 import { skillsContract } from "./features/skills/contract";
 import { storageContract } from "./features/storage/contract";
@@ -27,7 +27,7 @@ export const contract = {
   config: configContract,
   electron: electronContract,
   llm: llmContract,
-  messaging: messagingContract,
+  remoteControl: remoteControlContract,
   project: projectContract,
   provider: providerContract,
   rules: rulesContract,

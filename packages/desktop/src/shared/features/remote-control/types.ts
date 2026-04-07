@@ -1,11 +1,11 @@
-/** Identifies a conversation location on any messaging platform */
+/** Identifies a conversation location on any remote control platform */
 export type ConversationRef = {
   platformId: string;
   chatId: string;
   threadId?: string;
 };
 
-/** Normalized inbound message from any platform */
+/** Normalized inbound message from any remote control platform */
 export type InboundMessage = {
   ref: ConversationRef;
   senderId: string;
@@ -27,7 +27,7 @@ export type InlineAction = {
   callbackData: string;
 };
 
-/** Status of a registered messaging platform */
+/** Status of a registered remote control platform */
 export type PlatformStatus = {
   id: string;
   displayName: string;
@@ -71,7 +71,7 @@ export type PersistedLink = {
   linkedAt: number;
 };
 
-/** Source attribution for messages sent from messaging platforms */
+/** Source attribution for messages sent from remote control platforms */
 export type MessageSource = {
   platform: string;
   sender: string;

@@ -4,12 +4,12 @@ import type {
   ConversationRef,
   InboundMessage,
   InlineAction,
-} from "../../../shared/features/messaging/types";
+} from "../../../shared/features/remote-control/types";
 import type { SessionManager } from "../agent/session-manager";
 import type { ProjectStore } from "../project/project-store";
 import type { LinkStore } from "./link-store";
 
-const log = debug("neovate:messaging:commands");
+const log = debug("neovate:remote-control:commands");
 
 export type CommandResult = {
   text: string;

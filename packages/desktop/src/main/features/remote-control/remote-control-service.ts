@@ -10,22 +10,22 @@ import type {
   PlatformStatus,
   PlatformStatusEvent,
   TelegramConfig,
-} from "../../../shared/features/messaging/types";
+} from "../../../shared/features/remote-control/types";
 import type { IStorageService } from "../../core/storage-service";
 import type { SessionManager } from "../agent/session-manager";
 import type { ProjectStore } from "../project/project-store";
-import type { MessagingPlatformAdapter } from "./platforms/types";
+import type { RemoteControlPlatformAdapter } from "./platforms/types";
 
 import { CommandHandler } from "./command-handler";
 import { LinkStore } from "./link-store";
 import { PlatformAdapterRegistry } from "./platforms/registry";
 import { SessionBridge } from "./session-bridge";
 
-const log = debug("neovate:messaging");
+const log = debug("neovate:remote-control");
 
 type StatusListener = (event: PlatformStatusEvent) => void;
 
-export class MessagingService {
+export class RemoteControlService {
   readonly registry = new PlatformAdapterRegistry();
   readonly linkStore: LinkStore;
   readonly bridge: SessionBridge;
@@ -43,13 +43,13 @@ export class MessagingService {
     private projectStore: ProjectStore,
     storage: IStorageService,
   ) {
-    this.configStore = storage.scoped("messaging");
-    this.linkStore = new LinkStore(storage.scoped("messaging-links"));
+    this.configStore = storage.scoped("remote-control");
+    this.linkStore = new LinkStore(storage.scoped("remote-control-links"));
     this.bridge = new SessionBridge(sessionManager, this.linkStore);
     this.commandHandler = new CommandHandler(sessionManager, projectStore, this.linkStore);
   }
 
-  registerAdapter(adapter: MessagingPlatformAdapter): void {
+  registerAdapter(adapter: RemoteControlPlatformAdapter): void {
     this.registry.register(adapter);
     log("registered adapter: %s", adapter.id);
   }
@@ -301,7 +301,7 @@ export class MessagingService {
 
   // ── Internal ──
 
-  private subscribeToAdapter(adapter: MessagingPlatformAdapter): void {
+  private subscribeToAdapter(adapter: RemoteControlPlatformAdapter): void {
     adapter.on("message", (msg) => void this.onMessage(adapter, msg));
     adapter.on("callback", (msg) => void this.onCallback(adapter, msg));
     adapter.on("error", (err) => {
@@ -322,7 +322,7 @@ export class MessagingService {
   }
 
   private async startAdapter(
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     config: PlatformConfig,
   ): Promise<void> {
     await adapter.start(config);
@@ -330,12 +330,15 @@ export class MessagingService {
     this.emitStatus({ platformId: adapter.id, status: "connected" });
   }
 
-  private async stopAdapter(adapter: MessagingPlatformAdapter): Promise<void> {
+  private async stopAdapter(adapter: RemoteControlPlatformAdapter): Promise<void> {
     await adapter.stop();
     log("stopped adapter: %s", adapter.id);
   }
 
-  private async onMessage(adapter: MessagingPlatformAdapter, msg: InboundMessage): Promise<void> {
+  private async onMessage(
+    adapter: RemoteControlPlatformAdapter,
+    msg: InboundMessage,
+  ): Promise<void> {
     log(
       "inbound message: platform=%s chat=%s text=%s",
       adapter.id,
@@ -378,7 +381,10 @@ export class MessagingService {
     await this.bridge.sendToSession(sessionId, msg);
   }
 
-  private async onCallback(adapter: MessagingPlatformAdapter, msg: InboundMessage): Promise<void> {
+  private async onCallback(
+    adapter: RemoteControlPlatformAdapter,
+    msg: InboundMessage,
+  ): Promise<void> {
     if (!msg.callbackData) return;
 
     const [domain, action, ...idParts] = msg.callbackData.split(":");
@@ -401,7 +407,7 @@ export class MessagingService {
   }
 
   private async handleSessionCallback(
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     ref: ConversationRef,
     action: string,
     id: string,
@@ -448,7 +454,7 @@ export class MessagingService {
   }
 
   private async handleProjectCallback(
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     ref: ConversationRef,
     action: string,
     id: string,
@@ -488,7 +494,7 @@ export class MessagingService {
   }
 
   private async handlePermCallback(
-    _adapter: MessagingPlatformAdapter,
+    _adapter: RemoteControlPlatformAdapter,
     ref: ConversationRef,
     action: string,
     requestId: string,
@@ -500,7 +506,7 @@ export class MessagingService {
     await this.bridge.respondToPermission(sessionId, requestId, allow);
   }
 
-  private restoreLinks(adapter: MessagingPlatformAdapter): void {
+  private restoreLinks(adapter: RemoteControlPlatformAdapter): void {
     const links = this.linkStore.getAllLinks().filter((l) => l.ref.platformId === adapter.id);
     const activeSessions = this.sessionManager.getActiveSessions();
 

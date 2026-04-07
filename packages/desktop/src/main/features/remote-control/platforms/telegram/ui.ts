@@ -1,6 +1,6 @@
 import { InlineKeyboard } from "grammy";
 
-import type { InlineAction } from "../../../../../shared/features/messaging/types";
+import type { InlineAction } from "../../../../../shared/features/remote-control/types";
 
 /** Build a grammY InlineKeyboard from our generic InlineAction array. */
 export function buildInlineKeyboard(actions: InlineAction[]): InlineKeyboard {

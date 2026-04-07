@@ -4,9 +4,9 @@ import type {
   InlineAction,
   OutboundMessage,
   PlatformConfig,
-} from "../../../../shared/features/messaging/types";
+} from "../../../../shared/features/remote-control/types";
 
-export type MessagingPlatformEvent = {
+export type RemoteControlPlatformEvent = {
   message: (msg: InboundMessage) => void;
   callback: (msg: InboundMessage) => void;
   error: (err: Error) => void;
@@ -18,7 +18,7 @@ export type MessagingPlatformEvent = {
   }) => void;
 };
 
-export interface MessagingPlatformAdapter {
+export interface RemoteControlPlatformAdapter {
   readonly id: string;
   readonly displayName: string;
   readonly maxMessageLength: number;
@@ -46,8 +46,14 @@ export interface MessagingPlatformAdapter {
   sendTypingIndicator(ref: ConversationRef): Promise<void>;
 
   // Events
-  on<K extends keyof MessagingPlatformEvent>(event: K, handler: MessagingPlatformEvent[K]): void;
-  off<K extends keyof MessagingPlatformEvent>(event: K, handler: MessagingPlatformEvent[K]): void;
+  on<K extends keyof RemoteControlPlatformEvent>(
+    event: K,
+    handler: RemoteControlPlatformEvent[K],
+  ): void;
+  off<K extends keyof RemoteControlPlatformEvent>(
+    event: K,
+    handler: RemoteControlPlatformEvent[K],
+  ): void;
   removeAllListeners(): void;
 
   // Pairing

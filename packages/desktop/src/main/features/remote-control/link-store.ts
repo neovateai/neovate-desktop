@@ -2,9 +2,9 @@ import type Store from "electron-store";
 
 import debug from "debug";
 
-import type { ConversationRef, PersistedLink } from "../../../shared/features/messaging/types";
+import type { ConversationRef, PersistedLink } from "../../../shared/features/remote-control/types";
 
-const log = debug("neovate:messaging:links");
+const log = debug("neovate:remote-control:links");
 
 const LINKS_KEY = "links";
 

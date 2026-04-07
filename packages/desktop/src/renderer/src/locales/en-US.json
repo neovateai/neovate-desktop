@@ -171,7 +171,7 @@
   "settings.keybindings.togglePinSession": "Toggle Pin Session",
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
-  "settings.messaging": "Messaging",
+  "settings.remoteControl": "Remote Control",
 
   "settings.providers": "Providers",
   "settings.providers.empty": "No providers configured. Add one to use third-party API endpoints.",

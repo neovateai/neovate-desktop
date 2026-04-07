@@ -1,11 +1,11 @@
-import { AlertTriangle, CheckCircle, Radio, Send, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Radio, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
   PlatformStatus,
   PlatformStatusEvent,
-} from "../../../../../../shared/features/messaging/types";
+} from "../../../../../../shared/features/remote-control/types";
 
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
@@ -15,14 +15,14 @@ import { client } from "../../../../orpc";
 import { SettingsGroup } from "../settings-group";
 import { SettingsRow } from "../settings-row";
 
-export const MessagingPanel = () => {
+export const RemoteControlPanel = () => {
   const { t } = useTranslation();
   const [platforms, setPlatforms] = useState<PlatformStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadPlatforms = useCallback(async () => {
     try {
-      const result = await client.messaging.getPlatforms();
+      const result = await client.remoteControl.getPlatforms();
       setPlatforms(result);
     } catch {
       // Service may not be ready yet
@@ -39,16 +39,16 @@ export const MessagingPanel = () => {
     <div>
       <h1 className="text-xl font-semibold mb-8 flex items-center gap-3 text-foreground">
         <span className="flex items-center justify-center size-9 rounded-xl bg-primary/10">
-          <Send className="size-5 text-primary" />
+          <Radio className="size-5 text-primary" />
         </span>
-        {t("settings.messaging")}
+        {t("settings.remoteControl")}
       </h1>
 
       {/* Content sensitivity warning */}
       <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
         <AlertTriangle className="size-4 mt-0.5 shrink-0 text-amber-500" />
         <span>
-          Messages sent via messaging platforms are stored on third-party servers. Avoid using
+          Messages sent via remote control platforms are stored on third-party servers. Avoid using
           remote control for sessions that handle sensitive credentials.
         </span>
       </div>
@@ -58,7 +58,9 @@ export const MessagingPanel = () => {
           <PlatformCard key={platform.id} platform={platform} onRefresh={loadPlatforms} />
         ))}
         {!loading && platforms.length === 0 && (
-          <div className="text-sm text-muted-foreground">No messaging platforms available.</div>
+          <div className="text-sm text-muted-foreground">
+            No remote control platforms available.
+          </div>
         )}
       </div>
     </div>
@@ -82,7 +84,7 @@ function PlatformCard({
   >(null);
 
   const handleToggle = async (enabled: boolean) => {
-    await client.messaging.togglePlatform({ platformId: platform.id, enabled });
+    await client.remoteControl.togglePlatform({ platformId: platform.id, enabled });
     onRefresh();
   };
 
@@ -90,7 +92,7 @@ function PlatformCard({
     if (!botToken.trim()) return;
     setSaving(true);
     try {
-      await client.messaging.configurePlatform({
+      await client.remoteControl.configurePlatform({
         platformId: platform.id,
         config: { botToken: botToken.trim(), allowedChatIds: [], enabled: true },
       });
@@ -105,7 +107,7 @@ function PlatformCard({
     setTesting(true);
     setTestResult(null);
     try {
-      const result = await client.messaging.testConnection({ platformId: platform.id });
+      const result = await client.remoteControl.testConnection({ platformId: platform.id });
       setTestResult(result);
     } catch (err) {
       setTestResult({ ok: false, error: String(err) });
@@ -118,7 +120,7 @@ function PlatformCard({
     setPairing(true);
     setPairingRequest(null);
     try {
-      await client.messaging.startPairing({ platformId: platform.id });
+      await client.remoteControl.startPairing({ platformId: platform.id });
     } catch {
       setPairing(false);
     }
@@ -126,7 +128,7 @@ function PlatformCard({
 
   const handleApprovePairing = async () => {
     if (!pairingRequest?.chatId) return;
-    await client.messaging.approvePairing({
+    await client.remoteControl.approvePairing({
       platformId: platform.id,
       chatId: pairingRequest.chatId,
     });
@@ -137,7 +139,7 @@ function PlatformCard({
 
   const handleRejectPairing = async () => {
     if (!pairingRequest?.chatId) return;
-    await client.messaging.rejectPairing({
+    await client.remoteControl.rejectPairing({
       platformId: platform.id,
       chatId: pairingRequest.chatId,
     });
@@ -145,7 +147,7 @@ function PlatformCard({
   };
 
   const handleStopPairing = async () => {
-    await client.messaging.stopPairing({ platformId: platform.id });
+    await client.remoteControl.stopPairing({ platformId: platform.id });
     setPairing(false);
     setPairingRequest(null);
   };

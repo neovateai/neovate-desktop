@@ -171,7 +171,7 @@
   "settings.keybindings.togglePinSession": "切换置顶会话",
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 
-  "settings.messaging": "消息平台",
+  "settings.remoteControl": "远程控制",
 
   "settings.providers": "服务商",
   "settings.providers.empty": "未配置服务商。添加一个以使用第三方 API 端点。",

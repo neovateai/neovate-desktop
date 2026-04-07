@@ -8,16 +8,16 @@ import type {
   OutboundMessage,
   PlatformConfig,
   TelegramConfig,
-} from "../../../../../shared/features/messaging/types";
-import type { MessagingPlatformAdapter, MessagingPlatformEvent } from "../types";
+} from "../../../../../shared/features/remote-control/types";
+import type { RemoteControlPlatformAdapter, RemoteControlPlatformEvent } from "../types";
 
 import { authMiddleware, toCallbackMessage, toInboundMessage } from "./handlers";
 import { toTelegramMarkdownV2 } from "./markdown";
 import { BOT_COMMANDS, buildInlineKeyboard } from "./ui";
 
-const log = debug("neovate:messaging:telegram");
+const log = debug("neovate:remote-control:telegram");
 
-export class TelegramAdapter implements MessagingPlatformAdapter {
+export class TelegramAdapter implements RemoteControlPlatformAdapter {
   readonly id = "telegram";
   readonly displayName = "Telegram";
   readonly maxMessageLength = 4096;
@@ -155,11 +155,17 @@ export class TelegramAdapter implements MessagingPlatformAdapter {
     this.pairingMode = false;
   }
 
-  on<K extends keyof MessagingPlatformEvent>(event: K, handler: MessagingPlatformEvent[K]): void {
+  on<K extends keyof RemoteControlPlatformEvent>(
+    event: K,
+    handler: RemoteControlPlatformEvent[K],
+  ): void {
     this.emitter.on(event, handler as (...args: unknown[]) => void);
   }
 
-  off<K extends keyof MessagingPlatformEvent>(event: K, handler: MessagingPlatformEvent[K]): void {
+  off<K extends keyof RemoteControlPlatformEvent>(
+    event: K,
+    handler: RemoteControlPlatformEvent[K],
+  ): void {
     this.emitter.off(event, handler as (...args: unknown[]) => void);
   }
 

@@ -1,9 +1,9 @@
 import debug from "debug";
 
-import type { ConversationRef } from "../../../shared/features/messaging/types";
-import type { MessagingPlatformAdapter } from "./platforms/types";
+import type { ConversationRef } from "../../../shared/features/remote-control/types";
+import type { RemoteControlPlatformAdapter } from "./platforms/types";
 
-const log = debug("neovate:messaging:batcher");
+const log = debug("neovate:remote-control:batcher");
 
 const DEBOUNCE_MS = 650;
 const EAGER_THRESHOLD = 220;
@@ -22,7 +22,7 @@ export class OutputBatcher {
 
   constructor(
     private ref: ConversationRef,
-    private adapter: MessagingPlatformAdapter,
+    private adapter: RemoteControlPlatformAdapter,
   ) {}
 
   /** Append text delta to the buffer. Flushes when debounce or threshold is hit. */
@@ -205,7 +205,7 @@ export class OutputBatcherPool {
     return `${ref.platformId}:${ref.chatId}:${ref.threadId ?? ""}`;
   }
 
-  getOrCreate(ref: ConversationRef, adapter: MessagingPlatformAdapter): OutputBatcher {
+  getOrCreate(ref: ConversationRef, adapter: RemoteControlPlatformAdapter): OutputBatcher {
     const k = this.key(ref);
     let batcher = this.batchers.get(k);
     if (!batcher) {

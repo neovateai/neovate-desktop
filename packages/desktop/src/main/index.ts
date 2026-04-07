@@ -16,10 +16,10 @@ import { SessionManager } from "./features/agent/session-manager";
 import { PluginsService } from "./features/claude-code-plugins/plugins-service";
 import { ConfigStore } from "./features/config/config-store";
 import { LlmService } from "./features/llm/llm-service";
-import { MessagingService } from "./features/messaging/messaging-service";
-import { TelegramAdapter } from "./features/messaging/platforms/telegram";
 import { PopupWindowShortcut } from "./features/popup-window/global-shortcut";
 import { ProjectStore } from "./features/project/project-store";
+import { TelegramAdapter } from "./features/remote-control/platforms/telegram";
+import { RemoteControlService } from "./features/remote-control/remote-control-service";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
@@ -91,8 +91,12 @@ const updaterService = new UpdaterService({
 });
 const pluginsService = new PluginsService();
 const skillsService = new SkillsService(projectStore, configStore, process.resourcesPath);
-const messagingService = new MessagingService(sessionManager, projectStore, mainApp.getStorage());
-messagingService.registerAdapter(new TelegramAdapter());
+const remoteControlService = new RemoteControlService(
+  sessionManager,
+  projectStore,
+  mainApp.getStorage(),
+);
+remoteControlService.registerAdapter(new TelegramAdapter());
 
 const appContext: AppContext = {
   sessionManager,
@@ -103,7 +107,7 @@ const appContext: AppContext = {
   pluginsService,
   skillsService,
   stateStore,
-  messagingService,
+  remoteControlService,
   updaterService,
   mainApp,
   storage: mainApp.getStorage(),
@@ -147,8 +151,8 @@ app.whenReady().then(async () => {
   startupLog("mainApp.start done %s", elapsed());
   void updaterService.init();
 
-  // Start messaging platform adapters (fire-and-forget — must not block window)
-  void messagingService.startEnabledAdapters();
+  // Start remote control platform adapters (fire-and-forget — must not block window)
+  void remoteControlService.startEnabledAdapters();
 
   // Setup application menu (for menu items, shortcuts handled in renderer)
   menu = new ApplicationMenu(updaterService);
@@ -203,10 +207,10 @@ app.whenReady().then(async () => {
     llmService.dispose();
     qel("llmService.dispose");
 
-    void messagingService
+    void remoteControlService
       .notifyShutdown()
-      .then(() => messagingService.stopAll())
-      .then(() => qel("messagingService.stopAll DONE"));
+      .then(() => remoteControlService.stopAll())
+      .then(() => qel("remoteControlService.stopAll DONE"));
 
     const sessCount = sessionManager.getActiveSessions().length;
     startupLog("QUIT closing %d sessions", sessCount);

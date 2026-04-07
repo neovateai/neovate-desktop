@@ -6,7 +6,7 @@ export type SettingsMenuId =
   | "rules"
   | "keybindings"
   | "providers"
-  | "messaging"
+  | "remoteControl"
   | "about";
 
 interface SettingsUIState {

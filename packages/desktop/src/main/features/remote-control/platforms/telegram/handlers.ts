@@ -2,9 +2,9 @@ import type { Context, NextFunction } from "grammy";
 
 import debug from "debug";
 
-import type { InboundMessage } from "../../../../../shared/features/messaging/types";
+import type { InboundMessage } from "../../../../../shared/features/remote-control/types";
 
-const log = debug("neovate:messaging:telegram");
+const log = debug("neovate:remote-control:telegram");
 
 /** Auth middleware — rejects messages from chats not in the allowed list. */
 export function authMiddleware(allowedChatIds: string[]) {

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import type { PlatformConfig, PlatformStatus, PlatformStatusEvent } from "./types";
 
-export const messagingContract = {
+export const remoteControlContract = {
   getPlatforms: oc.output(type<PlatformStatus[]>()),
 
   configurePlatform: oc

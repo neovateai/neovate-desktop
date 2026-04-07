@@ -9,14 +9,14 @@ import type {
   ConversationRef,
   InboundMessage,
   InlineAction,
-} from "../../../shared/features/messaging/types";
+} from "../../../shared/features/remote-control/types";
 import type { SessionManager } from "../agent/session-manager";
 import type { LinkStore } from "./link-store";
-import type { MessagingPlatformAdapter } from "./platforms/types";
+import type { RemoteControlPlatformAdapter } from "./platforms/types";
 
 import { OutputBatcherPool } from "./output-batcher";
 
-const log = debug("neovate:messaging:bridge");
+const log = debug("neovate:remote-control:bridge");
 
 const TYPING_INTERVAL_MS = 5000;
 
@@ -34,7 +34,7 @@ export class SessionBridge {
   subscribeSession(
     sessionId: string,
     ref: ConversationRef,
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
   ): void {
     // Cancel existing subscription if re-linking
     this.unsubscribeSession(sessionId);
@@ -97,7 +97,7 @@ export class SessionBridge {
         type: "permission_request",
         result: allow
           ? { behavior: "allow" as const }
-          : { behavior: "deny" as const, message: "Denied via messaging" },
+          : { behavior: "deny" as const, message: "Denied via remote control" },
       },
     });
     log("responded to permission %s: %s", requestId, allow ? "allow" : "deny");
@@ -121,7 +121,7 @@ export class SessionBridge {
   private async onSessionEvent(
     sessionId: string,
     ref: ConversationRef,
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     event: ClaudeCodeUIEvent,
   ): Promise<void> {
     try {
@@ -141,7 +141,7 @@ export class SessionBridge {
   private handleChunk(
     sessionId: string,
     ref: ConversationRef,
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     event: Extract<ClaudeCodeUIEvent, { kind: "chunk" }>,
   ): void {
     const chunk = event.chunk;
@@ -158,7 +158,7 @@ export class SessionBridge {
   private async handleEvent(
     sessionId: string,
     ref: ConversationRef,
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     event: ClaudeCodeUIEventMessage,
   ): Promise<void> {
     const eventType = event.type;
@@ -190,7 +190,7 @@ export class SessionBridge {
 
   private async handleRequest(
     ref: ConversationRef,
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
     event: Extract<ClaudeCodeUIEvent, { kind: "request" }>,
   ): Promise<void> {
     const { requestId, request } = event;
@@ -217,7 +217,7 @@ export class SessionBridge {
   private startTyping(
     sessionId: string,
     ref: ConversationRef,
-    adapter: MessagingPlatformAdapter,
+    adapter: RemoteControlPlatformAdapter,
   ): void {
     if (this.typingIntervals.has(sessionId)) return;
 
