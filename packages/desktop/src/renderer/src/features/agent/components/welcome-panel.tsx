@@ -29,10 +29,10 @@ export function WelcomePanel({ hasProject }: WelcomePanelProps) {
     <div className="flex flex-1 flex-col items-center justify-center gap-5 text-muted-foreground">
       <img
         src={getLogoUrl(resolvedTheme as "dark" | "light" | undefined)}
-        className="h-24 w-auto object-contain"
+        className="h-24 w-auto object-contain 2xl:h-36 min-[1920px]:h-48"
         alt={`${APP_NAME} Logo`}
       />
-      <p className="text-base text-center font-medium text-foreground/90">
+      <p className="text-base text-center font-medium text-foreground/90 2xl:text-xl min-[1920px]:text-2xl">
         {t("chat.guideMessage", { APP_NAME })}
       </p>
       {hasProject ? (

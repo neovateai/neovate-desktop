@@ -252,7 +252,7 @@
   --primary-foreground: var(--color-white);
   --ring: #10a37f;
   --background: #f7f7f8;
-  --background-secondary: #f7f7f8;
+  --background-secondary: var(--color-white);
   --card: var(--color-white);
   --card-foreground: var(--color-neutral-800);
   --sidebar: #ececf1;
