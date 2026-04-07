@@ -129,12 +129,12 @@ export class BrowserWindowManager implements IBrowserWindowManager {
 
     // Analytics: track foreground/background transitions
     win.on("focus", () => {
-      analyticsLog("app.foregrounded");
-      this.#options.analytics.track("app.foregrounded");
+      analyticsLog("app.main-window.foregrounded");
+      this.#options.analytics.track("app.main-window.foregrounded");
     });
     win.on("blur", () => {
-      analyticsLog("app.backgrounded");
-      this.#options.analytics.track("app.backgrounded");
+      analyticsLog("app.main-window.backgrounded");
+      this.#options.analytics.track("app.main-window.backgrounded");
     });
 
     if (process.platform === "darwin") {
