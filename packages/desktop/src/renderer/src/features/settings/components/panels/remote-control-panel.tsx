@@ -47,10 +47,7 @@ export const RemoteControlPanel = () => {
       {/* Content sensitivity warning */}
       <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
         <AlertTriangle className="size-4 mt-0.5 shrink-0 text-amber-500" />
-        <span>
-          Messages sent via remote control platforms are stored on third-party servers. Avoid using
-          remote control for sessions that handle sensitive credentials.
-        </span>
+        <span>{t("settings.remoteControl.securityWarning")}</span>
       </div>
 
       <div className="space-y-5">
@@ -59,7 +56,7 @@ export const RemoteControlPanel = () => {
         ))}
         {!loading && platforms.length === 0 && (
           <div className="text-sm text-muted-foreground">
-            No remote control platforms available.
+            {t("settings.remoteControl.noPlatforms")}
           </div>
         )}
       </div>
@@ -74,6 +71,7 @@ function PlatformCard({
   platform: PlatformStatus;
   onRefresh: () => void;
 }) {
+  const { t } = useTranslation();
   const [botToken, setBotToken] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -155,7 +153,10 @@ function PlatformCard({
   return (
     <SettingsGroup title={platform.displayName}>
       {/* Enable/disable */}
-      <SettingsRow title="Enabled" description="Start the bot when Neovate launches">
+      <SettingsRow
+        title={t("settings.remoteControl.enabled")}
+        description={t("settings.remoteControl.enabled.description")}
+      >
         <div className="flex items-center gap-3">
           <StatusBadge connected={platform.connected} pairing={platform.pairing} />
           <Switch checked={platform.enabled} onCheckedChange={handleToggle} />
@@ -163,11 +164,18 @@ function PlatformCard({
       </SettingsRow>
 
       {/* Bot token */}
-      <SettingsRow title="Bot Token" description="From @BotFather on Telegram">
+      <SettingsRow
+        title={t("settings.remoteControl.botToken")}
+        description={t("settings.remoteControl.botToken.description")}
+      >
         <div className="flex items-center gap-2">
           <Input
             type="password"
-            placeholder={platform.connected ? "••••••••" : "Paste bot token"}
+            placeholder={
+              platform.connected
+                ? t("settings.remoteControl.botToken.configured")
+                : t("settings.remoteControl.botToken.placeholder")
+            }
             value={botToken}
             onChange={(e) => setBotToken(e.target.value)}
             className="w-56"
@@ -179,27 +187,33 @@ function PlatformCard({
             onClick={handleSaveToken}
             disabled={!botToken.trim() || saving}
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("settings.remoteControl.saving") : t("settings.remoteControl.save")}
           </Button>
         </div>
       </SettingsRow>
 
       {/* Test connection */}
       {platform.enabled && (
-        <SettingsRow title="Connection" description="Verify bot token and connectivity">
+        <SettingsRow
+          title={t("settings.remoteControl.connection")}
+          description={t("settings.remoteControl.connection.description")}
+        >
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleTestConnection} disabled={testing}>
-              {testing ? "Testing..." : "Test Connection"}
+              {testing
+                ? t("settings.remoteControl.testing")
+                : t("settings.remoteControl.testConnection")}
             </Button>
             {testResult && (
               <span className="text-sm">
                 {testResult.ok ? (
                   <span className="text-green-600 flex items-center gap-1">
-                    <CheckCircle className="size-3.5" /> Connected
+                    <CheckCircle className="size-3.5" /> {t("settings.remoteControl.connected")}
                   </span>
                 ) : (
                   <span className="text-red-500 flex items-center gap-1">
-                    <XCircle className="size-3.5" /> {testResult.error ?? "Failed"}
+                    <XCircle className="size-3.5" />{" "}
+                    {testResult.error ?? t("settings.remoteControl.failed")}
                   </span>
                 )}
               </span>
@@ -211,37 +225,38 @@ function PlatformCard({
       {/* Pairing */}
       {platform.enabled && platform.connected && (
         <SettingsRow
-          title="Pair Chat"
-          description="Link a Telegram chat to receive remote control access"
+          title={t("settings.remoteControl.pairChat")}
+          description={t("settings.remoteControl.pairChat.description")}
         >
           <div className="flex flex-col gap-2 items-end">
             {!pairing ? (
               <Button size="sm" variant="outline" onClick={handleStartPairing}>
                 <Radio className="size-3.5 mr-1.5" />
-                Start Pairing
+                {t("settings.remoteControl.startPairing")}
               </Button>
             ) : pairingRequest ? (
               <div className="flex flex-col gap-2 text-sm">
                 <span className="text-muted-foreground">
-                  Request from <strong>@{pairingRequest.username ?? "unknown"}</strong>
+                  {t("settings.remoteControl.pairingRequest")}{" "}
+                  <strong>@{pairingRequest.username ?? "unknown"}</strong>
                   {pairingRequest.chatTitle && ` (${pairingRequest.chatTitle})`}
                 </span>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleApprovePairing}>
-                    Approve
+                    {t("settings.remoteControl.approve")}
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleRejectPairing}>
-                    Reject
+                    {t("settings.remoteControl.reject")}
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  Send /start to your bot from Telegram...
+                  {t("settings.remoteControl.pairingInstruction")}
                 </span>
                 <Button size="sm" variant="outline" onClick={handleStopPairing}>
-                  Cancel
+                  {t("settings.remoteControl.cancel")}
                 </Button>
               </div>
             )}
@@ -253,19 +268,20 @@ function PlatformCard({
 }
 
 function StatusBadge({ connected, pairing }: { connected: boolean; pairing: boolean }) {
+  const { t } = useTranslation();
   if (pairing) {
     return (
       <Badge variant="warning" size="sm">
-        Pairing
+        {t("settings.remoteControl.status.pairing")}
       </Badge>
     );
   }
   if (connected) {
     return (
       <Badge variant="success" size="sm">
-        Connected
+        {t("settings.remoteControl.status.connected")}
       </Badge>
     );
   }
-  return <Badge size="sm">Offline</Badge>;
+  return <Badge size="sm">{t("settings.remoteControl.status.offline")}</Badge>;
 }
