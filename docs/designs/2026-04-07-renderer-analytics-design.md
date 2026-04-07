@@ -32,11 +32,12 @@ RendererApp.analytics                   MainApp.analytics
 
 Events are **not** duplicated. Each process tracks its own events:
 
-| Source                              | Instance                | Example events                          |
-| ----------------------------------- | ----------------------- | --------------------------------------- |
-| `data-track-id` clicks              | `RendererApp.analytics` | `sidebar.git.clicked`                   |
-| `useAnalyticsTrack()` in components | `RendererApp.analytics` | `ui.page.viewed`, `ui.settings.changed` |
-| Plugin/agent lifecycle              | `MainApp.analytics`     | `agent.session.created`                 |
+| Source                              | Instance                | Example events                                    |
+| ----------------------------------- | ----------------------- | ------------------------------------------------- |
+| `data-track-id` clicks (core UI)    | `RendererApp.analytics` | `chat.send-button.clicked`                        |
+| `data-track-id` clicks (plugin)     | `RendererApp.analytics` | `plugin-git.branch.clicked`                       |
+| `useAnalyticsTrack()` in components | `RendererApp.analytics` | `page.viewed`, `settings.changed`                 |
+| Plugin/agent lifecycle              | `MainApp.analytics`     | `agent.session.created`                           |
 
 The oRPC `analytics.track` route is **removed** — it was only a renderer→main bridge. Main-process code calls `this.analytics.track()` directly.
 
@@ -122,7 +123,24 @@ export function useAnalyticsTrack() {
 
 `track.ts` and `hooks.ts` — deleted.
 
-## 5. Enterprise Usage
+## 5. Event Naming Convention
+
+All event names follow `<namespace>.<object>.<action>`:
+
+| Source                        | Namespace          | Example                          |
+| ----------------------------- | ------------------ | -------------------------------- |
+| Core renderer UI              | `<feature>`        | `page.viewed`, `chat.sent`       |
+| Plugin-originated events      | `plugin-<name>`    | `plugin-git.branch.switched`     |
+| Main process / agent events   | `agent`            | `agent.session.created`          |
+
+Rules:
+
+- **No `ui.` prefix.** All renderer events are UI events by definition — the prefix adds no information.
+- **Plugin events use `plugin-<name>` as the top-level namespace**, not the UI location (e.g. `plugin-git`, not `sidebar.git`). This decouples event names from layout — if a plugin moves from sidebar to a panel, its event names stay stable.
+- **`trackType` property** (`"declarative-dom"` or `"programmatic"`) encodes the collection mechanism and is sufficient to distinguish event sources at query time.
+- Use `plugin-*` as a glob in analytics backends to aggregate all plugin events across versions.
+
+## 6. Enterprise Usage
 
 Enterprise repos inject browser-compatible plugins via `RendererApp`:
 
@@ -146,7 +164,7 @@ new MainApp({
 
 When no plugins are injected, events are collected but not sent (same no-op behavior as before).
 
-## 6. HMR
+## 7. HMR
 
 `main.tsx` currently re-creates `RendererApp` on HMR without disposing the previous instance. This is a pre-existing issue, but analytics plugins (browser SDKs) are heavier than simple listeners and make it worse.
 
@@ -163,7 +181,7 @@ if (import.meta.hot) {
 
 `app.stop()` already calls `subscriptions.dispose()`, which cleans up click tracking. Analytics plugins that need teardown should implement the `analytics` plugin lifecycle (`loaded`/`unloaded`).
 
-## 7. Decision Log
+## 8. Decision Log
 
 **1. Dual analytics instances vs single instance**
 
@@ -184,7 +202,12 @@ if (import.meta.hot) {
 
 - Same behavior as `MainApp`: `analytics` instance is created but has no plugins, all events are no-ops. No conditionals needed.
 
-## 8. File Structure
+**5. Event naming: should renderer events have a `ui.` namespace prefix?**
+
+- Options: A) No prefix — `page.viewed`, `settings.changed` · B) `ui.` prefix — `ui.page.viewed`, `ui.settings.changed`
+- Decision: **A)** — The renderer analytics instance only ever produces UI events, so `ui.` carries no information. The `trackType` property already distinguishes collection mechanism. Additionally, plugin events use `plugin-<name>` as their top-level namespace (e.g. `plugin-git.branch.switched`) rather than a UI location prefix (e.g. `sidebar.git`) — this keeps event names stable if a plugin is moved to a different part of the UI.
+
+## 9. File Structure
 
 Changes to existing files:
 

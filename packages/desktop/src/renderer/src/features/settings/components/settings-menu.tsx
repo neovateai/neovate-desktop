@@ -86,7 +86,7 @@ export const SettingsMenu = ({
                 WebkitAppRegion: "no-drag",
               }}
               onClick={() => onMenuSelect(item.id)}
-              data-track-id="ui.settings.navigated"
+              data-track-id="settings.navigated"
             >
               <Icon className={cn("size-[18px]", isActive && "text-primary")} />
               <span>{t(MENU_LABEL_KEYS[item.id])}</span>

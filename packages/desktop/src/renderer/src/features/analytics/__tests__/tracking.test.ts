@@ -26,12 +26,12 @@ describe("initClickTracking", () => {
   it("tracks click on data-track-id element", () => {
     cleanup = initClickTracking(analytics);
     const btn = document.createElement("button");
-    btn.dataset.trackId = "ui.button.clicked";
+    btn.dataset.trackId = "test.button.clicked";
     document.body.appendChild(btn);
 
     btn.click();
 
-    expect(analytics.track).toHaveBeenCalledWith("ui.button.clicked", {
+    expect(analytics.track).toHaveBeenCalledWith("test.button.clicked", {
       trackType: "declarative-dom",
     });
   });
@@ -49,14 +49,14 @@ describe("initClickTracking", () => {
   it("finds closest data-track-id ancestor for nested clicks", () => {
     cleanup = initClickTracking(analytics);
     const div = document.createElement("div");
-    div.dataset.trackId = "ui.card.clicked";
+    div.dataset.trackId = "test.card.clicked";
     const span = document.createElement("span");
     div.appendChild(span);
     document.body.appendChild(div);
 
     span.click();
 
-    expect(analytics.track).toHaveBeenCalledWith("ui.card.clicked", {
+    expect(analytics.track).toHaveBeenCalledWith("test.card.clicked", {
       trackType: "declarative-dom",
     });
   });
@@ -64,16 +64,16 @@ describe("initClickTracking", () => {
   it("stops at nearest ancestor when nested tracked elements", () => {
     cleanup = initClickTracking(analytics);
     const outer = document.createElement("div");
-    outer.dataset.trackId = "ui.outer.clicked";
+    outer.dataset.trackId = "test.outer.clicked";
     const inner = document.createElement("button");
-    inner.dataset.trackId = "ui.inner.clicked";
+    inner.dataset.trackId = "test.inner.clicked";
     outer.appendChild(inner);
     document.body.appendChild(outer);
 
     inner.click();
 
     expect(analytics.track).toHaveBeenCalledOnce();
-    expect(analytics.track).toHaveBeenCalledWith("ui.inner.clicked", {
+    expect(analytics.track).toHaveBeenCalledWith("test.inner.clicked", {
       trackType: "declarative-dom",
     });
   });
@@ -82,7 +82,7 @@ describe("initClickTracking", () => {
     cleanup = initClickTracking(analytics);
     cleanup();
     const btn = document.createElement("button");
-    btn.dataset.trackId = "ui.button.clicked";
+    btn.dataset.trackId = "test.button.clicked";
     document.body.appendChild(btn);
 
     btn.click();

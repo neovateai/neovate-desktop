@@ -115,7 +115,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
         <button
           className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setVisibleCount((c) => c + DEFAULT_SESSION_LIMIT)}
-          data-track-id="ui.session.showMore"
+          data-track-id="session.showMore"
         >
           {t("session.showMore", {
             count: Math.min(DEFAULT_SESSION_LIMIT, remainingCount),
@@ -126,7 +126,7 @@ const ProjectSessions = memo(function ProjectSessions({ project }: { project: Pr
         <button
           className="cursor-pointer pl-10 pr-3 py-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground text-left"
           onClick={() => setVisibleCount(DEFAULT_SESSION_LIMIT)}
-          data-track-id="ui.session.showLess"
+          data-track-id="session.showLess"
         >
           {t("session.showLess")}
         </button>
@@ -211,7 +211,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
                 e.stopPropagation();
                 onRemove(project.id);
               }}
-              data-track-id="ui.project.removed"
+              data-track-id="project.removed"
             >
               <Trash2 size={14} strokeWidth={1.5} />
             </button>
@@ -223,7 +223,7 @@ const SortableProjectItem = memo(function SortableProjectItem({
                 e.stopPropagation();
                 onCreateSession(project);
               }}
-              data-track-id="ui.session.created"
+              data-track-id="session.created"
             >
               <Plus size={14} strokeWidth={1.5} />
             </button>

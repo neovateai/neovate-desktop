@@ -97,7 +97,7 @@ export function InputToolbar({
         title={t("chat.attachImage")}
         onClick={onAttach}
         disabled={sessionInitializing}
-        data-track-id="ui.chat.attachImage"
+        data-track-id="chat.attachImage"
       >
         <Paperclip className="h-4 w-4" />
       </Button>
@@ -123,7 +123,7 @@ export function InputToolbar({
           type="button"
           className="relative flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-foreground/10 text-foreground transition-all duration-150 hover:bg-foreground/15 active:scale-95"
           onClick={onCancel}
-          data-track-id="ui.chat.stopStreaming"
+          data-track-id="chat.stopStreaming"
         >
           <span className="absolute inset-0 rounded-full border border-foreground/20 animate-pulse" />
           <Square className="h-2.5 w-2.5 fill-current" />
@@ -135,7 +135,7 @@ export function InputToolbar({
           className="flex h-7 w-7 min-w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-95"
           onClick={onRetry}
           title={t("chat.sessionInitRetry")}
-          data-track-id="ui.session.retryInit"
+          data-track-id="session.retryInit"
         >
           <RotateCw className="h-3.5 w-3.5" />
         </button>
@@ -156,7 +156,7 @@ export function InputToolbar({
           disabled={disabled}
           onClick={onSend}
           title={sendMessageWith === "cmdEnter" ? t("chat.sendCmdEnter") : t("chat.sendEnter")}
-          data-track-id="ui.chat.messageSent"
+          data-track-id="chat.messageSent"
         >
           <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />
         </button>
@@ -624,7 +624,7 @@ function ConnectedModelSelect({
                 useSettingsStore.getState().setActiveTab("providers");
                 useSettingsStore.getState().setShowSettings(true);
               }}
-              data-track-id="ui.settings.openProviders"
+              data-track-id="settings.openProviders"
             >
               <Settings className="h-3 w-3" />
               {t("chat.manageProviders")}
