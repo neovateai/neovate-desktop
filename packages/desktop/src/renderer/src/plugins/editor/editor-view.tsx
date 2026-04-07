@@ -2,7 +2,7 @@ import { consumeEventIterator } from "@orpc/client";
 import { ContractRouterClient } from "@orpc/contract";
 import debug from "debug";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   editorContract,
@@ -12,6 +12,7 @@ import {
 import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { useAliveConnection } from "./hooks/useAliveConnection";
 import { useWebview } from "./hooks/useWebview";
 import { useEditorTranslation } from "./i18n";
 import { ErrorState, LoadingState } from "./status";
@@ -41,19 +42,52 @@ function EditorViewCore(props: { cwd: string }) {
     executeInject(instance);
   });
 
+  const initEditor = async () => {
+    if (status === "starting") return;
+    initRef.current = true;
+
+    await startEditor();
+    const res = await client.editor.connect();
+    if (res.success) {
+      log("extension bridge connected");
+      seExtReady(true);
+    } else {
+      log("extension bridge failed", res.error);
+      setError(res.error || t("editor.overlay.connectFailed"));
+      setStatus("error");
+    }
+  };
+
+  const handleRetry = () => {
+    // 重置所有状态，触发 webview 刷新
+    setServerUrl(null);
+    seExtReady(false);
+    setTabs([]);
+    initRef.current = false;
+    initEditor();
+  };
+
   useEffect(() => {
     if (!cwd) {
       return;
     }
     if (initRef.current && status === "ready") return;
-    initRef.current = true;
 
-    startEditor();
-    client.editor.connect().then(() => {
-      log("extension bridge connected");
-      seExtReady(true);
-    });
+    initEditor();
   }, [cwd]);
+
+  // 暴露 mock 方法用于测试错误状态
+  // useEffect(() => {
+  //   window.mockEditorError = (errorMessage = "Mock error for testing") => {
+  //     log("mock editor error triggered:", errorMessage);
+  //     setError(errorMessage);
+  //     setStatus("error");
+  //     seExtReady(false);
+  //   };
+  //   return () => {
+  //     delete window.mockEditorError;
+  //   };
+  // }, []);
 
   useEffect(() => {
     if (extReady) {
@@ -71,6 +105,26 @@ function EditorViewCore(props: { cwd: string }) {
       client.editor.setTheme({ cwd, theme: resolvedTheme || "dark" });
     }
   }, [resolvedTheme, extReady]);
+
+  const handleDisconnect = useCallback(() => {
+    log("heartbeat failed, connection lost");
+    setError(t("editor.overlay.connectionLost"));
+    setStatus("error");
+    seExtReady(false);
+  }, [t]);
+
+  const checkConnection = useCallback(async () => {
+    const res = await client.editor.ping({ cwd });
+    return res;
+  }, [client.editor, cwd]);
+
+  useAliveConnection({
+    checkFn: checkConnection,
+    isAlive: (res) => res.connected,
+    interval: 15000,
+    enabled: extReady && !!cwd,
+    onDisconnect: handleDisconnect,
+  });
 
   const initExtensionHandlers = () => {
     const disposable: Array<() => void> = [];
@@ -183,7 +237,7 @@ function EditorViewCore(props: { cwd: string }) {
 
   const renderHolder = () => {
     if (status === "error" && error) {
-      return <ErrorState message={error} onRetry={startEditor} />;
+      return <ErrorState message={error} onRetry={handleRetry} />;
     }
     if (status !== "ready" || !serverUrl) {
       return <LoadingState status={status} />;

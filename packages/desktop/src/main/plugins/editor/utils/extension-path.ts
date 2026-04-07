@@ -17,10 +17,11 @@ const log = debug("neovate:editor:extension");
  * - 0.1.2 feat: 打开文件时，支持图片文件进入预览
  * - 0.1.3 fix: tabs 变化时，如果为空数据未通知问题 & 优化了socket 通信对接逻辑
  * - 0.1.4 fix: tabs 变化时，webview 类tab 没有被视为合法tab的问题
+ * - 0.1.5 refactor: 建立连接的接口名称调整、响应消息增加标识
  */
 const RESOURCE_PATH =
-  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*NV0jQIOHvEcAAAAAQHAAAAgAegAAAQ"; // 0.1.4
-const VSIX_FILENAME = "neovate-code-extension-0.1.4.vsix";
+  "https://mdn.alipayobjects.com/portal_metor2/afts/file/A*Hwu4SZZ_ZS8AAAAAQHAAAAgAegAAAQ"; // 0.1.5
+const VSIX_FILENAME = "neovate-code-extension-0.1.5.vsix";
 
 export function ensureExtension(extDir: string): Promise<string> {
   log("ensuring extension is available");

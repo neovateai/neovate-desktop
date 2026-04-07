@@ -21,7 +21,6 @@ export class CodeServerStartError extends Error {
 
 export interface CodeServerInstance {
   url: string;
-  stop: () => void;
 }
 
 /**
@@ -107,9 +106,6 @@ export class CodeServerManager {
 
       return {
         url,
-        stop: () => {
-          bridge.stop();
-        },
       };
     } catch (error) {
       throw new CodeServerStartError((error as Error).message, error as Error);
@@ -132,7 +128,6 @@ export class CodeServerManager {
   stop(): void {
     log("stopping code server");
     if (this.instance) {
-      this.instance.stop();
       this.instance = null;
     }
     this.startPromise = null;

@@ -1,5 +1,8 @@
 {
   "contextMenu.addToChat": "添加到对话",
   "editor.overlay.noFileOpened": "暂无打开的文件",
-  "editor.overlay.extensionPreparing": "扩展准备中..."
+  "editor.overlay.extensionPreparing": "扩展准备中...",
+  "editor.overlay.connectFailed": "扩展连接失败",
+  "editor.overlay.connectionLost": "编辑器连接已断开，请刷新页面重试",
+  "editor.toast.connectFailed": "编辑器连接失败"
 }

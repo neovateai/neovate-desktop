@@ -35,7 +35,10 @@ export interface EditorOpenOption {
 
 export const editorContract = {
   start: oc.input(type<void>()).output(type<{ url: string; error?: string }>()),
-  connect: oc.input(type<void>()).output(type<{}>()),
+  connect: oc
+    .input(type<void>())
+    .output(type<{ success: boolean; data?: Record<string, unknown>; error?: string }>()),
+  ping: oc.input(type<{ cwd: string }>()).output(type<{ connected: boolean }>()),
   open: oc.input(type<{ cwd: string } & EditorOpenOption>()).output(
     type<{
       success: boolean;

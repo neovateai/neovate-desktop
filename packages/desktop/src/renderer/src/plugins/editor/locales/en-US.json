@@ -1,5 +1,8 @@
 {
   "contextMenu.addToChat": "Add to Chat",
   "editor.overlay.noFileOpened": "No File Opened",
-  "editor.overlay.extensionPreparing": "Extension Preparing..."
+  "editor.overlay.extensionPreparing": "Extension Preparing...",
+  "editor.overlay.connectFailed": "Extension Connection Failed",
+  "editor.overlay.connectionLost": "Editor connection lost, please refresh to retry",
+  "editor.toast.connectFailed": "Editor Connection Failed"
 }
