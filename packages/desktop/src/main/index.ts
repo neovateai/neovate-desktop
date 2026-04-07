@@ -18,6 +18,7 @@ import { ConfigStore } from "./features/config/config-store";
 import { LlmService } from "./features/llm/llm-service";
 import { PopupWindowShortcut } from "./features/popup-window/global-shortcut";
 import { ProjectStore } from "./features/project/project-store";
+import { DingTalkAdapter } from "./features/remote-control/platforms/dingtalk";
 import { TelegramAdapter } from "./features/remote-control/platforms/telegram";
 import { RemoteControlService } from "./features/remote-control/remote-control-service";
 import { SkillsService } from "./features/skills/skills-service";
@@ -99,6 +100,7 @@ const remoteControlService = new RemoteControlService(
   configStore,
 );
 remoteControlService.registerAdapter(new TelegramAdapter());
+remoteControlService.registerAdapter(new DingTalkAdapter());
 
 const appContext: AppContext = {
   sessionManager,

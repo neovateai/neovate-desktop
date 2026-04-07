@@ -104,7 +104,14 @@ function PlatformCard({
   onRefresh: () => void;
 }) {
   const { t } = useTranslation();
+  // Telegram fields
   const [botToken, setBotToken] = useState("");
+  // DingTalk fields
+  const [appKey, setAppKey] = useState("");
+  const [appSecret, setAppSecret] = useState("");
+  const [robotCode, setRobotCode] = useState("");
+  const [allowFrom, setAllowFrom] = useState("");
+
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
@@ -152,6 +159,33 @@ function PlatformCard({
         config: { botToken: botToken.trim(), allowedChatIds: [], enabled: true },
       });
       setBotToken("");
+      onRefresh();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveDingTalk = async () => {
+    if (!appKey.trim() || !appSecret.trim() || !robotCode.trim()) return;
+    setSaving(true);
+    try {
+      await client.remoteControl.configurePlatform({
+        platformId: platform.id,
+        config: {
+          clientId: appKey.trim(),
+          clientSecret: appSecret.trim(),
+          robotCode: robotCode.trim(),
+          allowFrom: allowFrom
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          enabled: true,
+        },
+      });
+      setAppKey("");
+      setAppSecret("");
+      setRobotCode("");
+      setAllowFrom("");
       onRefresh();
     } finally {
       setSaving(false);
@@ -207,6 +241,8 @@ function PlatformCard({
     setPairingRequest(null);
   };
 
+  const isDingTalk = platform.id === "dingtalk";
+
   return (
     <SettingsGroup title={platform.displayName}>
       {/* Enable/disable */}
@@ -220,34 +256,111 @@ function PlatformCard({
         </div>
       </SettingsRow>
 
-      {/* Bot token */}
-      <SettingsRow
-        title={t("settings.remoteControl.botToken")}
-        description={t("settings.remoteControl.botToken.description")}
-      >
-        <div className="flex items-center gap-2">
-          <Input
-            type="password"
-            placeholder={
-              platform.connected
-                ? t("settings.remoteControl.botToken.configured")
-                : t("settings.remoteControl.botToken.placeholder")
-            }
-            value={botToken}
-            onChange={(e) => setBotToken(e.target.value)}
-            className="w-56"
-            size="sm"
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSaveToken}
-            disabled={!botToken.trim() || saving}
+      {/* Platform-specific config */}
+      {isDingTalk ? (
+        <>
+          <SettingsRow
+            title={t("settings.remoteControl.dingtalk.appKey")}
+            description={t("settings.remoteControl.dingtalk.appKey.description")}
           >
-            {saving ? t("settings.remoteControl.saving") : t("settings.remoteControl.save")}
-          </Button>
-        </div>
-      </SettingsRow>
+            <Input
+              placeholder={
+                platform.connected
+                  ? t("settings.remoteControl.dingtalk.configured")
+                  : t("settings.remoteControl.dingtalk.appKey.placeholder")
+              }
+              value={appKey}
+              onChange={(e) => setAppKey(e.target.value)}
+              className="w-56"
+              size="sm"
+            />
+          </SettingsRow>
+          <SettingsRow
+            title={t("settings.remoteControl.dingtalk.appSecret")}
+            description={t("settings.remoteControl.dingtalk.appSecret.description")}
+          >
+            <Input
+              type="password"
+              placeholder={
+                platform.connected
+                  ? t("settings.remoteControl.dingtalk.configured")
+                  : t("settings.remoteControl.dingtalk.appSecret.placeholder")
+              }
+              value={appSecret}
+              onChange={(e) => setAppSecret(e.target.value)}
+              className="w-56"
+              size="sm"
+            />
+          </SettingsRow>
+          <SettingsRow
+            title={t("settings.remoteControl.dingtalk.robotCode")}
+            description={t("settings.remoteControl.dingtalk.robotCode.description")}
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder={
+                  platform.connected
+                    ? t("settings.remoteControl.dingtalk.configured")
+                    : t("settings.remoteControl.dingtalk.robotCode.placeholder")
+                }
+                value={robotCode}
+                onChange={(e) => setRobotCode(e.target.value)}
+                className="w-56"
+                size="sm"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSaveDingTalk}
+                disabled={!appKey.trim() || !appSecret.trim() || !robotCode.trim() || saving}
+              >
+                {saving ? t("settings.remoteControl.saving") : t("settings.remoteControl.save")}
+              </Button>
+            </div>
+          </SettingsRow>
+          <SettingsRow
+            title={t("settings.remoteControl.dingtalk.allowFrom")}
+            description={t("settings.remoteControl.dingtalk.allowFrom.description")}
+          >
+            <Input
+              placeholder={t("settings.remoteControl.dingtalk.allowFrom.placeholder")}
+              value={allowFrom}
+              onChange={(e) => setAllowFrom(e.target.value)}
+              className="w-56"
+              size="sm"
+            />
+          </SettingsRow>
+        </>
+      ) : (
+        /* Telegram: Bot token */
+        <SettingsRow
+          title={t("settings.remoteControl.botToken")}
+          description={t("settings.remoteControl.botToken.description")}
+        >
+          <div className="flex items-center gap-2">
+            <Input
+              type="password"
+              placeholder={
+                platform.connected
+                  ? t("settings.remoteControl.botToken.configured")
+                  : t("settings.remoteControl.botToken.placeholder")
+              }
+              value={botToken}
+              onChange={(e) => setBotToken(e.target.value)}
+              className="w-56"
+              size="sm"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSaveToken}
+              disabled={!botToken.trim() || saving}
+            >
+              {saving ? t("settings.remoteControl.saving") : t("settings.remoteControl.save")}
+            </Button>
+          </div>
+        </SettingsRow>
+      )}
 
       {/* Test connection */}
       {platform.enabled && (
@@ -279,8 +392,8 @@ function PlatformCard({
         </SettingsRow>
       )}
 
-      {/* Pairing */}
-      {platform.enabled && platform.connected && (
+      {/* Pairing — Telegram only */}
+      {!isDingTalk && platform.enabled && platform.connected && (
         <SettingsRow
           title={t("settings.remoteControl.pairChat")}
           description={t("settings.remoteControl.pairChat.description")}

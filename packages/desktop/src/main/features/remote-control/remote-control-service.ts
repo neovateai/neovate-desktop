@@ -276,14 +276,26 @@ export class RemoteControlService {
     const raw = this.configStore.get(platformId) as Record<string, unknown> | undefined;
     if (!raw) return null;
 
-    // Decrypt bot token if encrypted
-    if (typeof raw.encryptedToken === "string" && safeStorage.isEncryptionAvailable()) {
-      try {
-        raw.botToken = safeStorage.decryptString(
-          Buffer.from(raw.encryptedToken as string, "base64"),
-        );
-      } catch {
-        log("failed to decrypt token for %s", platformId);
+    if (safeStorage.isEncryptionAvailable()) {
+      // Decrypt bot token (Telegram)
+      if (typeof raw.encryptedToken === "string") {
+        try {
+          raw.botToken = safeStorage.decryptString(
+            Buffer.from(raw.encryptedToken as string, "base64"),
+          );
+        } catch {
+          log("failed to decrypt token for %s", platformId);
+        }
+      }
+      // Decrypt client secret (DingTalk)
+      if (typeof raw.encryptedSecret === "string") {
+        try {
+          raw.clientSecret = safeStorage.decryptString(
+            Buffer.from(raw.encryptedSecret as string, "base64"),
+          );
+        } catch {
+          log("failed to decrypt secret for %s", platformId);
+        }
       }
     }
 
@@ -293,12 +305,21 @@ export class RemoteControlService {
   saveConfig(platformId: string, config: Record<string, unknown>): void {
     const toStore = { ...config };
 
-    // Encrypt bot token if available
-    if (typeof toStore.botToken === "string" && safeStorage.isEncryptionAvailable()) {
-      toStore.encryptedToken = safeStorage
-        .encryptString(toStore.botToken as string)
-        .toString("base64");
-      delete toStore.botToken;
+    if (safeStorage.isEncryptionAvailable()) {
+      // Encrypt bot token (Telegram)
+      if (typeof toStore.botToken === "string") {
+        toStore.encryptedToken = safeStorage
+          .encryptString(toStore.botToken as string)
+          .toString("base64");
+        delete toStore.botToken;
+      }
+      // Encrypt client secret (DingTalk)
+      if (typeof toStore.clientSecret === "string") {
+        toStore.encryptedSecret = safeStorage
+          .encryptString(toStore.clientSecret as string)
+          .toString("base64");
+        delete toStore.clientSecret;
+      }
     }
 
     this.configStore.set(platformId, toStore);
@@ -312,6 +333,8 @@ export class RemoteControlService {
     const safe = { ...config };
     delete (safe as any).botToken;
     delete (safe as any).encryptedToken;
+    delete (safe as any).clientSecret;
+    delete (safe as any).encryptedSecret;
     return safe;
   }
 

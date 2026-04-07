@@ -22,6 +22,7 @@ export interface RemoteControlPlatformAdapter {
   readonly id: string;
   readonly displayName: string;
   readonly maxMessageLength: number;
+  readonly supportsEditing: boolean;
 
   // Lifecycle
   start(config: PlatformConfig): Promise<void>;

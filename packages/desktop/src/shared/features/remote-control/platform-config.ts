@@ -6,7 +6,16 @@ export const telegramConfigSchema = z.object({
   enabled: z.boolean(),
 });
 
+export const dingtalkConfigSchema = z.object({
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+  robotCode: z.string().min(1),
+  allowFrom: z.array(z.string()),
+  enabled: z.boolean(),
+});
+
 /** Union of all platform config schemas, keyed by platform ID */
 export const platformConfigSchemas: Record<string, z.ZodType> = {
   telegram: telegramConfigSchema,
+  dingtalk: dingtalkConfigSchema,
 };

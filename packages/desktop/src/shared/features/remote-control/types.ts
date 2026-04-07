@@ -71,6 +71,15 @@ export type TelegramConfig = {
   enabled: boolean;
 };
 
+/** DingTalk-specific platform config */
+export type DingTalkConfig = {
+  clientId: string;
+  clientSecret: string;
+  robotCode: string;
+  allowFrom: string[];
+  enabled: boolean;
+};
+
 /** Persisted link between a conversation and a session */
 export type PersistedLink = {
   ref: ConversationRef;
