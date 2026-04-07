@@ -120,6 +120,8 @@ type AgentState = {
     forkedSessionId: string,
     forkedSession: ChatSession,
   ) => void;
+  appendAgentSession: (session: SessionInfo) => void;
+  removeAgentSession: (sessionId: string) => void;
   setRewindUndoBuffer: (buffer: RewindUndoBuffer | null) => void;
   undoRewindStore: (originalSessionId: string, originalSession: ChatSession) => void;
 };
@@ -163,6 +165,21 @@ export const useAgentStore = create<AgentState>()(
     setAgentSessions: (agentSessions) => {
       storeLog("setAgentSessions: count=%d", agentSessions.length);
       set({ agentSessions, sessionsLoaded: true });
+    },
+
+    appendAgentSession: (session) => {
+      set((state) => {
+        if (state.agentSessions.some((s) => s.sessionId === session.sessionId)) return;
+        storeLog("appendAgentSession: sid=%s", session.sessionId);
+        state.agentSessions.unshift(session);
+      });
+    },
+
+    removeAgentSession: (sessionId) => {
+      storeLog("removeAgentSession: sid=%s", sessionId);
+      set((state) => {
+        state.agentSessions = state.agentSessions.filter((s) => s.sessionId !== sessionId);
+      });
     },
 
     createSession: (sessionId, meta) => {

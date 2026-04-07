@@ -100,6 +100,14 @@ export type SessionInfo = {
   createdAt: string;
 };
 
+/** Event emitted when a session is created or deleted */
+export type SessionLifecycleEvent = {
+  type: "created" | "deleted";
+  session: SessionInfo;
+  /** Where the event originated */
+  source: "local" | "remote-control";
+};
+
 /** Active in-memory session from SessionManager */
 export type ActiveSessionInfo = {
   sessionId: string;
