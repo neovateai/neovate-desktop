@@ -3,21 +3,21 @@ import { ArrowUpCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Project } from "../../../../../../shared/features/project/types";
-import type { SkillMeta, SkillUpdate } from "../../../../../../shared/features/skills/types";
+import type { Project } from "../../../../../shared/features/project/types";
+import type { SkillMeta, SkillUpdate } from "../../../../../shared/features/skills/types";
 
-import { Badge } from "../../../../components/ui/badge";
+import { Badge } from "../../../components/ui/badge";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "../../../../components/ui/select";
-import { Switch } from "../../../../components/ui/switch";
-import { client } from "../../../../orpc";
-import { claudeCodeChatManager } from "../../../agent/chat-manager";
-import { useProjectStore } from "../../../project/store";
+} from "../../../components/ui/select";
+import { Switch } from "../../../components/ui/switch";
+import { client } from "../../../orpc";
+import { claudeCodeChatManager } from "../../agent/chat-manager";
+import { useProjectStore } from "../../project/store";
 import { SkillDetailModal } from "./skill-detail-modal";
 
 const log = debug("neovate:settings:skills");

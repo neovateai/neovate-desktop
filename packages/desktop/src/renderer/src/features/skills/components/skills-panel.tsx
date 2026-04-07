@@ -8,18 +8,18 @@ import type {
   RegistryGroup,
   SkillMeta,
   SkillUpdate,
-} from "../../../../../../shared/features/skills/types";
+} from "../../../../../shared/features/skills/types";
 
-import { Badge } from "../../../../components/ui/badge";
-import { Button } from "../../../../components/ui/button";
-import { Input } from "../../../../components/ui/input";
-import { Spinner } from "../../../../components/ui/spinner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
-import { cn } from "../../../../lib/utils";
-import { client } from "../../../../orpc";
-import { claudeCodeChatManager } from "../../../agent/chat-manager";
-import { useConfigStore } from "../../../config/store";
-import { useProjectStore } from "../../../project/store";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Spinner } from "../../../components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
+import { cn } from "../../../lib/utils";
+import { client } from "../../../orpc";
+import { claudeCodeChatManager } from "../../agent/chat-manager";
+import { useConfigStore } from "../../config/store";
+import { useProjectStore } from "../../project/store";
 import { SkillAddModal } from "./skill-add-modal";
 import { SkillDiscoverTab } from "./skill-discover-tab";
 import { SkillInstalledTab } from "./skill-installed-tab";

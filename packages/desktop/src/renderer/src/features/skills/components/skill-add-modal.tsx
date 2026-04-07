@@ -2,11 +2,11 @@ import debug from "debug";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Project } from "../../../../../../shared/features/project/types";
-import type { PreviewSkill } from "../../../../../../shared/features/skills/types";
+import type { Project } from "../../../../../shared/features/project/types";
+import type { PreviewSkill } from "../../../../../shared/features/skills/types";
 
-import { Button } from "../../../../components/ui/button";
-import { Checkbox } from "../../../../components/ui/checkbox";
+import { Button } from "../../../components/ui/button";
+import { Checkbox } from "../../../components/ui/checkbox";
 import {
   Dialog,
   DialogDescription,
@@ -15,19 +15,19 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from "../../../../components/ui/dialog";
-import { Input } from "../../../../components/ui/input";
+} from "../../../components/ui/dialog";
+import { Input } from "../../../components/ui/input";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "../../../../components/ui/select";
-import { Spinner } from "../../../../components/ui/spinner";
-import { cn } from "../../../../lib/utils";
-import { client } from "../../../../orpc";
-import { useConfigStore } from "../../../config/store";
+} from "../../../components/ui/select";
+import { Spinner } from "../../../components/ui/spinner";
+import { cn } from "../../../lib/utils";
+import { client } from "../../../orpc";
+import { useConfigStore } from "../../config/store";
 
 const log = debug("neovate:settings:skills");
 

@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 
 import { PluginsPanel } from "../../features/claude-code-plugins/components/plugins-panel";
-import { SkillsPanel } from "../../features/settings/components/panels/skills-panel";
+import { SkillsPanel } from "../../features/skills/components/skills-panel";
 import { useLayoutStore } from "./store";
 
 export function FullRightPanel() {

@@ -2,18 +2,18 @@ import { Download, ExternalLink, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Project } from "../../../../../../shared/features/project/types";
+import type { Project } from "../../../../../shared/features/project/types";
 import type {
   RecommendedSkill,
   RegistryGroup,
   SkillBadgeType,
   SkillMeta,
-} from "../../../../../../shared/features/skills/types";
+} from "../../../../../shared/features/skills/types";
 
-import { Badge } from "../../../../components/ui/badge";
-import { Button } from "../../../../components/ui/button";
-import { Spinner } from "../../../../components/ui/spinner";
-import { cn } from "../../../../lib/utils";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Spinner } from "../../../components/ui/spinner";
+import { cn } from "../../../lib/utils";
 import { SkillDetailModal } from "./skill-detail-modal";
 
 const skillBadgeVariantMap: Record<

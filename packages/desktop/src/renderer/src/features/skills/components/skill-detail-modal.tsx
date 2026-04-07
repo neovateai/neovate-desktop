@@ -3,16 +3,16 @@ import { ArrowUpCircle, FolderOpen, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Project } from "../../../../../../shared/features/project/types";
+import type { Project } from "../../../../../shared/features/project/types";
 import type {
   RecommendedSkill,
   SkillBadgeType,
   SkillMeta,
   SkillUpdate,
-} from "../../../../../../shared/features/skills/types";
+} from "../../../../../shared/features/skills/types";
 
-import { Badge } from "../../../../components/ui/badge";
-import { Button } from "../../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogDescription,
@@ -21,17 +21,17 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from "../../../../components/ui/dialog";
+} from "../../../components/ui/dialog";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "../../../../components/ui/select";
-import { Spinner } from "../../../../components/ui/spinner";
-import { Switch } from "../../../../components/ui/switch";
-import { client } from "../../../../orpc";
+} from "../../../components/ui/select";
+import { Spinner } from "../../../components/ui/spinner";
+import { Switch } from "../../../components/ui/switch";
+import { client } from "../../../orpc";
 
 const log = debug("neovate:settings:skills");
 
