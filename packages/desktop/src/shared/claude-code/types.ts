@@ -35,6 +35,8 @@ type Metadata = {
   deliveryMode?: "stream" | "restored";
   sessionId: string;
   parentToolUseId: string | null;
+  /** Present when the message was sent from a remote control platform (e.g. Telegram). */
+  source?: { platform: string };
 };
 
 type DataTypes = {
@@ -107,7 +109,8 @@ export type ClaudeCodeUIEvent =
   | { kind: "event"; event: ClaudeCodeUIEventMessage }
   | { kind: "request"; requestId: string; request: ClaudeCodeUIEventRequest }
   | { kind: "request_settled"; requestId: string }
-  | { kind: "chunk"; chunk: ClaudeCodeUIMessageChunk };
+  | { kind: "chunk"; chunk: ClaudeCodeUIMessageChunk }
+  | { kind: "user_message"; message: ClaudeCodeUIMessage };
 
 // ─── Dispatch ────────────────────────────────────────────────────────────────
 

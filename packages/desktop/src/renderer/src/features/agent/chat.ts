@@ -110,6 +110,18 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
   // ── Event handling (subscribe channel) ──────────────────────────────
 
   async #handleMessage(message: ClaudeCodeUIEvent) {
+    if (message.kind === "user_message") {
+      this.#state.pushMessage(message.message);
+      const text = message.message.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join("");
+      if (text) {
+        useAgentStore.getState().addUserMessage(this.id, text);
+      }
+      return;
+    }
+
     if (message.kind === "request_settled") {
       this.store.setState((state) => ({
         pendingRequests: state.pendingRequests.filter((r) => r.requestId !== message.requestId),

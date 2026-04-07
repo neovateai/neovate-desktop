@@ -150,7 +150,9 @@ export class SessionBridge {
       createdAt: new Date(),
     };
 
-    await this.sessionManager.send(sessionId, uiMessage);
+    await this.sessionManager.send(sessionId, uiMessage, {
+      source: { platform: msg.ref.platformId },
+    });
     this.pushMessage(sessionId, "user", msg.text);
     log("sent message to session %s", sessionId);
   }

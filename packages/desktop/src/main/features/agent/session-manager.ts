@@ -995,6 +995,7 @@ export class SessionManager {
   async send(
     sessionId: string,
     message: import("../../../shared/claude-code/types").ClaudeCodeUIMessage,
+    options?: { source?: { platform: string } },
   ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error(`Unknown session: ${sessionId}`);
@@ -1054,6 +1055,22 @@ export class SessionManager {
     // Track UI message ID → SDK UUID mapping for rewind
     if (message.id) {
       session.uiToSdkMessageIds.set(message.id, userMessageId);
+    }
+
+    // Publish external user message to renderer BEFORE pushing to SDK input,
+    // so the user bubble appears before assistant chunks start streaming.
+    if (options?.source) {
+      this.eventPublisher.publish(sessionId, {
+        kind: "user_message",
+        message: {
+          ...message,
+          metadata: {
+            sessionId,
+            parentToolUseId: null,
+            source: options.source,
+          },
+        },
+      });
     }
 
     this.requestTracker.startTurn(sessionId);

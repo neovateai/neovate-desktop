@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { isReasoningUIPart, isToolUIPart, type ToolUIPart } from "ai";
-import { CheckIcon, CopyIcon, ChevronDownIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, ChevronDownIcon, SendIcon } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useTranslation } from "react-i18next";
@@ -238,6 +238,7 @@ export const MessagePartRenderer = memo(
                 isLastText &&
                 !!part.text.trim();
               const canShowUserActions = message.role === "user" && isLastText && !!sessionId;
+              const remoteSource = isLastText ? message.metadata?.source : undefined;
               return (
                 <Message
                   key={`${message.id}-${index}`}
@@ -251,6 +252,13 @@ export const MessagePartRenderer = memo(
                       <p className="m-0 whitespace-pre-wrap">{part.text}</p>
                     )}
                   </MessageContent>
+                  {remoteSource && (
+                    <span className="mt-1 ml-auto flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <SendIcon className="size-2.5" />
+                      {remoteSource.platform.charAt(0).toUpperCase() +
+                        remoteSource.platform.slice(1)}
+                    </span>
+                  )}
                   {canShowAssistantActions && (
                     <MessageActions className="mt-2">
                       <CopyMarkdownButton text={part.text} />
