@@ -28,6 +28,15 @@ export class OutputBatcher {
   /** Append text delta to the buffer. Flushes when debounce or threshold is hit. */
   append(text: string): void {
     if (this.disposed) return;
+
+    // New turn arrived while settle timer is pending — flush old turn's tail, then reset
+    if (this.settleTimer) {
+      log("new turn preempted settle timer, flushing old turn and resetting");
+      this.clearTimers();
+      void this.flush();
+      this.reset();
+    }
+
     this.buffer += text;
 
     if (this.buffer.length >= EAGER_THRESHOLD) {
@@ -83,9 +92,7 @@ export class OutputBatcher {
 
     this.settleTimer = setTimeout(() => {
       void this.flush();
-      this.currentMessageId = null;
-      this.currentMessageTimestamp = null;
-      this.fullText = "";
+      this.reset();
     }, SETTLE_DELAY_MS);
   }
 
