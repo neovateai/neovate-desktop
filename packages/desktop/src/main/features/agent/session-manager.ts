@@ -217,7 +217,7 @@ export class SessionManager {
         return promise;
       },
       stderr(data) {
-        console.error("[claude-stderr]", data.trimEnd());
+        log("stderr sessionId=%s: %s", sessionId, data.trimEnd());
       },
     };
   }
@@ -508,6 +508,13 @@ export class SessionManager {
     const resolved = resolveClaudeCodeExecutable(
       this.configStore.get("claudeCodeBinPath") || undefined,
     );
+    log(
+      "initSession: executable=%s standalone=%s cliPath=%s sessionId=%s",
+      resolved.executable,
+      resolved.standalone,
+      resolved.cliPath ?? "(none)",
+      sessionId,
+    );
 
     // Network inspector: conditionally inject fetch interceptor via --preload
     // Not supported with standalone binaries (--preload is a bun flag)
@@ -616,7 +623,9 @@ export class SessionManager {
       ...(spawnOverride ? { spawnClaudeCodeProcess: spawnOverride } : {}),
     };
 
+    log("initSession: importing SDK sessionId=%s", sessionId);
     const { query: queryFn } = await import("@anthropic-ai/claude-agent-sdk");
+    log("initSession: creating SDK query sessionId=%s", sessionId);
     const q = queryFn({ prompt: input, options });
     this.sessions.set(sessionId, {
       input,
@@ -629,7 +638,9 @@ export class SessionManager {
       uiToSdkMessageIds: new Map(),
       pendingRequests,
     });
+    log("initSession: awaiting initializationResult sessionId=%s", sessionId);
     const initResult = await q.initializationResult();
+    log("initSession: initialized sessionId=%s", sessionId);
     this.consume(sessionId).catch((err) => log("consume error for %s: %o", sessionId, err));
     return initResult;
   }
@@ -641,11 +652,16 @@ export class SessionManager {
     opts?: { model?: string; resume?: string; provider?: Provider },
   ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     let timer: ReturnType<typeof setTimeout>;
+    const t0 = performance.now();
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error("Session initialization timed out")),
-        INIT_TIMEOUT_MS,
-      );
+      timer = setTimeout(() => {
+        log(
+          "initSessionWithTimeout: TIMEOUT after %dms sessionId=%s",
+          Math.round(performance.now() - t0),
+          sessionId,
+        );
+        reject(new Error("Session initialization timed out"));
+      }, INIT_TIMEOUT_MS);
     });
 
     try {
