@@ -8,6 +8,12 @@ import { RendererApp } from "../app";
 import { toDisposable } from "../disposable";
 
 describe("RendererApp", () => {
+  it("exposes analytics instance", () => {
+    const app = new RendererApp({ plugins: [] });
+    expect(app.analytics).toBeDefined();
+    expect(typeof app.analytics.track).toBe("function");
+  });
+
   it("exposes pluginManager", () => {
     const app = new RendererApp({ plugins: [] });
     expect(app.pluginManager).toBeDefined();

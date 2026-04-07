@@ -8,6 +8,7 @@ import { PluginManager } from "../plugin/plugin-manager";
 
 function createMockApp(): IRendererApp {
   return {
+    analytics: { track: vi.fn() } as any,
     subscriptions: { push: vi.fn() },
     i18nManager: {} as IRendererApp["i18nManager"],
     workbench: {

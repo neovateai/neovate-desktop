@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 
 import { matchesBinding, DEFAULT_KEYBINDINGS } from "../../../lib/keybindings";
-import { useTrackPageView } from "../../analytics/hooks";
+import { useAnalyticsTrack } from "../../analytics/hooks/use-analytics-track";
 import { useConfigStore } from "../../config/store";
 import { useSettingsStore } from "../store";
 import { AboutPanel } from "./panels/about-panel";
@@ -26,7 +26,10 @@ export const SettingsPage = () => {
     [rawKeybindings],
   );
 
-  useTrackPageView("settings");
+  const track = useAnalyticsTrack();
+  useEffect(() => {
+    track("ui.page.viewed", { page: "settings" });
+  }, [track]);
 
   // Cmd+Esc to close settings and go back to app
   useEffect(() => {

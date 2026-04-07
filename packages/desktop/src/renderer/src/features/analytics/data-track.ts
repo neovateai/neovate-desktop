@@ -1,17 +1,17 @@
-import debug from "debug";
+import type { AnalyticsInstance } from "analytics";
 
-import { client } from "../../orpc";
+import debug from "debug";
 
 const log = debug("neovate:analytics:click");
 
-export function initClickTracking(): () => void {
+export function initClickTracking(analytics: AnalyticsInstance): () => void {
   const handler = (e: MouseEvent) => {
     const el = (e.target as HTMLElement).closest?.("[data-track-id]") as HTMLElement | null;
     if (!el) return;
 
     const event = el.dataset.trackId!;
     log("tracked: %s", event);
-    client.analytics.track({ event, properties: { trackType: "declarative-dom" } }).catch(() => {});
+    Promise.resolve(analytics.track(event, { trackType: "declarative-dom" })).catch(() => {});
   };
 
   document.addEventListener("click", handler);

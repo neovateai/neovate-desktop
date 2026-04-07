@@ -6,4 +6,11 @@ import browserPlugin from "./plugins/browser";
 const app = new RendererApp({
   plugins: [browserPlugin()],
 });
-app.start();
+const started = app.start();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(async () => {
+    await started;
+    await app.stop();
+  });
+}

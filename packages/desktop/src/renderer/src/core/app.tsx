@@ -1,3 +1,6 @@
+import type { AnalyticsInstance, AnalyticsPlugin } from "analytics";
+
+import { Analytics } from "analytics";
 import debug from "debug";
 import i18n from "i18next";
 import { ThemeProvider, useTheme } from "next-themes";
@@ -18,6 +21,7 @@ import type { ProjectTabState } from "../features/content-panel";
 import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
+import { APP_NAME } from "../../../shared/constants";
 import { initClickTracking } from "../features/analytics/data-track";
 
 const startupLog = debug("neovate:startup");
@@ -212,9 +216,11 @@ export interface VendorConfig {
 export interface RendererAppOptions {
   plugins?: RendererPlugin[];
   vendor?: VendorConfig;
+  analyticsPlugins?: AnalyticsPlugin[];
 }
 
 export class RendererApp implements IRendererApp {
+  readonly analytics: AnalyticsInstance;
   readonly pluginManager: PluginManager;
   readonly i18nManager: I18nManager;
   readonly options: RendererAppOptions;
@@ -263,6 +269,10 @@ export class RendererApp implements IRendererApp {
   workbench!: IWorkbench;
 
   constructor(options: RendererAppOptions = {}) {
+    this.analytics = Analytics({
+      app: APP_NAME,
+      plugins: options.analyticsPlugins ?? [],
+    });
     const { windowType, windowId } = this.#resolveWindowParams();
     this.#windowType = windowType;
     this.#windowId = windowId;
@@ -369,10 +379,7 @@ export class RendererApp implements IRendererApp {
     this.render(ctx);
     startupLog("renderer React.render called %s", el());
 
-    if (this.#windowType === "main") {
-      const cleanupClickTracking = initClickTracking();
-      this.subscriptions.push({ dispose: cleanupClickTracking });
-    }
+    this.subscriptions.push(initClickTracking(this.analytics));
   }
 
   async stop(): Promise<void> {

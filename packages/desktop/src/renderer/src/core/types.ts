@@ -1,3 +1,5 @@
+import type { AnalyticsInstance } from "analytics";
+
 import type { Project } from "../../../shared/features/project/types";
 import type { ContentPanel } from "../features/content-panel/content-panel";
 import type { RendererAppOptions } from "./app";
@@ -18,6 +20,7 @@ export interface IWorkbench {
 
 /** Abstract app interface — plugins depend on this, RendererApp implements it */
 export interface IRendererApp {
+  readonly analytics: AnalyticsInstance;
   readonly i18nManager: I18nManager;
   readonly subscriptions: {
     push(...disposables: (Disposable | Unsubscribe)[]): void;
