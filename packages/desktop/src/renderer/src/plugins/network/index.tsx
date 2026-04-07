@@ -2,6 +2,7 @@ import { Activity01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import type { RendererPlugin } from "../../core/plugin";
+
 import { useConfigStore } from "../../features/config/store";
 
 const NetworkIcon = ({ className }: { className?: string }) => (
