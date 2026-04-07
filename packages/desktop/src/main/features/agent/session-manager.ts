@@ -113,6 +113,8 @@ export class SessionManager {
       query: Query;
       cwd: string;
       providerId?: string;
+      model?: string;
+      createdAt: number;
       lastUserMessageId?: string;
       preTurnRef?: string;
       consumeExited: boolean;
@@ -140,6 +142,9 @@ export class SessionManager {
     return Array.from(this.sessions.entries()).map(([sessionId, session]) => ({
       sessionId,
       cwd: session.cwd,
+      createdAt: session.createdAt,
+      model: session.model,
+      providerId: session.providerId,
     }));
   }
 
@@ -618,6 +623,8 @@ export class SessionManager {
       query: q,
       cwd,
       providerId: provider?.id,
+      model: opts?.model,
+      createdAt: Date.now(),
       consumeExited: false,
       uiToSdkMessageIds: new Map(),
       pendingRequests,

@@ -12,7 +12,9 @@ import type {
   TelegramConfig,
 } from "../../../shared/features/remote-control/types";
 import type { IStorageService } from "../../core/storage-service";
+import type { RequestTracker } from "../agent/request-tracker";
 import type { SessionManager } from "../agent/session-manager";
+import type { ConfigStore } from "../config/config-store";
 import type { ProjectStore } from "../project/project-store";
 import type { RemoteControlPlatformAdapter } from "./platforms/types";
 
@@ -42,11 +44,20 @@ export class RemoteControlService {
     private sessionManager: SessionManager,
     private projectStore: ProjectStore,
     storage: IStorageService,
+    requestTracker: RequestTracker,
+    appConfigStore: ConfigStore,
   ) {
     this.configStore = storage.scoped("remote-control");
     this.linkStore = new LinkStore(storage.scoped("remote-control-links"));
     this.bridge = new SessionBridge(sessionManager, this.linkStore);
-    this.commandHandler = new CommandHandler(sessionManager, projectStore, this.linkStore);
+    this.commandHandler = new CommandHandler(
+      sessionManager,
+      projectStore,
+      this.linkStore,
+      requestTracker,
+      appConfigStore,
+      this.bridge,
+    );
   }
 
   registerAdapter(adapter: RemoteControlPlatformAdapter): void {
@@ -412,6 +423,31 @@ export class RemoteControlService {
     action: string,
     id: string,
   ): Promise<void> {
+    if (action === "unlink") {
+      const sessionId = this.linkStore.getSessionId(ref);
+      if (sessionId) {
+        this.bridge.unsubscribeSession(sessionId);
+        this.linkStore.remove(ref);
+      }
+      // Auto-respond with /chats list
+      const cmdResult = await this.commandHandler.handle({
+        ref,
+        senderId: "",
+        text: "/chats",
+        timestamp: Date.now(),
+      });
+      if (cmdResult) {
+        await adapter.sendMessage({
+          ref,
+          text: `Session unlinked.\n\n${cmdResult.text}`,
+          inlineActions: cmdResult.actions,
+        });
+      } else {
+        await adapter.sendMessage({ ref, text: "Session unlinked." });
+      }
+      return;
+    }
+
     if (action === "select") {
       // Link conversation to session
       this.linkStore.save(ref, id);

@@ -104,4 +104,7 @@ export type SessionInfo = {
 export type ActiveSessionInfo = {
   sessionId: string;
   cwd: string;
+  createdAt: number;
+  model?: string;
+  providerId?: string;
 };

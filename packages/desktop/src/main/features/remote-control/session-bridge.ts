@@ -19,16 +19,79 @@ import { OutputBatcherPool } from "./output-batcher";
 const log = debug("neovate:remote-control:bridge");
 
 const TYPING_INTERVAL_MS = 5000;
+const ACTIVITY_STALE_MS = 30_000;
+const MESSAGE_RING_SIZE = 5;
+
+export type SessionActivity = {
+  state: "idle" | "thinking" | "tool";
+  /** Present when state is "tool" — e.g. "Running: `bun test`" */
+  detail?: string;
+  /** Timestamp of the last event that set this state. */
+  updatedAt: number;
+};
+
+export type ContextUsage = {
+  usedTokens: number;
+  remainingPct: number;
+  contextWindowSize: number;
+};
+
+export type MessageSummary = {
+  role: string;
+  text: string;
+};
 
 export class SessionBridge {
   private batcherPool = new OutputBatcherPool();
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
   private abortControllers = new Map<string, AbortController>();
+  private activityMap = new Map<string, SessionActivity>();
+  private contextUsageMap = new Map<string, ContextUsage>();
+  private messageRingMap = new Map<string, MessageSummary[]>();
+  private pendingAssistantText = new Map<string, string>();
 
   constructor(
     private sessionManager: SessionManager,
     private linkStore: LinkStore,
   ) {}
+
+  /** Get granular activity state for a session, with staleness detection. */
+  getSessionActivity(sessionId: string): SessionActivity {
+    const activity = this.activityMap.get(sessionId);
+    if (!activity) {
+      return { state: "idle", updatedAt: Date.now() };
+    }
+    // Staleness: if non-idle for too long, treat as idle
+    if (activity.state !== "idle" && Date.now() - activity.updatedAt > ACTIVITY_STALE_MS) {
+      return { state: "idle", updatedAt: activity.updatedAt };
+    }
+    return activity;
+  }
+
+  /** Get cached context usage for a session. */
+  getContextUsage(sessionId: string): ContextUsage | null {
+    return this.contextUsageMap.get(sessionId) ?? null;
+  }
+
+  /** Get recent message summaries for a session. */
+  getRecentMessages(sessionId: string): MessageSummary[] {
+    return this.messageRingMap.get(sessionId) ?? [];
+  }
+
+  private pushMessage(sessionId: string, role: string, text: string): void {
+    let ring = this.messageRingMap.get(sessionId);
+    if (!ring) {
+      ring = [];
+      this.messageRingMap.set(sessionId, ring);
+    }
+    const truncated = text.length > 150 ? text.slice(0, 147) + "..." : text;
+    ring.push({ role, text: truncated });
+    if (ring.length > MESSAGE_RING_SIZE) ring.shift();
+  }
+
+  private setActivity(sessionId: string, state: SessionActivity["state"], detail?: string): void {
+    this.activityMap.set(sessionId, { state, detail, updatedAt: Date.now() });
+  }
 
   /** Subscribe to session events for a linked conversation via async iteration. */
   subscribeSession(
@@ -68,6 +131,9 @@ export class SessionBridge {
       this.abortControllers.delete(sessionId);
     }
     this.stopTyping(sessionId);
+    this.activityMap.delete(sessionId);
+    this.contextUsageMap.delete(sessionId);
+    this.messageRingMap.delete(sessionId);
 
     const ref = this.linkStore.getRef(sessionId);
     if (ref) {
@@ -85,6 +151,7 @@ export class SessionBridge {
     };
 
     await this.sessionManager.send(sessionId, uiMessage);
+    this.pushMessage(sessionId, "user", msg.text);
     log("sent message to session %s", sessionId);
   }
 
@@ -150,9 +217,17 @@ export class SessionBridge {
     // Only handle assistant text deltas
     if (chunk.type !== "text-delta") return;
 
+    this.setActivity(sessionId, "thinking");
     this.startTyping(sessionId, ref, adapter);
     const batcher = this.batcherPool.getOrCreate(ref, adapter);
-    batcher.append((chunk as any).delta ?? "");
+    const delta = (chunk as any).delta ?? "";
+    batcher.append(delta);
+
+    // Track assistant text for ring buffer (accumulated via batcher flush callback)
+    if (!this.pendingAssistantText.has(sessionId)) {
+      this.pendingAssistantText.set(sessionId, "");
+    }
+    this.pendingAssistantText.set(sessionId, this.pendingAssistantText.get(sessionId)! + delta);
   }
 
   private async handleEvent(
@@ -170,6 +245,14 @@ export class SessionBridge {
       const batcher = this.batcherPool.getOrCreate(ref, adapter);
       batcher.onTurnComplete();
       this.stopTyping(sessionId);
+      this.setActivity(sessionId, "idle");
+
+      // Flush pending assistant text to ring buffer
+      const pending = this.pendingAssistantText.get(sessionId);
+      if (pending) {
+        this.pushMessage(sessionId, "assistant", pending);
+        this.pendingAssistantText.delete(sessionId);
+      }
 
       if (subtype === "error") {
         const errMsg = (event as any).error ?? "Unknown error";
@@ -178,10 +261,22 @@ export class SessionBridge {
       return;
     }
 
-    // Tool progress — short status lines
+    // Context usage — cache for /status
+    if (eventType === "context_usage") {
+      const e = event as any;
+      this.contextUsageMap.set(sessionId, {
+        usedTokens: e.usedTokens ?? 0,
+        remainingPct: e.remainingPct ?? 0,
+        contextWindowSize: e.contextWindowSize ?? 0,
+      });
+      return;
+    }
+
+    // Tool progress — short status lines + activity tracking
     if (eventType === "tool_progress" || eventType === "tool_use_summary") {
       const text = formatToolProgress(event);
       if (text) {
+        this.setActivity(sessionId, "tool", text);
         log("session %s tool event: %s", sessionId, text);
         await adapter.sendMessage({ ref, text });
       }

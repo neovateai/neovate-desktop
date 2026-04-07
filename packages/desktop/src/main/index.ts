@@ -95,6 +95,8 @@ const remoteControlService = new RemoteControlService(
   sessionManager,
   projectStore,
   mainApp.getStorage(),
+  requestTracker,
+  configStore,
 );
 remoteControlService.registerAdapter(new TelegramAdapter());
 
