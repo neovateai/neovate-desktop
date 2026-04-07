@@ -159,7 +159,7 @@ export const SessionItem = memo(function SessionItem({
           <button
             className="hidden group-hover:flex size-5 items-center justify-center"
             onClick={handlePinToggle}
-            data-track-id="session.pinToggled"
+            data-track-id="session.pin.toggled"
           >
             {isPinned ? (
               <PinOff size={14} strokeWidth={1.5} />
@@ -242,7 +242,7 @@ export const SessionItem = memo(function SessionItem({
             <button
               className="text-xs text-destructive-foreground cursor-pointer rounded-md bg-destructive/10 px-2 py-0.5 hover:bg-destructive/20 transition-colors"
               onClick={(e) => handleArchive(e)}
-              data-track-id="session.archived"
+              data-track-id="session.archive.confirmed"
             >
               {t("session.archiveConfirm")}
             </button>
@@ -250,7 +250,7 @@ export const SessionItem = memo(function SessionItem({
             <button
               className="hidden group-hover:flex size-5 items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
               onClick={handleStartArchive}
-              data-track-id="session.archiveInitiated"
+              data-track-id="session.archive.initiated"
             >
               <Archive size={14} strokeWidth={1.5} />
             </button>

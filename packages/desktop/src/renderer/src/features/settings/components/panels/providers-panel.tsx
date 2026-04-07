@@ -607,7 +607,7 @@ export const ProvidersPanel = () => {
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => startEdit(p)}
-                  data-track-id="provider.edited"
+                  data-track-id="provider.form.opened"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
@@ -616,7 +616,7 @@ export const ProvidersPanel = () => {
                   size="icon"
                   className="h-7 w-7 text-destructive"
                   onClick={() => handleDeleteClick(p.id)}
-                  data-track-id="provider.deleteInitiated"
+                  data-track-id="provider.delete.initiated"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -637,7 +637,7 @@ export const ProvidersPanel = () => {
             variant="outline"
             size="sm"
             onClick={startCreate}
-            data-track-id="provider.addInitiated"
+            data-track-id="provider.add.initiated"
           >
             <Plus className="h-4 w-4 mr-1" />
             {t("settings.providers.add")}
@@ -660,7 +660,7 @@ export const ProvidersPanel = () => {
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              data-track-id="provider.deleted"
+              data-track-id="provider.delete.confirmed"
             >
               {t("common.delete")}
             </Button>
@@ -681,7 +681,7 @@ export const ProvidersPanel = () => {
             <Button
               variant="destructive"
               onClick={handleConfirmReset}
-              data-track-id="provider.resetConfirmed"
+              data-track-id="provider.reset.confirmed"
             >
               {t("settings.providers.resetDefaults")}
             </Button>
@@ -1045,7 +1045,7 @@ export const ProvidersPanel = () => {
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            <Button size="sm" onClick={handleSave} data-track-id="provider.saved">
+            <Button size="sm" onClick={handleSave} data-track-id="provider.form.saved">
               {isCreating ? t("settings.providers.create") : t("settings.providers.save")}
             </Button>
             <Button variant="outline" size="sm" onClick={cancel}>

@@ -263,7 +263,7 @@ export default memo(function GitView() {
                   }}
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.viewAllStageChanges")}
-                  data-track-id="plugin-git.stagedChangesViewed"
+                  data-track-id="plugin-git.staged-changes.viewed"
                 >
                   <HugeiconsIcon
                     icon={FileSearchIcon}
@@ -279,7 +279,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.removeAllFromStage")}
                   disabled={loading}
-                  data-track-id="plugin-git.allUnstaged"
+                  data-track-id="plugin-git.staged-changes.cleared"
                 >
                   <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                 </button>
@@ -294,7 +294,7 @@ export default memo(function GitView() {
                   }}
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.viewAllWorkingChanges")}
-                  data-track-id="plugin-git.unstagedChangesViewed"
+                  data-track-id="plugin-git.unstaged-changes.viewed"
                 >
                   <HugeiconsIcon
                     icon={FileSearchIcon}
@@ -310,7 +310,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.addAllToStage")}
                   disabled={loading}
-                  data-track-id="plugin-git.allStaged"
+                  data-track-id="plugin-git.unstaged-changes.staged"
                 >
                   <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                 </button>
@@ -322,7 +322,7 @@ export default memo(function GitView() {
                   className="p-px hover:bg-accent rounded-sm cursor-pointer"
                   title={t("git.revertAllFiles")}
                   disabled={loading}
-                  data-track-id="plugin-git.revertAllInitiated"
+                  data-track-id="plugin-git.unstaged-changes.revert-initiated"
                 >
                   <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                 </button>
@@ -369,7 +369,7 @@ export default memo(function GitView() {
                     }}
                     className="p-px hover:bg-accent rounded-sm cursor-pointer"
                     title={t("git.openFile")}
-                    data-track-id="plugin-git.fileOpened"
+                    data-track-id="plugin-git.file.opened"
                   >
                     <File className="w-3 h-3 text-muted-foreground hover:text-foreground pointer-events-none" />
                   </button>
@@ -382,7 +382,7 @@ export default memo(function GitView() {
                         }}
                         className="p-px hover:bg-accent rounded-sm cursor-pointer"
                         title={t("git.unstageChanges")}
-                        data-track-id="plugin-git.fileUnstaged"
+                        data-track-id="plugin-git.file.unstaged"
                       >
                         <Minus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                       </button>
@@ -393,7 +393,7 @@ export default memo(function GitView() {
                         }}
                         className="p-px hover:bg-accent rounded-sm cursor-pointer"
                         title={t("git.discardChanges")}
-                        data-track-id="plugin-git.fileRevertInitiated"
+                        data-track-id="plugin-git.file.revert-initiated"
                       >
                         <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                       </button>
@@ -407,7 +407,7 @@ export default memo(function GitView() {
                         }}
                         className="p-px hover:bg-accent rounded-sm cursor-pointer"
                         title={t("git.stageChanges")}
-                        data-track-id="plugin-git.fileStaged"
+                        data-track-id="plugin-git.file.staged"
                       >
                         <Plus className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                       </button>
@@ -418,7 +418,7 @@ export default memo(function GitView() {
                         }}
                         className="p-px hover:bg-accent rounded-sm cursor-pointer"
                         title={t("git.discardChanges")}
-                        data-track-id="plugin-git.fileRevertInitiated"
+                        data-track-id="plugin-git.file.revert-initiated"
                       >
                         <Undo2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground pointer-events-none" />
                       </button>
@@ -468,7 +468,7 @@ export default memo(function GitView() {
           className="p-px hover:bg-accent/50 rounded-sm cursor-pointer"
           title={t("git.refreshStatus")}
           disabled={loading}
-          data-track-id="plugin-git.refreshed"
+          data-track-id="plugin-git.status.refreshed"
         >
           <RefreshCw
             className={`w-3.5 h-3.5 text-muted-foreground/60 hover:text-muted-foreground pointer-events-none ${loading ? "animate-spin" : ""}`}
@@ -612,7 +612,7 @@ export default memo(function GitView() {
             <Button
               variant="destructive"
               onClick={handleConfirmRevert}
-              data-track-id="plugin-git.revertConfirmed"
+              data-track-id="plugin-git.revert.confirmed"
             >
               {t("git.revert.confirm")}
             </Button>
