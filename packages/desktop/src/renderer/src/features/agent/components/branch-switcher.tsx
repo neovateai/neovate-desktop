@@ -7,10 +7,41 @@ import type { GitBranch as GitBranchType } from "../../../../../shared/plugins/g
 
 import { Popover, PopoverPopup, PopoverTrigger } from "../../../components/ui/popover";
 import { Spinner } from "../../../components/ui/spinner";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../../../components/ui/tooltip";
 import { client } from "../../../orpc";
 import { CreateBranchDialog } from "./create-branch-dialog";
 
 const log = debug("neovate:branch-switcher");
+
+/**
+ * Smartly truncate branch name preserving prefix and suffix.
+ * e.g., "feat/improve-branch-name-display" → "feat/...name-display"
+ */
+function truncateBranchName(name: string, maxLength: number): string {
+  if (name.length <= maxLength) return name;
+
+  const slashIndex = name.indexOf("/");
+  const ellipsis = "...";
+
+  // No prefix (e.g., "master") — show start + end
+  if (slashIndex === -1) {
+    const keepChars = Math.floor((maxLength - ellipsis.length) / 2);
+    return name.slice(0, keepChars) + ellipsis + name.slice(-keepChars);
+  }
+
+  // Has prefix (e.g., "feat/xxx") — preserve prefix + show end
+  const prefix = name.slice(0, slashIndex + 1); // includes "/"
+  const rest = name.slice(slashIndex + 1);
+  const availableForRest = maxLength - prefix.length - ellipsis.length;
+
+  if (availableForRest <= 4) {
+    // Not enough space, fallback to simple truncation
+    const keepChars = Math.floor((maxLength - ellipsis.length) / 2);
+    return name.slice(0, keepChars) + ellipsis + name.slice(-keepChars);
+  }
+
+  return prefix + ellipsis + rest.slice(-availableForRest);
+}
 
 type Props = {
   cwd: string;
@@ -205,18 +236,27 @@ export function BranchSwitcher({ cwd, disabled }: Props) {
   if (!isGitRepo) return null;
 
   const displayName = currentBranch ?? (detachedHead ? `HEAD (${detachedHead})` : "unknown");
+  const truncatedName = truncateBranchName(displayName, 28);
+  const needsTooltip = displayName !== truncatedName;
 
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          disabled={disabled || checkingOut}
-          className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none cursor-pointer hover:text-foreground disabled:opacity-50 hover:!bg-background/80"
-        >
-          {checkingOut ? <Spinner className="h-3 w-3" /> : <GitBranch className="h-3 w-3" />}
-          <span className="max-w-[200px] truncate">{displayName}</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
-        </PopoverTrigger>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <PopoverTrigger
+                disabled={disabled || checkingOut}
+                className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none cursor-pointer hover:text-foreground disabled:opacity-50 hover:!bg-background/80"
+              >
+                {checkingOut ? <Spinner className="h-3 w-3" /> : <GitBranch className="h-3 w-3" />}
+                <span>{truncatedName}</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </PopoverTrigger>
+            }
+          />
+          {needsTooltip && <TooltipPopup>{displayName}</TooltipPopup>}
+        </Tooltip>
         <PopoverPopup side="top" align="start" className="w-72">
           <div onKeyDown={handleKeyDown}>
             <div className="px-2 pb-2">
@@ -334,24 +374,34 @@ function BranchItem({
   dataIndex: number;
   onClick: () => void;
 }) {
+  const truncatedName = truncateBranchName(branch.name, 32);
+  const needsTooltip = branch.name !== truncatedName;
+
   return (
-    <button
-      data-index={dataIndex}
-      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs ${
-        highlighted ? "bg-accent text-foreground" : "text-foreground hover:bg-accent"
-      }`}
-      onClick={onClick}
-    >
-      <span className="w-3.5 shrink-0">{isCurrent && <Check className="h-3 w-3" />}</span>
-      <span className="min-w-0 flex-1 truncate text-left">{branch.name}</span>
-      {(branch.ahead != null && branch.ahead > 0) ||
-      (branch.behind != null && branch.behind > 0) ? (
-        <span className="shrink-0 text-[10px] text-muted-foreground/60">
-          {branch.ahead ? `↑${branch.ahead}` : ""}
-          {branch.ahead && branch.behind ? " " : ""}
-          {branch.behind ? `↓${branch.behind}` : ""}
-        </span>
-      ) : null}
-    </button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            data-index={dataIndex}
+            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs ${
+              highlighted ? "bg-accent text-foreground" : "text-foreground hover:bg-accent"
+            }`}
+            onClick={onClick}
+          >
+            <span className="w-3.5 shrink-0">{isCurrent && <Check className="h-3 w-3" />}</span>
+            <span className="min-w-0 flex-1 text-left">{truncatedName}</span>
+            {(branch.ahead != null && branch.ahead > 0) ||
+            (branch.behind != null && branch.behind > 0) ? (
+              <span className="shrink-0 text-[10px] text-muted-foreground/60">
+                {branch.ahead ? `↑${branch.ahead}` : ""}
+                {branch.ahead && branch.behind ? " " : ""}
+                {branch.behind ? `↓${branch.behind}` : ""}
+              </span>
+            ) : null}
+          </button>
+        }
+      />
+      {needsTooltip && <TooltipPopup side="right">{branch.name}</TooltipPopup>}
+    </Tooltip>
   );
 }
