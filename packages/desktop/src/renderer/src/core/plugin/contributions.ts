@@ -50,12 +50,13 @@ export interface ContentPanelView {
   /**
    * Whether this view is user-discoverable via the new-tab menu.
    *
-   * Set to `false` for views that are opened programmatically (e.g. by a
-   * plugin action) and should not be surfaced to the user as a manual option.
+   * Set to `false` or a function returning `false` for views that are opened
+   * programmatically (e.g. by a plugin action) and should not be surfaced to
+   * the user as a manual option.
    *
    * @default true
    */
-  discoverable?: boolean;
+  discoverable?: boolean | (() => boolean);
   component: () => Promise<{ default: React.ComponentType }>; // no props — uses hooks
 }
 

@@ -18,7 +18,9 @@ export function NewTabMenu() {
   const contentPanel = app.workbench.contentPanel;
   const views = app.pluginManager.viewContributions.contentPanelViews
     .map((c) => c.value)
-    .filter((v) => v.discoverable !== false);
+    .filter((v) =>
+      typeof v.discoverable === "function" ? v.discoverable() : v.discoverable !== false,
+    );
   const projectPath = useProjectStore((s) => s.activeProject?.path ?? "");
 
   const tabs = useStore(
