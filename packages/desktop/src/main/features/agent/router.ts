@@ -18,6 +18,38 @@ export const agentRouter = os.agent.router({
     return context.sessionManager.getActiveSessions();
   }),
 
+  subscribeSessionLifecycle: os.agent.subscribeSessionLifecycle.handler(async function* ({
+    context,
+    signal,
+  }) {
+    const queue: Array<import("../../../shared/features/agent/types").SessionLifecycleEvent> = [];
+    let resolve: (() => void) | null = null;
+
+    const unsub = context.sessionManager.onLifecycle((event) => {
+      queue.push(event);
+      resolve?.();
+    });
+
+    const onAbort = () => resolve?.();
+    signal?.addEventListener("abort", onAbort);
+
+    try {
+      while (!signal?.aborted) {
+        if (queue.length === 0) {
+          await new Promise<void>((r) => {
+            resolve = r;
+          });
+        }
+        while (queue.length > 0) {
+          yield queue.shift()!;
+        }
+      }
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+      unsub();
+    }
+  }),
+
   listSessions: os.agent.listSessions.handler(async ({ input, context }) => {
     const sessions = await context.sessionManager.listSessions(input.cwd);
     const startTimes = context.projectStore.getSessionStartTimes();

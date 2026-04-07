@@ -16,10 +16,13 @@ import type {
   RewindFilesResult,
   RewindResult,
   SessionInfo,
+  SessionLifecycleEvent,
 } from "./types";
 
 export const agentContract = {
   activeSessions: oc.input(z.object({})).output(type<ActiveSessionInfo[]>()),
+
+  subscribeSessionLifecycle: oc.output(eventIterator(type<SessionLifecycleEvent>())),
 
   listSessions: oc.input(z.object({ cwd: z.string().optional() })).output(type<SessionInfo[]>()),
 

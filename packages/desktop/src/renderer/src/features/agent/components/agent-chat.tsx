@@ -36,6 +36,7 @@ import { claudeCodeChatManager } from "../chat-manager";
 import { useClaudeCodeChat } from "../hooks/use-claude-code-chat";
 import { useNewSession } from "../hooks/use-new-session";
 import { useScrollPosition } from "../hooks/use-scroll-position";
+import { useSessionLifecycleSubscription } from "../hooks/use-session-lifecycle-subscription";
 import { BranchSwitcher } from "./branch-switcher";
 import { ContextLeft } from "./context-left";
 import { MessageInput } from "./message-input";
@@ -108,6 +109,8 @@ export function AgentChat() {
   const setSessionInitError = useAgentStore((s) => s.setSessionInitError);
 
   const { createNewSession } = useNewSession();
+
+  useSessionLifecycleSubscription(cwd);
 
   // Track the project path we last initialized for
   const initializedPathRef = useRef<string | null>(null);

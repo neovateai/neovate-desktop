@@ -31,6 +31,7 @@ import type {
   RewindFilesResult,
   RewindResult,
   SessionInfo,
+  SessionLifecycleEvent,
 } from "../../../shared/features/agent/types";
 import type { Contributions } from "../../core/plugin/contributions";
 
@@ -115,6 +116,7 @@ export class SessionManager {
       providerId?: string;
       model?: string;
       createdAt: number;
+      source: SessionLifecycleEvent["source"];
       lastUserMessageId?: string;
       preTurnRef?: string;
       consumeExited: boolean;
@@ -129,6 +131,9 @@ export class SessionManager {
     }
   >();
 
+  private lifecycleListeners: Array<(event: SessionLifecycleEvent) => void> = [];
+  private emittedCreatedSessions = new Set<string>();
+
   constructor(
     private configStore: ConfigStore,
     private projectStore: ProjectStore,
@@ -136,6 +141,23 @@ export class SessionManager {
     private powerBlocker: PowerBlockerService,
     private getAgentContributions: () => Contributions["agents"] = () => [],
   ) {}
+
+  onLifecycle(listener: (event: SessionLifecycleEvent) => void): () => void {
+    this.lifecycleListeners.push(listener);
+    return () => {
+      this.lifecycleListeners = this.lifecycleListeners.filter((l) => l !== listener);
+    };
+  }
+
+  private emitLifecycle(event: SessionLifecycleEvent): void {
+    for (const listener of this.lifecycleListeners) {
+      try {
+        listener(event);
+      } catch {
+        // Ignore listener errors
+      }
+    }
+  }
 
   /** Return all in-memory (active) sessions. */
   getActiveSessions(): ActiveSessionInfo[] {
@@ -227,6 +249,7 @@ export class SessionManager {
     cwd: string,
     model?: string,
     explicitProviderId?: string | null,
+    source: SessionLifecycleEvent["source"] = "local",
   ): Promise<
     {
       sessionId: string;
@@ -305,7 +328,9 @@ export class SessionManager {
     const initResult = await this.initSessionWithTimeout(sessionId, cwd, {
       model: modelSetting?.model,
       provider,
+      source,
     });
+
     return {
       ...initResult,
       sessionId,
@@ -379,7 +404,12 @@ export class SessionManager {
   private async initSession(
     sessionId: string,
     cwd: string,
-    opts?: { model?: string; resume?: string; provider?: Provider },
+    opts?: {
+      model?: string;
+      resume?: string;
+      provider?: Provider;
+      source?: SessionLifecycleEvent["source"];
+    },
   ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     const input = new Pushable<SDKUserMessage>();
     const pendingRequests = new Map<
@@ -634,6 +664,7 @@ export class SessionManager {
       providerId: provider?.id,
       model: opts?.model,
       createdAt: Date.now(),
+      source: opts?.source ?? "local",
       consumeExited: false,
       uiToSdkMessageIds: new Map(),
       pendingRequests,
@@ -649,7 +680,12 @@ export class SessionManager {
   private async initSessionWithTimeout(
     sessionId: string,
     cwd: string,
-    opts?: { model?: string; resume?: string; provider?: Provider },
+    opts?: {
+      model?: string;
+      resume?: string;
+      provider?: Provider;
+      source?: SessionLifecycleEvent["source"];
+    },
   ): Promise<Awaited<ReturnType<Query["initializationResult"]>>> {
     let timer: ReturnType<typeof setTimeout>;
     const t0 = performance.now();
@@ -749,6 +785,7 @@ export class SessionManager {
     }
     el("pendingRequests.settled");
     this.sessions.delete(sessionId);
+    this.emittedCreatedSessions.delete(sessionId);
     this.requestTracker.clearSession(sessionId);
     this.powerBlocker.onSessionClosed(sessionId);
     el("cleanup.done");
@@ -923,6 +960,13 @@ export class SessionManager {
         );
       }
     }
+
+    const now = new Date().toISOString();
+    this.emitLifecycle({
+      type: "deleted",
+      session: { sessionId, createdAt: now, updatedAt: now },
+      source: "local",
+    });
   }
 
   /**
@@ -1022,6 +1066,23 @@ export class SessionManager {
       .filter((p): p is { type: "text"; text: string } => p.type === "text")
       .map((p) => p.text)
       .join("");
+
+    // Emit lifecycle "created" on first message (not on createSession, so empty sessions don't appear)
+    if (!this.emittedCreatedSessions.has(sessionId)) {
+      this.emittedCreatedSessions.add(sessionId);
+      const now = new Date().toISOString();
+      this.emitLifecycle({
+        type: "created",
+        session: {
+          sessionId,
+          cwd: session.cwd,
+          createdAt: now,
+          updatedAt: now,
+          title: text.slice(0, 50),
+        },
+        source: session.source,
+      });
+    }
 
     const imageBlocks = message.parts
       .filter(

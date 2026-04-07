@@ -474,7 +474,12 @@ export class RemoteControlService {
       }
 
       try {
-        const result = await this.sessionManager.createSession(project.path);
+        const result = await this.sessionManager.createSession(
+          project.path,
+          undefined,
+          undefined,
+          "remote-control",
+        );
         const sessionId = result.sessionId;
         this.linkStore.save(ref, sessionId);
         this.bridge.subscribeSession(sessionId, ref, adapter);
