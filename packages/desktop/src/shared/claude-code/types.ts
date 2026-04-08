@@ -43,8 +43,7 @@ type DataTypes = {
   "system/init": SDKSystemMessage;
   "system/compact_boundary": SDKCompactBoundaryMessage;
   "result/success": SDKResultSuccess;
-  "result/error": SDKResultError;
-};
+} & { [K in SDKResultError["subtype"] as `result/${K}`]: SDKResultError };
 
 export type ClaudeCodeUIMessage = UIMessage<Metadata, DataTypes, ClaudeCodeUITools>;
 

@@ -636,8 +636,85 @@ describe("SDKMessageTransformer", () => {
 
     expect(resultChunks.map((chunk: any) => chunk.type)).toEqual([
       "finish-step",
-      "finish",
       "data-result/success",
+      "finish",
+    ]);
+  });
+
+  it("result with error_during_execution + aborted_streaming is suppressed", () => {
+    const chunks = collect(
+      t.transform({
+        type: "result" as const,
+        subtype: "error_during_execution" as const,
+        uuid: "r",
+        session_id: "s",
+        is_error: true,
+        num_turns: 2,
+        duration_ms: 100,
+        total_cost_usd: 0,
+        usage: { input_tokens: 0, output_tokens: 0 },
+        stop_reason: null,
+        errors: ["[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=null"],
+        terminal_reason: "aborted_streaming",
+      } as any),
+    );
+
+    // Should NOT emit an error chunk — only finish + data-result
+    expect(chunks.map((chunk: any) => chunk.type)).toEqual([
+      "data-result/error_during_execution",
+      "finish",
+    ]);
+  });
+
+  it("result with error_during_execution + non-aborted terminal_reason emits error", () => {
+    const chunks = collect(
+      t.transform({
+        type: "result" as const,
+        subtype: "error_during_execution" as const,
+        uuid: "r",
+        session_id: "s",
+        is_error: true,
+        num_turns: 1,
+        duration_ms: 100,
+        total_cost_usd: 0,
+        usage: { input_tokens: 0, output_tokens: 0 },
+        stop_reason: null,
+        errors: [],
+        terminal_reason: "model_error",
+      } as any),
+    );
+
+    expect(chunks.map((chunk: any) => chunk.type)).toEqual([
+      "error",
+      "data-result/error_during_execution",
+      "finish",
+    ]);
+    expect(chunks[0].errorText).toBe("An unexpected error occurred (error_during_execution)");
+  });
+
+  it("result with error subtype uses errors array for errorText", () => {
+    const chunks = collect(
+      t.transform({
+        type: "result" as const,
+        subtype: "error_max_turns" as const,
+        uuid: "r",
+        session_id: "s",
+        is_error: true,
+        num_turns: 10,
+        duration_ms: 100,
+        total_cost_usd: 0,
+        usage: { input_tokens: 0, output_tokens: 0 },
+        stop_reason: null,
+        errors: ["Maximum turns reached"],
+      } as any),
+    );
+
+    expect(chunks[0].type).toBe("error");
+    expect(chunks[0].errorText).toBe("Maximum turns reached");
+    expect(chunks.map((chunk: any) => chunk.type)).toEqual([
+      "error",
+      "data-result/error_max_turns",
+      "finish",
     ]);
   });
 

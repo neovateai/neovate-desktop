@@ -299,6 +299,13 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
     this.store.setState({ pendingRequests: [] });
   };
 
+  clearError = () => {
+    this.#state.error = undefined;
+    if (this.#state.status === "error") {
+      this.#state.status = "ready";
+    }
+  };
+
   // ── Methods unchanged ───────────────────────────────────────────────
 
   respondToRequest = async (

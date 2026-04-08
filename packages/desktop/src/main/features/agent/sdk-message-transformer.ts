@@ -127,17 +127,22 @@ export class SDKMessageTransformer {
 
       case "result": {
         if (this.inStep) yield { type: "finish-step" };
-        if (msg.subtype !== "success") {
-          yield { type: "error", errorText: msg.errors.join("\n") || msg.subtype };
+
+        // aborted_streaming: user sent a new message while the previous turn was still
+        // streaming — the SDK aborts the in-flight response. This is expected, not an error.
+        const isSuppressed =
+          msg.subtype === "error_during_execution" && msg.terminal_reason === "aborted_streaming";
+        const isError = msg.subtype !== "success" && !isSuppressed;
+
+        if (isError) {
+          yield {
+            type: "error",
+            errorText: msg.errors.join("\n") || `An unexpected error occurred (${msg.subtype})`,
+          };
         }
 
+        yield { type: `data-result/${msg.subtype}`, data: msg } as ClaudeCodeUIMessageChunk;
         yield { type: "finish" };
-
-        if (msg.subtype === "success") {
-          yield { type: "data-result/success", data: msg };
-        } else {
-          yield { type: "data-result/error", data: msg };
-        }
 
         this.inStep = false;
         this.currentMessageId = null;

@@ -4,6 +4,7 @@ import type { StickToBottomContext } from "use-stick-to-bottom";
 import { ArrowDown01Icon, ArrowUp01Icon, Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import debug from "debug";
+import { XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -46,7 +47,7 @@ import { TaskProgress } from "./task-progress";
 import { ClaudeCodeToolUIPart } from "./tool-parts";
 import { WelcomePanel } from "./welcome-panel";
 
-function ChatError({ message }: { message: string }) {
+function ChatError({ message, onDismiss }: { message: string; onDismiss?: () => void }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -78,6 +79,11 @@ function ChatError({ message }: { message: string }) {
               ) : (
                 <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.5} />
               )}
+            </Button>
+          )}
+          {onDismiss && (
+            <Button variant="ghost" size="icon-xs" onClick={onDismiss}>
+              <XIcon className="size-3.5" />
             </Button>
           )}
         </div>
@@ -267,7 +273,7 @@ export function AgentChat() {
 
 function AgentChatSession({ sessionId, cwd }: { sessionId: string; cwd: string }) {
   const tasks = useAgentStore((s) => s.sessions.get(sessionId)?.tasks);
-  const { messages, status, error, pendingRequests, sendMessage, stop } =
+  const { messages, status, error, pendingRequests, sendMessage, stop, clearError } =
     useClaudeCodeChat(sessionId);
   const hasPendingRequest = pendingRequests.length > 0;
 
@@ -319,7 +325,7 @@ function AgentChatSession({ sessionId, cwd }: { sessionId: string; cwd: string }
       </Conversation>
       <div className="shrink-0 max-w-3xl mx-auto w-full">
         <TaskProgress tasks={tasks} />
-        {error && <ChatError message={error.message} />}
+        {error && <ChatError message={error.message} onDismiss={clearError} />}
         <div className={cn("relative min-w-0", hasPendingRequest && "grid")}>
           <div className={cn(hasPendingRequest && "col-start-1 row-start-1 self-end z-10 min-w-0")}>
             <PermissionDialog sessionId={sessionId} />

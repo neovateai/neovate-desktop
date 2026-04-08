@@ -22,5 +22,6 @@ export function useClaudeCodeChat(sessionId: string) {
     sendMessage: chat.sendMessage.bind(chat),
     respondToRequest: chat.respondToRequest,
     stop: chat.interrupt,
+    clearError: chat.clearError,
   };
 }
