@@ -4,6 +4,7 @@ import type {
   InlineAction,
   OutboundMessage,
   PlatformConfig,
+  PlatformStatusEvent,
 } from "../../../../shared/features/remote-control/types";
 
 export type RemoteControlPlatformEvent = {
@@ -16,6 +17,10 @@ export type RemoteControlPlatformEvent = {
     username?: string;
     chatTitle?: string;
   }) => void;
+  /** Adapter acquired credentials or needs to persist state (e.g. WeChat QR login token). */
+  "config-update": (config: Record<string, unknown>) => void;
+  /** Adapter-initiated status update (e.g. WeChat QR code data). */
+  status: (event: PlatformStatusEvent) => void;
 };
 
 export interface RemoteControlPlatformAdapter {

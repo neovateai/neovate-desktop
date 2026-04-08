@@ -12,6 +12,8 @@ export type InboundMessage = {
   text: string;
   timestamp: number;
   callbackData?: string;
+  /** Optional image attachments (e.g. from WeChat CDN) */
+  images?: Array<{ base64: string; mimeType: string }>;
 };
 
 /** Outbound message to send to a platform */
@@ -56,6 +58,10 @@ export type PlatformStatusEvent = {
     username?: string;
     chatTitle?: string;
   };
+  /** Base64-encoded QR code image (e.g. for WeChat login) */
+  qrCodeData?: string;
+  /** True after user has scanned the QR code but not yet confirmed */
+  qrScanned?: boolean;
 };
 
 /** Per-platform config stored via StorageService */
@@ -78,6 +84,17 @@ export type DingTalkConfig = {
   robotCode: string;
   allowFrom: string[];
   enabled: boolean;
+};
+
+/** WeChat-specific platform config (iLink Bot protocol) */
+export type WeChatConfig = {
+  token: string;
+  accountId: string;
+  baseUrl: string;
+  userId?: string;
+  allowFrom: string[];
+  enabled: boolean;
+  syncCursor?: string;
 };
 
 /** Persisted link between a conversation and a session */

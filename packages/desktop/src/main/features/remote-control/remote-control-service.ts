@@ -297,6 +297,16 @@ export class RemoteControlService {
           log("failed to decrypt secret for %s", platformId);
         }
       }
+      // Decrypt WeChat token
+      if (typeof raw.encryptedWechatToken === "string") {
+        try {
+          raw.token = safeStorage.decryptString(
+            Buffer.from(raw.encryptedWechatToken as string, "base64"),
+          );
+        } catch {
+          log("failed to decrypt wechat token for %s", platformId);
+        }
+      }
     }
 
     return raw as PlatformConfig;
@@ -320,6 +330,13 @@ export class RemoteControlService {
           .toString("base64");
         delete toStore.clientSecret;
       }
+      // Encrypt WeChat token
+      if (typeof toStore.token === "string" && platformId === "wechat") {
+        toStore.encryptedWechatToken = safeStorage
+          .encryptString(toStore.token as string)
+          .toString("base64");
+        delete toStore.token;
+      }
     }
 
     this.configStore.set(platformId, toStore);
@@ -335,6 +352,8 @@ export class RemoteControlService {
     delete (safe as any).encryptedToken;
     delete (safe as any).clientSecret;
     delete (safe as any).encryptedSecret;
+    delete (safe as any).token;
+    delete (safe as any).encryptedWechatToken;
     return safe;
   }
 
@@ -357,6 +376,13 @@ export class RemoteControlService {
         status: "pairing-request",
         pairingRequest: req,
       });
+    });
+    adapter.on("config-update", (config) => {
+      this.saveConfig(adapter.id, config);
+      log("config-update from adapter %s", adapter.id);
+    });
+    adapter.on("status", (event) => {
+      this.emitStatus(event);
     });
   }
 

@@ -19,6 +19,9 @@ export default defineConfig({
       externalizeDeps: {
         exclude: ["electron-store"],
       },
+      rollupOptions: {
+        external: ["silk-wasm"],
+      },
     },
   },
   preload: {

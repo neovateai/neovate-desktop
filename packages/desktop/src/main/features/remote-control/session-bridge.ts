@@ -143,10 +143,18 @@ export class SessionBridge {
 
   /** Send a user message from a messaging platform into a session. */
   async sendToSession(sessionId: string, msg: InboundMessage): Promise<void> {
+    const textParts = [{ type: "text" as const, text: msg.text }];
+
+    // Build image parts if present
+    const imageParts = (msg.images ?? []).map((img) => ({
+      type: "image" as const,
+      source: { type: "base64" as const, media_type: img.mimeType, data: img.base64 },
+    }));
+
     const uiMessage = {
       id: randomUUID(),
       role: "user" as const,
-      parts: [{ type: "text" as const, text: msg.text }],
+      parts: [...textParts, ...imageParts] as any[],
       createdAt: new Date(),
     };
 

@@ -241,7 +241,32 @@ function PlatformCard({
     setPairingRequest(null);
   };
 
+  // WeChat fields
+  const [wechatAllowFrom, setWechatAllowFrom] = useState("");
+  const [wechatSaving, setWechatSaving] = useState(false);
+
+  const handleSaveWechatAllowFrom = async () => {
+    setWechatSaving(true);
+    try {
+      await client.remoteControl.configurePlatform({
+        platformId: platform.id,
+        config: {
+          allowFrom: wechatAllowFrom
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          enabled: true,
+        },
+      });
+      setWechatAllowFrom("");
+      onRefresh();
+    } finally {
+      setWechatSaving(false);
+    }
+  };
+
   const isDingTalk = platform.id === "dingtalk";
+  const isWeChat = platform.id === "wechat";
 
   return (
     <SettingsGroup title={platform.displayName}>
@@ -251,13 +276,88 @@ function PlatformCard({
         description={t("settings.remoteControl.enabled.description")}
       >
         <div className="flex items-center gap-3">
-          <StatusBadge connected={platform.connected} pairing={platform.pairing} />
+          <StatusBadge
+            connected={platform.connected}
+            pairing={platform.pairing}
+            error={statusEvent?.status === "error" ? statusEvent.error : undefined}
+          />
           <Switch checked={platform.enabled} onCheckedChange={handleToggle} />
         </div>
       </SettingsRow>
 
       {/* Platform-specific config */}
-      {isDingTalk ? (
+      {isWeChat ? (
+        <>
+          {/* WeChat QR login / connect */}
+          <SettingsRow
+            title={t("settings.remoteControl.wechat.connection")}
+            description={t("settings.remoteControl.wechat.connection.description")}
+          >
+            <div className="flex flex-col gap-3 items-end">
+              {pairing ? (
+                <div className="flex flex-col gap-2 items-center">
+                  {statusEvent?.qrCodeData && !statusEvent?.qrScanned && (
+                    <img
+                      src={statusEvent.qrCodeData}
+                      alt="WeChat QR Code"
+                      className="size-48 rounded-lg border"
+                    />
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    {statusEvent?.qrScanned
+                      ? t("settings.remoteControl.wechat.qrScanned")
+                      : t("settings.remoteControl.wechat.scanQR")}
+                  </span>
+                  <Button size="sm" variant="outline" onClick={handleStopPairing}>
+                    {t("settings.remoteControl.cancel")}
+                  </Button>
+                </div>
+              ) : platform.connected ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-green-600 flex items-center gap-1">
+                    <CheckCircle className="size-3.5" />
+                    {t("settings.remoteControl.connected")}
+                  </span>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={handleStartPairing}>
+                  {statusEvent?.error === "session_expired"
+                    ? t("settings.remoteControl.wechat.reconnect")
+                    : t("settings.remoteControl.wechat.connect")}
+                </Button>
+              )}
+            </div>
+          </SettingsRow>
+
+          {/* WeChat allowed senders */}
+          {platform.connected && (
+            <SettingsRow
+              title={t("settings.remoteControl.wechat.allowFrom")}
+              description={t("settings.remoteControl.wechat.allowFrom.description")}
+            >
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder={t("settings.remoteControl.wechat.allowFrom.placeholder")}
+                  value={wechatAllowFrom}
+                  onChange={(e) => setWechatAllowFrom(e.target.value)}
+                  className="w-56"
+                  size="sm"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSaveWechatAllowFrom}
+                  disabled={wechatSaving}
+                >
+                  {wechatSaving
+                    ? t("settings.remoteControl.saving")
+                    : t("settings.remoteControl.save")}
+                </Button>
+              </div>
+            </SettingsRow>
+          )}
+        </>
+      ) : isDingTalk ? (
         <>
           <SettingsRow
             title={t("settings.remoteControl.dingtalk.appKey")}
@@ -392,8 +492,8 @@ function PlatformCard({
         </SettingsRow>
       )}
 
-      {/* Pairing — Telegram only */}
-      {!isDingTalk && platform.enabled && platform.connected && (
+      {/* Pairing — Telegram only (WeChat handles pairing in its own section) */}
+      {!isDingTalk && !isWeChat && platform.enabled && platform.connected && (
         <SettingsRow
           title={t("settings.remoteControl.pairChat")}
           description={t("settings.remoteControl.pairChat.description")}
@@ -437,8 +537,23 @@ function PlatformCard({
   );
 }
 
-function StatusBadge({ connected, pairing }: { connected: boolean; pairing: boolean }) {
+function StatusBadge({
+  connected,
+  pairing,
+  error,
+}: {
+  connected: boolean;
+  pairing: boolean;
+  error?: string;
+}) {
   const { t } = useTranslation();
+  if (error === "session_expired") {
+    return (
+      <Badge variant="destructive" size="sm">
+        {t("settings.remoteControl.status.expired")}
+      </Badge>
+    );
+  }
   if (pairing) {
     return (
       <Badge variant="warning" size="sm">

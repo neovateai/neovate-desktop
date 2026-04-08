@@ -20,6 +20,7 @@ import { PopupWindowShortcut } from "./features/popup-window/global-shortcut";
 import { ProjectStore } from "./features/project/project-store";
 import { DingTalkAdapter } from "./features/remote-control/platforms/dingtalk";
 import { TelegramAdapter } from "./features/remote-control/platforms/telegram";
+import { WeChatAdapter } from "./features/remote-control/platforms/wechat";
 import { RemoteControlService } from "./features/remote-control/remote-control-service";
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
@@ -101,6 +102,7 @@ const remoteControlService = new RemoteControlService(
 );
 remoteControlService.registerAdapter(new TelegramAdapter());
 remoteControlService.registerAdapter(new DingTalkAdapter());
+remoteControlService.registerAdapter(new WeChatAdapter());
 
 const appContext: AppContext = {
   sessionManager,
