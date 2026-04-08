@@ -13,7 +13,6 @@ import { toastManager } from "../../../components/ui/toast";
 import { useEventCallback } from "../../../hooks/use-event-callback";
 import { useLatestRef } from "../../../hooks/use-latest-ref";
 import { cn } from "../../../lib/utils";
-import { useAnalyticsTrack } from "../../analytics/hooks/use-analytics-track";
 import { useConfigStore } from "../../config/store";
 import { useSettingsStore } from "../../settings";
 import { claudeCodeChatManager } from "../chat-manager";
@@ -56,7 +55,7 @@ type SessionDraft = {
 const sessionDrafts = new Map<string, SessionDraft>();
 
 export function MessageInput({
-  onSend: _onSend,
+  onSend,
   onCancel,
   streaming,
   disabled,
@@ -69,15 +68,6 @@ export function MessageInput({
 }: Props) {
   const { t } = useTranslation();
   const cwdRef = useLatestRef(cwd);
-  const track = useAnalyticsTrack();
-
-  const onSend: Props["onSend"] = useCallback(
-    (message, attachments) => {
-      track("chat.message.sent", {});
-      _onSend(message, attachments);
-    },
-    [_onSend, track],
-  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorJsonRef = useRef<JSONContent | null>(null);
   const { createNewSession } = useNewSession();
