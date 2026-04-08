@@ -47,7 +47,6 @@ export class OutputBatcher {
     if (!this.supportsEditing) return;
 
     if (this.buffer.length >= EAGER_THRESHOLD) {
-      log("eager flush: buffer=%d chars (threshold=%d)", this.buffer.length, EAGER_THRESHOLD);
       void this.flush();
     } else {
       this.scheduleFlush();
@@ -63,13 +62,6 @@ export class OutputBatcher {
     if (!newText) return;
     this.buffer = "";
     this.fullText += newText;
-
-    log(
-      "flush: +%d chars, total=%d chars, currentMsgId=%s",
-      newText.length,
-      this.fullText.length,
-      this.currentMessageId ?? "(none)",
-    );
 
     // Check for long code blocks — send as file instead
     const codeBlockMatch = this.fullText.match(/```[\s\S]*?```/g);
