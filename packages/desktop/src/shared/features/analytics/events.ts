@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const programmaticEventSchemas = {
   "ui.page.viewed": z.object({ page: z.string() }),
+  "chat.message.sent": z.object({}),
 } satisfies Record<`${string}.${string}.${string}`, z.ZodObject<z.ZodRawShape>>;
 
 export type ProgrammaticEventName = keyof typeof programmaticEventSchemas;
