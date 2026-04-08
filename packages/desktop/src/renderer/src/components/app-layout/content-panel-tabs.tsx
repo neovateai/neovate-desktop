@@ -8,7 +8,7 @@ import type { ContentPanelStoreState } from "../../features/content-panel/types"
 
 import { resolveLocalizedString } from "../../../../shared/i18n";
 import { useRendererApp } from "../../core";
-import { useConfigStore } from "../../features/config/store";
+import { normalizeLocale } from "../../core/i18n/locales";
 import { ContentPanelViewContextProvider } from "../../features/content-panel";
 import { useProjectStore } from "../../features/project/store";
 
@@ -23,8 +23,8 @@ function useLazyComponents(views: ContentPanelView[]) {
 }
 
 export function ContentPanelTabs() {
-  const { t } = useTranslation();
-  const locale = useConfigStore((s) => s.locale);
+  const { t, i18n } = useTranslation();
+  const locale = normalizeLocale(i18n.language);
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
   const views = app.pluginManager.viewContributions.contentPanelViews.map((c) => c.value);
@@ -158,7 +158,8 @@ function NewTabMenu({
   onSelect: (viewType: string) => void;
 }) {
   const menuRef = useRef<HTMLDetailsElement>(null);
-  const locale = useConfigStore((s) => s.locale);
+  const { i18n } = useTranslation();
+  const locale = normalizeLocale(i18n.language);
 
   return (
     <details ref={menuRef} className="relative">

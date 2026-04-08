@@ -21,6 +21,7 @@ import type { SeparatorId } from "./types";
 import { resolveLocalizedString } from "../../../../shared/i18n";
 import { getChatPanelBgUrl } from "../../assets/images";
 import { useRendererApp } from "../../core/app";
+import { normalizeLocale } from "../../core/i18n/locales";
 import { type TitlebarItem } from "../../core/plugin/contributions";
 import { SessionInfoBar } from "../../features/agent/components/session-info-bar";
 import { useNewSession } from "../../features/agent/hooks/use-new-session";
@@ -219,12 +220,12 @@ export function AppLayoutPrimaryTitleBar() {
 const secondaryTitlebarTooltipHandle = TooltipCreateHandle<string>();
 
 export function AppLayoutSecondaryTitleBar() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const secondaryCollapsed = useLayoutStore((s) => s.panels.secondarySidebar?.collapsed);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const activeProject = useProjectStore((s) => s.activeProject);
   const setShowSettings = useSettingsStore((s) => s.setShowSettings);
-  const locale = useConfigStore((s) => s.locale);
+  const locale = normalizeLocale(i18n.language);
   const app = useRendererApp();
   const items = app.pluginManager.viewContributions.secondaryTitlebarItems.map((c) => c.value);
   const lazyComponents = useLazyComponents(items);

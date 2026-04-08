@@ -5,14 +5,14 @@ import { initReactI18next } from "react-i18next";
 
 import enUS from "../../locales/en-US.json";
 import zhCN from "../../locales/zh-CN.json";
-import { DEFAULT_LOCALE, normalizeLocale, type Locales } from "./locales";
+import { DEFAULT_LOCALE, normalizeLocale, type Locales, type LocalePreference } from "./locales";
 
 const log = debug("neovate:i18n");
 
 export type I18nStore = {
   getState: () => {
-    locale: Locales;
-    setLocale: (locale: Locales) => void;
+    locale: LocalePreference;
+    setLocale: (locale: LocalePreference) => void;
   };
 };
 
@@ -44,7 +44,8 @@ export class I18nManager {
 
     // Get locale from store or browser detection
     const savedLocale = store?.getState().locale;
-    log("init", { savedLocale });
+    const shouldDetect = !savedLocale || savedLocale === "system";
+    log("init", { savedLocale, shouldDetect });
 
     await i18n.init({
       resources: {
@@ -54,16 +55,16 @@ export class I18nManager {
       fallbackLng: DEFAULT_LOCALE,
       load: "currentOnly",
       keySeparator: false,
-      // Use saved locale, or detect from browser
-      ...(savedLocale
-        ? { lng: savedLocale }
-        : {
+      // Use saved locale, or detect from browser when "system"
+      ...(shouldDetect
+        ? {
             detection: {
               order: ["navigator"],
               caches: [],
               convertDetectedLanguage: (lng: string) => normalizeLocale(lng),
             },
-          }),
+          }
+        : { lng: savedLocale }),
       react: {
         useSuspense: false,
         bindI18n: "languageChanged loaded",
@@ -72,18 +73,15 @@ export class I18nManager {
         escapeValue: false,
       },
     });
-
-    // If no preference was saved, save detected locale to store
-    if (store && !savedLocale) {
-      const detectedLocale = normalizeLocale(i18n.language);
-      log("detected locale from browser, saving", { detectedLocale });
-      store.getState().setLocale(detectedLocale);
-    }
   }
 
-  async applyUILocale(locale: Locales | null): Promise<void> {
+  async applyUILocale(locale: LocalePreference): Promise<void> {
     const normalized = normalizeLocale(
-      locale ?? (typeof navigator !== "undefined" ? navigator.language : undefined),
+      locale === "system"
+        ? typeof navigator !== "undefined"
+          ? navigator.language
+          : undefined
+        : locale,
     );
     log("applyUILocale", { locale, normalized });
 

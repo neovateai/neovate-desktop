@@ -2,6 +2,7 @@ export type Theme = "system" | "light" | "dark";
 export type ThemeStyle = "default" | "claude" | "codex" | "nord";
 export type SendMessageWith = "enter" | "cmdEnter";
 export type Locales = "en-US" | "zh-CN";
+export type LocalePreference = "system" | Locales;
 export type ConfigPermissionMode = "default" | "acceptEdits" | "bypassPermissions";
 export type NotificationSound = "off" | "default" | "Glass" | "Ping" | "Pop" | "Funk";
 export type AgentLanguage = "English" | "Chinese";
@@ -12,7 +13,7 @@ export type AppConfig = {
   // General Settings
   theme: Theme;
   themeStyle: ThemeStyle;
-  locale: Locales;
+  locale: LocalePreference;
   runOnStartup: boolean;
   multiProjectSupport: boolean;
   appFontSize: number;

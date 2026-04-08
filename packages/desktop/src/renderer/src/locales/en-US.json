@@ -38,6 +38,7 @@
   "settings.general": "General",
   "settings.general.language": "Language",
   "settings.general.language.description": "Select your preferred language for the interface",
+  "settings.general.language.system": "System",
   "settings.general.runOnStartup": "Run on Startup",
   "settings.general.runOnStartup.description": "Automatically launch the app when you log in",
   "settings.general.multiProjectSupport": "Multi-Project Support",

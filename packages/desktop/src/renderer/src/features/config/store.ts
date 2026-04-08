@@ -25,7 +25,7 @@ const DEFAULT_CONFIG: AppConfig = {
   // General Settings
   theme: "system",
   themeStyle: "default",
-  locale: "en-US",
+  locale: "system",
   runOnStartup: false,
   multiProjectSupport: false,
   appFontSize: 14,

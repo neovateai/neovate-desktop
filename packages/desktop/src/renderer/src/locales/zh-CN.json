@@ -38,6 +38,7 @@
   "settings.general": "通用",
   "settings.general.language": "语言",
   "settings.general.language.description": "选择界面显示语言",
+  "settings.general.language.system": "系统",
   "settings.general.runOnStartup": "开机启动",
   "settings.general.runOnStartup.description": "登录时自动启动应用",
   "settings.general.multiProjectSupport": "多项目支持",

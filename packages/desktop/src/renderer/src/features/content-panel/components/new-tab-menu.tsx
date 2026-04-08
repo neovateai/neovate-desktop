@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import type { ContentPanelStoreState, Tab } from "../types";
@@ -8,7 +9,7 @@ import { resolveLocalizedString } from "../../../../../shared/i18n";
 import { Button } from "../../../components/ui/button";
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../../../components/ui/menu";
 import { useRendererApp } from "../../../core";
-import { useConfigStore } from "../../config/store";
+import { normalizeLocale } from "../../../core/i18n/locales";
 import { useProjectStore } from "../../project/store";
 
 const EMPTY_TABS: Tab[] = [];
@@ -24,7 +25,8 @@ export function NewTabMenu() {
     (s: ContentPanelStoreState) => s.projects[projectPath]?.tabs ?? EMPTY_TABS,
   );
   const openViewTypes = useMemo(() => new Set(tabs.map((t) => t.viewType)), [tabs]);
-  const locale = useConfigStore((s) => s.locale);
+  const { i18n } = useTranslation();
+  const locale = normalizeLocale(i18n.language);
   return (
     <Menu>
       <MenuTrigger openOnHover delay={0} render={<Button variant="ghost" size="icon-sm" />}>

@@ -2,6 +2,10 @@
  * Locale definitions and utilities
  */
 
+import type { LocalePreference } from "../../../../shared/features/config/types";
+
+export type { LocalePreference };
+
 export const DEFAULT_LOCALE = "en-US" as const;
 
 export const locales = ["en-US", "zh-CN"] as const;
@@ -29,10 +33,11 @@ export function isSupportedLanguage(value: string): value is Locales {
 
 type LocaleOption = {
   label: string;
-  value: Locales;
+  value: LocalePreference;
 };
 
 export const localeOptions: LocaleOption[] = [
   { label: "English", value: "en-US" },
   { label: "简体中文", value: "zh-CN" },
+  { label: "System", value: "system" },
 ];

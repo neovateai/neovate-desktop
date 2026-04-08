@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 import type { ThemeStyle } from "../../../../../../shared/features/config/types";
+import type { LocalePreference } from "../../../../core/i18n";
 
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
@@ -13,7 +14,6 @@ import { Spinner } from "../../../../components/ui/spinner";
 import { Switch } from "../../../../components/ui/switch";
 import { ToggleOptions } from "../../../../components/ui/toggle-options";
 import { useRendererApp } from "../../../../core/app";
-import { localeOptions, type Locales } from "../../../../core/i18n";
 import { formatKeyForDisplay } from "../../../../lib/keybindings";
 import { cn } from "../../../../lib/utils";
 import { client } from "../../../../orpc";
@@ -82,8 +82,8 @@ export const GeneralPanel = () => {
   };
 
   const handleLocaleChange = (newLocale: string) => {
-    setConfig("locale", newLocale as Locales);
-    app.i18nManager.applyUILocale(newLocale as Locales);
+    setConfig("locale", newLocale as LocalePreference);
+    app.i18nManager.applyUILocale(newLocale as LocalePreference);
   };
 
   const handleThemeStyleChange = (newStyle: ThemeStyle) => {
@@ -196,7 +196,15 @@ export const GeneralPanel = () => {
             title={t("settings.general.language")}
             description={t("settings.general.language.description")}
           >
-            <ToggleOptions value={locale} onChange={handleLocaleChange} options={localeOptions} />
+            <ToggleOptions
+              value={locale}
+              onChange={handleLocaleChange}
+              options={[
+                { value: "en-US", label: "English" },
+                { value: "zh-CN", label: "简体中文" },
+                { value: "system", label: t("settings.general.language.system") },
+              ]}
+            />
           </SettingsRow>
 
           <SettingsRow title={t("settings.theme")} description={t("settings.theme.description")}>

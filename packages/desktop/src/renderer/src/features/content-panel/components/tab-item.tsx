@@ -1,6 +1,7 @@
 import type React from "react";
 
 import { X, TriangleAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { Tab } from "../types";
 
@@ -8,8 +9,8 @@ import { resolveLocalizedString } from "../../../../../shared/i18n";
 import { Button } from "../../../components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../../../components/ui/tooltip";
 import { useRendererApp } from "../../../core";
+import { normalizeLocale } from "../../../core/i18n/locales";
 import { cn } from "../../../lib/utils";
-import { useConfigStore } from "../../config/store";
 
 function TabButton({
   tab,
@@ -23,7 +24,8 @@ function TabButton({
 } & React.ComponentPropsWithRef<"div">) {
   const app = useRendererApp();
   const contentPanel = app.workbench.contentPanel;
-  const locale = useConfigStore((s) => s.locale);
+  const { i18n } = useTranslation();
+  const locale = normalizeLocale(i18n.language);
   const views = app.pluginManager.viewContributions.contentPanelViews.map((c) => c.value);
   const view = views.find((view) => view.viewType === tab.viewType);
   return (
