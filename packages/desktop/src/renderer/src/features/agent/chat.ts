@@ -274,6 +274,12 @@ export class ClaudeCodeChat extends AbstractChat<ClaudeCodeUIMessage> {
       } as ClaudeCodeUIMessage);
     }
 
+    window.dispatchEvent(
+      new CustomEvent("neovate:message-sent", {
+        detail: { metadata: message?.metadata },
+      }),
+    );
+
     this.#state.status = "submitted";
 
     // Fire and forget — subscribe handles the response (replaces makeRequest)

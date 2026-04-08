@@ -3,7 +3,7 @@ import type { AnalyticsInstance } from "analytics";
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { initClickTracking } from "../data-track";
+import { initClickTracking, initMessageSentTracking } from "../data-track";
 
 function createMockAnalytics(): AnalyticsInstance {
   return { track: vi.fn() } as unknown as AnalyticsInstance;
@@ -86,6 +86,68 @@ describe("initClickTracking", () => {
     document.body.appendChild(btn);
 
     btn.click();
+
+    expect(analytics.track).not.toHaveBeenCalled();
+  });
+});
+
+describe("initMessageSentTracking", () => {
+  let cleanup: () => void;
+  let analytics: AnalyticsInstance;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    analytics = createMockAnalytics();
+  });
+
+  afterEach(() => {
+    cleanup?.();
+  });
+
+  it("tracks neovate:message-sent event with metadata", () => {
+    cleanup = initMessageSentTracking(analytics);
+    const metadata = { sessionId: "s1", parentToolUseId: null };
+
+    window.dispatchEvent(new CustomEvent("neovate:message-sent", { detail: { metadata } }));
+
+    expect(analytics.track).toHaveBeenCalledWith("chat.message.sent", {
+      metadata,
+      trackType: "programmatic",
+    });
+  });
+
+  it("tracks with remote-control source in metadata", () => {
+    cleanup = initMessageSentTracking(analytics);
+    const metadata = {
+      sessionId: "s1",
+      parentToolUseId: null,
+      source: { platform: "telegram" },
+    };
+
+    window.dispatchEvent(new CustomEvent("neovate:message-sent", { detail: { metadata } }));
+
+    expect(analytics.track).toHaveBeenCalledWith("chat.message.sent", {
+      metadata,
+      trackType: "programmatic",
+    });
+  });
+
+  it("tracks with undefined metadata when no metadata provided", () => {
+    cleanup = initMessageSentTracking(analytics);
+
+    window.dispatchEvent(new CustomEvent("neovate:message-sent", { detail: {} }));
+
+    expect(analytics.track).toHaveBeenCalledWith("chat.message.sent", {
+      metadata: undefined,
+      trackType: "programmatic",
+    });
+  });
+
+  it("cleanup removes the listener", () => {
+    cleanup = initMessageSentTracking(analytics);
+    cleanup();
+
+    window.dispatchEvent(new CustomEvent("neovate:message-sent", { detail: { metadata: {} } }));
 
     expect(analytics.track).not.toHaveBeenCalled();
   });

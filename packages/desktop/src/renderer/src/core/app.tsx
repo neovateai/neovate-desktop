@@ -22,7 +22,7 @@ import type { RendererPlugin, PluginContext } from "./plugin";
 import type { IRendererApp, IWorkbench } from "./types";
 
 import { APP_NAME } from "../../../shared/constants";
-import { initClickTracking } from "../features/analytics/data-track";
+import { initClickTracking, initMessageSentTracking } from "../features/analytics/data-track";
 
 const startupLog = debug("neovate:startup");
 
@@ -380,6 +380,7 @@ export class RendererApp implements IRendererApp {
     startupLog("renderer React.render called %s", el());
 
     this.subscriptions.push(initClickTracking(this.analytics));
+    this.subscriptions.push(initMessageSentTracking(this.analytics));
   }
 
   async stop(): Promise<void> {

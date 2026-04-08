@@ -18,3 +18,17 @@ export function initClickTracking(analytics: AnalyticsInstance): () => void {
   log("initClickTracking: listener attached");
   return () => document.removeEventListener("click", handler);
 }
+
+export function initMessageSentTracking(analytics: AnalyticsInstance): () => void {
+  const handler = (e: Event) => {
+    const { metadata } = (e as CustomEvent<{ metadata?: Record<string, unknown> }>).detail;
+    log("tracked: chat.message.sent metadata=%o", metadata);
+    Promise.resolve(
+      analytics.track("chat.message.sent", { metadata, trackType: "programmatic" }),
+    ).catch(() => {});
+  };
+
+  window.addEventListener("neovate:message-sent", handler);
+  log("initMessageSentTracking: listener attached");
+  return () => window.removeEventListener("neovate:message-sent", handler);
+}
