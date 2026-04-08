@@ -112,6 +112,7 @@ const plugin: RendererPlugin = {
           viewType: "editor",
           name: { "en-US": "Editor", "zh-CN": "编辑器" },
           singleton: true,
+          discoverable: false,
           deactivation: "offscreen",
           icon: EditorIcon,
           component: () => import("./editor-view"),
