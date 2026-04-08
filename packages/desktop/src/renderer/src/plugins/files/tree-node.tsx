@@ -1,9 +1,7 @@
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronRight, ChevronDown, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
-
-import type { FileTreeItem } from "../../../../shared/plugins/files/contract";
+import React, { useState, useEffect, useContext } from "react";
 
 import {
   ContextMenu,
@@ -13,24 +11,21 @@ import {
   ContextMenuSeparator,
 } from "../../components/ui/context-menu";
 import { cn } from "../../lib/utils";
+import { FileNodeItem, FileTreeContext } from "./hooks/useFileData";
 import { useFilesTranslation } from "./i18n";
 
 interface TreeNodeProps {
-  item: FileTreeItem;
+  item: FileNodeItem;
   level: number;
-  expandedKeys: Set<string>;
   onToggleExpand: (key: string) => void;
-  selectedKeys: Set<string>;
-  editingKey: string | null;
-  onEditingKeyChange: (key: string | null) => void;
-  onSelect?: (item: FileTreeItem) => void;
-  onDelete?: (item: FileTreeItem) => void;
+  onSelect?: (item: FileNodeItem) => void;
+  onDelete?: (item: FileNodeItem) => void;
   onRename?: (oldPath: string, newPath: string) => Promise<boolean | void> | boolean | void;
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
-  onAdd?: (item: FileTreeItem) => void;
-  onCopy?: (item: FileTreeItem) => void;
-  onCut?: (item: FileTreeItem) => void;
+  onAdd?: (item: FileNodeItem) => void;
+  onCopy?: (item: FileNodeItem) => void;
+  onCut?: (item: FileNodeItem) => void;
   onPaste?: (targetPath: string) => void;
   canPaste?: (targetPath: string) => boolean;
   cutSourcePath?: string | null;
@@ -54,11 +49,7 @@ function FileLangIcon(props: { path: string; size?: number }) {
 export function TreeNode({
   item,
   level,
-  expandedKeys,
   onToggleExpand,
-  selectedKeys,
-  editingKey,
-  onEditingKeyChange,
   onSelect,
   onDelete,
   onRename,
@@ -71,9 +62,12 @@ export function TreeNode({
   canPaste,
   cutSourcePath,
 }: TreeNodeProps) {
+  const { nodes, expandedKeys, selectedKeys, renamingKey, renameStart, renameEnd } =
+    useContext(FileTreeContext);
+  const childNodes = nodes.filter((i) => i.parentPath === item.fullPath);
   const { t } = useFilesTranslation();
   const { fileName = "" } = item || {};
-  const isEditing = editingKey === item.fullPath;
+  const isEditing = renamingKey === item.fullPath;
   const [editingName, setEditingName] = useState(fileName);
   const [isCreating, setIsCreating] = useState(false);
   const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
@@ -82,7 +76,6 @@ export function TreeNode({
   // Optimistic UI: pending name for rename operation
   const [pendingFileName, setPendingFileName] = useState<string | null>(null);
 
-  // Sync editingName when editingKey changes to this item
   useEffect(() => {
     if (isEditing) {
       setEditingName(fileName);
@@ -180,7 +173,7 @@ export function TreeNode({
   ];
 
   const handleStartRename = () => {
-    onEditingKeyChange(item.fullPath);
+    renameStart?.(item.fullPath);
     setEditingName(fileName);
   };
 
@@ -190,19 +183,19 @@ export function TreeNode({
       const newPath = parentPath + editingName;
       // Optimistic UI: set pending name first
       setPendingFileName(editingName);
-      onEditingKeyChange(null);
+      renameEnd?.();
       const result = await onRename(item.fullPath, newPath);
       // Rollback if rename failed (result is false)
       if (result === false) {
         setPendingFileName(null);
       }
     } else {
-      onEditingKeyChange(null);
+      renameEnd?.();
     }
   };
 
   const handleCancelRename = () => {
-    onEditingKeyChange(null);
+    renameEnd?.();
     setEditingName(fileName);
   };
 
@@ -353,18 +346,14 @@ export function TreeNode({
         </div>
       )}
 
-      {isExpanded && item.children && (
+      {isExpanded && !!childNodes.length && (
         <div>
-          {item.children.map((child) => (
+          {childNodes.map((child) => (
             <TreeNode
               key={child.fullPath}
               item={child}
               level={level + 1}
-              expandedKeys={expandedKeys}
               onToggleExpand={onToggleExpand}
-              selectedKeys={selectedKeys}
-              editingKey={editingKey}
-              onEditingKeyChange={onEditingKeyChange}
               onSelect={onSelect}
               onDelete={onDelete}
               onRename={onRename}
@@ -384,4 +373,4 @@ export function TreeNode({
   );
 }
 
-export default TreeNode;
+export default React.memo(TreeNode);
