@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand/vanilla";
 import debug from "debug";
 
 import type { ContentPanelView } from "../../core/plugin/contributions";
+import type { ReadonlyStoreApi } from "../../core/types";
 import type { IWorkbenchLayoutService } from "../../core/workbench/layout";
 import type { Tab, ContentPanelStoreState, ProjectTabState } from "./types";
 
@@ -27,12 +28,18 @@ export class ContentPanel {
   private dirty = false;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribe: (() => void) | null = null;
-  readonly store: StoreApi<ContentPanelStoreState>;
+  readonly #store: StoreApi<ContentPanelStoreState>;
+  // TODO: Store state still includes actions (addTab, removeTab, etc.) accessible via getState().
+  // Adopt Zustand's "no store actions" pattern to make the store pure data:
+  // move store-level actions into private ContentPanel methods that call #store.setState().
+  // See: https://zustand.docs.pmnd.rs/learn/guides/practice-with-no-store-actions
+  readonly store: ReadonlyStoreApi<ContentPanelStoreState>;
 
   constructor(options: ContentPanelOptions) {
     this.options = options;
     this.views = options.views;
-    this.store = createContentPanelStore();
+    this.#store = createContentPanelStore();
+    this.store = this.#store;
   }
 
   async hydrate(): Promise<void> {
@@ -42,7 +49,7 @@ export class ContentPanel {
     if (data && typeof data === "object" && !Array.isArray(data) && Object.keys(data).length > 0) {
       const filtered = this.filterPersistable(data);
       log("hydrated", { projectCount: Object.keys(filtered).length });
-      this.store.setState({ projects: filtered });
+      this.#store.setState({ projects: filtered });
     }
   }
 
@@ -53,7 +60,7 @@ export class ContentPanel {
 
   private observe(): void {
     if (this.unsubscribe) return;
-    this.unsubscribe = this.store.subscribe(() => {
+    this.unsubscribe = this.#store.subscribe(() => {
       this.dirty = true;
       if (this.flushTimer) clearTimeout(this.flushTimer);
       this.flushTimer = setTimeout(() => this.flush(), DEBOUNCE_MS);
@@ -84,7 +91,7 @@ export class ContentPanel {
     if (this.dirty) {
       this.dirty = false;
       log("flushing state to storage");
-      const { projects } = this.store.getState();
+      const { projects } = this.#store.getState();
       Promise.resolve(this.options.save(this.filterPersistable(projects))).catch(console.error);
     }
   }
@@ -114,7 +121,7 @@ export class ContentPanel {
 
     void this.options.layout.expandPart(COLLAPSIBLE_WORKBENCH_PART.contentPanel);
 
-    const store = this.store.getState();
+    const store = this.#store.getState();
     const activate = options?.activate !== false;
 
     // Singleton (default true): activate existing if present (per-project)
@@ -142,7 +149,7 @@ export class ContentPanel {
     const view = this.views.find((v) => v.viewType === viewType);
     if (!view) return;
 
-    const store = this.store.getState();
+    const store = this.#store.getState();
     const existing = store.findTabByViewType(this.projectPath, viewType);
 
     if (!existing) {
@@ -163,20 +170,20 @@ export class ContentPanel {
 
   closeView(viewId: string): void {
     log("close view", { viewId });
-    this.store.getState().removeTab(this.projectPath, viewId);
+    this.#store.getState().removeTab(this.projectPath, viewId);
   }
 
   activateView(viewId: string): void {
     log("activate view", { viewId });
-    this.store.getState().setActiveTab(this.projectPath, viewId);
+    this.#store.getState().setActiveTab(this.projectPath, viewId);
   }
 
   getViewState(viewId: string): Record<string, unknown> {
-    return this.store.getState().getTab(this.projectPath, viewId)?.state ?? {};
+    return this.#store.getState().getTab(this.projectPath, viewId)?.state ?? {};
   }
 
   updateViewState(viewId: string, patch: Record<string, unknown>): void {
     log("update view state", { viewId });
-    this.store.getState().updateTabState(this.projectPath, viewId, patch);
+    this.#store.getState().updateTabState(this.projectPath, viewId, patch);
   }
 }

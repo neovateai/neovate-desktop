@@ -37,6 +37,14 @@ const plugin: RendererPlugin = {
           component: () => import("./terminal-view"),
         },
       ],
+      secondaryTitlebarItems: [
+        {
+          id: "terminal.toggle",
+          tooltip: { "en-US": "Terminal", "zh-CN": "终端" },
+          order: 100,
+          component: () => import("./terminal-titlebar-button"),
+        },
+      ],
     };
   },
 };
