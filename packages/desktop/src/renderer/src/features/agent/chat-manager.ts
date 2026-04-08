@@ -85,6 +85,20 @@ export class ClaudeCodeChatManager {
     return this.chats.get(sessionId);
   }
 
+  async forkSession(sessionId: string, cwd: string, title?: string) {
+    log("forkSession: sessionId=%s cwd=%s", sessionId.slice(0, 8), cwd);
+
+    const result = await this.rpc.forkSession({ sessionId, cwd, title });
+    const loaded = await this.loadSession(result.forkedSessionId, cwd);
+
+    log("forkSession: forked=%s model=%s", result.forkedSessionId.slice(0, 8), loaded.currentModel);
+
+    return {
+      forkedSessionId: result.forkedSessionId,
+      originalSessionId: sessionId,
+    };
+  }
+
   async rewindToMessage(
     sessionId: string,
     messageId: string,

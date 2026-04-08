@@ -144,6 +144,11 @@ export const agentRouter = os.agent.router({
     }),
   }),
 
+  forkSession: os.agent.forkSession.handler(async ({ input, context }) => {
+    agentLog("forkSession: sessionId=%s cwd=%s", input.sessionId, input.cwd);
+    return context.sessionManager.forkSession(input.sessionId, input.cwd, input.title);
+  }),
+
   rewindFilesDryRun: os.agent.rewindFilesDryRun.handler(async ({ input, context }) => {
     return context.sessionManager.rewindFilesDryRun(input.sessionId, input.messageId);
   }),

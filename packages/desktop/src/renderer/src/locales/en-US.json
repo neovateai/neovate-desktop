@@ -447,6 +447,7 @@
   "session.pin": "Pin",
   "session.unpin": "Unpin",
   "session.archive": "Archive",
+  "session.fork": "Fork",
   "session.archiveConfirm": "Confirm archive",
   "session.copyWorkingDirectory": "Copy working directory",
   "session.copySessionId": "Copy session ID",

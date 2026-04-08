@@ -959,6 +959,62 @@ export class SessionManager {
     return { forkedSessionId, originalSessionId: sessionId };
   }
 
+  /**
+   * Fork an entire session: create a new session with all conversation history.
+   * Works for both active (in-memory) and persisted-only (cold) sessions.
+   */
+  async forkSession(
+    sessionId: string,
+    cwd: string,
+    title?: string,
+  ): Promise<{ forkedSessionId: string; originalSessionId: string }> {
+    const forkTitle = title ? `${title} (Fork)` : "(Fork)";
+
+    // Find the last message ID — needed by SDK's forkSession
+    const { forkSession, getSessionMessages } = await import("@anthropic-ai/claude-agent-sdk");
+
+    const session = this.sessions.get(sessionId);
+    let lastMessageId: string | undefined;
+
+    if (session) {
+      // Active session: get last ID from the UI-to-SDK mapping
+      const ids = Array.from(session.uiToSdkMessageIds.values());
+      lastMessageId = ids[ids.length - 1];
+    }
+
+    if (!lastMessageId) {
+      // Persisted session (or active with no mapped IDs): read from disk
+      const messages = await getSessionMessages(sessionId);
+      if (messages.length === 0) {
+        throw new Error("Cannot fork a session with no messages");
+      }
+      lastMessageId = messages[messages.length - 1].uuid;
+    }
+
+    const result = await forkSession(sessionId, {
+      upToMessageId: lastMessageId,
+      dir: cwd,
+      title: forkTitle,
+    });
+
+    const now = new Date().toISOString();
+    this.emitLifecycle({
+      type: "created",
+      session: {
+        sessionId: result.sessionId,
+        cwd,
+        createdAt: now,
+        updatedAt: now,
+        title: forkTitle,
+      },
+      source: "local",
+    });
+
+    log("forkSession: original=%s forked=%s", sessionId, result.sessionId);
+
+    return { forkedSessionId: result.sessionId, originalSessionId: sessionId };
+  }
+
   /** Delete a session's .jsonl file from disk. */
   async deleteSessionFile(sessionId: string): Promise<void> {
     const matches = listSessionFiles(`${sessionId}.jsonl`);

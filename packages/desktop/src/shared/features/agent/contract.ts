@@ -96,6 +96,16 @@ export const agentContract = {
       .output(eventIterator(type<RequestSummary>())),
   },
 
+  forkSession: oc
+    .input(
+      z.object({
+        sessionId: z.string(),
+        cwd: z.string(),
+        title: z.string().optional(),
+      }),
+    )
+    .output(type<{ forkedSessionId: string; originalSessionId: string }>()),
+
   rewindFilesDryRun: oc
     .input(z.object({ sessionId: z.string(), messageId: z.string() }))
     .output(type<RewindFilesResult>()),

@@ -17,6 +17,7 @@ import {
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../../../components/ui/menu";
 import { useConfigStore } from "../../config/store";
 import { useProjectStore } from "../../project/store";
+import { claudeCodeChatManager } from "../chat-manager";
 import { useAgentStore } from "../store";
 
 const log = debug("neovate:session-actions-menu");
@@ -86,6 +87,49 @@ export function SessionActionsMenu({
     archiveSession(projectPath, sessionId, isActive);
   };
 
+  const sessionTitle = useAgentStore((s) => {
+    const session = s.sessions.get(sessionId);
+    if (session?.title) return session.title;
+    return s.agentSessions.find((a) => a.sessionId === sessionId)?.title;
+  });
+
+  const handleFork = async () => {
+    log("forkSession: %s", sessionId.slice(0, 8));
+    try {
+      const { forkedSessionId } = await claudeCodeChatManager.forkSession(
+        sessionId,
+        cwd,
+        sessionTitle,
+      );
+      const forkTitle = sessionTitle ? `${sessionTitle} (Fork)` : "(Fork)";
+      const store = useAgentStore.getState();
+
+      // Register with isNew: false so sidebar filters don't hide it
+      store.createSession(forkedSessionId, {
+        cwd,
+        title: forkTitle,
+        createdAt: new Date().toISOString(),
+        isNew: false,
+      });
+
+      // Apply capabilities from the loaded chat
+      const chat = claudeCodeChatManager.getChat(forkedSessionId);
+      const caps = chat?.store.getState().capabilities;
+      if (caps) {
+        const s = useAgentStore.getState();
+        if (caps.commands?.length) s.setAvailableCommands(forkedSessionId, caps.commands);
+        if (caps.models?.length) s.setAvailableModels(forkedSessionId, caps.models);
+      }
+
+      // Inherit pin state
+      if (isPinned) {
+        togglePinSession(projectPath, forkedSessionId);
+      }
+    } catch (error) {
+      log("forkSession: FAILED error=%s", error instanceof Error ? error.message : error);
+    }
+  };
+
   if (variant === "context") {
     return (
       <ContextMenu>
@@ -102,6 +146,9 @@ export function SessionActionsMenu({
           </ContextMenuItem>
           <ContextMenuItem disabled={isNew} onClick={handleArchive}>
             {t("session.archive")}
+          </ContextMenuItem>
+          <ContextMenuItem disabled={isNew} onClick={handleFork}>
+            {t("session.fork")}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onClick={handleCopyWorkingDirectory}>
@@ -144,6 +191,9 @@ export function SessionActionsMenu({
         </MenuItem>
         <MenuItem disabled={isNew} onClick={handleArchive}>
           {t("session.archive")}
+        </MenuItem>
+        <MenuItem disabled={isNew} onClick={handleFork}>
+          {t("session.fork")}
         </MenuItem>
         <MenuSeparator />
         <MenuItem onClick={handleCopyWorkingDirectory}>

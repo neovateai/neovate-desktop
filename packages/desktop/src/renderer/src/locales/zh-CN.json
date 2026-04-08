@@ -449,6 +449,7 @@
   "session.pin": "置顶",
   "session.unpin": "取消置顶",
   "session.archive": "归档",
+  "session.fork": "复制会话",
   "session.archiveConfirm": "确认归档",
   "session.copyWorkingDirectory": "复制工作目录",
   "session.copySessionId": "复制会话 ID",
