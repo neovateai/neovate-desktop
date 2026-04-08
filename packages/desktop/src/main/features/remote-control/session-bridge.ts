@@ -202,7 +202,6 @@ export class SessionBridge {
     event: ClaudeCodeUIEvent,
   ): Promise<void> {
     try {
-      log("session %s event: kind=%s", sessionId, event.kind);
       if (event.kind === "chunk") {
         this.handleChunk(sessionId, ref, adapter, event);
       } else if (event.kind === "event") {
@@ -222,7 +221,6 @@ export class SessionBridge {
     event: Extract<ClaudeCodeUIEvent, { kind: "chunk" }>,
   ): void {
     const chunk = event.chunk;
-    log("session %s chunk: type=%s", sessionId, chunk.type);
 
     // Only handle assistant text deltas
     if (chunk.type !== "text-delta") return;
@@ -287,7 +285,6 @@ export class SessionBridge {
       const text = formatToolProgress(event);
       if (text) {
         this.setActivity(sessionId, "tool", text);
-        log("session %s tool event: %s", sessionId, text);
         await adapter.sendMessage({ ref, text });
       }
     }
