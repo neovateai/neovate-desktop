@@ -335,6 +335,24 @@ describe("useFileData", () => {
         }),
       );
 
+      // Add nodes first so selection can persist
+      act(() => {
+        result.current.updateNodeDir("/project", [
+          {
+            fullPath: "/project/file1.ts",
+            relPath: "file1.ts",
+            fileName: "file1.ts",
+            isFolder: false,
+          },
+          {
+            fullPath: "/project/file2.ts",
+            relPath: "file2.ts",
+            fileName: "file2.ts",
+            isFolder: false,
+          },
+        ]);
+      });
+
       act(() => {
         result.current.select("/project/file1.ts");
       });
@@ -413,7 +431,7 @@ describe("useFileData", () => {
         }),
       );
 
-      // Setup: select a file (not a folder) to avoid auto-cleanup by useEffect
+      // Setup: add node and select it
       act(() => {
         result.current.updateNodeDir("/project/src", [
           {
@@ -430,8 +448,16 @@ describe("useFileData", () => {
       expect(result.current.selectedKeys.has("/project/src/old-file.ts")).toBe(true);
       expect(result.current.renamingKey).toBe("/project/src/old-file.ts");
 
-      // Rename
+      // Rename: external caller updates nodes first, then renameEffect handles side effects
       act(() => {
+        result.current.updateNodeDir("/project/src", [
+          {
+            fullPath: "/project/src/new-file.ts",
+            relPath: "src/new-file.ts",
+            fileName: "new-file.ts",
+            isFolder: false,
+          },
+        ]);
         result.current.renameEffect("/project/src/old-file.ts", "/project/src/new-file.ts");
       });
 
