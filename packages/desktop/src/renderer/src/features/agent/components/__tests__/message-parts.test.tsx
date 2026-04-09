@@ -87,7 +87,7 @@ describe("MessageParts", () => {
     );
 
     expect(screen.getByText("Inspection in progress")).toBeTruthy();
-    expect(screen.getByText("subagent-example.ts")).toBeTruthy();
+    expect(screen.getByText(/subagent-example\.ts/)).toBeTruthy();
     expect(screen.getByText("Inspection complete")).toBeTruthy();
   });
 

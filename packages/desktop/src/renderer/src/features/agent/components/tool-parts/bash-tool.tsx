@@ -1,7 +1,14 @@
+import { Terminal } from "lucide-react";
+
 import type { BashUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { CodeBlock } from "../../../../components/ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 
 export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
@@ -12,8 +19,11 @@ export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
     : (output ?? "");
 
   return (
-    <Tool>
-      <ToolHeader type="tool-Bash" state={state} title={input?.description} />
+    <Tool state={state}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={Terminal} />
+        {input?.description ?? "Bash"}
+      </ToolHeader>
       <ToolContent>
         {terminalOutput ? (
           <CodeBlock code={terminalOutput} language="bash" className="text-sm" />

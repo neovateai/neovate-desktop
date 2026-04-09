@@ -1,18 +1,26 @@
+import { Download } from "lucide-react";
+
 import type { WebFetchUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { MessageResponse } from "../../../../components/ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 
 export function WebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
 
-  const title = input?.url ? `WebFetch ${input.url}` : undefined;
-
   return (
-    <Tool>
-      <ToolHeader type="tool-WebFetch" state={state} title={title} />
+    <Tool state={state}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={Download} />
+        WebFetch {input?.url}
+      </ToolHeader>
       <ToolContent className="space-y-3">
         {input?.prompt ? (
           <div className="space-y-1">

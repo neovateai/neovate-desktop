@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { type ToolUIPart } from "ai";
+import { Bot } from "lucide-react";
 
 import type {
   AgentUIToolInvocation,
@@ -10,7 +11,12 @@ import type {
 
 import { isClaudeCodeUIMessage } from "../../../../../../shared/claude-code/types";
 import { MessageResponse } from "../../../../components/ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 import { MessagePartRenderer } from "../message-parts";
 
 export function AgentTool({
@@ -23,16 +29,13 @@ export function AgentTool({
   if (!invocation || invocation.state === "input-streaming") return null;
   const { state, input, output } = invocation;
   const agentMessage = isClaudeCodeUIMessage(output) ? output : undefined;
-  const preliminary = state === "output-available" && invocation.preliminary === true;
 
   return (
-    <Tool defaultOpen={agentMessage != null || output != null}>
-      <ToolHeader
-        type="tool-Agent"
-        state={state}
-        preliminary={preliminary}
-        title={input?.description ?? "Agent"}
-      />
+    <Tool state={state} defaultOpen={agentMessage != null || output != null}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={Bot} />
+        {input?.description ?? "Agent"}
+      </ToolHeader>
       <ToolContent className="space-y-3">
         {input?.prompt ? (
           <div className="space-y-1">

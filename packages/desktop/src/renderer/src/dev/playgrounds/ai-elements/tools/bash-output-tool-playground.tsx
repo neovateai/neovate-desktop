@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BashOutputTool } from "../../../../features/agent/components/tool-parts/bash-output-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-BashOutput",
@@ -22,6 +22,15 @@ const outputAvailableInvocation = {
   state: "output-available",
   input: inputAvailableInvocation.input,
   output: "WARN retrying request\nERROR registry timed out",
+  providerExecuted: true,
+} as any;
+
+const outputErrorInvocation = {
+  type: "tool-BashOutput",
+  toolCallId: "bash-output-tool-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Shell session not found: shell-42",
   providerExecuted: true,
 } as any;
 
@@ -47,12 +56,22 @@ export function BashOutputToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <BashOutputTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

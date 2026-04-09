@@ -3,7 +3,7 @@ import { useState } from "react";
 import { WebFetchTool } from "../../../../features/agent/components/tool-parts/web-fetch-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-WebFetch",
@@ -23,6 +23,15 @@ const outputAvailableInvocation = {
   input: inputAvailableInvocation.input,
   output:
     "Claude Code tools arrive as typed UI invocations with `input`, `output`, `state`, and `toolCallId` fields.",
+  providerExecuted: true,
+} as any;
+
+const outputErrorInvocation = {
+  type: "tool-WebFetch",
+  toolCallId: "web-fetch-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Failed to fetch URL: connection timed out",
   providerExecuted: true,
 } as any;
 
@@ -48,12 +57,22 @@ export function WebFetchToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <WebFetchTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

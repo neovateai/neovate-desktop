@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ExitPlanModeTool } from "../../../../features/agent/components/tool-parts/exit-plan-mode-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "approval-requested" | "output-available" | "output-denied";
+type Scenario = "approval-requested" | "output-available" | "output-denied" | "output-error";
 
 const baseInput = {
   plan: `1. Split the playground into per-tool files
@@ -28,6 +28,15 @@ const outputAvailableInvocation = {
   providerExecuted: true,
 } as any;
 
+const outputErrorInvocation = {
+  type: "tool-ExitPlanMode",
+  toolCallId: "exit-plan-mode-output-error",
+  state: "output-error",
+  input: baseInput,
+  errorText: "Cannot exit: no active plan",
+  providerExecuted: true,
+} as any;
+
 const outputDeniedInvocation = {
   type: "tool-ExitPlanMode",
   toolCallId: "exit-plan-mode-output-denied",
@@ -42,6 +51,7 @@ export function ExitPlanModeToolPlayground() {
 
   let invocation = outputAvailableInvocation;
   if (scenario === "approval-requested") invocation = approvalRequestedInvocation;
+  if (scenario === "output-error") invocation = outputErrorInvocation;
   if (scenario === "output-denied") invocation = outputDeniedInvocation;
 
   return (
@@ -62,6 +72,12 @@ export function ExitPlanModeToolPlayground() {
             onClick={() => setScenario("output-available")}
           >
             Output Available
+          </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
           </ScenarioButton>
           <ScenarioButton
             active={scenario === "output-denied"}

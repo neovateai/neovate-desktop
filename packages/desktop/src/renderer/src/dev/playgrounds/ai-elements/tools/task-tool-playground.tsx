@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AgentTool } from "../../../../features/agent/components/tool-parts/agent-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-Task",
@@ -35,6 +35,15 @@ const outputAvailableInvocation = {
   providerExecuted: true,
 } as any;
 
+const outputErrorInvocation = {
+  type: "tool-Task",
+  toolCallId: "task-tool-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Agent failed to start: invalid subagent type",
+  providerExecuted: true,
+} as any;
+
 export function TaskToolPlayground() {
   const [scenario, setScenario] = useState<Scenario>("output-available");
 
@@ -57,12 +66,22 @@ export function TaskToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <AgentTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

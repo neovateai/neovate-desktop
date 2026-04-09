@@ -1,9 +1,15 @@
+import { LogOut } from "lucide-react";
+
 import type { ExitPlanModeUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 
 export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToolInvocation }) {
-  // Hide while approval dialog is active (same pattern as AskUserQuestionTool)
   if (
     !invocation ||
     invocation.state === "input-streaming" ||
@@ -15,8 +21,11 @@ export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToo
   const { state, output } = invocation;
 
   return (
-    <Tool>
-      <ToolHeader type="tool-ExitPlanMode" state={state} title="Exit Plan Mode" />
+    <Tool state={state}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={LogOut} />
+        Exit Plan Mode
+      </ToolHeader>
       <ToolContent>
         <p className="text-sm text-muted-foreground">{output}</p>
       </ToolContent>

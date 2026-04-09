@@ -1,8 +1,16 @@
 "use client";
 
+import { HelpCircle } from "lucide-react";
+
 import type { AskUserQuestionUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { Tool, ToolContent, ToolHeader, ToolOutput } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+  ToolOutput,
+} from "../../../../components/ai-elements/tool";
 
 type Props = {
   invocation: AskUserQuestionUIToolInvocation & { type: "tool-AskUserQuestion" };
@@ -18,11 +26,14 @@ export function AskUserQuestionTool({ invocation }: Props) {
     return null;
   }
 
-  const { state, output, type } = invocation;
+  const { state, output } = invocation;
 
   return (
-    <Tool defaultOpen>
-      <ToolHeader title="Ask User Question" type={type} state={state} />
+    <Tool state={state} defaultOpen>
+      <ToolHeader>
+        <ToolHeaderIcon icon={HelpCircle} />
+        Ask User Question
+      </ToolHeader>
       <ToolContent>
         <ToolOutput output={output} />
       </ToolContent>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { TaskStopTool } from "../../../../features/agent/components/tool-parts/task-stop-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-TaskStop",
@@ -24,6 +24,15 @@ const outputAvailableInvocation = {
     success: true,
     message: "Task stopped.",
   },
+  providerExecuted: true,
+} as any;
+
+const outputErrorInvocation = {
+  type: "tool-TaskStop",
+  toolCallId: "task-stop-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Task not found: task-42",
   providerExecuted: true,
 } as any;
 
@@ -49,12 +58,22 @@ export function TaskStopToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <TaskStopTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

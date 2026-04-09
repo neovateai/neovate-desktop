@@ -3,7 +3,7 @@ import { useState } from "react";
 import { TodoWriteTool } from "../../../../features/agent/components/tool-parts/todo-write-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const input = {
   todos: [
@@ -42,6 +42,15 @@ const outputAvailableInvocation = {
   providerExecuted: true,
 } as any;
 
+const outputErrorInvocation = {
+  type: "tool-TodoWrite",
+  toolCallId: "todo-write-output-error",
+  state: "output-error",
+  input,
+  errorText: "Failed to update todo list: invalid task status",
+  providerExecuted: true,
+} as any;
+
 export function TodoWriteToolPlayground() {
   const [scenario, setScenario] = useState<Scenario>("output-available");
 
@@ -64,12 +73,22 @@ export function TodoWriteToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <TodoWriteTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

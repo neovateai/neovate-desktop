@@ -3,7 +3,7 @@ import { useState } from "react";
 import { GlobTool } from "../../../../features/agent/components/tool-parts/glob-tool";
 import { PlaygroundPage, rendererRoot, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-Glob",
@@ -24,6 +24,15 @@ const outputAvailableInvocation = {
   output: `agent-tool.tsx
 bash-tool.tsx
 write-tool.tsx`,
+  providerExecuted: true,
+} as any;
+
+const outputErrorInvocation = {
+  type: "tool-Glob",
+  toolCallId: "glob-tool-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Pattern syntax error: unmatched bracket in '**/*tool[*.tsx'",
   providerExecuted: true,
 } as any;
 
@@ -49,12 +58,22 @@ export function GlobToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <GlobTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

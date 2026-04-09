@@ -3,7 +3,7 @@ import { useState } from "react";
 import { SkillTool } from "../../../../features/agent/components/tool-parts/skill-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-Skill",
@@ -23,6 +23,15 @@ const outputAvailableInvocation = {
   input: inputAvailableInvocation.input,
   output:
     "Loaded /frontend-design. Keep the chrome consistent and make the scenario toggles feel native.",
+  providerExecuted: true,
+} as any;
+
+const outputErrorInvocation = {
+  type: "tool-Skill",
+  toolCallId: "skill-tool-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Skill not found: frontend-design",
   providerExecuted: true,
 } as any;
 
@@ -48,12 +57,22 @@ export function SkillToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <SkillTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>
