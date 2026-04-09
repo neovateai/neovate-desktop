@@ -32,6 +32,12 @@ export class TelegramAdapter implements RemoteControlPlatformAdapter {
     const tgConfig = config as TelegramConfig;
     if (!tgConfig.botToken) throw new Error("Bot token is required");
 
+    // Guard: stop any lingering bot instance before starting a new one.
+    // Uses stopBot() — NOT stop() — to preserve event listeners registered by the service.
+    if (this.bot) {
+      await this.stopBot();
+    }
+
     this.bot = new Bot(tgConfig.botToken);
 
     if (this.pairingMode) {
@@ -40,30 +46,37 @@ export class TelegramAdapter implements RemoteControlPlatformAdapter {
       this.setupNormalMode(tgConfig);
     }
 
-    // Error handler
     this.bot.catch((err) => {
       log("bot error: %O", err);
       this.emitter.emit("error", err.error ?? err);
     });
 
-    // Start long polling (non-blocking)
-    this.bot.start({
-      onStart: () => {
-        log("Telegram bot started (pairing=%s)", this.pairingMode);
-        this.running = true;
-      },
-    });
+    this.running = true;
+
+    const bot = this.bot;
+    bot
+      .start({
+        onStart: () => {
+          log("Telegram polling established (pairing=%s)", this.pairingMode);
+          if (!this.pairingMode) {
+            void bot.api.setMyCommands([...BOT_COMMANDS]).catch((err) => {
+              log("failed to set commands: %O", err);
+            });
+          }
+        },
+      })
+      .then(() => {
+        // bot.start() resolves when polling stops (graceful or fatal).
+        // Guard: skip if stop() already handled teardown — avoids double-emit.
+        if (this.running) {
+          this.running = false;
+          this.emitter.emit("status", { platformId: this.id, status: "disconnected" });
+        }
+      });
   }
 
   async stop(): Promise<void> {
-    log("stopping bot (was running=%s)", this.running);
-    this.running = false;
-    try {
-      await this.bot?.stop();
-    } catch {
-      // grammY may throw if already stopped
-    }
-    this.bot = null;
+    await this.stopBot();
     this.emitter.removeAllListeners();
   }
 
@@ -174,7 +187,29 @@ export class TelegramAdapter implements RemoteControlPlatformAdapter {
     this.emitter.removeAllListeners();
   }
 
+  async testConnection(): Promise<{ ok: boolean; error?: string; botUsername?: string }> {
+    if (!this.bot) return { ok: false, error: "Bot not started" };
+    try {
+      const me = await this.bot.api.getMe();
+      return { ok: true, botUsername: me.username };
+    } catch (err) {
+      return { ok: false, error: `Cannot reach Telegram API: ${(err as Error).message}` };
+    }
+  }
+
   // ── Internal ──
+
+  /** Tear down the bot instance only — does NOT touch event listeners. */
+  private async stopBot(): Promise<void> {
+    log("stopping bot (was running=%s)", this.running);
+    this.running = false;
+    try {
+      await this.bot?.stop();
+    } catch {
+      // grammY may throw if already stopped
+    }
+    this.bot = null;
+  }
 
   private setupPairingMode(): void {
     if (!this.bot) return;
@@ -211,10 +246,7 @@ export class TelegramAdapter implements RemoteControlPlatformAdapter {
       this.emitter.emit("callback", toCallbackMessage(ctx));
     });
 
-    // Register commands with Telegram
-    void this.bot.api.setMyCommands([...BOT_COMMANDS]).catch((err) => {
-      log("failed to set commands: %O", err);
-    });
+    // setMyCommands is called in the onStart callback after polling is confirmed
   }
 
   private formatOutbound(text: string): string {

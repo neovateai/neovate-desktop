@@ -234,13 +234,19 @@ export class RemoteControlService {
     const adapter = this.registry.get(platformId);
     if (!adapter) return { ok: false, error: "Unknown platform" };
 
-    // For Telegram, we can test by trying to start and immediately get bot info
-    // This is adapter-specific; for now we check if the adapter is running
-    if (adapter.isRunning()) {
-      return { ok: true };
+    if (!adapter.isRunning()) {
+      return { ok: false, error: "Adapter is not running" };
     }
 
-    return { ok: false, error: "Adapter is not running" };
+    if (adapter.testConnection) {
+      try {
+        return await adapter.testConnection();
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    }
+
+    return { ok: true };
   }
 
   // ── Status ──
