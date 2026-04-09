@@ -1,11 +1,10 @@
 import { oc, type, eventIterator } from "@orpc/contract";
 
-export interface FileTreeItem {
+interface FileTreeItem {
   fullPath: string;
   relPath: string;
   fileName: string;
   isFolder: boolean;
-  children: FileTreeItem[];
 }
 
 export const fileErrorCodes = ["already_exists", "path_required", "not_found", "unknown"] as const;

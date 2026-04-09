@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { FileTreeItem } from "../../../../../shared/plugins/files/contract";
+import { FileNodeItem } from "./useFileData";
 
 interface ClipboardItem {
   sourcePath: string;
@@ -10,27 +10,14 @@ interface ClipboardItem {
 interface UseTreeKeyboardShortcutsOptions {
   cwd: string;
   selectedKeys: Set<string>;
-  editingKey: string | null;
-  treeData: FileTreeItem[];
+  renamingKey: string;
+  pendingCreation?: { type: "file" | "folder"; parentPath: string } | null;
+  nodes: FileNodeItem[];
   clipboardItem: ClipboardItem | null;
-  onSetEditingKey: (key: string | null) => void;
-  onCopy: (item: FileTreeItem) => void;
-  onCut: (item: FileTreeItem) => void;
+  onRenameStart?: (key: string) => void;
+  onCopy: (item: FileNodeItem) => void;
+  onCut: (item: FileNodeItem) => void;
   onPaste: (targetDir: string) => void;
-}
-
-/**
- * Helper function to find a tree item by path recursively
- */
-function findTreeItemByPath(items: FileTreeItem[], path: string): FileTreeItem | null {
-  for (const item of items) {
-    if (item.fullPath === path) return item;
-    if (item.children) {
-      const found = findTreeItemByPath(item.children, path);
-      if (found) return found;
-    }
-  }
-  return null;
 }
 
 /**
@@ -61,7 +48,7 @@ function isInputFocused(): boolean {
  * If a file is selected, use its parent directory
  * If a folder is selected, use the folder itself
  */
-function getTargetDirForPaste(item: FileTreeItem): string {
+function getTargetDirForPaste(item: FileNodeItem): string {
   return item.isFolder ? item.fullPath : item.fullPath.substring(0, item.fullPath.lastIndexOf("/"));
 }
 
@@ -73,10 +60,11 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
   const {
     cwd,
     selectedKeys,
-    editingKey,
-    treeData,
+    renamingKey,
+    pendingCreation,
+    nodes,
     clipboardItem,
-    onSetEditingKey,
+    onRenameStart,
     onCopy,
     onCut,
     onPaste,
@@ -91,7 +79,7 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
       const isModKey = isMac ? e.metaKey : e.ctrlKey;
 
       // Cmd/Ctrl + V: paste (can work even without selection - pastes to root)
-      if (e.key === "v" && isModKey && clipboardItem && !editingKey) {
+      if (e.key === "v" && isModKey && clipboardItem && !renamingKey) {
         e.preventDefault();
 
         // If no selection/ multiple selections, paste to root (cwd)
@@ -102,7 +90,7 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
 
         // Single selection - determine target directory
         const selectedPath = [...selectedKeys][0];
-        const item = findTreeItemByPath(treeData, selectedPath);
+        const item = nodes.find((i) => i.fullPath === selectedPath);
 
         // If item not found or is root, paste to cwd
         if (!item || item.relPath === "") {
@@ -119,27 +107,32 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
       if (selectedKeys.size !== 1) return;
 
       const selectedPath = [...selectedKeys][0];
-      const item = findTreeItemByPath(treeData, selectedPath);
+      const item = nodes.find((i) => i.fullPath === selectedPath);
 
       // Skip root item (empty relPath) and if item not found
       if (!item || item.relPath === "") return;
 
+      // 正在编辑/创建，不响应文件树键盘操作（重命名、复制粘贴剪切）
+      if (renamingKey || !!pendingCreation) {
+        return;
+      }
+
       // Enter key: start rename mode
-      if (e.key === "Enter" && !editingKey) {
+      if (e.key === "Enter") {
         e.preventDefault();
-        onSetEditingKey(selectedPath);
+        onRenameStart?.(selectedPath);
         return;
       }
 
       // Cmd/Ctrl + C: copy
-      if (e.key === "c" && isModKey && !editingKey) {
+      if (e.key === "c" && isModKey) {
         e.preventDefault();
         onCopy(item);
         return;
       }
 
       // Cmd/Ctrl + X: cut
-      if (e.key === "x" && isModKey && !editingKey) {
+      if (e.key === "x" && isModKey) {
         e.preventDefault();
         onCut(item);
         return;
@@ -151,10 +144,10 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
   }, [
     cwd,
     selectedKeys,
-    editingKey,
-    treeData,
+    renamingKey,
+    nodes,
     clipboardItem,
-    onSetEditingKey,
+    pendingCreation,
     onCopy,
     onCut,
     onPaste,
