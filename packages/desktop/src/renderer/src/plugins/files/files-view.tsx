@@ -292,7 +292,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       const result = await client.files.createFile({ path: fullPath });
       if (result.success) {
-        select(fullPath);
+        setTimeout(() => {
+          select(fullPath);
+        }, 1500); // simple delay to wait for data loaded
       } else {
         toastManager.add({
           type: "error",
@@ -314,11 +316,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     try {
       const result = await client.files.createFolder({ path: fullPath });
       if (result.success) {
-        // Expand parent folder to show the new folder
-        expand(parentPath);
         setTimeout(() => {
           select(fullPath);
-        }, 500); // simple delay to wait for data loaded
+        }, 1500);
       } else {
         toastManager.add({
           type: "error",
