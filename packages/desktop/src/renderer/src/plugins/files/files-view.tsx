@@ -81,10 +81,14 @@ function FilesViewComponent({ project }: FilesViewProps) {
     reset,
     focus,
     toggleExpand,
+    expand,
     renameStart,
     renameEnd,
     renameEffect,
     renamingKey,
+    pendingCreation,
+    createStart,
+    createEnd,
   } = useFileData({
     cwd,
     watch: startWatcher,
@@ -162,7 +166,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
           setTimeout(async () => {
             refreshTimersRef.current.delete(dir);
             fetchChildren(dir);
-            // updateChildrenInTree(dir, children);
           }, REFRESH_DEBOUNCE_MS),
         );
       },
@@ -193,7 +196,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
     cwd,
     selectedKeys: selectedKeys,
     renamingKey,
-    nodes, // TODO:
+    pendingCreation,
+    nodes,
     clipboardItem,
     onRenameStart: renameStart,
     onCopy: (node) => handleCopy(node),
@@ -270,14 +274,25 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
   };
 
-  const handleCreateFile = async (parentPath: string, name: string) => {
+  const handleCreate = async (newNode: { parentPath: string; name: string; isFolder: boolean }) => {
+    const { parentPath, name, isFolder } = newNode || {};
+    if (!parentPath || !name) {
+      return;
+    }
+    if (!isFolder) {
+      createFile(parentPath, name);
+    } else {
+      createFolder(parentPath, name);
+    }
+  };
+
+  const createFile = async (parentPath: string, name: string) => {
     const fullPath = `${parentPath}/${name}`;
     log("create file", { parentPath, name, fullPath });
     try {
       const result = await client.files.createFile({ path: fullPath });
       if (result.success) {
         select(fullPath);
-        // Watcher will automatically sync the file system changes
       } else {
         toastManager.add({
           type: "error",
@@ -293,18 +308,17 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
   };
 
-  const handleCreateFolder = async (parentPath: string, name: string) => {
+  const createFolder = async (parentPath: string, name: string) => {
     const fullPath = `${parentPath}/${name}`;
     log("create folder", { parentPath, name, fullPath });
     try {
       const result = await client.files.createFolder({ path: fullPath });
       if (result.success) {
-        select(fullPath);
         // Expand parent folder to show the new folder
-        if (!expandedKeys.has(parentPath)) {
-          expandedKeys.add(parentPath);
-        }
-        // Watcher will automatically sync the file system changes
+        expand(parentPath);
+        setTimeout(() => {
+          select(fullPath);
+        }, 500); // simple delay to wait for data loaded
       } else {
         toastManager.add({
           type: "error",
@@ -401,7 +415,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
       // Use timeout to ensure panel is fully rendered
       setTimeout(() => {
         focus(pathToReveal);
-        // revealFile(pathToReveal, true);
       }, PANEL_VISIBLE_DELAY_MS);
     }
   }, [isVisible]);
@@ -421,7 +434,6 @@ function FilesViewComponent({ project }: FilesViewProps) {
         }
         revealTimerRef.current = setTimeout(() => {
           focus(activeTab.fullPath);
-          // revealFileRef.current(activeTab.fullPath);
         }, DEBOUNCE_REVEAL_MS);
       }
     };
@@ -480,6 +492,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
         renameStart,
         renameEnd,
         renamingKey,
+        pendingCreation,
+        createStart,
+        createEnd,
       }}
     >
       <div className="flex h-full flex-col p-3 overflow-hidden">
@@ -507,12 +522,12 @@ function FilesViewComponent({ project }: FilesViewProps) {
                   key={item.fullPath}
                   item={item}
                   level={0}
+                  onExpand={expand}
                   onToggleExpand={toggleExpand}
                   onSelect={handleSelect}
                   onDelete={handleDelete}
                   onRename={handleRename}
-                  onCreateFile={handleCreateFile}
-                  onCreateFolder={handleCreateFolder}
+                  onCreate={handleCreate}
                   onAdd={handleAddContext}
                   onCopy={handleCopy}
                   onCut={handleCut}

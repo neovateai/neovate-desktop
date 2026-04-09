@@ -26,6 +26,9 @@ interface IFileTreeContext {
   renamingKey: string;
   renameStart?: (key: string) => void;
   renameEnd?: () => void;
+  pendingCreation: { type: "file" | "folder"; parentPath: string } | null;
+  createStart?: (type: "file" | "folder", parentPath: string) => void;
+  createEnd?: () => void;
 }
 
 export const FileTreeContext = createContext<IFileTreeContext>({
@@ -33,6 +36,7 @@ export const FileTreeContext = createContext<IFileTreeContext>({
   expandedKeys: new Set(),
   selectedKeys: new Set(),
   renamingKey: "",
+  pendingCreation: null,
 });
 /**
  * 使用扁平化结构管理文件树数据以换取更灵活的节点更新能力，避免复杂tree节点数据的merge 和 update
@@ -44,6 +48,7 @@ export function useFileData(opts: IUseFileTreeOpts) {
   const expandedKeys = useOperationKeys(); // dirs expanded or ever expanded
   const selectedKeys = useOperationKeys(); // dirs expanded or ever expanded
   const [renamingKey, setRenamingKey] = useState("");
+  const [pendingCreation, setPendingCreation] = useState<IFileTreeContext["pendingCreation"]>(null);
   const [nodes, setNodes] = useState<FileNodeItem[]>([]);
   const nodesRef = useRef<FileNodeItem[]>([]);
   nodesRef.current = nodes;
@@ -82,14 +87,23 @@ export function useFileData(opts: IUseFileTreeOpts) {
       const nextNodes = nodesRef.current.filter((i) => !subKeys.includes(i.fullPath));
       setNodes(nextNodes);
     } else {
+      expand(key);
+    }
+  };
+  const expand = useCallback(
+    (key: string) => {
+      if (expandedKeys.has(key)) {
+        return;
+      }
       // 打开节点，当前节点以及历史打开的子目录节点，进行数据加载
       expandedKeys.add(key);
       // 下属曾经打开的节点也要重新加载数据
       const subKeys = getSubKeys(key, [...expandedKeys.keys]);
       const keysToLoad = [...new Set([key, ...subKeys])];
       doLoad(keysToLoad, nodesRef.current);
-    }
-  };
+    },
+    [expandedKeys, doLoad],
+  );
   /** 插入特定目录下的子节点数据，并启动对该目录的监听 */
   const updateNodeDir = useCallback(
     (dir: string, files: Omit<FileNodeItem, "parentPath">[]) => {
@@ -143,6 +157,13 @@ export function useFileData(opts: IUseFileTreeOpts) {
   }, []);
   const renameEnd = useCallback(() => {
     setRenamingKey("");
+  }, []);
+
+  const createStart = useCallback((type: "file" | "folder", parentPath: string) => {
+    setPendingCreation({ type, parentPath });
+  }, []);
+  const createEnd = useCallback(() => {
+    setPendingCreation(null);
   }, []);
 
   const renameEffect = (preKey: string, newKey: string) => {
@@ -224,9 +245,11 @@ export function useFileData(opts: IUseFileTreeOpts) {
     updateNodeDir,
     nodes,
     toggleExpand,
+    expand,
     expandedKeys: expandedKeys.keys,
     selectedKeys: selectedKeys.keys,
     renamingKey,
+    pendingCreation,
     reset,
     select,
     cancelSelect,
@@ -235,6 +258,10 @@ export function useFileData(opts: IUseFileTreeOpts) {
     renameStart,
     /** 结束重命名状态 */
     renameEnd,
+    /** 开始创建文件/文件夹状态 */
+    createStart,
+    /** 结束创建文件/文件夹状态 */
+    createEnd,
     /** 重命名成功后，处理伴生副作用 */
     renameEffect,
     /** 聚焦选中 */

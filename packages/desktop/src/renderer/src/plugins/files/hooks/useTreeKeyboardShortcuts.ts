@@ -11,6 +11,7 @@ interface UseTreeKeyboardShortcutsOptions {
   cwd: string;
   selectedKeys: Set<string>;
   renamingKey: string;
+  pendingCreation?: { type: "file" | "folder"; parentPath: string } | null;
   nodes: FileNodeItem[];
   clipboardItem: ClipboardItem | null;
   onRenameStart?: (key: string) => void;
@@ -60,6 +61,7 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
     cwd,
     selectedKeys,
     renamingKey,
+    pendingCreation,
     nodes,
     clipboardItem,
     onRenameStart,
@@ -110,7 +112,8 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
       // Skip root item (empty relPath) and if item not found
       if (!item || item.relPath === "") return;
 
-      if (renamingKey) {
+      // 正在编辑/创建，不响应文件树键盘操作（重命名、复制粘贴剪切）
+      if (renamingKey || !!pendingCreation) {
         return;
       }
 

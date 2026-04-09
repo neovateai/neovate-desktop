@@ -18,11 +18,11 @@ interface TreeNodeProps {
   item: FileNodeItem;
   level: number;
   onToggleExpand: (key: string) => void;
+  onExpand: (key: string) => void;
   onSelect?: (item: FileNodeItem) => void;
   onDelete?: (item: FileNodeItem) => void;
   onRename?: (oldPath: string, newPath: string) => Promise<boolean | void> | boolean | void;
-  onCreateFile?: (parentPath: string, name: string) => void;
-  onCreateFolder?: (parentPath: string, name: string) => void;
+  onCreate?: (newNode: { parentPath: string; name: string; isFolder: boolean }) => void;
   onAdd?: (item: FileNodeItem) => void;
   onCopy?: (item: FileNodeItem) => void;
   onCut?: (item: FileNodeItem) => void;
@@ -49,12 +49,12 @@ function FileLangIcon(props: { path: string; size?: number }) {
 export function TreeNode({
   item,
   level,
+  onExpand,
   onToggleExpand,
   onSelect,
   onDelete,
   onRename,
-  onCreateFile,
-  onCreateFolder,
+  onCreate,
   onAdd,
   onCopy,
   onCut,
@@ -62,19 +62,30 @@ export function TreeNode({
   canPaste,
   cutSourcePath,
 }: TreeNodeProps) {
-  const { nodes, expandedKeys, selectedKeys, renamingKey, renameStart, renameEnd } =
-    useContext(FileTreeContext);
+  const {
+    nodes,
+    expandedKeys,
+    selectedKeys,
+    renamingKey,
+    renameStart,
+    renameEnd,
+    pendingCreation,
+    createStart,
+    createEnd,
+  } = useContext(FileTreeContext);
   const childNodes = nodes.filter((i) => i.parentPath === item.fullPath);
   const { t } = useFilesTranslation();
   const { fileName = "" } = item || {};
-  const isEditing = renamingKey === item.fullPath;
+
   const [editingName, setEditingName] = useState(fileName);
-  const [isCreating, setIsCreating] = useState(false);
-  const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
   const [creatingName, setCreatingName] = useState("");
   const [isHovered, setIsHovered] = useState(false);
   // Optimistic UI: pending name for rename operation
   const [pendingFileName, setPendingFileName] = useState<string | null>(null);
+
+  const isEditing = renamingKey === item.fullPath;
+  const isCreating = item.isFolder && pendingCreation?.parentPath === item.fullPath;
+  const creatingType = isCreating ? pendingCreation?.type : "";
 
   useEffect(() => {
     if (isEditing) {
@@ -92,6 +103,16 @@ export function TreeNode({
   const isExpanded = expandedKeys.has(item.fullPath);
   const isSelected = selectedKeys.has(item.fullPath);
   const isCutting = cutSourcePath === item.fullPath;
+  const [showCreator, setShowCreator] = useState(false);
+
+  // 用户触发新建-触发展开，进入创建态-展开完成&处于创建态-出现creator
+  useEffect(() => {
+    if (item.isFolder && expandedKeys.has(item.fullPath) && isCreating) {
+      setShowCreator(true);
+    } else {
+      setShowCreator(false);
+    }
+  }, [item.fullPath, item.isFolder, expandedKeys, isCreating]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -211,42 +232,91 @@ export function TreeNode({
   };
 
   const handleCreateFile = () => {
-    setIsCreating(true);
-    setCreatingType("file");
+    if (!item.isFolder) {
+      return;
+    }
+    onExpand?.(item.fullPath);
+    createStart?.("file", item.fullPath);
     setCreatingName("");
   };
 
   const handleCreateFolder = () => {
-    setIsCreating(true);
-    setCreatingType("folder");
+    if (!item.isFolder) {
+      return;
+    }
+    createStart?.("folder", item.fullPath);
+    onExpand?.(item.fullPath);
     setCreatingName("");
   };
 
   const handleFinishCreate = () => {
-    if (creatingName) {
+    if (creatingName && creatingType) {
       const parentPath = getParentPath();
-      if (creatingType === "file" && onCreateFile) {
-        onCreateFile(parentPath, creatingName);
-      } else if (creatingType === "folder" && onCreateFolder) {
-        onCreateFolder(parentPath, creatingName);
-      }
+      onCreate?.({
+        parentPath,
+        name: creatingName,
+        isFolder: creatingType === "folder",
+      });
     }
-    setIsCreating(false);
-    setCreatingType(null);
+    createEnd?.();
     setCreatingName("");
   };
 
   const handleCancelCreate = () => {
-    setIsCreating(false);
-    setCreatingType(null);
+    createEnd?.();
     setCreatingName("");
   };
 
   const paddingLeft = level * 16 + 12;
 
+  const renderCreator = () => {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 hover:bg-accent hover:text-accent-foreground rounded-sm">
+        <div className="w-4 h-4 flex items-center justify-center">
+          <HugeiconsIcon
+            icon={creatingType === "folder" ? Folder02Icon : File02Icon}
+            size={18}
+            strokeWidth={1.5}
+          />
+        </div>
+        <span className="flex-1 text-sm ml-2 cursor-pointer">
+          <input
+            type="text"
+            placeholder={
+              creatingType === "file" ? t("newFilePlaceholder") : t("newFolderPlaceholder")
+            }
+            value={creatingName}
+            onChange={(e) => setCreatingName(e.target.value)}
+            onBlur={() => {
+              console.log("blur");
+              handleFinishCreate();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.stopPropagation();
+                handleFinishCreate();
+              } else if (e.key === "Escape") {
+                e.stopPropagation();
+                handleCancelCreate();
+              }
+            }}
+            className="w-full bg-background border border-border rounded px-2 py-1"
+            autoFocus
+          />
+        </span>
+      </div>
+    );
+  };
+
   return (
     <>
-      <ContextMenu>
+      <ContextMenu
+        onOpenChange={(open) => {
+          if (open) {
+            onSelect?.(item);
+          }
+        }}
+      >
         <ContextMenuTrigger>
           <div
             className={cn(
@@ -317,34 +387,7 @@ export function TreeNode({
         </ContextMenuPopup>
       </ContextMenu>
 
-      {isCreating && (
-        <div className="flex items-center gap-1 px-2 py-1 hover:bg-accent hover:text-accent-foreground rounded-sm">
-          <div className="w-4 h-4 flex items-center justify-center">
-            <HugeiconsIcon
-              icon={creatingType === "folder" ? Folder02Icon : File02Icon}
-              size={18}
-              strokeWidth={1.5}
-            />
-          </div>
-          <span className="flex-1 text-sm ml-2 cursor-pointer">
-            <input
-              type="text"
-              placeholder={
-                creatingType === "file" ? t("newFilePlaceholder") : t("newFolderPlaceholder")
-              }
-              value={creatingName}
-              onChange={(e) => setCreatingName(e.target.value)}
-              onBlur={handleFinishCreate}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleFinishCreate();
-                if (e.key === "Escape") handleCancelCreate();
-              }}
-              className="w-full bg-background border border-border rounded px-2 py-1"
-              autoFocus
-            />
-          </span>
-        </div>
-      )}
+      {showCreator && renderCreator()}
 
       {isExpanded && !!childNodes.length && (
         <div>
@@ -354,11 +397,11 @@ export function TreeNode({
               item={child}
               level={level + 1}
               onToggleExpand={onToggleExpand}
+              onExpand={onExpand}
               onSelect={onSelect}
               onDelete={onDelete}
               onRename={onRename}
-              onCreateFile={onCreateFile}
-              onCreateFolder={onCreateFolder}
+              onCreate={onCreate}
               onAdd={onAdd}
               onCopy={onCopy}
               onCut={onCut}
