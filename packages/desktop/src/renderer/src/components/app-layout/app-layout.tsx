@@ -13,7 +13,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
-import { type ReactNode, Suspense, lazy, useRef } from "react";
+import { useEffect, useState, type ReactNode, Suspense, lazy, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SeparatorId } from "./types";
@@ -32,6 +32,7 @@ import { ProjectSelector } from "../../features/project/components/project-selec
 import { useProjectStore } from "../../features/project/store";
 import { useSettingsStore } from "../../features/settings";
 import { cn } from "../../lib/utils";
+import { client } from "../../orpc";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import {
@@ -126,11 +127,28 @@ export function AppLayoutTrafficLights() {
   const isOpen = !collapsed;
   const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
 
+  // 全屏状态：全屏时菜单按钮靠左，非全屏时靠近红绿灯按钮
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  useEffect(() => {
+    // 初始获取全屏状态
+    client.electron.window
+      .isFullScreen()
+      .then(setIsFullScreen)
+      .catch(() => {});
+    // 监听全屏状态变化
+    const unsubscribe = window.api.onFullScreenChange(setIsFullScreen);
+    return unsubscribe;
+  }, []);
+
+  // 非全屏：left: 82 (靠近红绿灯按钮)
+  // 全屏：left: 12 (靠左)
+  const leftPosition = isFullScreen ? 12 : 82;
+
   return (
     <div
       data-slot="traffic-lights"
       className="[-webkit-app-region:no-drag] pointer-events-auto fixed z-[100] flex items-center gap-1"
-      style={{ top: 9, left: 82 }}
+      style={{ top: 9, left: leftPosition }}
     >
       <Button
         variant="ghost"
