@@ -4,7 +4,7 @@ import { cn } from "../../../lib/utils";
 
 interface SettingsGroupProps {
   title: string;
-  description?: string;
+  description?: ReactNode;
   children: ReactNode;
   className?: string;
 }
