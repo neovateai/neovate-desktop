@@ -36,6 +36,7 @@ export class RemoteControlService {
   private commandHandler: CommandHandler;
   private configStore: Store;
   private statusListeners: StatusListener[] = [];
+  private inboundDedup = new Map<string, number>();
   private pairingState = new Map<
     string,
     {
@@ -75,7 +76,6 @@ export class RemoteControlService {
       const config = this.loadConfig(adapter.id);
       if (config?.enabled) {
         try {
-          this.subscribeToAdapter(adapter);
           await this.startAdapter(adapter, config);
           this.restoreLinks(adapter);
         } catch (err) {
@@ -129,10 +129,8 @@ export class RemoteControlService {
 
     // Restart
     if (adapter.isRunning()) await this.stopAdapter(adapter);
-    this.subscribeToAdapter(adapter);
     try {
       await this.startAdapter(adapter, config);
-      this.emitStatus({ platformId, status: "connected" });
     } catch (err) {
       log("restart failed for %s: %O", platformId, err);
       this.emitStatus({ platformId, status: "error", error: String(err) });
@@ -149,7 +147,6 @@ export class RemoteControlService {
 
     // Stop and restart in pairing mode
     if (adapter.isRunning()) await this.stopAdapter(adapter);
-    this.subscribeToAdapter(adapter);
 
     const config = this.loadConfig(platformId) ?? { enabled: true };
     await this.startAdapter(adapter, config);
@@ -178,7 +175,6 @@ export class RemoteControlService {
     if (adapter.isRunning()) await this.stopAdapter(adapter);
     const config = this.loadConfig(platformId);
     if (config?.enabled) {
-      this.subscribeToAdapter(adapter);
       await this.startAdapter(adapter, config);
     }
   }
@@ -359,7 +355,11 @@ export class RemoteControlService {
 
   // ── Internal ──
 
-  private subscribeToAdapter(adapter: RemoteControlPlatformAdapter): void {
+  private async startAdapter(
+    adapter: RemoteControlPlatformAdapter,
+    config: PlatformConfig,
+  ): Promise<void> {
+    adapter.removeAllListeners();
     adapter.on("message", (msg) => void this.onMessage(adapter, msg));
     adapter.on("callback", (msg) => void this.onCallback(adapter, msg));
     adapter.on("error", (err) => {
@@ -384,12 +384,7 @@ export class RemoteControlService {
     adapter.on("status", (event) => {
       this.emitStatus(event);
     });
-  }
 
-  private async startAdapter(
-    adapter: RemoteControlPlatformAdapter,
-    config: PlatformConfig,
-  ): Promise<void> {
     await adapter.start(config);
     log("started adapter: %s", adapter.id);
     this.emitStatus({ platformId: adapter.id, status: "connected" });
@@ -400,10 +395,26 @@ export class RemoteControlService {
     log("stopped adapter: %s", adapter.id);
   }
 
+  private isDuplicateInbound(adapter: RemoteControlPlatformAdapter, msg: InboundMessage): boolean {
+    const now = Date.now();
+    for (const [k, t] of this.inboundDedup) {
+      if (now - t > 2000) this.inboundDedup.delete(k);
+    }
+    const identity = msg.callbackData ?? msg.text.slice(0, 80);
+    const dedupKey = `${adapter.id}:${msg.ref.chatId}:${msg.timestamp}:${identity}`;
+    if (this.inboundDedup.has(dedupKey)) {
+      log("suppressed duplicate inbound: platform=%s chat=%s", adapter.id, msg.ref.chatId);
+      return true;
+    }
+    this.inboundDedup.set(dedupKey, now);
+    return false;
+  }
+
   private async onMessage(
     adapter: RemoteControlPlatformAdapter,
     msg: InboundMessage,
   ): Promise<void> {
+    if (this.isDuplicateInbound(adapter, msg)) return;
     log(
       "inbound message: platform=%s chat=%s text=%s",
       adapter.id,
@@ -450,6 +461,7 @@ export class RemoteControlService {
     adapter: RemoteControlPlatformAdapter,
     msg: InboundMessage,
   ): Promise<void> {
+    if (this.isDuplicateInbound(adapter, msg)) return;
     if (!msg.callbackData) return;
 
     const [domain, action, ...idParts] = msg.callbackData.split(":");
