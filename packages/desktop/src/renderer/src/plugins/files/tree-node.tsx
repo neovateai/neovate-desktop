@@ -17,6 +17,7 @@ import { useFilesTranslation } from "./i18n";
 interface TreeNodeProps {
   item: FileNodeItem;
   level: number;
+  cutSourcePath?: string | null;
   onToggleExpand: (key: string) => void;
   onExpand: (key: string) => void;
   onSelect?: (item: FileNodeItem) => void;
@@ -28,8 +29,11 @@ interface TreeNodeProps {
   onCut?: (item: FileNodeItem) => void;
   onPaste?: (targetPath: string) => void;
   canPaste?: (targetPath: string) => boolean;
-  cutSourcePath?: string | null;
+  onReveal?: (item: FileNodeItem) => void;
 }
+
+type MenuItem = { label: string; action: () => void; variant?: "destructive" };
+type MenuGroup = MenuItem[];
 
 function FileLangIcon(props: { path: string; size?: number }) {
   const { path = "", size = 18 } = props;
@@ -61,6 +65,7 @@ export function TreeNode({
   onPaste,
   canPaste,
   cutSourcePath,
+  onReveal,
 }: TreeNodeProps) {
   const {
     nodes,
@@ -145,54 +150,6 @@ export function TreeNode({
   };
   const canPasteHere = canPaste?.(getTargetDir()) ?? false;
 
-  const menuItems = [
-    ...(item.isFolder
-      ? [
-          {
-            label: t("contextMenu.newFile"),
-            action: () => handleCreateFile(),
-          },
-          {
-            label: t("contextMenu.newFolder"),
-            action: () => handleCreateFolder(),
-          },
-        ]
-      : []),
-    ...(item.relPath !== ""
-      ? [
-          {
-            label: t("contextMenu.copy"),
-            action: () => onCopy?.(item),
-          },
-          {
-            label: t("contextMenu.cut"),
-            action: () => onCut?.(item),
-          },
-        ]
-      : []),
-    ...(item.isFolder && canPasteHere
-      ? [
-          {
-            label: t("contextMenu.paste"),
-            action: () => onPaste?.(getTargetDir()),
-          },
-        ]
-      : []),
-    ...(item.relPath !== ""
-      ? [
-          {
-            label: t("contextMenu.rename"),
-            action: () => handleStartRename(),
-          },
-          {
-            label: t("contextMenu.delete"),
-            action: () => handleDelete(),
-            variant: "destructive" as const,
-          },
-        ]
-      : []),
-  ];
-
   const handleStartRename = () => {
     renameStart?.(item.fullPath);
     setEditingName(fileName);
@@ -266,6 +223,69 @@ export function TreeNode({
     createEnd?.();
     setCreatingName("");
   };
+
+  const buildMenu = (): MenuGroup[] => {
+    const groups: MenuGroup[] = [];
+
+    // Group 1: New file/folder, Reveal in Finder
+    const creationItems: MenuItem[] = [];
+    if (item.isFolder) {
+      creationItems.push({ label: t("contextMenu.newFile"), action: handleCreateFile });
+      creationItems.push({ label: t("contextMenu.newFolder"), action: handleCreateFolder });
+    }
+    if (item.relPath !== "") {
+      creationItems.push({
+        // TODO: 后续如果要支持Windows，这里的表述要调整，mac 下是访达，windows 下应该是资源管理器
+        label: t("contextMenu.revealInFinder"),
+        action: () => onReveal?.(item),
+      });
+    }
+    if (creationItems.length > 0) {
+      groups.push(creationItems);
+    }
+
+    // Group 2: Copy, Cut, Paste
+    const clipboardItems: MenuItem[] = [];
+    if (item.relPath !== "") {
+      clipboardItems.push({ label: t("contextMenu.copy"), action: () => onCopy?.(item) });
+      clipboardItems.push({ label: t("contextMenu.cut"), action: () => onCut?.(item) });
+    }
+    if (item.isFolder && canPasteHere) {
+      clipboardItems.push({
+        label: t("contextMenu.paste"),
+        action: () => onPaste?.(getTargetDir()),
+      });
+    }
+    if (clipboardItems.length > 0) {
+      groups.push(clipboardItems);
+    }
+
+    // Group 3: Copy Path
+    if (item.relPath !== "") {
+      groups.push([
+        {
+          label: t("contextMenu.copyFullPath"),
+          action: () => navigator.clipboard.writeText(item.fullPath),
+        },
+        {
+          label: t("contextMenu.copyRelativePath"),
+          action: () => navigator.clipboard.writeText(item.relPath),
+        },
+      ]);
+    }
+
+    // Group 4: Rename, Delete (delete is always last)
+    if (item.relPath !== "") {
+      groups.push([
+        { label: t("contextMenu.rename"), action: handleStartRename },
+        { label: t("contextMenu.delete"), action: handleDelete, variant: "destructive" },
+      ]);
+    }
+
+    return groups;
+  };
+
+  const menuGroups = buildMenu();
 
   const paddingLeft = level * 16 + 12;
 
@@ -375,13 +395,19 @@ export function TreeNode({
           </div>
         </ContextMenuTrigger>
         <ContextMenuPopup>
-          {menuItems.map((menuItem, index) => (
-            <div key={index}>
-              {index === menuItems.length - 1 && <ContextMenuSeparator />}
-              <ContextMenuItem onClick={menuItem.action} data-variant={menuItem.variant}>
-                {menuItem.label}
-              </ContextMenuItem>
-            </div>
+          {menuGroups.map((group, groupIndex) => (
+            <React.Fragment key={groupIndex}>
+              {groupIndex > 0 && <ContextMenuSeparator />}
+              {group.map((menuItem, itemIndex) => (
+                <ContextMenuItem
+                  key={itemIndex}
+                  onClick={menuItem.action}
+                  data-variant={menuItem.variant}
+                >
+                  {menuItem.label}
+                </ContextMenuItem>
+              ))}
+            </React.Fragment>
           ))}
         </ContextMenuPopup>
       </ContextMenu>
@@ -407,6 +433,7 @@ export function TreeNode({
               onPaste={onPaste}
               canPaste={canPaste}
               cutSourcePath={cutSourcePath}
+              onReveal={onReveal}
             />
           ))}
         </div>

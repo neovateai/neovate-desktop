@@ -220,6 +220,19 @@ function FilesViewComponent({ project }: FilesViewProps) {
       window.pendingEditorRequest = { fullPath: item.fullPath };
     }
   };
+
+  const handleReveal = async (item: FileNodeItem) => {
+    log("reveal in file manager", { path: item.fullPath });
+    const result = await client.files.revealInFileManager({ path: item.fullPath });
+    if (!result.success && result.error) {
+      toastManager.add({
+        type: "error",
+        title: t("contextMenu.revealInFinder"),
+        description: result.error,
+      });
+    }
+  };
+
   const handleDelete = (item: FileNodeItem) => {
     setItemToDelete(item);
     setDeleteConfirmOpen(true);
@@ -533,6 +546,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
                   onCut={handleCut}
                   onPaste={handlePaste}
                   canPaste={canPaste}
+                  onReveal={handleReveal}
                   cutSourcePath={
                     clipboardItem?.operation === "cut" ? clipboardItem.sourcePath : null
                   }

@@ -1,4 +1,5 @@
 import debug from "debug";
+import { shell } from "electron";
 import fs from "fs";
 import path from "path";
 
@@ -91,10 +92,18 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       try {
         const { path: folderPath } = data || {};
         if (!folderPath) {
-          return { success: false, error: "Path is required", errorCode: "path_required" };
+          return {
+            success: false,
+            error: "Path is required",
+            errorCode: "path_required",
+          };
         }
         if (fs.existsSync(folderPath)) {
-          return { success: false, error: "Folder already exists", errorCode: "already_exists" };
+          return {
+            success: false,
+            error: "Folder already exists",
+            errorCode: "already_exists",
+          };
         }
         fs.mkdirSync(folderPath, { recursive: true });
         log("folder created", { path: folderPath });
@@ -113,10 +122,18 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
       try {
         const { path: filePath } = data || {};
         if (!filePath) {
-          return { success: false, error: "Path is required", errorCode: "path_required" };
+          return {
+            success: false,
+            error: "Path is required",
+            errorCode: "path_required",
+          };
         }
         if (fs.existsSync(filePath)) {
-          return { success: false, error: "File already exists", errorCode: "already_exists" };
+          return {
+            success: false,
+            error: "File already exists",
+            errorCode: "already_exists",
+          };
         }
         // Ensure parent directory exists
         const parentDir = path.dirname(filePath);
@@ -136,12 +153,18 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
     }),
     copy: orpcServer.handler(async ({ input }) => {
       const data = input as { sourcePath: string; targetPath: string };
-      log("copyFile requested", { sourcePath: data?.sourcePath, targetPath: data?.targetPath });
+      log("copyFile requested", {
+        sourcePath: data?.sourcePath,
+        targetPath: data?.targetPath,
+      });
       return copyFile(data?.sourcePath, data?.targetPath);
     }),
     move: orpcServer.handler(async ({ input }) => {
       const data = input as { sourcePath: string; targetPath: string };
-      log("moveFile requested", { sourcePath: data?.sourcePath, targetPath: data?.targetPath });
+      log("moveFile requested", {
+        sourcePath: data?.sourcePath,
+        targetPath: data?.targetPath,
+      });
       return moveFile(data?.sourcePath, data?.targetPath);
     }),
     watch: orpcServer.handler(async function* ({ input, signal }) {
@@ -182,6 +205,27 @@ export function createFilesRouter(orpcServer: PluginContext["orpcServer"]) {
           return;
         }
         log("file watch error", e);
+      }
+    }),
+    revealInFileManager: orpcServer.handler(async ({ input }) => {
+      const data = input as { path: string };
+      log("revealInFileManager requested", { path: data?.path });
+      try {
+        const { path: filePath } = data || {};
+        if (!filePath) {
+          throw new Error("Path is required");
+        }
+        if (!fs.existsSync(filePath)) {
+          throw new Error("Path does not exist");
+        }
+        shell.showItemInFolder(filePath);
+        return { success: true };
+      } catch (error) {
+        log("revealInFileManager error", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error occurred",
+        };
       }
     }),
   });

@@ -37,4 +37,7 @@ export const filesContract = {
     .input(type<{ sourcePath: string; targetPath: string }>())
     .output(type<FileSystemOperation>()),
   watch: oc.input(type<{ cwd: string }>()).output(eventIterator(type<FileWatchEvent>())),
+  revealInFileManager: oc
+    .input(type<{ path: string }>())
+    .output(type<{ success: boolean; error?: string }>()),
 };
