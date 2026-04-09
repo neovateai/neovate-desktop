@@ -288,7 +288,6 @@ export function TreeNode({
             value={creatingName}
             onChange={(e) => setCreatingName(e.target.value)}
             onBlur={() => {
-              console.log("blur");
               handleFinishCreate();
             }}
             onKeyDown={(e) => {

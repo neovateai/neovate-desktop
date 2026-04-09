@@ -141,5 +141,15 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cwd, selectedKeys, renamingKey, nodes, clipboardItem, onCopy, onCut, onPaste]);
+  }, [
+    cwd,
+    selectedKeys,
+    renamingKey,
+    nodes,
+    clipboardItem,
+    pendingCreation,
+    onCopy,
+    onCut,
+    onPaste,
+  ]);
 }
