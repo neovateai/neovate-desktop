@@ -6,6 +6,11 @@ const dialogContract = {
   showOpenDialog: oc.input(type<OpenDialogOptions>()).output(type<OpenDialogReturnValue>()),
 };
 
+const windowContract = {
+  isFullScreen: oc.output(type<boolean>()),
+};
+
 export const electronContract = {
   dialog: dialogContract,
+  window: windowContract,
 };

@@ -124,8 +124,14 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     win.on("move", debouncedSave);
     win.on("maximize", debouncedSave);
     win.on("unmaximize", debouncedSave);
-    win.on("enter-full-screen", debouncedSave);
-    win.on("leave-full-screen", debouncedSave);
+    win.on("enter-full-screen", () => {
+      debouncedSave();
+      win.webContents.send("window:fullscreen-change", true);
+    });
+    win.on("leave-full-screen", () => {
+      debouncedSave();
+      win.webContents.send("window:fullscreen-change", false);
+    });
 
     // Analytics: track foreground/background transitions
     win.on("focus", () => {
@@ -157,7 +163,15 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       saveState();
       if (process.platform === "darwin" && !this.#isQuitting) {
         e.preventDefault();
-        win.hide();
+        // 在全屏模式下先退出全屏，然后再隐藏窗口，避免黑屏
+        if (win.isFullScreen()) {
+          win.once("leave-full-screen", () => {
+            win.hide();
+          });
+          win.setFullScreen(false);
+        } else {
+          win.hide();
+        }
         return;
       }
       // Windows/Linux: confirm before closing (which triggers quit)

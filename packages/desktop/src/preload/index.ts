@@ -25,6 +25,13 @@ const api = {
     ipcRenderer.on("popup-window:shown", callback);
     return () => ipcRenderer.removeListener("popup-window:shown", callback);
   },
+  onFullScreenChange: (callback: (isFullScreen: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, isFullScreen: boolean) => {
+      callback(isFullScreen);
+    };
+    ipcRenderer.on("window:fullscreen-change", handler);
+    return () => ipcRenderer.removeListener("window:fullscreen-change", handler);
+  },
 };
 
 if (process.contextIsolated) {
