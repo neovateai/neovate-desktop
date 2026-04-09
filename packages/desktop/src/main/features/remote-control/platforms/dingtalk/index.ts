@@ -37,6 +37,7 @@ export class DingTalkAdapter implements RemoteControlPlatformAdapter {
   readonly displayName = "DingTalk";
   readonly maxMessageLength = 5000;
   readonly supportsEditing = false;
+  readonly supportsInlineKeyboard = false;
 
   private client: DWClient | null = null;
   private emitter = new EventEmitter();
@@ -178,10 +179,8 @@ export class DingTalkAdapter implements RemoteControlPlatformAdapter {
 
     let text = msg.text;
 
-    // Render inline actions as numbered list
+    // Store inline actions for number-reply routing (list rendering handled by service layer)
     if (msg.inlineActions && msg.inlineActions.length > 0) {
-      const list = msg.inlineActions.map((a, i) => `${i + 1}. ${a.label}`).join("\n");
-      text = `${text}\n\n${list}\n\nReply with a number to select.`;
       this.pendingActions.set(msg.ref.chatId, msg.inlineActions);
     }
 

@@ -6,6 +6,7 @@ import { safeStorage } from "electron";
 import type {
   ConversationRef,
   InboundMessage,
+  InlineAction,
   PlatformConfig,
   PlatformStatus,
   PlatformStatusEvent,
@@ -416,6 +417,38 @@ export class RemoteControlService {
     return false;
   }
 
+  /**
+   * Send a message with optional inline actions, adapting to platform capabilities.
+   *
+   * @param actionsInText - Set `true` when the caller has already rendered
+   *   the actions as a numbered list inside `text` (e.g. /chats, /start).
+   *   When false (default), text-only adapters will append the list.
+   *   Keyboard-capable adapters always use native buttons regardless.
+   */
+  private async sendWithActions(
+    adapter: RemoteControlPlatformAdapter,
+    ref: ConversationRef,
+    text: string,
+    actions?: InlineAction[],
+    actionsInText = false,
+  ): Promise<void> {
+    if (!actions?.length) {
+      await adapter.sendMessage({ ref, text });
+      return;
+    }
+    if (adapter.supportsInlineKeyboard) {
+      await adapter.sendMessage({ ref, text, inlineActions: actions });
+      return;
+    }
+    // Text-only platform: append numbered list only if caller didn't already render it
+    if (!actionsInText) {
+      const list = actions.map((a, i) => `${i + 1}. ${a.label}`).join("\n");
+      text = `${text}\n\n${list}`;
+    }
+    text = `${text}\n\nReply with a number to select.`;
+    await adapter.sendMessage({ ref, text, inlineActions: actions });
+  }
+
   private async onMessage(
     adapter: RemoteControlPlatformAdapter,
     msg: InboundMessage,
@@ -431,22 +464,28 @@ export class RemoteControlService {
     // Try command first
     const cmdResult = await this.commandHandler.handle(msg);
     if (cmdResult) {
-      await adapter.sendMessage({
-        ref: msg.ref,
-        text: cmdResult.text,
-        inlineActions: cmdResult.actions,
-      });
+      await this.sendWithActions(adapter, msg.ref, cmdResult.text, cmdResult.actions, true);
       return;
     }
 
     // Forward to linked session
-    const sessionId = this.linkStore.getSessionId(msg.ref);
+    let sessionId = this.linkStore.getSessionId(msg.ref);
     if (!sessionId) {
-      await adapter.sendMessage({
-        ref: msg.ref,
-        text: "No active session linked to this chat. Use /chats to pick one.",
-      });
-      return;
+      const activeSessions = this.sessionManager.getActiveSessions();
+      if (activeSessions.length === 1) {
+        // Auto-link the only active session and forward silently
+        const only = activeSessions[0];
+        sessionId = only.sessionId;
+        this.linkStore.save(msg.ref, sessionId);
+        this.bridge.subscribeSession(sessionId, msg.ref, adapter);
+      } else {
+        const hint =
+          activeSessions.length === 0
+            ? "No active sessions. Use /new to create one."
+            : `${activeSessions.length} sessions available. Use /chats to pick one.`;
+        await adapter.sendMessage({ ref: msg.ref, text: hint });
+        return;
+      }
     }
 
     // Verify session still exists
@@ -509,11 +548,13 @@ export class RemoteControlService {
         timestamp: Date.now(),
       });
       if (cmdResult) {
-        await adapter.sendMessage({
+        await this.sendWithActions(
+          adapter,
           ref,
-          text: `Session unlinked.\n\n${cmdResult.text}`,
-          inlineActions: cmdResult.actions,
-        });
+          `Session unlinked.\n\n${cmdResult.text}`,
+          cmdResult.actions,
+          true,
+        );
       } else {
         await adapter.sendMessage({ ref, text: "Session unlinked." });
       }
@@ -585,23 +626,22 @@ export class RemoteControlService {
         .filter((s) => s.cwd === project.path);
 
       if (sessions.length > 0) {
-        await adapter.sendMessage({
-          ref,
-          text: `Sessions in ${project.path}:`,
-          inlineActions: [
-            ...sessions.map((s) => ({
-              label: `Session ${s.sessionId.slice(0, 8)}`,
-              callbackData: `session:select:${s.sessionId}`,
-            })),
-            { label: "New session", callbackData: `session:new:${id}` },
-          ],
-        });
+        const actions = [
+          ...sessions.map((s) => ({
+            label: `Session ${s.sessionId.slice(0, 8)}`,
+            callbackData: `session:select:${s.sessionId}`,
+          })),
+          { label: "New session", callbackData: `session:new:${id}` },
+        ];
+        await this.sendWithActions(adapter, ref, `Sessions in ${project.path}:`, actions);
       } else {
-        await adapter.sendMessage({
+        const actions = [{ label: "Create", callbackData: `session:new:${id}` }];
+        await this.sendWithActions(
+          adapter,
           ref,
-          text: `No sessions in ${project.path}. Create one?`,
-          inlineActions: [{ label: "Create", callbackData: `session:new:${id}` }],
-        });
+          `No sessions in ${project.path}. Create one?`,
+          actions,
+        );
       }
     }
   }

@@ -72,7 +72,7 @@ export class CommandHandler {
     const sessions = await this.getEnrichedSessions(ref);
     if (sessions.length === 0) {
       return {
-        text: "Welcome to ${APP_NAME}! No active sessions. Use /new to create one, or /repos to browse projects.",
+        text: `Welcome to ${APP_NAME}! No active sessions. Use /new to create one, or /repos to browse projects.`,
       };
     }
 

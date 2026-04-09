@@ -28,6 +28,7 @@ export interface RemoteControlPlatformAdapter {
   readonly displayName: string;
   readonly maxMessageLength: number;
   readonly supportsEditing: boolean;
+  readonly supportsInlineKeyboard: boolean;
 
   // Lifecycle
   start(config: PlatformConfig): Promise<void>;
