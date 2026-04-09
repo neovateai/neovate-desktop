@@ -231,14 +231,14 @@ export default function TerminalView() {
       if (event.type !== "keydown" || !modifier) return true;
       if (event.key === "k") {
         xterm.clear();
-        return false;
-      }
-      if (event.key === "f") {
+      } else if (event.key === "f") {
         setSearchVisible(true);
         requestAnimationFrame(() => searchInputRef.current?.focus());
-        return false;
+      } else {
+        return true;
       }
-      return true;
+      event.stopPropagation();
+      return false;
     });
 
     const abortController = new AbortController();
