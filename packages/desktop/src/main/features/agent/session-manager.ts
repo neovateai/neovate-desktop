@@ -133,6 +133,7 @@ export class SessionManager {
 
   private lifecycleListeners: Array<(event: SessionLifecycleEvent) => void> = [];
   private emittedCreatedSessions = new Set<string>();
+  private closingSessions = new Set<string>();
 
   constructor(
     private configStore: ConfigStore,
@@ -791,12 +792,21 @@ export class SessionManager {
         Math.round(performance.now() - t0),
       );
 
+    if (this.closingSessions.has(sessionId)) {
+      log("closeSession: no-op, already closing sessionId=%s", sessionId);
+      return;
+    }
     const session = this.sessions.get(sessionId);
     if (!session) {
       log("closeSession: no-op, unknown sessionId=%s", sessionId);
       return;
     }
-    session.query.close();
+    this.closingSessions.add(sessionId);
+    try {
+      session.query.close();
+    } catch (err) {
+      log("closeSession: query.close error sessionId=%s err=%o", sessionId, err);
+    }
     el("query.close");
     for (const [requestId, pending] of session.pendingRequests) {
       pending.resolve({ behavior: "deny", message: "Session closed" });
@@ -805,6 +815,7 @@ export class SessionManager {
     el("pendingRequests.settled");
     this.sessions.delete(sessionId);
     this.emittedCreatedSessions.delete(sessionId);
+    this.closingSessions.delete(sessionId);
     this.requestTracker.clearSession(sessionId);
     this.powerBlocker.onSessionClosed(sessionId);
     el("cleanup.done");
