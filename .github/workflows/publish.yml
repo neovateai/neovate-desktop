@@ -1,4 +1,4 @@
-name: Release macOS
+name: Release
 
 on:
   push:
@@ -60,13 +60,113 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Build and publish
+      - name: Build
         working-directory: packages/desktop
-        run: bun run build && bunx electron-builder --mac --${{ matrix.arch }} --config configs/electron-builder.mjs --publish=always
+        run: bun run build && bunx electron-builder --mac --${{ matrix.arch }} --config configs/electron-builder.mjs --publish=never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: |
+            packages/desktop/release/*.dmg
+            packages/desktop/release/*.zip
+            packages/desktop/release/*.blockmap
+            packages/desktop/release/latest-mac.yml
+
+  build-win:
+    needs: preflight
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build
+        working-directory: packages/desktop
+        run: bun run build && bunx electron-builder --win --x64 --config configs/electron-builder.mjs --publish=never
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x64
+          path: |
+            packages/desktop/release/*.exe
+            packages/desktop/release/*.blockmap
+            packages/desktop/release/latest.yml
+
+  publish:
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Merge latest-mac.yml
+        run: |
+          node <<'SCRIPT'
+          const fs = require("fs");
+
+          function parse(text) {
+            const obj = { files: [] };
+            let cur;
+            for (const line of text.split("\n")) {
+              if (/^version:\s*(.+)/.test(line)) obj.version = RegExp.$1.trim();
+              else if (/^path:\s*(.+)/.test(line)) obj.path = RegExp.$1.trim();
+              else if (/^sha512:\s*(.+)/.test(line) && !cur) obj.sha512 = RegExp.$1.trim();
+              else if (/^releaseDate:\s*'?(.+?)'?\s*$/.test(line)) obj.releaseDate = RegExp.$1;
+              else if (/^\s+-\s*url:\s*(.+)/.test(line)) { cur = { url: RegExp.$1.trim() }; obj.files.push(cur); }
+              else if (cur && /^\s+sha512:\s*(.+)/.test(line)) cur.sha512 = RegExp.$1.trim();
+              else if (cur && /^\s+size:\s*(\d+)/.test(line)) cur.size = Number(RegExp.$1);
+            }
+            return obj;
+          }
+
+          function serialize(obj) {
+            let s = `version: ${obj.version}\nfiles:\n`;
+            for (const f of obj.files)
+              s += `  - url: ${f.url}\n    sha512: ${f.sha512}\n    size: ${f.size}\n`;
+            s += `path: ${obj.path}\nsha512: ${obj.sha512}\nreleaseDate: '${obj.releaseDate}'\n`;
+            return s;
+          }
+
+          const arm64 = parse(fs.readFileSync("artifacts/mac-arm64/latest-mac.yml", "utf8"));
+          const x64 = parse(fs.readFileSync("artifacts/mac-x64/latest-mac.yml", "utf8"));
+          const merged = { ...arm64, files: [...arm64.files, ...x64.files] };
+          fs.writeFileSync("artifacts/latest-mac.yml", serialize(merged));
+          SCRIPT
+      - name: Create draft release
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --draft \
+            --title "${GITHUB_REF_NAME#v}" \
+            --notes "" \
+            artifacts/mac-arm64/*.dmg \
+            artifacts/mac-arm64/*.dmg.blockmap \
+            artifacts/mac-arm64/*.zip \
+            artifacts/mac-arm64/*.zip.blockmap \
+            artifacts/mac-x64/*.dmg \
+            artifacts/mac-x64/*.dmg.blockmap \
+            artifacts/mac-x64/*.zip \
+            artifacts/mac-x64/*.zip.blockmap \
+            artifacts/win-x64/*.exe \
+            artifacts/win-x64/*.blockmap \
+            artifacts/latest-mac.yml \
+            artifacts/win-x64/latest.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
