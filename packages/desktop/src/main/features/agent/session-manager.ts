@@ -5,6 +5,7 @@ import type {
   SDKSessionInfo,
   PermissionMode as SDKPermissionMode,
   SpawnedProcess,
+  McpServerConfig,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { EventPublisher } from "@orpc/server";
@@ -102,6 +103,14 @@ const ENV_BLOCKLIST = new Set([
   "DYLD_INSERT_LIBRARIES",
 ]);
 
+type AdditionalMcpServersProvider = (context: {
+  cwd: string;
+  sessionId: string;
+}) =>
+  | Promise<Record<string, McpServerConfig> | undefined>
+  | Record<string, McpServerConfig>
+  | undefined;
+
 export class SessionManager {
   // Single global publisher — sessionId is the channel key
   readonly eventPublisher = new EventPublisher<Record<string, ClaudeCodeUIEvent>>();
@@ -141,6 +150,7 @@ export class SessionManager {
     private requestTracker: RequestTracker,
     private powerBlocker: PowerBlockerService,
     private getAgentContributions: () => Contributions["agents"] = () => [],
+    private getAdditionalMcpServers?: AdditionalMcpServersProvider,
   ) {}
 
   onLifecycle(listener: (event: SessionLifecycleEvent) => void): () => void {
@@ -175,10 +185,12 @@ export class SessionManager {
     sessionId,
     model,
     cwd,
+    mcpServers,
   }: {
     sessionId: string;
     model?: string;
     cwd: string;
+    mcpServers?: Record<string, McpServerConfig>;
   }): Options {
     const resolved = resolveClaudeCodeExecutable(
       this.configStore.get("claudeCodeBinPath") || undefined,
@@ -202,6 +214,7 @@ export class SessionManager {
         type: "preset",
         preset: "claude_code",
       },
+      ...(mcpServers ? { mcpServers } : {}),
       canUseTool: async (toolName, input, { signal, ...options }) => {
         const requestId = randomUUID();
         const session = this.sessions.get(sessionId);
@@ -561,10 +574,25 @@ export class SessionManager {
       this.requestTracker.markInspectorEnabled(sessionId);
     }
 
+    let mcpServers: Record<string, McpServerConfig> | undefined;
+    if (this.getAdditionalMcpServers) {
+      try {
+        mcpServers = await this.getAdditionalMcpServers({ cwd, sessionId });
+      } catch (error) {
+        log(
+          "initSession: failed to resolve additional MCP servers sessionId=%s cwd=%s error=%O",
+          sessionId,
+          cwd,
+          error,
+        );
+      }
+    }
+
     const queryOpts = this.queryOptions({
       sessionId,
       cwd,
       model: opts?.model,
+      mcpServers,
     });
     // Merge plugin-contributed hooks with built-in hooks (RTK)
     const mergedHooks = mergeAgentHooks(this.getAgentContributions());

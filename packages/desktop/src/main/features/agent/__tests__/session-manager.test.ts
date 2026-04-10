@@ -85,6 +85,30 @@ describe("SessionManager", () => {
     expect(queryOptions.includePartialMessages).toBe(true);
   });
 
+  it("includes injected MCP servers in query options", () => {
+    const queryOptions = (manager as any).queryOptions({
+      sessionId: "session-1",
+      cwd: "/tmp/project",
+      mcpServers: {
+        debug: {
+          type: "sdk",
+          name: "debug",
+          version: "1.0.0",
+          instance: {},
+        },
+      },
+    });
+
+    expect(queryOptions.mcpServers).toEqual({
+      debug: {
+        type: "sdk",
+        name: "debug",
+        version: "1.0.0",
+        instance: {},
+      },
+    });
+  });
+
   it("send() converts UIMessage to SDKUserMessage and pushes to input", async () => {
     const input = { push: vi.fn() };
     const queryMessages = new Pushable<any>();
