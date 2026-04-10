@@ -153,6 +153,8 @@ app.whenReady().then(async () => {
   startupLog("app.whenReady fired %s", elapsed());
   electronApp.setAppUserModelId("com.neovateai.desktop");
 
+  configStore.migrateApiKeys();
+
   await mainApp.start();
   startupLog("mainApp.start done %s", elapsed());
   void updaterService.init();
