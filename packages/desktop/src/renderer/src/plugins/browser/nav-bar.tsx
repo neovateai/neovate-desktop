@@ -11,11 +11,12 @@ interface NavBarProps {
   canGoBack: boolean;
   canGoForward: boolean;
   isInspecting: boolean;
+  isDevToolsOpen: boolean;
   onNavigate: (url: string) => void;
   onGoBack: () => void;
   onGoForward: () => void;
   onReload: () => void;
-  onOpenDevTools: () => void;
+  onToggleDevTools: () => void;
   onToggleInspector: () => void;
 }
 
@@ -35,11 +36,12 @@ export function NavBar({
   canGoBack,
   canGoForward,
   isInspecting,
+  isDevToolsOpen,
   onNavigate,
   onGoBack,
   onGoForward,
   onReload,
-  onOpenDevTools,
+  onToggleDevTools,
   onToggleInspector,
 }: NavBarProps) {
   const { t } = useTranslation("plugin-browser");
@@ -119,8 +121,9 @@ export function NavBar({
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={onOpenDevTools}
+        onClick={onToggleDevTools}
         aria-label={t("nav.devtools")}
+        className={isDevToolsOpen ? "bg-muted" : ""}
       >
         <PanelBottom className="size-4" />
       </Button>

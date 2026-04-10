@@ -25,6 +25,7 @@ import { RemoteControlService } from "./features/remote-control/remote-control-s
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
+import browserPlugin from "./plugins/browser";
 import changesPlugin from "./plugins/changes";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
@@ -85,7 +86,7 @@ const stateStore = new StateStore();
 const llmService = new LlmService(configStore, shellEnvService);
 const mainApp = new MainApp({
   appName: app.getName(),
-  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
+  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin, browserPlugin],
   llmService,
 });
 const updaterService = new UpdaterService({

@@ -13,6 +13,7 @@ interface WebviewElement extends HTMLElement {
   goForward(): void;
   reload(): void;
   openDevTools(): void;
+  getWebContentsId(): number;
   executeJavaScript(code: string, userGesture?: boolean): Promise<unknown>;
 }
 
