@@ -25,6 +25,7 @@ import { AttachmentPreview } from "./attachment-preview";
 import { GradientBorderWrapper } from "./gradient-border-wrapper";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
+import { ChatLink } from "./link-extension";
 import { createMentionExtension } from "./mention-extension";
 import { QueryStatus } from "./query-status";
 import { createSlashCommandsExtension } from "./slash-commands-extension";
@@ -173,6 +174,7 @@ export function MessageInput({
         codeBlock: false,
         strike: false,
         horizontalRule: false,
+        link: false, // Use custom ChatLink instead
       }),
       Placeholder.configure({
         placeholder: () => {
@@ -184,6 +186,7 @@ export function MessageInput({
       mentionExtension,
       slashCommandsExtension,
       imagePasteExtension,
+      ChatLink,
       Extension.create({
         name: "chatKeymap",
         addProseMirrorPlugins() {
@@ -312,16 +315,133 @@ export function MessageInput({
       },
       transformPastedHTML(html) {
         const doc = new DOMParser().parseFromString(html, "text/html");
-        const text = doc.body.innerText || "";
+        const parts: string[] = [];
+
+        const blockElements = new Set([
+          "p",
+          "div",
+          "section",
+          "article",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "li",
+          "tr",
+          "blockquote",
+          "pre",
+        ]);
+
+        // 列表缩进空格数
+        const INDENT_SIZE = 2;
+
+        function isValidUrl(str: string): boolean {
+          try {
+            const url = new URL(str);
+            return ["http:", "https:", "ftp:"].includes(url.protocol);
+          } catch {
+            return false;
+          }
+        }
+
+        function escapeHtml(text: string): string {
+          return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        }
+
+        // 跟踪有序列表的序号
+        const olCounters: number[] = [];
+
+        function walk(node: Node, listDepth: number): void {
+          if (node.nodeType === Node.TEXT_NODE) {
+            // 保留文本节点中的所有空白（包括缩进）
+            const text = node.textContent || "";
+            if (text) parts.push(escapeHtml(text));
+            return;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+          const el = node as Element;
+          const tagName = el.tagName.toLowerCase();
+
+          // 处理链接：提取 href 而非文本内容
+          if (tagName === "a") {
+            const href = el.getAttribute("href");
+            if (href && isValidUrl(href)) {
+              parts.push(href);
+              return;
+            }
+          }
+
+          // 处理换行元素
+          if (tagName === "br") {
+            parts.push("\n");
+            return;
+          }
+
+          // 处理无序列表开始
+          if (tagName === "ul") {
+            // 递归遍历子节点，增加列表深度
+            for (const child of Array.from(el.childNodes)) {
+              walk(child, listDepth + 1);
+            }
+            return;
+          }
+
+          // 处理有序列表开始
+          if (tagName === "ol") {
+            olCounters.push(1);
+            for (const child of Array.from(el.childNodes)) {
+              walk(child, listDepth + 1);
+            }
+            olCounters.pop();
+            return;
+          }
+
+          // 处理列表项：添加缩进和前缀
+          if (tagName === "li") {
+            // 使用 \u00A0 (non-breaking space) 确保缩进在 HTML 中显示
+            const indent = "\u00A0".repeat(Math.max(0, listDepth - 1) * INDENT_SIZE);
+            const isOl = olCounters.length > 0;
+
+            if (isOl) {
+              const counter = olCounters[olCounters.length - 1];
+              parts.push(`${indent}${counter}. `);
+              olCounters[olCounters.length - 1] = counter + 1;
+            } else {
+              parts.push(`${indent}- `);
+            }
+
+            // 遍历子节点（不增加深度，因为 li 本身就是一层）
+            for (const child of Array.from(el.childNodes)) {
+              walk(child, listDepth);
+            }
+            parts.push("\n");
+            return;
+          }
+
+          // 递归遍历子节点
+          for (const child of Array.from(el.childNodes)) {
+            walk(child, listDepth);
+          }
+
+          // 块级元素后添加换行
+          if (blockElements.has(tagName)) {
+            parts.push("\n");
+          }
+        }
+
+        walk(doc.body, 0);
+
+        // 合并并转换为段落结构
+        // 使用 white-space: pre-wrap 保留前导空格（缩进）
+        const text = parts.join("");
         return text
           .split("\n")
           .map((line) => {
             if (!line) return "<p></p>";
-            const escaped = line
-              .replaceAll("&", "&amp;")
-              .replaceAll("<", "&lt;")
-              .replaceAll(">", "&gt;");
-            return `<p>${escaped}</p>`;
+            return `<p style="white-space: pre-wrap;">${line}</p>`;
           })
           .join("");
       },
