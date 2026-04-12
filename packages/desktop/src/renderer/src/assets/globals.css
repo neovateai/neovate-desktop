@@ -387,12 +387,8 @@
     padding: 0.125rem 0.25rem;
     font-weight: 500;
     text-decoration: none;
-    cursor: pointer;
-  }
-
-  .tiptap .chat-link:hover {
-    background: --alpha(var(--primary) / 20%);
-    text-decoration: underline;
+    cursor: text;
+    pointer-events: none;
   }
 
   .tiptap .inline-slash-ghost {

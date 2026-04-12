@@ -25,7 +25,7 @@ import { AttachmentPreview } from "./attachment-preview";
 import { GradientBorderWrapper } from "./gradient-border-wrapper";
 import { createImagePasteExtension } from "./image-paste-extension";
 import { InputToolbar } from "./input-toolbar";
-import { ChatLink } from "./link-extension";
+import { ChatLink, ExitLinkOnSpace } from "./link-extension";
 import { createMentionExtension } from "./mention-extension";
 import { QueryStatus } from "./query-status";
 import { createSlashCommandsExtension } from "./slash-commands-extension";
@@ -187,6 +187,7 @@ export function MessageInput({
       slashCommandsExtension,
       imagePasteExtension,
       ChatLink,
+      ExitLinkOnSpace,
       Extension.create({
         name: "chatKeymap",
         addProseMirrorPlugins() {
@@ -365,11 +366,14 @@ export function MessageInput({
           const el = node as Element;
           const tagName = el.tagName.toLowerCase();
 
-          // 处理链接：提取 href 而非文本内容
+          // 处理链接：保留链接结构，使用 href 作为显示文本
           if (tagName === "a") {
             const href = el.getAttribute("href");
             if (href && isValidUrl(href)) {
-              parts.push(href);
+              // 生成带 chat-link class 的链接，确保高亮显示
+              parts.push(
+                `<a href="${href}" class="chat-link" target="_blank" rel="noopener noreferrer">${href}</a>`,
+              );
               return;
             }
           }
@@ -441,6 +445,15 @@ export function MessageInput({
           .split("\n")
           .map((line) => {
             if (!line) return "<p></p>";
+            // 如果已经包含链接标签，直接返回
+            if (line.includes("<a href=")) {
+              return `<p style="white-space: pre-wrap;">${line}</p>`;
+            }
+            // 如果整行是一个有效 URL，包装为链接
+            const trimmed = line.trim();
+            if (isValidUrl(trimmed) && trimmed === line.trim()) {
+              return `<p style="white-space: pre-wrap;"><a href="${trimmed}" class="chat-link" target="_blank" rel="noopener noreferrer">${trimmed}</a></p>`;
+            }
             return `<p style="white-space: pre-wrap;">${line}</p>`;
           })
           .join("");
