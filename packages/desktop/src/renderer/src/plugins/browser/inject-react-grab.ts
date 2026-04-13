@@ -19,6 +19,30 @@ const PLUGIN_SETUP = `
       },
       onDeactivate: function() {
         console.log('BROWSER_PLUGIN:' + JSON.stringify({ active: false }));
+      },
+      onElementSelect: function(element) {
+        var tagName = element.tagName ? element.tagName.toLowerCase() : '';
+        var displayName = api.getDisplayName(element) || undefined;
+        const id = element.id;
+        const content = element.outerHTML;
+        api.getSource(element).then(function(source) {
+          console.log('BROWSER_PLUGIN:' + JSON.stringify({
+            type: 'select',
+            id,
+            tagName: tagName,
+            content,
+            componentName: displayName,
+            filePath: source ? source.filePath : undefined,
+            lineNumber: source ? source.lineNumber : undefined
+          }));
+        });
+      },
+      onCopySuccess: function(elements, content) {
+        console.log('BROWSER_PLUGIN:' + JSON.stringify({
+          type: 'copy',
+          content: content,
+          elementCount: elements.length
+        }));
       }
     }
   });
@@ -32,11 +56,13 @@ const PLUGIN_SETUP = `
 
 export const INJECT_SCRIPT = `
 (function() {
+  console.log("start")
+  /** Part 1: React grab **/
   if (window.__REACT_GRAB__) {
     ${PLUGIN_SETUP}
-    return;
+  } else {
+    ${reactGrabSource}
+    ${PLUGIN_SETUP}
   }
-  ${reactGrabSource}
-  ${PLUGIN_SETUP}
 })();
 `;

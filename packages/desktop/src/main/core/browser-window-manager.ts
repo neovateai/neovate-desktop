@@ -106,6 +106,14 @@ export class BrowserWindowManager implements IBrowserWindowManager {
       }
       return { action: "deny" };
     });
+    // handle webview tag window opener
+    win.webContents.on("did-attach-webview", (e, webContent) => {
+      webContent.setWindowOpenHandler((details) => {
+        // 将新窗口请求转为当前 webview 内导航
+        webContent.loadURL(details.url);
+        return { action: "deny" };
+      });
+    });
 
     this.#fixDevToolsFonts(win);
 

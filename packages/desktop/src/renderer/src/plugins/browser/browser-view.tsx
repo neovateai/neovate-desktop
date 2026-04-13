@@ -74,8 +74,24 @@ export default function BrowserView() {
     const onConsoleMessage = (e: Event & { message: string }) => {
       if (!e.message.startsWith(GRAB_PREFIX)) return;
       try {
-        const { active } = JSON.parse(e.message.slice(GRAB_PREFIX.length));
-        if (active !== undefined) setIsInspecting(active);
+        const body = JSON.parse(e.message.slice(GRAB_PREFIX.length));
+        if (body?.active !== undefined) {
+          setIsInspecting(body.active);
+        } else if (body?.type === "copy") {
+          // TODO: 当前只简单处理，作为体验功能，后续完善
+          if (body.content) {
+            const mentionContent = body.content.slice(0, 200);
+            log("insert-chat dispatching mention=%s", mentionContent);
+            window.dispatchEvent(
+              new CustomEvent("neovate:insert-chat", {
+                detail: {
+                  mentions: [{ id: `${Date.now()}`, label: mentionContent }],
+                },
+              }),
+            );
+          }
+        }
+        // 此外还有select事件，暂不消费
       } catch {
         // ignore parse errors
       }
@@ -85,6 +101,7 @@ export default function BrowserView() {
     webview.addEventListener("did-start-loading", onStartLoading);
     webview.addEventListener("did-stop-loading", onStopLoading);
     webview.addEventListener("did-navigate", onNavigate as EventListener);
+    // # 锚点更新类的导航
     webview.addEventListener("did-navigate-in-page", onNavigateInPage as EventListener);
     webview.addEventListener("console-message", onConsoleMessage as EventListener);
 
@@ -96,7 +113,7 @@ export default function BrowserView() {
       webview.removeEventListener("did-navigate-in-page", onNavigateInPage as EventListener);
       webview.removeEventListener("console-message", onConsoleMessage as EventListener);
     };
-  }, [viewId, contentPanel]);
+  }, [currentUrl, viewId, contentPanel]);
 
   // Cleanup: detach devtools when component unmounts or devtools closed
   useEffect(() => {
@@ -216,6 +233,9 @@ export default function BrowserView() {
                 width: "100%",
                 height: showDevTools ? `${splitRatio * 100}%` : "100%",
               }}
+              // @ts-ignore 常规来说 allowpopups=true时用于支持新窗口行为， 而作为true不赋值即可，但现状是不赋值该属性就不存在（可能和编译行为有关），需要显式用字符串声明，因此此处用ts-ignore 规避误报
+              // 此外，该值仅在初始化中生效，后续热更新修改不会影响实际webview配置，推测该值可能在主进程 did-attach-webview 触发时已经确定且不可修改
+              allowpopups="true"
             />
             {/* Resize handle */}
             <div
