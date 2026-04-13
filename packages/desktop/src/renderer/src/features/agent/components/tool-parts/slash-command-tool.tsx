@@ -20,7 +20,8 @@ export function SlashCommandTool({ invocation }: { invocation: SlashCommandUIToo
     <Tool state={state} errorText={errorText}>
       <ToolHeader>
         <ToolHeaderIcon icon={Wand2} />
-        SlashCommand {input?.command}
+        <span className="shrink-0">SlashCommand</span>
+        {input?.command && <span className="min-w-0 truncate">{input.command}</span>}
       </ToolHeader>
       <ToolContent>
         {typeof output === "string" && output ? (

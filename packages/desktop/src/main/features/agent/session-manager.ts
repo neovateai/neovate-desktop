@@ -1247,6 +1247,21 @@ export class SessionManager {
     if (!session) return;
     const transformer = new SDKMessageTransformer();
 
+    // DEBUG: Log all SDK query values to a local JSONL file
+    const debugLogPath = path.join(
+      homedir(),
+      ".neovate-desktop",
+      `sdk-query-debug-${sessionId}.jsonl`,
+    );
+    const logSDKValue = async (value: unknown) => {
+      try {
+        const line = JSON.stringify({ ts: Date.now(), value }) + "\n";
+        await appendFile(debugLogPath, line);
+      } catch {
+        // ignore write errors
+      }
+    };
+
     // Track the latest top-level message_start usage to compute context window fill
     let lastInputTokens = 0;
 
@@ -1254,6 +1269,9 @@ export class SessionManager {
       while (true) {
         const { value, done } = await session.query.next();
         if (done || !value) break;
+
+        // DEBUG: write every SDK value to JSONL
+        logSDKValue(value);
 
         // Track context window usage from top-level message_start events
         if (

@@ -2,7 +2,6 @@ import { Download } from "lucide-react";
 
 import type { WebFetchUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import { MessageResponse } from "../../../../components/ai-elements/message";
 import {
   Tool,
@@ -19,7 +18,8 @@ export function WebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocat
     <Tool state={state}>
       <ToolHeader>
         <ToolHeaderIcon icon={Download} />
-        WebFetch {input?.url}
+        <span className="shrink-0">WebFetch</span>
+        {input?.url && <span className="min-w-0 truncate">{input.url}</span>}
       </ToolHeader>
       <ToolContent className="space-y-3">
         {input?.prompt ? (
@@ -27,7 +27,7 @@ export function WebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocat
             <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               Prompt
             </h4>
-            <CodeBlock code={input.prompt} language="markdown" className="text-sm" />
+            <pre className="text-xs">{input.prompt}</pre>
           </div>
         ) : null}
         {output ? (

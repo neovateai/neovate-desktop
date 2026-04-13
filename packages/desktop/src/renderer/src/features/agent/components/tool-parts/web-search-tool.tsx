@@ -18,7 +18,8 @@ export function WebSearchTool({ invocation }: { invocation: WebSearchUIToolInvoc
     <Tool state={state}>
       <ToolHeader>
         <ToolHeaderIcon icon={Globe} />
-        WebSearch {input?.query && <>"{input.query}"</>}
+        <span className="shrink-0">WebSearch</span>
+        {input?.query && <span className="min-w-0 truncate">"{input.query}"</span>}
       </ToolHeader>
       <ToolContent>{output ? <MessageResponse>{output}</MessageResponse> : null}</ToolContent>
     </Tool>

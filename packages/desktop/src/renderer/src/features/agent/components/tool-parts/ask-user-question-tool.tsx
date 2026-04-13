@@ -9,7 +9,6 @@ import {
   ToolContent,
   ToolHeader,
   ToolHeaderIcon,
-  ToolOutput,
 } from "../../../../components/ai-elements/tool";
 
 type Props = {
@@ -26,16 +25,21 @@ export function AskUserQuestionTool({ invocation }: Props) {
     return null;
   }
 
-  const { state, output } = invocation;
+  const { state, output, errorText } = invocation;
 
   return (
-    <Tool state={state} defaultOpen>
+    <Tool state={state} errorText={errorText}>
       <ToolHeader>
         <ToolHeaderIcon icon={HelpCircle} />
         Ask User Question
       </ToolHeader>
       <ToolContent>
-        <ToolOutput output={output} />
+        {Object.entries(output.answers).map(([question, answer]) => (
+          <div key={question} className="text-xs">
+            <div className="text-muted-foreground">{question}</div>
+            <div className="font-medium">{answer}</div>
+          </div>
+        ))}
       </ToolContent>
     </Tool>
   );

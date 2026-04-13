@@ -2,7 +2,6 @@ import { Search } from "lucide-react";
 
 import type { GlobUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock } from "../../../../components/ai-elements/code-block";
 import {
   Tool,
   ToolContent,
@@ -18,12 +17,13 @@ export function GlobTool({ invocation }: { invocation: GlobUIToolInvocation }) {
     <Tool state={state}>
       <ToolHeader>
         <ToolHeaderIcon icon={Search} />
-        Glob {input?.pattern && <>for "{input.pattern}"</>} {input?.path && <>in {input.path}</>}
+        <span className="shrink-0">Glob</span>
+        <span className="min-w-0 truncate">
+          {input?.pattern && <>for "{input.pattern}"</>} {input?.path && <>in {input.path}</>}
+        </span>
       </ToolHeader>
       <ToolContent>
-        {typeof output === "string" ? (
-          <CodeBlock code={output} language="bash" className="text-sm" />
-        ) : null}
+        {typeof output === "string" ? <pre className="text-xs">{output}</pre> : null}
       </ToolContent>
     </Tool>
   );

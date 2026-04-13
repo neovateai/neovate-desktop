@@ -4,7 +4,7 @@ import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import type { LucideProps } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-import { AlertCircle, ChevronDown } from "lucide-react";
+import { ChevronDown, CircleX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { createContext, isValidElement, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -44,7 +44,7 @@ export const Tool = ({ state, errorText, className, children, ...props }: ToolPr
   return (
     <ToolContext.Provider value={contextValue}>
       <Collapsible
-        className={cn("group/tool not-prose w-full overflow-hidden rounded-md", className)}
+        className={cn("group/tool not-prose w-full overflow-hidden", className)}
         {...props}
       >
         {children}
@@ -61,17 +61,22 @@ export type ToolHeaderProps = {
 };
 
 export const ToolHeader = ({ children, className }: ToolHeaderProps) => {
-  const { state } = useToolContext();
+  const { state, errorText } = useToolContext();
+
   return (
     <CollapsibleTrigger
       className={cn(
-        "inline-flex gap-2 w-max shrink-0 items-center text-sm cursor-pointer",
+        "inline-flex gap-2 w-full max-w-full items-center text-sm cursor-pointer",
         state === "output-error" ? "text-destructive" : "text-foreground",
         className,
       )}
-      style={{ width: "max-content" }}
     >
       {children}
+      {state === "output-error" && errorText && (
+        <span className="shrink-0 max-w-xs truncate rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive transition-opacity duration-150 group-data-[open]/tool:opacity-0">
+          {errorText}
+        </span>
+      )}
     </CollapsibleTrigger>
   );
 };
@@ -84,10 +89,12 @@ export type ToolHeaderIconProps = {
 
 export const ToolHeaderIcon = ({ icon: Icon }: ToolHeaderIconProps) => {
   const { state } = useToolContext();
-  const iconColor = state === "output-error" ? "text-destructive" : "text-muted-foreground";
+  const isError = state === "output-error";
+  const iconColor = isError ? "text-destructive" : "text-muted-foreground";
+  const DisplayIcon = isError ? CircleX : Icon;
   return (
     <div className="relative flex size-3 shrink-0 items-center justify-center">
-      <Icon
+      <DisplayIcon
         className={cn(
           "absolute size-3 transition-opacity duration-150 group-hover/tool:opacity-0",
           iconColor,
@@ -123,19 +130,14 @@ export const ToolContent = ({ className, children }: ToolContentProps) => {
             >
               <div
                 className={cn(
-                  "space-y-2 text-popover-foreground [--code-block-content-visibility:visible]",
+                  "space-y-2 overflow-hidden rounded-lg p-3 [--code-block-content-visibility:visible]",
+                  state === "output-error"
+                    ? "bg-destructive/10 text-xs text-destructive"
+                    : "bg-muted text-popover-foreground",
                   className,
                 )}
               >
-                {state === "output-error" && (
-                  <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span className="whitespace-pre-wrap">
-                      {errorText || t("error.somethingWentWrong")}
-                    </span>
-                  </div>
-                )}
-                {children}
+                {state === "output-error" ? errorText || t("error.somethingWentWrong") : children}
               </div>
             </motion.div>
           )}

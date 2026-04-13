@@ -20,7 +20,7 @@ export function TaskOutputTool({ invocation }: { invocation: TaskOutputUIToolInv
         <ToolHeaderIcon icon={ClipboardList} />
         TaskOutput {input?.task_id && `(${input.task_id})`}
       </ToolHeader>
-      <ToolContent>
+      <ToolContent className="p-0">
         {typeof output === "string" && output ? (
           <CodeBlock code={output} language="bash" className="text-sm" />
         ) : null}

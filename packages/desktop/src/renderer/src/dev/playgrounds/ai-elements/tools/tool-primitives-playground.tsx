@@ -14,16 +14,22 @@ type Scenario =
   | "input-available"
   | "output-available"
   | "output-error"
+  | "output-error-long"
   | "output-error-no-text";
 
 export function ToolPrimitivesPlayground() {
   const [scenario, setScenario] = useState<Scenario>("output-available");
 
-  const isError = scenario === "output-error" || scenario === "output-error-no-text";
+  const isError =
+    scenario === "output-error" ||
+    scenario === "output-error-long" ||
+    scenario === "output-error-no-text";
   const errorText =
     scenario === "output-error"
       ? "Something went wrong while executing the tool.\nPlease try again."
-      : undefined;
+      : scenario === "output-error-long"
+        ? "Error: ENOENT: no such file or directory, open '/Users/developer/projects/my-app/src/components/features/authentication/providers/oauth2/callback-handler.tsx' — The file was expected at this path but could not be found. This may indicate that the file was moved, renamed, or deleted during a recent refactor. Please verify the import paths and ensure the module exists before retrying the operation."
+        : undefined;
   const state = isError ? "output-error" : scenario;
 
   return (
@@ -58,6 +64,12 @@ export function ToolPrimitivesPlayground() {
             Output Error
           </ScenarioButton>
           <ScenarioButton
+            active={scenario === "output-error-long"}
+            onClick={() => setScenario("output-error-long")}
+          >
+            Error (long)
+          </ScenarioButton>
+          <ScenarioButton
             active={scenario === "output-error-no-text"}
             onClick={() => setScenario("output-error-no-text")}
           >
@@ -73,10 +85,10 @@ export function ToolPrimitivesPlayground() {
         </ToolHeader>
         <ToolContent>
           {!isError && (
-            <div className="rounded-md bg-muted/30 p-3 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               This is the tool content area. In real tools this would contain diffs, code blocks, or
               other output.
-            </div>
+            </p>
           )}
         </ToolContent>
       </Tool>

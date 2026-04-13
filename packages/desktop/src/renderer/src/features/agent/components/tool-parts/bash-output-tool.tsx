@@ -22,11 +22,11 @@ export function BashOutputTool({ invocation }: { invocation: BashOutputUIToolInv
         <ToolHeaderIcon icon={Terminal} />
         BashOutput {input?.bash_id && `(${input.bash_id})`}
       </ToolHeader>
-      <ToolContent>
+      <ToolContent className="p-0">
         {typeof output === "string" && output ? (
           <CodeBlock code={output} language="bash" className="text-sm" />
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="p-3 text-sm text-muted-foreground">
             {input?.filter
               ? t("chat.tools.bashOutput.pollingFiltered", { filter: input.filter })
               : t("chat.tools.bashOutput.polling")}

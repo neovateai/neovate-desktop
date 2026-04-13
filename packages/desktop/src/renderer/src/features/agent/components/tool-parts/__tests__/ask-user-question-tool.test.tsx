@@ -30,14 +30,27 @@ describe("AskUserQuestionTool", () => {
                 },
               ],
             },
-            output: "What does var do?: Function scope",
+            output: {
+              questions: [
+                {
+                  header: "JavaScript",
+                  question: "What does var do?",
+                  options: [
+                    { label: "Function scope", description: "A" },
+                    { label: "Block scope", description: "B" },
+                  ],
+                  multiSelect: false,
+                },
+              ],
+              answers: { "What does var do?": "Function scope" },
+            },
           } as never
         }
       />,
     );
 
     expect(screen.getByText("Ask User Question")).toBeTruthy();
-    expect(screen.getByText("What does var do?: Function scope")).toBeTruthy();
+    expect(screen.getByText("Function scope")).toBeTruthy();
     expect(screen.queryByText("Block scope")).toBeNull();
   });
 

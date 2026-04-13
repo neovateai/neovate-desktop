@@ -34,7 +34,7 @@ export function AgentTool({
     <Tool state={state} defaultOpen={agentMessage != null || output != null}>
       <ToolHeader>
         <ToolHeaderIcon icon={Bot} />
-        {input?.description ?? "Agent"}
+        <span className="min-w-0 truncate">{input?.description ?? "Agent"}</span>
       </ToolHeader>
       <ToolContent className="space-y-3">
         {input?.prompt ? (

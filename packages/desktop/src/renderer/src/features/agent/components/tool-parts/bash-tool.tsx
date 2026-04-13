@@ -22,9 +22,9 @@ export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
     <Tool state={state}>
       <ToolHeader>
         <ToolHeaderIcon icon={Terminal} />
-        {input?.description ?? "Bash"}
+        <span className="min-w-0 truncate">{input?.description ?? "Bash"}</span>
       </ToolHeader>
-      <ToolContent>
+      <ToolContent className="p-0">
         {terminalOutput ? (
           <CodeBlock code={terminalOutput} language="bash" className="text-sm" />
         ) : null}

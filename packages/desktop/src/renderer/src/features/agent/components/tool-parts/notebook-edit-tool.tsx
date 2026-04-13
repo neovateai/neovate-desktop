@@ -22,7 +22,7 @@ export function NotebookEditTool({ invocation }: { invocation: NotebookEditUIToo
         <ToolHeaderIcon icon={BookOpen} />
         NotebookEdit {fileName}
       </ToolHeader>
-      <ToolContent>
+      <ToolContent className="p-0">
         {input?.new_source ? (
           <CodeBlock code={input.new_source} language="python" className="text-xs" />
         ) : null}
