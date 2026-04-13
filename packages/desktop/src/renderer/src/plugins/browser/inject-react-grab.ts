@@ -55,8 +55,7 @@ const PLUGIN_SETUP = `
 `;
 
 export const INJECT_SCRIPT = `
-(function() {
-  console.log("start")
+(function() {  
   /** Part 1: React grab **/
   if (window.__REACT_GRAB__) {
     ${PLUGIN_SETUP}
