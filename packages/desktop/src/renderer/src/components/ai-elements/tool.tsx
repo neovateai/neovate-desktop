@@ -43,10 +43,7 @@ export const Tool = ({ state, errorText, className, children, ...props }: ToolPr
   const contextValue = useMemo(() => ({ state, errorText }), [state, errorText]);
   return (
     <ToolContext.Provider value={contextValue}>
-      <Collapsible
-        className={cn("group/tool not-prose w-full overflow-hidden", className)}
-        {...props}
-      >
+      <Collapsible className={cn("not-prose w-full overflow-hidden", className)} {...props}>
         {children}
       </Collapsible>
     </ToolContext.Provider>
@@ -66,14 +63,14 @@ export const ToolHeader = ({ children, className }: ToolHeaderProps) => {
   return (
     <CollapsibleTrigger
       className={cn(
-        "inline-flex gap-2 w-full max-w-full items-center text-sm cursor-pointer",
+        "group/tool-header inline-flex gap-2 w-full max-w-full items-center text-sm cursor-pointer",
         state === "output-error" ? "text-destructive" : "text-foreground",
         className,
       )}
     >
       {children}
       {state === "output-error" && errorText && (
-        <span className="shrink-0 max-w-xs truncate rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive transition-opacity duration-150 group-data-[open]/tool:opacity-0">
+        <span className="shrink-0 max-w-xs truncate rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive transition-opacity duration-150 group-data-[panel-open]/tool-header:opacity-0">
           {errorText}
         </span>
       )}
@@ -96,11 +93,11 @@ export const ToolHeaderIcon = ({ icon: Icon }: ToolHeaderIconProps) => {
     <div className="relative flex size-3 shrink-0 items-center justify-center">
       <DisplayIcon
         className={cn(
-          "absolute size-3 transition-opacity duration-150 group-hover/tool:opacity-0",
+          "absolute size-3 transition-opacity duration-150 group-hover/tool-header:opacity-0",
           iconColor,
         )}
       />
-      <ChevronDown className="absolute size-3 -rotate-90 text-muted-foreground opacity-0 transition-all duration-150 group-hover/tool:opacity-100 group-data-[open]/tool:rotate-0" />
+      <ChevronDown className="absolute size-3 -rotate-90 text-muted-foreground opacity-0 transition-all duration-150 group-hover/tool-header:opacity-100 group-data-[panel-open]/tool-header:rotate-0" />
     </div>
   );
 };
