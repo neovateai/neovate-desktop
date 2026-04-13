@@ -28,7 +28,7 @@ export function AskUserQuestionTool({ invocation }: Props) {
   const { state, output, errorText } = invocation;
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool state={state} errorText={errorText} defaultOpen>
       <ToolHeader>
         <ToolHeaderIcon icon={HelpCircle} />
         Ask User Question
