@@ -37,6 +37,7 @@ import { useSettingsStore } from "../features/settings/store";
 import { client } from "../orpc";
 import changesPlugin from "../plugins/changes";
 import debugPlugin from "../plugins/debug";
+// import demoMcpLivePreviewPlugin from "../plugins/demo-mcp-live-preview";
 // import contentPanelDemoPlugin from "../plugins/content-panel-demo";
 // import demoWindowPlugin from "../plugins/demo-window";
 import editorPlugin from "../plugins/editor";
@@ -202,6 +203,7 @@ const BUILTIN_PLUGINS: RendererPlugin[] = [
   changesPlugin,
   networkPlugin,
   debugPlugin,
+  // demoMcpLivePreviewPlugin,
   providersPlugin,
   popupWindowPlugin,
   // TODO: Remove in the future
