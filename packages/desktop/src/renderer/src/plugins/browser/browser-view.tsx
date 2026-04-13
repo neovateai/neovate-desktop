@@ -32,6 +32,7 @@ export default function BrowserView() {
   const [isInspecting, setIsInspecting] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
+  const [enableInspect, setEnableInspect] = useState(false);
 
   const { orpcClient } = usePluginContext();
   const client = orpcClient as BrowserClient;
@@ -74,22 +75,29 @@ export default function BrowserView() {
     const onConsoleMessage = (e: Event & { message: string }) => {
       if (!e.message.startsWith(GRAB_PREFIX)) return;
       try {
-        const body = JSON.parse(e.message.slice(GRAB_PREFIX.length));
-        if (body?.active !== undefined) {
-          setIsInspecting(body.active);
-        } else if (body?.type === "copy") {
+        const event = JSON.parse(e.message.slice(GRAB_PREFIX.length));
+        if (!event?.type) {
+          return;
+        }
+        if (event.type == "activate") {
+          setIsInspecting(true);
+        } else if (event.type == "deactivate") {
+          setIsInspecting(false);
+        } else if (event.type === "copy") {
           // TODO: 当前只简单处理，作为体验功能，后续完善
-          if (body.content) {
-            const mentionContent = body.content.slice(0, 200);
+          if (event.content) {
+            const mentionContent = event.content.slice(0, 200);
             log("insert-chat dispatching mention=%s", mentionContent);
             window.dispatchEvent(
               new CustomEvent("neovate:insert-chat", {
                 detail: {
-                  mentions: [{ id: `${Date.now()}`, label: mentionContent }],
+                  mentions: [{ id: mentionContent, label: mentionContent }],
                 },
               }),
             );
           }
+        } else if (event.type === "inspectable") {
+          setEnableInspect(true);
         }
         // 此外还有select事件，暂不消费
       } catch {
@@ -112,6 +120,7 @@ export default function BrowserView() {
       webview.removeEventListener("did-navigate", onNavigate as EventListener);
       webview.removeEventListener("did-navigate-in-page", onNavigateInPage as EventListener);
       webview.removeEventListener("console-message", onConsoleMessage as EventListener);
+      setEnableInspect(false);
     };
   }, [currentUrl, viewId, contentPanel]);
 
@@ -222,6 +231,7 @@ export default function BrowserView() {
         onReload={reload}
         onToggleDevTools={toggleDevTools}
         onToggleInspector={toggleInspector}
+        enableInspect={enableInspect}
       />
       <div className="relative flex-1 overflow-hidden">
         {currentUrl ? (
