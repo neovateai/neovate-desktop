@@ -93,7 +93,7 @@ export const InstalledTab = ({ plugins, updates, projects, onRefresh }: Installe
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {plugins.map((plugin) => {
           const key = `${plugin.pluginId}-${plugin.scope}`;
           const initials = getInitials(plugin.name);
@@ -101,45 +101,34 @@ export const InstalledTab = ({ plugins, updates, projects, onRefresh }: Installe
           return (
             <div
               key={key}
-              className="group relative flex flex-col p-4 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200"
+              className="group relative flex gap-3 p-3.5 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200"
               onClick={() => setSelectedPlugin(plugin)}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0">
-                  {initials}
-                </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <Switch
-                    checked={plugin.enabled}
-                    disabled={togglingId !== null}
-                    onCheckedChange={() => handleToggle(plugin)}
-                  />
-                </div>
+              <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0 self-center">
+                {initials}
               </div>
 
-              <h3 className="text-sm font-medium text-foreground truncate mb-1">{plugin.name}</h3>
+              <div className="flex-1 min-w-0 py-0.5">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-medium text-foreground truncate">{plugin.name}</h3>
+                  {update && (
+                    <Badge variant="default" size="sm" className="gap-0.5 shrink-0">
+                      <ArrowUpCircle className="size-3" />
+                      {t("settings.plugins.update")}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                  {plugin.description || t("settings.plugins.noDescription")}
+                </p>
+              </div>
 
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-8">
-                {plugin.description || t("settings.plugins.noDescription")}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-                <Badge variant="outline" size="sm">
-                  {plugin.scope === "user"
-                    ? t("settings.plugins.user")
-                    : `${plugin.scope}: ${plugin.projectPath?.split("/").pop() ?? t("settings.plugins.unknown")}`}
-                </Badge>
-                {plugin.version && (
-                  <Badge variant="secondary" size="sm">
-                    v{plugin.version}
-                  </Badge>
-                )}
-                {update && (
-                  <Badge variant="default" size="sm" className="gap-1">
-                    <ArrowUpCircle className="size-3" />
-                    {t("settings.plugins.update")}
-                  </Badge>
-                )}
+              <div className="shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
+                <Switch
+                  checked={plugin.enabled}
+                  disabled={togglingId !== null}
+                  onCheckedChange={() => handleToggle(plugin)}
+                />
               </div>
             </div>
           );
