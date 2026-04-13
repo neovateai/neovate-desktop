@@ -32,7 +32,7 @@ export function AgentTool({
   const agentMessage = isClaudeCodeUIMessage(output) ? output : undefined;
 
   return (
-    <Tool state={state} defaultOpen={agentMessage != null || output != null}>
+    <Tool state={state}>
       <ToolHeader>
         <ToolHeaderIcon icon={Bot} />
         <span className="min-w-0 truncate">{input?.description ?? "Agent"}</span>
