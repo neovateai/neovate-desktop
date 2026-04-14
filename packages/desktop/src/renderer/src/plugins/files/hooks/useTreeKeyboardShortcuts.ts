@@ -126,6 +126,9 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
 
       // Cmd/Ctrl + C: copy
       if (e.key === "c" && isModKey) {
+        // Defer to native text copy when the user has an active text selection,
+        // otherwise this hijacks Cmd+C for any text anywhere in the window.
+        if (window.getSelection()?.toString()) return;
         e.preventDefault();
         onCopy(item);
         return;
@@ -133,6 +136,7 @@ export function useTreeKeyboardShortcuts(options: UseTreeKeyboardShortcutsOption
 
       // Cmd/Ctrl + X: cut
       if (e.key === "x" && isModKey) {
+        if (window.getSelection()?.toString()) return;
         e.preventDefault();
         onCut(item);
         return;
