@@ -21,12 +21,12 @@ import {
 import { useRendererApp } from "../../../../core/app";
 
 export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
-  if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, errorText } = invocation;
+  const input = invocation?.state !== "input-streaming" ? invocation?.input : undefined;
+  const output = invocation?.state === "output-available" ? invocation.output : undefined;
   const { resolvedTheme } = useTheme();
   const app = useRendererApp();
 
-  const filePath = input?.file_path;
+  const filePath = output?.filePath ?? input?.file_path;
   const fileName = filePath?.split("/").pop();
 
   const handleFileClick = useCallback(
@@ -37,11 +37,23 @@ export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
     [app, filePath],
   );
 
-  const oldString = input?.old_string || "";
-  const newString = input?.new_string || "";
+  const diffStats = useMemo(() => {
+    if (output?.structuredPatch) {
+      let additions = 0;
+      let deletions = 0;
+      for (const hunk of output.structuredPatch) {
+        for (const line of hunk.lines) {
+          if (line.startsWith("+")) additions++;
+          else if (line.startsWith("-")) deletions++;
+        }
+      }
+      return { additions, deletions };
+    }
+    return null;
+  }, [output?.structuredPatch]);
 
-  const removedLines = useMemo(() => (oldString ? oldString.split("\n").length : 0), [oldString]);
-  const addedLines = useMemo(() => (newString ? newString.split("\n").length : 0), [newString]);
+  const oldString = output?.oldString ?? input?.old_string ?? "";
+  const newString = output?.newString ?? input?.new_string ?? "";
 
   const oldFile = useMemo(
     () => ({ name: fileName || "old", contents: oldString }),
@@ -51,6 +63,10 @@ export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
     () => ({ name: fileName || "new", contents: newString }),
     [fileName, newString],
   );
+
+  if (!invocation || invocation.state === "input-streaming") return null;
+
+  const { state, errorText } = invocation;
 
   return (
     <Tool state={state} errorText={errorText}>
@@ -71,10 +87,12 @@ export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
             </Tooltip>
           </TooltipProvider>
         )}
-        <span className="shrink-0 text-xs text-muted-foreground">
-          <span className="text-green-600 dark:text-green-500">+{addedLines}</span>{" "}
-          <span className="text-red-600 dark:text-red-500">-{removedLines}</span>
-        </span>
+        {diffStats && (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            <span className="text-green-600 dark:text-green-500">+{diffStats.additions}</span>{" "}
+            <span className="text-red-600 dark:text-red-500">-{diffStats.deletions}</span>
+          </span>
+        )}
       </ToolHeader>
       <ToolContent className="bg-transparent p-0">
         <MultiFileDiff
