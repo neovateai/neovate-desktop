@@ -125,13 +125,13 @@ export function PermissionDialog({ sessionId }: Props) {
     });
 
     // 4. Save plan to disk
-    client.agent.savePlan({ sessionId, plan: input.plan }).catch(() => {});
+    client.agent.savePlan({ sessionId, plan: input.plan! }).catch(() => {});
 
     // 5. If clear context, register pending action
     if (choice.clearContext) {
       const cwd = useAgentStore.getState().sessions.get(sessionId)?.cwd;
       chat?.store.setState({
-        pendingContextClear: { plan: input.plan, mode: choice.mode, cwd },
+        pendingContextClear: { plan: input.plan!, mode: choice.mode, cwd },
       });
     }
   };
