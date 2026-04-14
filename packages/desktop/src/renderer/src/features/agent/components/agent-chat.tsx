@@ -305,7 +305,7 @@ function AgentChatSession({ sessionId, cwd }: { sessionId: string; cwd: string }
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="@container/chat flex h-full flex-col">
       <Conversation contextRef={conversationContextRef} initial={initialScrollBehavior}>
         <ConversationContent>
           {messages.map((message, i) => (
