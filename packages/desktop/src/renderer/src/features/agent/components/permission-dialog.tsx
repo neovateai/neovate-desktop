@@ -164,7 +164,7 @@ export function PermissionDialog({ sessionId }: Props) {
     content = (
       <ExitPlanModeRequestDialog
         key={requestId}
-        plan={exitPlanMode.data.plan}
+        plan={exitPlanMode.data.plan!}
         onChoice={handleExitPlanModeChoice}
       />
     );

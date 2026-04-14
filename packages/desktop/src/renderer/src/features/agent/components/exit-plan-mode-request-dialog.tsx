@@ -80,22 +80,22 @@ export function ExitPlanModeRequestDialog({ plan, onChoice }: Props) {
   };
 
   return (
-    <div className="relative bg-background-secondary">
-      <Plan defaultOpen>
-        <PlanHeader>
-          <PlanTitle>{t("plan.title")}</PlanTitle>
+    <div className="relative max-h-[calc(100cqh-8rem)] bg-background-secondary flex flex-col overflow-hidden">
+      <Plan defaultOpen className="m-2 min-h-0 flex-1 flex flex-col">
+        <PlanHeader className="px-4 py-2.5 gap-1 items-center">
+          <PlanTitle className="text-sm">{t("plan.title")}</PlanTitle>
           <PlanAction>
             <PlanTrigger />
           </PlanAction>
         </PlanHeader>
-        <PlanContent>
-          <div className="max-h-[40vh] overflow-y-auto px-4 pb-4">
+        <PlanContent className="min-h-0 overflow-y-auto px-4 pb-3 pt-0">
+          <div className="text-sm">
             <MessageResponse>{plan}</MessageResponse>
           </div>
         </PlanContent>
       </Plan>
 
-      <div className="space-y-3 px-4 py-3">
+      <div className="shrink-0 space-y-3 border-t border-border/50 px-4 py-3">
         <p className="text-sm font-medium text-foreground">{t("plan.readyToImplement")}</p>
 
         <RadioGroup
