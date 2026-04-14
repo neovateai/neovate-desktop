@@ -35,7 +35,7 @@ import type {
 } from "../../../shared/features/agent/types";
 import type { Contributions } from "../../core/plugin/contributions";
 
-import { mergeAgentHooks } from "../../core/plugin/contributions";
+import { mergeAgentContributions } from "../../core/plugin/contributions";
 
 const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
@@ -566,10 +566,16 @@ export class SessionManager {
       cwd,
       model: opts?.model,
     });
-    // Merge plugin-contributed hooks with built-in hooks (RTK)
-    const mergedHooks = mergeAgentHooks(this.getAgentContributions());
+    // Merge plugin-contributed hooks and MCP servers
+    const merged = mergeAgentContributions(this.getAgentContributions());
+    log(
+      "initSession: merged contributions sessionId=%s mcpServers=%o hookEvents=%o",
+      sessionId,
+      Object.keys(merged.mcpServers),
+      Object.keys(merged.hooks),
+    );
     if (registerRtkHook) {
-      (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+      (merged.hooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
     }
 
     // Build spawnClaudeCodeProcess override:
@@ -652,7 +658,8 @@ export class SessionManager {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
-      hooks: mergedHooks,
+      hooks: merged.hooks,
+      mcpServers: merged.mcpServers,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
       ...(spawnOverride ? { spawnClaudeCodeProcess: spawnOverride } : {}),
     };
