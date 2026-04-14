@@ -27,7 +27,7 @@ export type Contributions = {
   deeplinkHandlers: Contribution<DeeplinkHandler>[];
 };
 
-type MergedAgentOptions = Pick<Options, "hooks" | "mcpServers">;
+type MergedAgentOptions = Required<Pick<Options, "hooks" | "mcpServers">>;
 
 /** Merge all agent contributions into a single SDK-compatible options subset. */
 export function mergeAgentContributions(

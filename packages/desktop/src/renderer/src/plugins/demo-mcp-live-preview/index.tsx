@@ -26,6 +26,7 @@ const plugin: RendererPlugin = {
   },
 
   activate(ctx) {
+    cleanup?.();
     const client = ctx.orpcClient as any;
     const controller = new AbortController();
 

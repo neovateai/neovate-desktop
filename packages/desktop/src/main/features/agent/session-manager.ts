@@ -1,5 +1,4 @@
 import type {
-  HookCallbackMatcher,
   Query,
   Options,
   SDKUserMessage,
@@ -572,12 +571,11 @@ export class SessionManager {
     log(
       "initSession: merged contributions sessionId=%s mcpServers=%o hookEvents=%o",
       sessionId,
-      Object.keys(merged.mcpServers ?? {}),
-      Object.keys(merged.hooks ?? {}),
+      Object.keys(merged.mcpServers),
+      Object.keys(merged.hooks),
     );
     if (registerRtkHook) {
-      const hooks = merged.hooks as Record<string, HookCallbackMatcher[]>;
-      (hooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+      (merged.hooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
     }
 
     // Build spawnClaudeCodeProcess override:
