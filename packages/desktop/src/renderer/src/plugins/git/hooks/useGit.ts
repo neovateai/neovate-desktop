@@ -10,6 +10,7 @@ import type { GitFile } from "../../../../../shared/plugins/git/contract";
 import { llmContract } from "../../../../../shared/features/llm/contract";
 import { utilsContract } from "../../../../../shared/features/utils/contract";
 import { gitContract } from "../../../../../shared/plugins/git/contract";
+import { toastManager } from "../../../components/ui/toast";
 import { usePluginContext } from "../../../core/app";
 import { GIT_COMMIT_MSG_PROMPT, GIT_COMMIT_MSG_PROMPT_SUFFIX } from "./commit-rule";
 import { truncateDiff } from "./truncate";
@@ -134,12 +135,22 @@ export function useGit(cwd: string) {
 
         if (!res.success) {
           console.error(`Failed to revert file ${file.relPath}:`, res.error);
+          toastManager.add({
+            type: "error",
+            title: "Revert error",
+            description: res.error,
+          });
         }
       } else {
         // 对于未跟踪的文件，直接删除
         const res = await client.utils.removeFile({ path: file.fullPath });
         if (!res.success) {
           console.error(`Failed to delete untracked file ${file.fullPath}:`, res.error);
+          toastManager.add({
+            type: "error",
+            title: "Revert error",
+            description: res.error,
+          });
         }
       }
 
