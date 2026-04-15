@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "^4.0.22",
-    "@anthropic-ai/claude-agent-sdk": "0.2.97",
-    "@anthropic-ai/sdk": "^0.86.1",
+    "@anthropic-ai/claude-agent-sdk": "0.2.108",
+    "@anthropic-ai/sdk": "^0.89.0",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@orpc/contract": "^1.13.5",
