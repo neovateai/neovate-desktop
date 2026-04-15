@@ -361,15 +361,22 @@ function GlobalModelSelect() {
 
   const enabledProviders = providers.filter((p) => p.enabled);
 
-  const handleSelect = useCallback((value: unknown) => {
-    const { providerId, model } = decodeValue(value as string);
-    log("global model selection: providerId=%s model=%s", providerId, model);
-    setSelectedProviderId(providerId ?? undefined);
-    setSelectedModel(model ?? undefined);
-    client.config.setGlobalModelSelection({ providerId, model });
-    const projectPath = useProjectStore.getState().activeProject?.path;
-    claudeCodeChatManager.invalidateNewSessions(projectPath);
-  }, []);
+  const handleSelect = useCallback(
+    (value: unknown) => {
+      const { providerId, model } = decodeValue(value as string);
+      if (
+        (providerId ?? undefined) === selectedProviderId &&
+        (model ?? undefined) === selectedModel
+      )
+        return;
+      log("global model selection: providerId=%s model=%s", providerId, model);
+      setSelectedProviderId(providerId ?? undefined);
+      setSelectedModel(model ?? undefined);
+      const projectPath = useProjectStore.getState().activeProject?.path;
+      claudeCodeChatManager.switchGlobalModel(providerId, model, projectPath);
+    },
+    [selectedProviderId, selectedModel],
+  );
 
   if (!selectionLoaded) {
     return <Spinner className="h-4 w-4" />;

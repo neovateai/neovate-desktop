@@ -168,11 +168,39 @@ export class ClaudeCodeChatManager {
     this.rpc.claudeCode.closeSession({ sessionId }).catch(() => {});
   }
 
-  async invalidateNewSessions(cwd?: string): Promise<void> {
+  private switchController: AbortController | null = null;
+
+  /**
+   * Abort-safe model switch: persists the setting, then invalidates sessions.
+   * Each call aborts any previous in-flight switch so only the last one wins.
+   */
+  switchGlobalModel(
+    providerId: string | null,
+    model: string | null,
+    cwd: string | undefined,
+  ): void {
+    this.switchController?.abort();
+    this.switchController = new AbortController();
+    const { signal } = this.switchController;
+
+    client.config.setGlobalModelSelection({ providerId, model });
+
+    if (cwd) {
+      this.invalidateNewSessions(cwd, signal).catch((err) => {
+        log(
+          "switchGlobalModel: invalidation failed error=%s",
+          err instanceof Error ? err.message : String(err),
+        );
+      });
+    }
+  }
+
+  async invalidateNewSessions(cwd?: string, signal?: AbortSignal): Promise<void> {
     const store = useAgentStore.getState();
     let removedActive = false;
 
     for (const [id, session] of store.sessions) {
+      if (signal?.aborted) return;
       if (session.isNew) {
         if (id === store.activeSessionId) removedActive = true;
         await this.removeSession(id);
@@ -180,20 +208,29 @@ export class ClaudeCodeChatManager {
       }
     }
 
+    if (signal?.aborted) return;
+
     if (removedActive && cwd) {
       const result = await this.createSession(cwd);
+      if (signal?.aborted) {
+        await this.removeSession(result.sessionId);
+        return;
+      }
       registerSessionInStore(result.sessionId, cwd, result, true);
     }
 
+    if (signal?.aborted) return;
+
     // Re-pre-warm after invalidation so the next "New Chat" is instant
     if (cwd) {
-      this.preWarmForProject(cwd);
+      this.preWarmForProject(cwd, signal);
     }
   }
 
   /** Pre-warm a background session for the given project if config allows. */
-  preWarmForProject(cwd: string): void {
+  preWarmForProject(cwd: string, signal?: AbortSignal): void {
     if (!useConfigStore.getState().preWarmSessions) return;
+    if (signal?.aborted) return;
 
     // Check for an existing background pre-warmed session (exclude the active one)
     const existing = findPreWarmedSession(cwd);
@@ -204,15 +241,22 @@ export class ClaudeCodeChatManager {
 
     log("preWarmForProject: creating background session cwd=%s", cwd);
     this.createSession(cwd)
-      .then(({ sessionId, commands, models, currentModel, modelScope, providerId }) => {
-        log("preWarmForProject: created %s currentModel=%s", sessionId, currentModel);
-        registerSessionInStore(
-          sessionId,
-          cwd,
-          { commands, models, currentModel, modelScope, providerId },
-          false,
-        );
-      })
+      .then(
+        ({ sessionId, commands, models, currentModel, modelScope, providerId }): Promise<void> => {
+          if (signal?.aborted) {
+            log("preWarmForProject: aborted after create, cleaning up sessionId=%s", sessionId);
+            return this.removeSession(sessionId);
+          }
+          log("preWarmForProject: created %s currentModel=%s", sessionId, currentModel);
+          registerSessionInStore(
+            sessionId,
+            cwd,
+            { commands, models, currentModel, modelScope, providerId },
+            false,
+          );
+          return Promise.resolve();
+        },
+      )
       .catch((error) => {
         log(
           "preWarmForProject: FAILED error=%s",
