@@ -15,6 +15,7 @@ import type {
   ClaudeCodeUIEvent,
 } from "../../../shared/claude-code/types";
 
+import { EditOutputSchema } from "../../../shared/claude-code/tools/edit";
 import { ReadOutputSchema } from "../../../shared/claude-code/tools/read";
 
 type ActiveContentBlock =
@@ -51,7 +52,6 @@ const CONTENT_OUTPUT_TOOL_NAMES = new Set([
   "Task",
   "Bash",
   "Write",
-  "Edit",
   "MultiEdit",
   "Glob",
   "Grep",
@@ -86,6 +86,16 @@ type ContentFallbackConverter = {
 };
 
 const CONTENT_FALLBACK_CONVERTERS: Record<string, ContentFallbackConverter> = {
+  Edit: {
+    schema: EditOutputSchema,
+    convert(content) {
+      // On restore, content is a raw string (the CLI's text output).
+      // We can't reconstruct structuredPatch from it, so return the content
+      // as-is and let safeParse reject it — EditTool gracefully falls back
+      // to input.old_string / input.new_string when output is undefined.
+      return content;
+    },
+  },
   Read: {
     schema: ReadOutputSchema,
     convert(content) {
