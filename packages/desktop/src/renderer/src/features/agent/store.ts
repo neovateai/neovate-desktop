@@ -83,6 +83,7 @@ type AgentState = {
   agentSessions: SessionInfo[];
   sessionsLoaded: boolean;
   unseenTurnResults: Map<string, TurnResult>;
+  sdkModels: ModelInfo[];
   _nextMessageId: number;
   isRewinding: boolean;
   rewindUndoBuffer: RewindUndoBuffer | null;
@@ -133,6 +134,7 @@ export const useAgentStore = create<AgentState>()(
     agentSessions: [],
     sessionsLoaded: false,
     unseenTurnResults: new Map(),
+    sdkModels: [],
     sessionInitError: null,
     _nextMessageId: 0,
     isRewinding: false,
@@ -310,6 +312,11 @@ export const useAgentStore = create<AgentState>()(
       set((state) => {
         const session = state.sessions.get(sessionId);
         if (session) session.availableModels = models;
+        // Cache SDK models at store level so settings panel can access them
+        // even when all active sessions use a custom provider.
+        if (models.length > 0 && state.sdkModels.length === 0) {
+          state.sdkModels = models;
+        }
       });
     },
 
