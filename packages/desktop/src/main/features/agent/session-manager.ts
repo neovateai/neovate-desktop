@@ -691,7 +691,16 @@ export class SessionManager {
       sessionId,
     );
     log("initSession: awaiting initializationResult sessionId=%s", sessionId);
-    const initResult = await q.initializationResult();
+    let initResult: Awaited<ReturnType<Query["initializationResult"]>>;
+    try {
+      initResult = await q.initializationResult();
+    } catch (err) {
+      if (!this.sessions.has(sessionId)) {
+        log("initSession: session closed during init sessionId=%s", sessionId);
+        throw new Error("Session closed during initialization");
+      }
+      throw err;
+    }
     const tInit = performance.now();
     log(
       "initSession: TIMING initResult=%dms total=%dms sessionId=%s",

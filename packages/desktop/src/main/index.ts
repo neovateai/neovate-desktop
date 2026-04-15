@@ -69,6 +69,12 @@ process.on("uncaughtException", (error) => {
 });
 
 process.on("unhandledRejection", (reason) => {
+  // SDK query.close() rejects internal promises that can't be caught externally.
+  // This is expected during rapid model switching or session teardown.
+  if (reason instanceof Error && reason.message === "Query closed before response received") {
+    console.warn("[neovate] suppressed SDK close rejection:", reason.message);
+    return;
+  }
   log("unhandledRejection: %O", reason);
   projectStore.recordCrash();
   process.exit(1);
