@@ -12,10 +12,10 @@ import {
 
 export function EnterWorktreeTool({ invocation }: { invocation: EnterWorktreeUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, output } = invocation;
+  const { output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={GitBranch} />
         Enter Worktree

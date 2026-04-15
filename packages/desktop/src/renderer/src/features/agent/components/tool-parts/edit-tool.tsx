@@ -66,10 +66,8 @@ export function EditTool({ invocation }: { invocation: EditUIToolInvocation }) {
 
   if (!invocation || invocation.state === "input-streaming") return null;
 
-  const { state, errorText } = invocation;
-
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={FileEdit} />
         <span className="shrink-0">Edit</span>

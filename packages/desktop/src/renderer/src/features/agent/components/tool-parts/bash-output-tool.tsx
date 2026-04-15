@@ -14,10 +14,10 @@ import {
 export function BashOutputTool({ invocation }: { invocation: BashOutputUIToolInvocation }) {
   const { t } = useTranslation();
   if (!invocation) return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Terminal} />
         BashOutput {input?.bash_id && `(${input.bash_id})`}

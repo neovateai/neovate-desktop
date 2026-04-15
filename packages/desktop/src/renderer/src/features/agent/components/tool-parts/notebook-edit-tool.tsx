@@ -12,12 +12,12 @@ import {
 
 export function NotebookEditTool({ invocation }: { invocation: NotebookEditUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, errorText } = invocation;
+  const { input } = invocation;
 
   const fileName = input?.notebook_path?.split("/").pop();
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={BookOpen} />
         NotebookEdit {fileName}

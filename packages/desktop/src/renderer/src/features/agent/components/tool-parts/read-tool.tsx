@@ -22,7 +22,7 @@ import { useRendererApp } from "../../../../core";
 export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
   const app = useRendererApp();
 
-  const { state, input, output, errorText } = invocation;
+  const { input, output } = invocation;
   const filePath = input?.file_path;
 
   const handleFileClick = useCallback(
@@ -41,7 +41,7 @@ export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
     output?.type === "image" ? `data:${output.file.type};base64,${output.file.base64}` : undefined;
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={FileText} />
         <span className="shrink-0">

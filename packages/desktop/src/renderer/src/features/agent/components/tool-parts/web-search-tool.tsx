@@ -12,10 +12,10 @@ import {
 
 export function WebSearchTool({ invocation }: { invocation: WebSearchUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Globe} />
         <span className="shrink-0">WebSearch</span>

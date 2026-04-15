@@ -12,14 +12,14 @@ import {
 
 export function BashTool({ invocation }: { invocation: BashUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   const terminalOutput = input?.command
     ? `$ ${input.command}${output ? `\n${output}` : ""}`
     : (output ?? "");
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Terminal} />
         <span className="min-w-0 truncate">{input?.description ?? "Bash"}</span>

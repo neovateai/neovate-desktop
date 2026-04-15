@@ -92,15 +92,7 @@ function ClaudeCodeToolUIPartComponent({ part }: { part: ToolUIPart<ClaudeCodeUI
 
       if (unknownPart.state === "input-streaming") return null;
 
-      return (
-        <GenericTool
-          toolName={toolName}
-          state={unknownPart.state}
-          input={unknownPart.input}
-          output={unknownPart.output}
-          errorText={unknownPart.errorText}
-        />
-      );
+      return <GenericTool toolName={toolName} invocation={unknownPart} />;
     }
   }
 }

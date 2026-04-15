@@ -11,10 +11,9 @@ import {
 
 export function EnterPlanModeTool({ invocation }: { invocation: EnterPlanModeUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Map} />
         Enter Plan Mode

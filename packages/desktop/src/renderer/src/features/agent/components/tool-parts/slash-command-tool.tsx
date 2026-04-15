@@ -14,10 +14,10 @@ import {
 export function SlashCommandTool({ invocation }: { invocation: SlashCommandUIToolInvocation }) {
   const { t } = useTranslation();
   if (!invocation) return null;
-  const { state, input, output, errorText } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Wand2} />
         <span className="shrink-0">SlashCommand</span>

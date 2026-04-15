@@ -1,6 +1,6 @@
 "use client";
 
-import type { DynamicToolUIPart, ToolUIPart } from "ai";
+import type { DynamicToolUIPart, ToolUIPart, UITool, UIToolInvocation } from "ai";
 import type { LucideProps } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -35,12 +35,14 @@ export const useToolContext = () => {
 // --- Tool (root) ---
 
 export type ToolProps = ComponentProps<typeof Collapsible> & {
-  state: ToolPart["state"];
-  errorText?: string;
+  invocation: UIToolInvocation<UITool>;
 };
 
-export const Tool = ({ state, errorText, className, children, ...props }: ToolProps) => {
-  const contextValue = useMemo(() => ({ state, errorText }), [state, errorText]);
+export const Tool = ({ invocation, className, children, ...props }: ToolProps) => {
+  const contextValue = useMemo(
+    () => ({ state: invocation.state, errorText: invocation.errorText }),
+    [invocation.state, invocation.errorText],
+  );
   return (
     <ToolContext.Provider value={contextValue}>
       <Collapsible className={cn("not-prose w-full overflow-hidden", className)} {...props}>

@@ -18,10 +18,10 @@ export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToo
   ) {
     return null;
   }
-  const { state, output } = invocation;
+  const { output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={LogOut} />
         Exit Plan Mode

@@ -11,10 +11,10 @@ import {
 
 export function GrepTool({ invocation }: { invocation: GrepUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Regex} />
         <span className="shrink-0">Grep</span>

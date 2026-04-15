@@ -12,12 +12,12 @@ import { cn } from "../../../../lib/utils";
 
 export function TodoWriteTool({ invocation }: { invocation: TodoWriteUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input } = invocation;
+  const { input } = invocation;
 
   const count = input?.todos?.length ?? 0;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={CheckSquare} />
         Todo ({count} tasks)

@@ -28,11 +28,11 @@ export function AgentTool({
   renderToolPart?: (message: ClaudeCodeUIMessage, part: ToolUIPart<ClaudeCodeUITools>) => ReactNode;
 }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
   const agentMessage = isClaudeCodeUIMessage(output) ? output : undefined;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Bot} />
         <span className="min-w-0 truncate">{input?.description ?? "Agent"}</span>
@@ -41,7 +41,7 @@ export function AgentTool({
         <CollapsibleTrigger className="relative w-3 shrink-0 cursor-pointer pl-1.5 before:absolute before:inset-y-0 before:left-1.5 before:w-px before:bg-border before:transition-colors hover:before:bg-muted-foreground" />
         <div className="min-w-0 flex-1 space-y-3 pl-2">
           {input?.prompt ? (
-            <Tool state="output-available" defaultOpen>
+            <Tool invocation={invocation} defaultOpen>
               <ToolHeader>
                 <ToolHeaderIcon icon={MessageSquare} />
                 <span className="min-w-0 truncate">Prompt</span>

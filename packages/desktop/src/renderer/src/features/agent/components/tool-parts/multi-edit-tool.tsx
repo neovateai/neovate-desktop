@@ -22,7 +22,7 @@ import { useRendererApp } from "../../../../core/app";
 
 export function MultiEditTool({ invocation }: { invocation: MultiEditUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, errorText } = invocation;
+  const { input } = invocation;
   const { resolvedTheme } = useTheme();
   const app = useRendererApp();
 
@@ -49,7 +49,7 @@ export function MultiEditTool({ invocation }: { invocation: MultiEditUIToolInvoc
   }, [input?.edits]);
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Files} />
         <span className="shrink-0">MultiEdit</span>

@@ -22,7 +22,7 @@ import { useRendererApp } from "../../../../core/app";
 
 export function WriteTool({ invocation }: { invocation: WriteUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, errorText } = invocation;
+  const { input } = invocation;
   const { resolvedTheme } = useTheme();
   const app = useRendererApp();
 
@@ -40,7 +40,7 @@ export function WriteTool({ invocation }: { invocation: WriteUIToolInvocation })
   );
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={FilePlus} />
         <span className="shrink-0">Write {lineCount} lines</span>

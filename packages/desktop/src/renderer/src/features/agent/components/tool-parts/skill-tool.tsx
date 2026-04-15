@@ -12,10 +12,10 @@ import {
 
 export function SkillTool({ invocation }: { invocation: SkillUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Wand2} />
         Skill {input?.skill && <>/{input.skill}</>}

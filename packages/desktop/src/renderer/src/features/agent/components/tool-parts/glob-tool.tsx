@@ -11,10 +11,10 @@ import {
 
 export function GlobTool({ invocation }: { invocation: GlobUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Search} />
         <span className="shrink-0">Glob</span>

@@ -6,10 +6,10 @@ import { Tool, ToolHeader, ToolHeaderIcon } from "../../../../components/ai-elem
 
 export function TaskStopTool({ invocation }: { invocation: TaskStopUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input } = invocation;
+  const { input } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Square} />
         TaskStop {input?.task_id && `(${input.task_id})`}

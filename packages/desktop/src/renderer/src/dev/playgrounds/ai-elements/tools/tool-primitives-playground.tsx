@@ -1,5 +1,7 @@
+import type { UITool, UIToolInvocation } from "ai";
+
 import { Blocks } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   Tool,
@@ -31,6 +33,17 @@ export function ToolPrimitivesPlayground() {
         ? "Error: ENOENT: no such file or directory, open '/Users/developer/projects/my-app/src/components/features/authentication/providers/oauth2/callback-handler.tsx' — The file was expected at this path but could not be found. This may indicate that the file was moved, renamed, or deleted during a recent refactor. Please verify the import paths and ensure the module exists before retrying the operation."
         : undefined;
   const state = isError ? "output-error" : scenario;
+
+  const invocation = useMemo(
+    () =>
+      ({
+        toolCallId: "playground",
+        state,
+        input: undefined,
+        errorText,
+      }) as UIToolInvocation<UITool>,
+    [state, errorText],
+  );
 
   return (
     <PlaygroundPage
@@ -78,7 +91,7 @@ export function ToolPrimitivesPlayground() {
         </>
       }
     >
-      <Tool state={state} errorText={errorText}>
+      <Tool invocation={invocation}>
         <ToolHeader>
           <ToolHeaderIcon icon={Blocks} />
           Example tool invocation

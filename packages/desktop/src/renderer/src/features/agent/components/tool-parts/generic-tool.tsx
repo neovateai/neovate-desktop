@@ -1,3 +1,5 @@
+import type { UITool, UIToolInvocation } from "ai";
+
 import { Wrench } from "lucide-react";
 
 import {
@@ -5,15 +7,11 @@ import {
   ToolContent,
   ToolHeader,
   ToolHeaderIcon,
-  type ToolPart,
 } from "../../../../components/ai-elements/tool";
 
 type GenericToolProps = {
   toolName: string;
-  state: ToolPart["state"];
-  input?: unknown;
-  output?: unknown;
-  errorText?: string;
+  invocation: UIToolInvocation<UITool>;
 };
 
 function formatToolName(toolName: string): string {
@@ -40,11 +38,12 @@ function formatValue(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-export function GenericTool({ toolName, state, input, output, errorText }: GenericToolProps) {
+export function GenericTool({ toolName, invocation }: GenericToolProps) {
   const display = formatToolName(toolName);
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state} errorText={errorText}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Wrench} />
         <span>{display}</span>

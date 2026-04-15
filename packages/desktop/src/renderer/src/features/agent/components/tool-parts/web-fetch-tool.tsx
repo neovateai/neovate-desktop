@@ -12,10 +12,10 @@ import {
 
 export function WebFetchTool({ invocation }: { invocation: WebFetchUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output } = invocation;
+  const { input, output } = invocation;
 
   return (
-    <Tool state={state}>
+    <Tool invocation={invocation}>
       <ToolHeader>
         <ToolHeaderIcon icon={Download} />
         <span className="shrink-0">WebFetch</span>
