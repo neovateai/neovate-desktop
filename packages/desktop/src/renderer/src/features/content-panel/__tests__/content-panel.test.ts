@@ -183,6 +183,56 @@ describe("registeredViewTypes", () => {
   });
 });
 
+describe("reorderTabs", () => {
+  it("reorders tabs to match given ID order", () => {
+    const id1 = panel.openView("terminal");
+    const id2 = panel.openView("terminal");
+    const id3 = panel.openView("terminal");
+
+    panel.reorderTabs([id3, id1, id2]);
+
+    const tabs = panel.store.getState().getProjectState(PROJECT).tabs;
+    expect(tabs.map((t) => t.id)).toEqual([id3, id1, id2]);
+  });
+
+  it("preserves activeTabId after reorder", () => {
+    const id1 = panel.openView("terminal");
+    const id2 = panel.openView("terminal");
+    const id3 = panel.openView("terminal");
+    // id3 is active (last opened)
+    expect(panel.store.getState().getProjectState(PROJECT).activeTabId).toBe(id3);
+
+    panel.reorderTabs([id2, id3, id1]);
+
+    expect(panel.store.getState().getProjectState(PROJECT).activeTabId).toBe(id3);
+  });
+
+  it("no-ops when tabIds length does not match", () => {
+    const id1 = panel.openView("terminal");
+    panel.openView("terminal");
+
+    panel.reorderTabs([id1]);
+
+    const tabs = panel.store.getState().getProjectState(PROJECT).tabs;
+    expect(tabs).toHaveLength(2);
+  });
+
+  it("no-ops when tabIds contain unknown IDs", () => {
+    const id1 = panel.openView("terminal");
+    const id2 = panel.openView("terminal");
+
+    panel.reorderTabs([id1, "unknown-id"]);
+
+    const tabs = panel.store.getState().getProjectState(PROJECT).tabs;
+    expect(tabs.map((t) => t.id)).toEqual([id1, id2]);
+  });
+
+  it("no-ops for empty project", () => {
+    panel.reorderTabs(["a", "b"]);
+    expect(panel.store.getState().getProjectState(PROJECT).tabs).toHaveLength(0);
+  });
+});
+
 // --- Persistence ---
 
 describe("hydrate", () => {
