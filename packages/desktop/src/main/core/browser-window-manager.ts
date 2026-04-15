@@ -110,8 +110,13 @@ export class BrowserWindowManager implements IBrowserWindowManager {
     win.webContents.on("did-attach-webview", (e, webContent) => {
       log.debug("did-attach-webview", e);
       webContent.setWindowOpenHandler((details) => {
-        // 将新窗口请求转为当前 webview 内导航
-        webContent.loadURL(details.url);
+        const url = details.url;
+        if (/^https?:\/\//.test(url)) {
+          // 将新窗口请求转为当前 webview 内导航
+          webContent.loadURL(url);
+        } else {
+          log.debug("Blocked non-http URL from webview navigation: %s", url);
+        }
         return { action: "deny" };
       });
     });

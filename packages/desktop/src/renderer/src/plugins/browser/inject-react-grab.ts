@@ -24,7 +24,7 @@ const PLUGIN_SETUP = `
         var tagName = element.tagName ? element.tagName.toLowerCase() : '';
         var displayName = api.getDisplayName(element) || undefined;
         const id = element.id;
-        const content = element.outerHTML;
+        const content = element.outerHTML.slice(0, 500);
         api.getSource(element).then(function(source) {
           console.log('BROWSER_PLUGIN:' + JSON.stringify({
             type: 'select',
