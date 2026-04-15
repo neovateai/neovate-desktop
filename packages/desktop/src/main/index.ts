@@ -27,6 +27,7 @@ import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
 import browserPlugin from "./plugins/browser";
 import changesPlugin from "./plugins/changes";
+// import demoMcpLivePreviewPlugin from "./plugins/demo-mcp-live-preview";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
 import gitPlugin from "./plugins/git";
@@ -86,7 +87,15 @@ const stateStore = new StateStore();
 const llmService = new LlmService(configStore, shellEnvService);
 const mainApp = new MainApp({
   appName: app.getName(),
-  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin, browserPlugin],
+  plugins: [
+    gitPlugin,
+    filesPlugin,
+    terminalPlugin,
+    editorPlugin,
+    changesPlugin,
+    browserPlugin,
+    // demoMcpLivePreviewPlugin,
+  ],
   llmService,
 });
 const updaterService = new UpdaterService({

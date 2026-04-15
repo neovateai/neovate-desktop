@@ -50,8 +50,6 @@ const permissionModeKeys = {
   bypassPermissions: "settings.agents.permissionMode.bypassPermissions",
 } as const satisfies Record<ConfigPermissionMode, string>;
 
-const EMPTY_MODELS: import("../../../../../../shared/features/agent/types").ModelInfo[] = [];
-
 /** Encode provider+model into a single radio value. "" = auto. */
 function encodeValue(providerId: string | undefined, model: string | undefined): string {
   if (!model) return "";
@@ -345,15 +343,8 @@ function GlobalModelSelect() {
   const providersLoaded = useProviderStore((s) => s.loaded);
   const loadProviders = useProviderStore((s) => s.load);
 
-  // SDK models from any active non-provider session
-  const sdkModels = useAgentStore((s) => {
-    for (const session of s.sessions.values()) {
-      if (!session.providerId && session.availableModels.length > 0) {
-        return session.availableModels;
-      }
-    }
-    return EMPTY_MODELS;
-  });
+  // SDK models cached at store level from any session init
+  const sdkModels = useAgentStore((s) => s.sdkModels);
 
   // Load providers and current selection on mount
   useEffect(() => {

@@ -1,24 +1,22 @@
 import type { ExitPlanModeUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
+import { MessageResponse } from "../../../../components/ai-elements/message";
 import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
 
 export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToolInvocation }) {
-  // Hide while approval dialog is active (same pattern as AskUserQuestionTool)
-  if (
-    !invocation ||
-    invocation.state === "input-streaming" ||
-    invocation.state === "input-available" ||
-    !invocation.output
-  ) {
-    return null;
-  }
-  const { state, output } = invocation;
+  if (!invocation || invocation.state === "input-streaming") return null;
+
+  const { state, input, output } = invocation;
 
   return (
     <Tool>
       <ToolHeader type="tool-ExitPlanMode" state={state} title="Exit Plan Mode" />
       <ToolContent>
-        <p className="text-sm text-muted-foreground">{output}</p>
+        {state === "input-available" && input?.plan ? (
+          <MessageResponse>{input.plan}</MessageResponse>
+        ) : (state === "output-available" || state === "output-denied") && output ? (
+          <p className="text-sm text-muted-foreground">{output}</p>
+        ) : null}
       </ToolContent>
     </Tool>
   );

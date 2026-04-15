@@ -59,7 +59,8 @@ export function readModelSetting(
 
   // 3. Global
   const globalJson = readJsonFile(join(homedir(), ".claude", "settings.json"));
-  if (typeof globalJson?.model === "string" && globalJson.model) {
+  // "default" is not a real model ID — ignore it (same as unset)
+  if (typeof globalJson?.model === "string" && globalJson.model && globalJson.model !== "default") {
     log("readModelSetting: global scope model=%s", globalJson.model);
     return { model: globalJson.model, scope: "global" };
   }
@@ -110,13 +111,16 @@ export function writeModelSetting(
     case "global": {
       const filePath = join(homedir(), ".claude", "settings.json");
       const existing = readJsonFile(filePath) ?? {};
-      if (model === null) {
+      // "default" is the SDK alias for "use default model" — not a real model ID.
+      // Writing it to settings.json breaks Claude Code CLI.
+      const effectiveModel = model === "default" ? null : model;
+      if (effectiveModel === null) {
         delete existing.model;
       } else {
-        existing.model = model;
+        existing.model = effectiveModel;
       }
       writeJsonFile(filePath, existing);
-      log("writeModelSetting: global scope model=%s", model);
+      log("writeModelSetting: global scope model=%s", effectiveModel);
       break;
     }
   }
