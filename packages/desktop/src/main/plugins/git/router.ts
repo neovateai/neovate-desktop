@@ -27,12 +27,13 @@ function parseNumstat(output: string): Map<string, { insertions: number; deletio
   return stats;
 }
 
-function str2file(cwd: string, file: string) {
+function str2file(gitRoot: string, cwd: string, gitRelFile: string) {
+  const fullPath = path.resolve(gitRoot, gitRelFile);
   return {
-    fullPath: path.resolve(cwd, file),
-    relPath: file,
-    fileName: path.basename(file),
-    extName: path.extname(file).replace(".", ""),
+    fullPath,
+    relPath: path.relative(cwd, fullPath),
+    fileName: path.basename(gitRelFile),
+    extName: path.extname(gitRelFile).replace(".", ""),
   };
 }
 
@@ -140,16 +141,16 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
     diff: orpcServer.handler(async ({ input }) => {
       const {
         cwd,
-        file,
+        file: relPath,
         type: diffType,
       } = input as { cwd: string; file: string; type: "working" | "staged" };
-      log("diff: loading", { cwd, file, diffType });
+      log("diff: loading", { cwd, relPath, diffType });
       try {
         const {
           oldContent = "",
           newContent = "",
           fileStatus,
-        } = await getFileDiff(cwd, file, diffType);
+        } = await getFileDiff(cwd, relPath, diffType);
 
         return {
           success: true,
@@ -248,6 +249,7 @@ export function createGitRouter(orpcServer: PluginContext["orpcServer"]) {
  */
 async function getFiles(cwd: string) {
   const gitClient = git(cwd);
+  const gitRoot = (await gitClient.revparse(["--show-toplevel"])).trim();
   const [status, numstatWorkingRaw, numstatStagedRaw] = await Promise.all([
     gitClient.status(),
     gitClient.raw(["diff", "--numstat"]).catch(() => ""),
@@ -291,7 +293,7 @@ async function getFiles(cwd: string) {
 
         const ss = stagedStats.get(filePath);
         staged.push({
-          ...str2file(cwd, filePath),
+          ...str2file(gitRoot, cwd, filePath),
           status: st,
           staged: true as const,
           ...(ss && { insertions: ss.insertions, deletions: ss.deletions }),
@@ -310,7 +312,7 @@ async function getFiles(cwd: string) {
 
         const ws = workingStats.get(filePath);
         working.push({
-          ...str2file(cwd, filePath),
+          ...str2file(gitRoot, cwd, filePath),
           status: st,
           ...(ws && { insertions: ws.insertions, deletions: ws.deletions }),
         });
@@ -323,7 +325,7 @@ async function getFiles(cwd: string) {
         seenWorking.add(filePath);
         const us = workingStats.get(filePath);
         working.push({
-          ...str2file(cwd, filePath),
+          ...str2file(gitRoot, cwd, filePath),
           status: "untracked",
           ...(us && { insertions: us.insertions, deletions: us.deletions }),
         });
