@@ -4,7 +4,7 @@ import { ClaudeCodeToolUIPart } from "../../../../features/agent/components/tool
 import { AgentTool } from "../../../../features/agent/components/tool-parts/agent-tool";
 import { PlaygroundPage, rendererRoot, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available" | "preliminary";
+type Scenario = "input-available" | "output-available" | "output-error" | "preliminary";
 
 const outputMessage = {
   id: "agent-output-message",
@@ -53,6 +53,15 @@ const outputAvailableInvocation = {
   providerExecuted: true,
 } as any;
 
+const outputErrorInvocation = {
+  type: "tool-Agent",
+  toolCallId: "agent-tool-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Agent failed: context window exceeded",
+  providerExecuted: true,
+} as any;
+
 const preliminaryInvocation = {
   type: "tool-Agent",
   toolCallId: "agent-tool-preliminary",
@@ -68,6 +77,7 @@ export function AgentToolPlayground() {
 
   let invocation = outputAvailableInvocation;
   if (scenario === "input-available") invocation = inputAvailableInvocation;
+  if (scenario === "output-error") invocation = outputErrorInvocation;
   if (scenario === "preliminary") invocation = preliminaryInvocation;
 
   return (
@@ -88,6 +98,12 @@ export function AgentToolPlayground() {
             onClick={() => setScenario("output-available")}
           >
             Output Available
+          </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
           </ScenarioButton>
           <ScenarioButton
             active={scenario === "preliminary"}

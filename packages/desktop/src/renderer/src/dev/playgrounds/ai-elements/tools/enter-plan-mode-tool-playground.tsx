@@ -3,7 +3,7 @@ import { useState } from "react";
 import { EnterPlanModeTool } from "../../../../features/agent/components/tool-parts/enter-plan-mode-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-EnterPlanMode",
@@ -19,6 +19,15 @@ const outputAvailableInvocation = {
   state: "output-available",
   input: {},
   output: "Entered plan mode.",
+  providerExecuted: true,
+} as any;
+
+const outputErrorInvocation = {
+  type: "tool-EnterPlanMode",
+  toolCallId: "enter-plan-mode-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Already in plan mode",
   providerExecuted: true,
 } as any;
 
@@ -44,12 +53,22 @@ export function EnterPlanModeToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <EnterPlanModeTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

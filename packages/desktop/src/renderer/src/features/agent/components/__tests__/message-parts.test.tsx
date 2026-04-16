@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../orpc", () => ({ client: {} }));
@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 describe("MessageParts", () => {
-  it("renders agent UIMessage output directly from the parent Agent tool", () => {
+  it("renders agent UIMessage output directly from the parent Agent tool", async () => {
     const agentMessage = {
       id: "agent:call-agent",
       role: "assistant",
@@ -86,8 +86,11 @@ describe("MessageParts", () => {
       />,
     );
 
+    // Expand the Agent tool collapsible (closed by default)
+    fireEvent.click(screen.getByText("Explore repo"));
+
     expect(screen.getByText("Inspection in progress")).toBeTruthy();
-    expect(screen.getByText("subagent-example.ts")).toBeTruthy();
+    expect(screen.getByText(/subagent-example\.ts/)).toBeTruthy();
     expect(screen.getByText("Inspection complete")).toBeTruthy();
   });
 

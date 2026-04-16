@@ -1,20 +1,27 @@
-import { SquareCheckIcon, SquareDotIcon, SquareIcon } from "lucide-react";
+import { CheckSquare, SquareCheckIcon, SquareDotIcon, SquareIcon } from "lucide-react";
 
 import type { TodoWriteUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 import { cn } from "../../../../lib/utils";
 
 export function TodoWriteTool({ invocation }: { invocation: TodoWriteUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input } = invocation;
+  const { input } = invocation;
 
   const count = input?.todos?.length ?? 0;
-  const title = `Todo (${count} tasks)`;
 
   return (
-    <Tool>
-      <ToolHeader type="tool-TodoWrite" state={state} title={title} />
+    <Tool invocation={invocation}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={CheckSquare} />
+        Todo ({count} tasks)
+      </ToolHeader>
       <ToolContent>
         {input?.todos && input.todos.length > 0 ? (
           <div className="space-y-2">

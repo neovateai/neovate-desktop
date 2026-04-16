@@ -103,10 +103,7 @@ export function PreviewSurface({ children }: { children: ReactNode }) {
   }, [children]);
 
   return (
-    <div
-      ref={containerRef}
-      className="rounded-2xl border bg-card/60 p-4 shadow-sm [--code-block-content-visibility:visible]"
-    >
+    <div ref={containerRef} className="[--code-block-content-visibility:visible]">
       {children}
     </div>
   );

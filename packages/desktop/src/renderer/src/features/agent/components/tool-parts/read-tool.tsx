@@ -1,56 +1,79 @@
-import type { BundledLanguage } from "shiki";
-
-import { AlertCircle } from "lucide-react";
+import { File } from "@pierre/diffs/react";
+import { FileText } from "lucide-react";
+import { useCallback } from "react";
 
 import type { ReadUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { CodeBlock, CodeBlockCopyButton } from "../../../../components/ai-elements/code-block";
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
-import { OpenInEditorButton } from "./open-in-editor-button";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
+import { Badge } from "../../../../components/ui/badge";
+import {
+  Tooltip,
+  TooltipPopup,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../../../components/ui/tooltip";
+import { useRendererApp } from "../../../../core";
 
 export function ReadTool({ invocation }: { invocation: ReadUIToolInvocation }) {
-  if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, input, output, errorText } = invocation;
+  const app = useRendererApp();
 
-  const code = output?.text ? output.text.replace(/^\s*(\d+)→/gm, "") : undefined;
-  const language = (input?.file_path?.match(/\.(\w+)$/)?.[1] ?? "typescript") as BundledLanguage;
+  const { input, output } = invocation;
   const filePath = input?.file_path;
-  const title = filePath ? `Read ${filePath}` : undefined;
-  const hasError = state === "output-error";
+
+  const handleFileClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (filePath) app.opener.open(filePath);
+    },
+    [app, filePath],
+  );
+
+  if (!invocation || invocation.state === "input-streaming") return null;
+
+  const fileName = filePath?.split("/").pop();
+
+  const imageDataUrl =
+    output?.type === "image" ? `data:${output.file.type};base64,${output.file.base64}` : undefined;
 
   return (
-    <Tool>
-      <div className="flex items-center gap-1">
-        <ToolHeader type="tool-Read" state={state} title={title} />
-        {filePath && <OpenInEditorButton filePath={filePath} />}
-      </div>
-      <ToolContent>
-        {hasError && errorText ? (
-          <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="whitespace-pre-wrap">{errorText}</span>
-          </div>
-        ) : (
-          <>
-            {output?.images?.length ? (
-              <div className="flex flex-wrap gap-2">
-                {output.images.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img.url}
-                    alt={img.filename ?? "Tool output"}
-                    className="max-h-48 rounded-md"
-                  />
-                ))}
-              </div>
-            ) : null}
-            {code ? (
-              <CodeBlock code={code} language={language} className="text-xs">
-                <CodeBlockCopyButton />
-              </CodeBlock>
-            ) : null}
-          </>
+    <Tool invocation={invocation}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={FileText} />
+        <span className="shrink-0">
+          Read {output?.type === "text" ? `${output.file.totalLines} lines` : null}
+        </span>
+        {fileName && (
+          <TooltipProvider delay={0}>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Badge variant="outline" className="cursor-pointer" onClick={handleFileClick}>
+                    {fileName}
+                  </Badge>
+                }
+              />
+              <TooltipPopup>{filePath}</TooltipPopup>
+            </Tooltip>
+          </TooltipProvider>
         )}
+      </ToolHeader>
+      <ToolContent>
+        {output?.type === "text" ? (
+          <File
+            file={{ contents: output.file.content, name: fileName || "" }}
+            options={{ disableFileHeader: true }}
+          />
+        ) : null}
+        {output?.type === "image" && imageDataUrl ? (
+          <div className="flex flex-wrap gap-2">
+            <img src={imageDataUrl} alt={fileName} className="max-h-48 rounded-md" />
+          </div>
+        ) : null}
       </ToolContent>
     </Tool>
   );

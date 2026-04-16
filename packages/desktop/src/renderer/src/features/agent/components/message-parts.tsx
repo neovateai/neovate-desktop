@@ -123,7 +123,7 @@ function AssistantMessageParts({
         >
           <ChevronDownIcon
             className={cn(
-              "size-4 shrink-0 transition-transform duration-150",
+              "size-3 shrink-0 transition-transform duration-150",
               isOpen ? "rotate-0" : "-rotate-90",
             )}
           />

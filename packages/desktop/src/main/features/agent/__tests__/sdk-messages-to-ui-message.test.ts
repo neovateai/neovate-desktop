@@ -34,6 +34,7 @@ const makeUserToolResult = () =>
     uuid: "user-1",
     session_id: "sess-1",
     parent_tool_use_id: null,
+    tool_use_result: "export const ok = true;",
     message: {
       role: "user" as const,
       content: [
@@ -57,7 +58,7 @@ describe("sdkMessagesToUIMessage", () => {
     expect(message?.parts.find((part: any) => part.type === "tool-Read")).toMatchObject({
       toolCallId: "call-read",
       state: "output-available",
-      output: { text: "export const ok = true;", images: [] },
+      output: "export const ok = true;",
     });
   });
 });

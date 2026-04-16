@@ -23,12 +23,14 @@ import { TaskOutputToolPlayground } from "./tools/task-output-tool-playground";
 import { TaskStopToolPlayground } from "./tools/task-stop-tool-playground";
 import { TaskToolPlayground } from "./tools/task-tool-playground";
 import { TodoWriteToolPlayground } from "./tools/todo-write-tool-playground";
+import { ToolPrimitivesPlayground } from "./tools/tool-primitives-playground";
 import { WebFetchToolPlayground } from "./tools/web-fetch-tool-playground";
 import { WebSearchToolPlayground } from "./tools/web-search-tool-playground";
 import { WriteToolPlayground } from "./tools/write-tool-playground";
 
 type SectionId =
   | "chat"
+  | "tool-primitives"
   | "agent-tool"
   | "task-tool"
   | "ask-user-question-tool"
@@ -56,6 +58,8 @@ function renderSection(section: SectionId) {
   switch (section) {
     case "chat":
       return <ChatPlayground />;
+    case "tool-primitives":
+      return <ToolPrimitivesPlayground />;
     case "agent-tool":
       return <AgentToolPlayground />;
     case "task-tool":
@@ -104,7 +108,7 @@ function renderSection(section: SectionId) {
 }
 
 export default function AiElementsPlayground() {
-  const [section, setSection] = useState<SectionId>("chat");
+  const [section, setSection] = useState<SectionId>("tool-primitives");
 
   return (
     <div className="flex h-full min-h-0">
@@ -121,6 +125,14 @@ export default function AiElementsPlayground() {
             <SidebarGroupLabel>Chat</SidebarGroupLabel>
             <SidebarButton active={section === "chat"} onClick={() => setSection("chat")}>
               Chat
+            </SidebarButton>
+
+            <SidebarGroupLabel>Primitives</SidebarGroupLabel>
+            <SidebarButton
+              active={section === "tool-primitives"}
+              onClick={() => setSection("tool-primitives")}
+            >
+              Tool Primitives
             </SidebarButton>
 
             <SidebarGroupLabel>Tools</SidebarGroupLabel>

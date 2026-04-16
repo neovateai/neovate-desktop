@@ -15,6 +15,9 @@ import type {
   ClaudeCodeUIEvent,
 } from "../../../shared/claude-code/types";
 
+import { EditOutputSchema } from "../../../shared/claude-code/tools/edit";
+import { ReadOutputSchema } from "../../../shared/claude-code/tools/read";
+
 type ActiveContentBlock =
   | { type: "text"; id: string }
   | { type: "reasoning"; id: string }
@@ -43,6 +46,94 @@ function isTaskOrAgentTool(toolName: string): toolName is "Task" | "Agent" {
   return toolName === "Task" || toolName === "Agent";
 }
 
+/** Predefined tools whose output should use raw content instead of tool_use_result. */
+const CONTENT_OUTPUT_TOOL_NAMES = new Set([
+  "Agent",
+  "Task",
+  "Bash",
+  "Write",
+  "MultiEdit",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "TodoWrite",
+  "NotebookEdit",
+  "BashOutput",
+  "Skill",
+  "SlashCommand",
+  "EnterPlanMode",
+  "ExitPlanMode",
+  "EnterWorktree",
+  "TaskOutput",
+  "TaskStop",
+]);
+
+/**
+ * Content → outputSchema fallback converter entry.
+ *
+ * On restore, `getSessionMessages` strips `tool_use_result`, so the transformer
+ * falls back to the Anthropic API `content` field. Each tool that uses
+ * `tool_use_result` (i.e. NOT in CONTENT_OUTPUT_TOOL_NAMES) should register a
+ * converter here to transform content into its outputSchema format.
+ *
+ * The converter output is validated against the schema via `safeParse`.
+ * If validation fails, `undefined` is returned (tool renders with no output).
+ */
+type ContentFallbackConverter = {
+  schema: { safeParse: (data: unknown) => { success: boolean; data?: unknown } };
+  convert: (content: unknown) => unknown;
+};
+
+const CONTENT_FALLBACK_CONVERTERS: Record<string, ContentFallbackConverter> = {
+  Edit: {
+    schema: EditOutputSchema,
+    convert(content) {
+      // On restore, content is a raw string (the CLI's text output).
+      // We can't reconstruct structuredPatch from it, so return the content
+      // as-is and let safeParse reject it — EditTool gracefully falls back
+      // to input.old_string / input.new_string when output is undefined.
+      return content;
+    },
+  },
+  Read: {
+    schema: ReadOutputSchema,
+    convert(content) {
+      if (typeof content === "string") {
+        const totalLines = content.split("\n").length;
+        return {
+          type: "text",
+          file: { filePath: "", content, numLines: totalLines, startLine: 1, totalLines },
+        };
+      }
+      if (!Array.isArray(content)) return content;
+
+      for (const block of content) {
+        if (block?.type === "image" && block.source?.type === "base64") {
+          return {
+            type: "image",
+            file: {
+              base64: block.source.data ?? "",
+              type: block.source.media_type ?? "image/png",
+              originalSize: 0,
+            },
+          };
+        }
+      }
+
+      const text = content
+        .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+        .map((b: any) => b.text)
+        .join("\n");
+      const totalLines = text.split("\n").length;
+      return {
+        type: "text",
+        file: { filePath: "", content: text, numLines: totalLines, startLine: 1, totalLines },
+      };
+    },
+  },
+};
+
 export class SDKMessageTransformer {
   private inStep = false;
   private hasStarted = false;
@@ -56,7 +147,10 @@ export class SDKMessageTransformer {
   private readonly agentToolPrompts = new Map<string, string>();
   private readonly contentBlocks = new Map<number, ActiveContentBlock>();
   private readonly activeParentTools = new Map<string, ParentToolState>();
-  private readonly readToolCallIds = new Set<string>();
+  /** Tracks toolCallIds whose output should use raw content instead of tool_use_result. */
+  private readonly contentOutputTools = new Set<string>();
+  /** Tracks toolCallId → toolName for content-to-outputSchema conversion on restore. */
+  private readonly toolNames = new Map<string, string>();
   private readonly rootParentToolUseId: string | null;
   private readonly rootToolPrompt: string | null;
 
@@ -516,7 +610,10 @@ export class SDKMessageTransformer {
         try {
           const parsedInput = JSON.parse(finalInput);
           this.rememberAgentToolPrompt(contentBlock.toolCallId, contentBlock.toolName, parsedInput);
-          if (contentBlock.toolName === "Read") this.readToolCallIds.add(contentBlock.toolCallId);
+          this.toolNames.set(contentBlock.toolCallId, contentBlock.toolName);
+          if (CONTENT_OUTPUT_TOOL_NAMES.has(contentBlock.toolName)) {
+            this.contentOutputTools.add(contentBlock.toolCallId);
+          }
           yield {
             type: "tool-input-available",
             toolCallId: contentBlock.toolCallId,
@@ -577,7 +674,10 @@ export class SDKMessageTransformer {
         }
         case "tool_use": {
           this.rememberAgentToolPrompt(part.id, part.name, part.input);
-          if (part.name === "Read") this.readToolCallIds.add(part.id);
+          this.toolNames.set(part.id, part.name);
+          if (CONTENT_OUTPUT_TOOL_NAMES.has(part.name)) {
+            this.contentOutputTools.add(part.id);
+          }
           yield {
             type: "tool-input-available",
             toolCallId: part.id,
@@ -619,12 +719,11 @@ export class SDKMessageTransformer {
               providerExecuted: true,
             };
           } else {
+            const output = this.resolveToolOutput(part.tool_use_id, part.content, message);
             yield {
               type: "tool-output-available",
               toolCallId: part.tool_use_id,
-              output: this.readToolCallIds.has(part.tool_use_id)
-                ? this.parseReadToolContent(part.content)
-                : part.content,
+              output,
               providerExecuted: true,
             };
           }
@@ -739,7 +838,34 @@ export class SDKMessageTransformer {
     return parts;
   }
 
-  private parseReadToolContent(content: unknown) {
+  private resolveToolOutput(toolCallId: string, content: unknown, message: any): unknown {
+    if (this.contentOutputTools.has(toolCallId)) {
+      return content;
+    }
+    // The SDK may attach the structured result as either snake_case (wire format)
+    // or camelCase (JS-normalized). Check both to handle either convention.
+    const structured = message.tool_use_result ?? message.toolUseResult;
+    if (structured !== undefined) return structured;
+
+    // Restore path: tool_use_result is stripped by getSessionMessages,
+    // convert content (Anthropic API format) → outputSchema format.
+    const toolName = this.toolNames.get(toolCallId);
+    if (toolName) {
+      return this.contentToOutputSchema(toolName, content);
+    }
+    return content;
+  }
+
+  private contentToOutputSchema(toolName: string, content: unknown): unknown {
+    const entry = CONTENT_FALLBACK_CONVERTERS[toolName];
+    if (!entry) return undefined;
+
+    const converted = entry.convert(content);
+    const result = entry.schema.safeParse(converted);
+    return result.success ? result.data : undefined;
+  }
+
+  private parseReadToolContentLegacy(content: unknown) {
     if (typeof content === "string") return { text: content, images: [] };
     if (!Array.isArray(content))
       return { text: content != null ? JSON.stringify(content) : "", images: [] };
@@ -775,7 +901,7 @@ export class SDKMessageTransformer {
   }
 
   private extractImageParts(result: unknown): ClaudeCodeUIMessage["parts"] {
-    const { images } = this.parseReadToolContent(result);
+    const { images } = this.parseReadToolContentLegacy(result);
     return images.map((img) => ({
       type: "file" as const,
       mediaType: img.mediaType,

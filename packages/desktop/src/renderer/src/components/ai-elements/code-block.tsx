@@ -55,10 +55,9 @@ const addKeysToTokens = (lines: ThemedToken[][]): KeyedLine[] =>
 // Token rendering component
 const TokenSpan = ({ token }: { token: ThemedToken }) => (
   <span
-    className="dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)]"
+    className="dark:!text-[var(--shiki-dark)]"
     style={
       {
-        backgroundColor: token.bgColor,
         color: token.color,
         fontStyle: isItalic(token.fontStyle) ? "italic" : undefined,
         fontWeight: isBold(token.fontStyle) ? "bold" : undefined,
@@ -250,20 +249,16 @@ const CodeBlockBody = memo(
   }) => {
     const preStyle = useMemo(
       () => ({
-        backgroundColor: tokenized.bg,
         color: tokenized.fg,
       }),
-      [tokenized.bg, tokenized.fg],
+      [tokenized.fg],
     );
 
     const keyedLines = useMemo(() => addKeysToTokens(tokenized.tokens), [tokenized.tokens]);
 
     return (
       <pre
-        className={cn(
-          "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-3 text-xs",
-          className,
-        )}
+        className={cn("dark:!text-[var(--shiki-dark)] m-0 p-3 text-xs", className)}
         style={preStyle}
       >
         <code
@@ -294,7 +289,7 @@ export const CodeBlockContainer = ({
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => (
   <div
     className={cn(
-      "group relative w-full overflow-hidden rounded-lg bg-muted/40 text-foreground",
+      "group relative w-full overflow-hidden rounded-lg bg-muted/60 text-foreground",
       "[contain-intrinsic-size:var(--code-block-contain-intrinsic-size,auto_200px)]",
       "[content-visibility:var(--code-block-content-visibility,auto)]",
       className,

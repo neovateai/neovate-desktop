@@ -3,7 +3,7 @@ import { useState } from "react";
 import { TaskOutputTool } from "../../../../features/agent/components/tool-parts/task-output-tool";
 import { PlaygroundPage, ScenarioButton } from "../common";
 
-type Scenario = "input-available" | "output-available";
+type Scenario = "input-available" | "output-available" | "output-error";
 
 const inputAvailableInvocation = {
   type: "tool-TaskOutput",
@@ -29,6 +29,15 @@ const outputAvailableInvocation = {
   providerExecuted: true,
 } as any;
 
+const outputErrorInvocation = {
+  type: "tool-TaskOutput",
+  toolCallId: "task-output-output-error",
+  state: "output-error",
+  input: inputAvailableInvocation.input,
+  errorText: "Task not found: task-42",
+  providerExecuted: true,
+} as any;
+
 export function TaskOutputToolPlayground() {
   const [scenario, setScenario] = useState<Scenario>("output-available");
 
@@ -51,12 +60,22 @@ export function TaskOutputToolPlayground() {
           >
             Output Available
           </ScenarioButton>
+          <ScenarioButton
+            active={scenario === "output-error"}
+            onClick={() => setScenario("output-error")}
+          >
+            Output Error
+          </ScenarioButton>
         </>
       }
     >
       <TaskOutputTool
         invocation={
-          scenario === "input-available" ? inputAvailableInvocation : outputAvailableInvocation
+          scenario === "output-error"
+            ? outputErrorInvocation
+            : scenario === "input-available"
+              ? inputAvailableInvocation
+              : outputAvailableInvocation
         }
       />
     </PlaygroundPage>

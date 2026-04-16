@@ -19,7 +19,10 @@ export const AskUserQuestionInputSchema = z.object({
   answers: z.record(z.string(), z.string()).optional(),
 });
 
-export const AskUserQuestionOutputSchema = z.string();
+export const AskUserQuestionOutputSchema = z.object({
+  questions: z.array(QuestionSchema),
+  answers: z.record(z.string(), z.string()),
+});
 
 export const AskUserQuestion = tool({
   inputSchema: AskUserQuestionInputSchema,

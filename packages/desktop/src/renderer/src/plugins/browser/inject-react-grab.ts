@@ -91,7 +91,7 @@ activateReactGrab();
 `.trim();
 
 export const INJECT_SCRIPT = `
-(function() {  
+(function() {
   /** Part 1: React grab **/
   ${REACT_GRAB_PRECHECK}
 })();

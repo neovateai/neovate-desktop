@@ -10,6 +10,7 @@ import { EditTool } from "./edit-tool";
 import { EnterPlanModeTool } from "./enter-plan-mode-tool";
 import { EnterWorktreeTool } from "./enter-worktree-tool";
 import { ExitPlanModeTool } from "./exit-plan-mode-tool";
+import { GenericTool } from "./generic-tool";
 import { GlobTool } from "./glob-tool";
 import { GrepTool } from "./grep-tool";
 import { MultiEditTool } from "./multi-edit-tool";
@@ -84,8 +85,15 @@ function ClaudeCodeToolUIPartComponent({ part }: { part: ToolUIPart<ClaudeCodeUI
       return <ExitPlanModeTool invocation={part} />;
     case "tool-EnterWorktree":
       return <EnterWorktreeTool invocation={part} />;
-    default:
-      return null;
+    default: {
+      const unknownPart = part as any;
+      const rawType: string = unknownPart.type ?? "";
+      const toolName = rawType.startsWith("tool-") ? rawType.slice(5) : rawType;
+
+      if (unknownPart.state === "input-streaming") return null;
+
+      return <GenericTool toolName={toolName} invocation={unknownPart} />;
+    }
   }
 }
 

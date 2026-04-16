@@ -1,15 +1,25 @@
+import { GitBranch } from "lucide-react";
+
 import type { EnterWorktreeUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
 import { MessageResponse } from "../../../../components/ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 
 export function EnterWorktreeTool({ invocation }: { invocation: EnterWorktreeUIToolInvocation }) {
   if (!invocation || invocation.state === "input-streaming") return null;
-  const { state, output } = invocation;
+  const { output } = invocation;
 
   return (
-    <Tool>
-      <ToolHeader type="tool-EnterWorktree" state={state} title="Enter Worktree" />
+    <Tool invocation={invocation}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={GitBranch} />
+        Enter Worktree
+      </ToolHeader>
       <ToolContent>
         {typeof output === "string" && output ? <MessageResponse>{output}</MessageResponse> : null}
       </ToolContent>

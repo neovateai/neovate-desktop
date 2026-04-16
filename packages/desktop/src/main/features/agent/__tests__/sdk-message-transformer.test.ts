@@ -322,7 +322,7 @@ describe("SDKMessageTransformer", () => {
     });
   });
 
-  describe("normalizeToolOutput (via tool-output-available)", () => {
+  describe("resolveToolOutput (via tool-output-available)", () => {
     const registerReadTool = () => {
       collect(
         t.transform(
@@ -333,7 +333,7 @@ describe("SDKMessageTransformer", () => {
       );
     };
 
-    const makeToolResultMsg = (content: unknown) => ({
+    const makeToolResultMsg = (content: unknown, toolUseResult?: unknown) => ({
       type: "user" as const,
       uuid: "u",
       session_id: "s",
@@ -342,83 +342,145 @@ describe("SDKMessageTransformer", () => {
         role: "user" as const,
         content: [{ type: "tool_result", tool_use_id: "tc-norm", content, is_error: false }],
       },
+      ...(toolUseResult !== undefined ? { tool_use_result: toolUseResult } : {}),
     });
 
-    it("string content → { text, images: [] }", () => {
+    it("tool_use_result is passed through directly for non-content tools", () => {
       registerReadTool();
-      const chunks = collect(t.transform(makeToolResultMsg("hello") as any));
+      const toolUseResult = { type: "text", content: "hello", total_lines: 1, lines_returned: 1 };
+      const chunks = collect(t.transform(makeToolResultMsg("ignored", toolUseResult) as any));
       const out = chunks.find((c: any) => c.type === "tool-output-available");
-      expect(out.output).toEqual({ text: "hello", images: [] });
+      expect(out.output).toEqual(toolUseResult);
     });
 
-    it("array with text blocks → joined text, empty images", () => {
-      registerReadTool();
-      const chunks = collect(
+    it("content tools use raw content instead of tool_use_result", () => {
+      // Register a Bash tool (content tool)
+      collect(
         t.transform(
-          makeToolResultMsg([
-            { type: "text", text: "line 1" },
-            { type: "text", text: "line 2" },
+          makeAssistantMsg("msg-bash", [
+            { type: "tool_use", id: "tc-bash", name: "Bash", input: { command: "ls" } },
           ]) as any,
         ),
       );
+      const msg = {
+        type: "user" as const,
+        uuid: "u",
+        session_id: "s",
+        parent_tool_use_id: null,
+        message: {
+          role: "user" as const,
+          content: [
+            { type: "tool_result", tool_use_id: "tc-bash", content: "file.txt", is_error: false },
+          ],
+        },
+        tool_use_result: "should be ignored",
+      };
+      const chunks = collect(t.transform(msg as any));
       const out = chunks.find((c: any) => c.type === "tool-output-available");
-      expect(out.output).toEqual({ text: "line 1\nline 2", images: [] });
+      expect(out.output).toBe("file.txt");
     });
 
-    it("array with image block (base64) → empty text, image with data URL", () => {
+    it("missing tool_use_result → converts content to outputSchema for Read", () => {
       registerReadTool();
-      const chunks = collect(
-        t.transform(
-          makeToolResultMsg([
-            {
-              type: "image",
-              source: { type: "base64", media_type: "image/png", data: "abc123" },
-              filename: "screenshot.png",
-            },
-          ]) as any,
-        ),
-      );
+      const chunks = collect(t.transform(makeToolResultMsg("fallback-content") as any));
       const out = chunks.find((c: any) => c.type === "tool-output-available");
       expect(out.output).toEqual({
-        text: "",
-        images: [
-          {
-            url: "data:image/png;base64,abc123",
-            mediaType: "image/png",
-            filename: "screenshot.png",
-          },
-        ],
+        type: "text",
+        file: {
+          filePath: "",
+          content: "fallback-content",
+          numLines: 1,
+          startLine: 1,
+          totalLines: 1,
+        },
       });
     });
 
-    it("mixed text + image → both populated", () => {
+    it("Read fallback converter computes totalLines from multiline string content", () => {
       registerReadTool();
-      const chunks = collect(
+      const chunks = collect(t.transform(makeToolResultMsg("line1\nline2\nline3") as any));
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output).toEqual({
+        type: "text",
+        file: {
+          filePath: "",
+          content: "line1\nline2\nline3",
+          numLines: 3,
+          startLine: 1,
+          totalLines: 3,
+        },
+      });
+    });
+
+    it("Read fallback converter handles array-of-text content blocks", () => {
+      registerReadTool();
+      const content = [
+        { type: "text", text: "first" },
+        { type: "text", text: "second" },
+      ];
+      const chunks = collect(t.transform(makeToolResultMsg(content) as any));
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output).toEqual({
+        type: "text",
+        file: {
+          filePath: "",
+          content: "first\nsecond",
+          numLines: 2,
+          startLine: 1,
+          totalLines: 2,
+        },
+      });
+    });
+
+    it("Read fallback converter handles image content block", () => {
+      registerReadTool();
+      const content = [
+        {
+          type: "image",
+          source: { type: "base64", data: "abc123", media_type: "image/png" },
+        },
+      ];
+      const chunks = collect(t.transform(makeToolResultMsg(content) as any));
+      const out = chunks.find((c: any) => c.type === "tool-output-available");
+      expect(out.output).toEqual({
+        type: "image",
+        file: {
+          base64: "abc123",
+          type: "image/png",
+          originalSize: 0,
+        },
+      });
+    });
+
+    it("contentToOutputSchema returns undefined for unknown tool names", () => {
+      // Register an unknown tool (not in CONTENT_OUTPUT_TOOL_NAMES or CONTENT_FALLBACK_CONVERTERS)
+      collect(
         t.transform(
-          makeToolResultMsg([
-            { type: "text", text: "File contents" },
-            {
-              type: "image",
-              source: { type: "url", url: "https://example.com/img.png", media_type: "image/png" },
-            },
+          makeAssistantMsg("msg-unknown", [
+            { type: "tool_use", id: "tc-unknown", name: "UnknownTool", input: {} },
           ]) as any,
         ),
       );
+      const msg = {
+        type: "user" as const,
+        uuid: "u",
+        session_id: "s",
+        parent_tool_use_id: null,
+        message: {
+          role: "user" as const,
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: "tc-unknown",
+              content: "some output",
+              is_error: false,
+            },
+          ],
+        },
+      };
+      const chunks = collect(t.transform(msg as any));
       const out = chunks.find((c: any) => c.type === "tool-output-available");
-      expect(out.output.text).toBe("File contents");
-      expect(out.output.images).toHaveLength(1);
-      expect(out.output.images[0].url).toBe("https://example.com/img.png");
-    });
-
-    it("null/undefined → { text: '', images: [] }", () => {
-      registerReadTool();
-      const chunksNull = collect(t.transform(makeToolResultMsg(null) as any));
-      const outNull = chunksNull.find((c: any) => c.type === "tool-output-available");
-      expect(outNull.output).toEqual({ text: "", images: [] });
-
-      const chunksUndefined = collect(t.transform(makeToolResultMsg(undefined) as any));
-      const outUndefined = chunksUndefined.find((c: any) => c.type === "tool-output-available");
-      expect(outUndefined.output).toEqual({ text: "", images: [] });
+      expect(out.output).toBeUndefined();
     });
   });
 

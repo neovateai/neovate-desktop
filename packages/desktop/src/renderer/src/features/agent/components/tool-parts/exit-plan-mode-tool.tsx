@@ -1,22 +1,34 @@
+import { LogOut } from "lucide-react";
+
 import type { ExitPlanModeUIToolInvocation } from "../../../../../../shared/claude-code/types";
 
-import { MessageResponse } from "../../../../components/ai-elements/message";
-import { Tool, ToolContent, ToolHeader } from "../../../../components/ai-elements/tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolHeaderIcon,
+} from "../../../../components/ai-elements/tool";
 
 export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToolInvocation }) {
-  if (!invocation || invocation.state === "input-streaming") return null;
+  if (
+    !invocation ||
+    invocation.state === "input-streaming" ||
+    invocation.state === "input-available" ||
+    !invocation.output
+  ) {
+    return null;
+  }
 
-  const { state, input, output } = invocation;
+  const { output } = invocation;
 
   return (
-    <Tool>
-      <ToolHeader type="tool-ExitPlanMode" state={state} title="Exit Plan Mode" />
+    <Tool invocation={invocation}>
+      <ToolHeader>
+        <ToolHeaderIcon icon={LogOut} />
+        Exit Plan Mode
+      </ToolHeader>
       <ToolContent>
-        {state === "input-available" && input?.plan ? (
-          <MessageResponse>{input.plan}</MessageResponse>
-        ) : (state === "output-available" || state === "output-denied") && output ? (
-          <p className="text-sm text-muted-foreground">{output}</p>
-        ) : null}
+        <p className="text-sm text-muted-foreground">{output}</p>
       </ToolContent>
     </Tool>
   );

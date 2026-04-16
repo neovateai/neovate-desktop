@@ -172,11 +172,11 @@ export const ReasoningTrigger = memo(
       >
         {children ?? (
           <>
-            <div className="relative flex size-4 shrink-0 items-center justify-center">
-              <BrainIcon className="absolute size-4 transition-opacity duration-150 group-hover:opacity-0" />
+            <div className="relative flex size-3 shrink-0 items-center justify-center">
+              <BrainIcon className="absolute size-3 transition-opacity duration-150 group-hover:opacity-0" />
               <ChevronDownIcon
                 className={cn(
-                  "absolute size-4 transition-all duration-150 opacity-0 group-hover:opacity-100",
+                  "absolute size-3 transition-all duration-150 opacity-0 group-hover:opacity-100",
                   isOpen ? "rotate-0" : "-rotate-90",
                 )}
               />
