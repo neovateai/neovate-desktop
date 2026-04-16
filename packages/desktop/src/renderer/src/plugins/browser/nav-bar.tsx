@@ -10,12 +10,14 @@ interface NavBarProps {
   isLoading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  enableInspect?: boolean;
   isInspecting: boolean;
+  isDevToolsOpen: boolean;
   onNavigate: (url: string) => void;
   onGoBack: () => void;
   onGoForward: () => void;
   onReload: () => void;
-  onOpenDevTools: () => void;
+  onToggleDevTools: () => void;
   onToggleInspector: () => void;
 }
 
@@ -32,14 +34,16 @@ function normalizeUrl(input: string): string {
 export function NavBar({
   url,
   isLoading,
+  enableInspect,
   canGoBack,
   canGoForward,
   isInspecting,
+  isDevToolsOpen,
   onNavigate,
   onGoBack,
   onGoForward,
   onReload,
-  onOpenDevTools,
+  onToggleDevTools,
   onToggleInspector,
 }: NavBarProps) {
   const { t } = useTranslation("plugin-browser");
@@ -106,21 +110,24 @@ export function NavBar({
         className="mx-1 flex-1 bg-muted/30 focus-within:bg-transparent"
       />
 
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={onToggleInspector}
-        aria-label={t("nav.inspect")}
-        className={isInspecting ? "bg-muted" : ""}
-      >
-        <MousePointerClick className="size-4" />
-      </Button>
+      {enableInspect && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onToggleInspector}
+          aria-label={t("nav.inspect")}
+          className={isInspecting ? "bg-muted" : ""}
+        >
+          <MousePointerClick className="size-4" />
+        </Button>
+      )}
 
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={onOpenDevTools}
+        onClick={onToggleDevTools}
         aria-label={t("nav.devtools")}
+        className={isDevToolsOpen ? "bg-muted" : ""}
       >
         <PanelBottom className="size-4" />
       </Button>

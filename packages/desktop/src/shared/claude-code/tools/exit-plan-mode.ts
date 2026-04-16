@@ -2,10 +2,12 @@ import { tool, type UIToolInvocation } from "ai";
 import { z } from "zod";
 
 export const ExitPlanModeInputSchema = z.object({
-  /**
-   * The plan to run by the user for approval
-   */
-  plan: z.string(),
+  /** Prompt-based permissions needed to implement the plan (model-provided). */
+  allowedPrompts: z.array(z.object({ tool: z.string(), prompt: z.string() })).optional(),
+  /** The plan content (injected by SDK from disk). */
+  plan: z.string().optional(),
+  /** The plan file path (injected by SDK). */
+  planFilePath: z.string().optional(),
 });
 
 export const ExitPlanMode = tool({

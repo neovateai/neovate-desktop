@@ -50,8 +50,6 @@ const permissionModeKeys = {
   bypassPermissions: "settings.agents.permissionMode.bypassPermissions",
 } as const satisfies Record<ConfigPermissionMode, string>;
 
-const EMPTY_MODELS: import("../../../../../../shared/features/agent/types").ModelInfo[] = [];
-
 /** Encode provider+model into a single radio value. "" = auto. */
 function encodeValue(providerId: string | undefined, model: string | undefined): string {
   if (!model) return "";
@@ -345,15 +343,8 @@ function GlobalModelSelect() {
   const providersLoaded = useProviderStore((s) => s.loaded);
   const loadProviders = useProviderStore((s) => s.load);
 
-  // SDK models from any active non-provider session
-  const sdkModels = useAgentStore((s) => {
-    for (const session of s.sessions.values()) {
-      if (!session.providerId && session.availableModels.length > 0) {
-        return session.availableModels;
-      }
-    }
-    return EMPTY_MODELS;
-  });
+  // SDK models cached at store level from any session init
+  const sdkModels = useAgentStore((s) => s.sdkModels);
 
   // Load providers and current selection on mount
   useEffect(() => {
@@ -370,15 +361,22 @@ function GlobalModelSelect() {
 
   const enabledProviders = providers.filter((p) => p.enabled);
 
-  const handleSelect = useCallback((value: unknown) => {
-    const { providerId, model } = decodeValue(value as string);
-    log("global model selection: providerId=%s model=%s", providerId, model);
-    setSelectedProviderId(providerId ?? undefined);
-    setSelectedModel(model ?? undefined);
-    client.config.setGlobalModelSelection({ providerId, model });
-    const projectPath = useProjectStore.getState().activeProject?.path;
-    claudeCodeChatManager.invalidateNewSessions(projectPath);
-  }, []);
+  const handleSelect = useCallback(
+    (value: unknown) => {
+      const { providerId, model } = decodeValue(value as string);
+      if (
+        (providerId ?? undefined) === selectedProviderId &&
+        (model ?? undefined) === selectedModel
+      )
+        return;
+      log("global model selection: providerId=%s model=%s", providerId, model);
+      setSelectedProviderId(providerId ?? undefined);
+      setSelectedModel(model ?? undefined);
+      const projectPath = useProjectStore.getState().activeProject?.path;
+      claudeCodeChatManager.switchGlobalModel(providerId, model, projectPath);
+    },
+    [selectedProviderId, selectedModel],
+  );
 
   if (!selectionLoaded) {
     return <Spinner className="h-4 w-4" />;

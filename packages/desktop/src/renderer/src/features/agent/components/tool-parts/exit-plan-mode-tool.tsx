@@ -18,6 +18,7 @@ export function ExitPlanModeTool({ invocation }: { invocation: ExitPlanModeUIToo
   ) {
     return null;
   }
+
   const { output } = invocation;
 
   return (

@@ -143,7 +143,7 @@ export const SkillDiscoverTab = ({
       <div
         key={skill.sourceRef}
         className={cn(
-          "group relative flex flex-col p-4 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200",
+          "group relative flex gap-3 p-3.5 rounded-xl bg-card/80 border border-border/40 cursor-pointer hover:bg-card hover:border-border/60 hover:shadow-sm transition-colors duration-200",
           skill.installed && "opacity-60",
           isDeprecated && !skill.installed && "opacity-60",
         )}
@@ -156,10 +156,28 @@ export const SkillDiscoverTab = ({
           }
         }}
       >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0">
-            {initials}
+        <div className="flex items-center justify-center size-10 rounded-lg bg-muted text-muted-foreground text-sm font-semibold shrink-0 self-center">
+          {initials}
+        </div>
+
+        <div className="flex-1 min-w-0 py-0.5">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-medium text-foreground truncate">{skill.name}</h3>
+            {sortedBadges?.slice(0, 1).map((badge) => (
+              <Badge
+                key={badge}
+                variant={skillBadgeVariantMap[badge]}
+                size="sm"
+                className="shrink-0"
+              >
+                {t(`settings.skills.badge.${badge}`)}
+              </Badge>
+            ))}
           </div>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{skill.description}</p>
+        </div>
+
+        <div className="shrink-0 self-center h-7 flex items-center">
           {skill.installed ? (
             <Badge variant="secondary" size="sm">
               {t("settings.skills.installedBadge")}
@@ -179,28 +197,6 @@ export const SkillDiscoverTab = ({
             </Button>
           )}
         </div>
-
-        <h3 className="text-sm font-medium text-foreground truncate mb-1">{skill.name}</h3>
-
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-3 min-h-8">
-          {skill.description}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-          <Badge variant="outline" size="sm">
-            {skill.source}
-          </Badge>
-          {skill.version && (
-            <Badge variant="secondary" size="sm">
-              v{skill.version}
-            </Badge>
-          )}
-          {sortedBadges?.map((badge) => (
-            <Badge key={badge} variant={skillBadgeVariantMap[badge]} size="sm">
-              {t(`settings.skills.badge.${badge}`)}
-            </Badge>
-          ))}
-        </div>
       </div>
     );
   };
@@ -219,7 +215,7 @@ export const SkillDiscoverTab = ({
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">{group.skills.map(renderSkillCard)}</div>
+            <div className="grid grid-cols-2 gap-3">{group.skills.map(renderSkillCard)}</div>
 
             {group.url && (
               <div className="mt-3 text-center">

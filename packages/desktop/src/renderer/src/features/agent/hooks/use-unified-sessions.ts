@@ -11,36 +11,18 @@ export type UnifiedItem =
   | { kind: "memory"; session: ChatSession; projectPath: string }
   | { kind: "persisted"; info: SessionInfo; projectPath: string };
 
-/** Returns true when session metadata relevant to the list hasn't changed. */
-function sessionsMetaEqual(a: Map<string, ChatSession>, b: Map<string, ChatSession>): boolean {
-  if (a.size !== b.size) return false;
-  for (const [id, sa] of a) {
-    const sb = b.get(id);
-    if (
-      !sb ||
-      sa.sessionId !== sb.sessionId ||
-      sa.cwd !== sb.cwd ||
-      sa.title !== sb.title ||
-      sa.createdAt !== sb.createdAt ||
-      sa.isNew !== sb.isNew
-    )
-      return false;
-  }
-  return true;
-}
-
 /**
  * Returns a referentially stable `sessions` Map that only changes when
- * session metadata (id, cwd, title, createdAt, isNew) actually differs.
- * This prevents the downstream useMemo from recomputing on every chat message.
+ * session metadata actually differs. Uses the O(1) _sessionsMetaVersion
+ * counter instead of iterating all sessions.
  */
 function useStableSessions(): Map<string, ChatSession> {
-  const sessions = useAgentStore((s) => s.sessions);
-  const ref = useRef(sessions);
-  if (!sessionsMetaEqual(ref.current, sessions)) {
-    ref.current = sessions;
+  const version = useAgentStore((s) => s._sessionsMetaVersion);
+  const ref = useRef({ version: -1, sessions: new Map<string, ChatSession>() });
+  if (ref.current.version !== version) {
+    ref.current = { version, sessions: useAgentStore.getState().sessions };
   }
-  return ref.current;
+  return ref.current.sessions;
 }
 
 interface UseFilteredSessionsOptions {

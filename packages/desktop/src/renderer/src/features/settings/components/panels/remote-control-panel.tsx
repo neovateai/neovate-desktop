@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle, Radio, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import type {
   PlatformStatus,
@@ -268,8 +268,42 @@ function PlatformCard({
   const isDingTalk = platform.id === "dingtalk";
   const isWeChat = platform.id === "wechat";
 
+  const linkClass = "underline underline-offset-2 text-muted-foreground hover:text-foreground";
+  const description =
+    platform.id === "telegram" ? (
+      <Trans
+        i18nKey="settings.remoteControl.telegram.description"
+        components={{
+          docLink: (
+            <a
+              href="https://t.me/BotFather"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+            />
+          ),
+        }}
+      />
+    ) : platform.id === "dingtalk" ? (
+      <Trans
+        i18nKey="settings.remoteControl.dingtalk.description"
+        components={{
+          docLink: (
+            <a
+              href="https://open.dingtalk.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+            />
+          ),
+        }}
+      />
+    ) : (
+      t("settings.remoteControl.wechat.description")
+    );
+
   return (
-    <SettingsGroup title={platform.displayName}>
+    <SettingsGroup title={platform.displayName} description={description}>
       {/* Enable/disable */}
       <SettingsRow
         title={t("settings.remoteControl.enabled")}

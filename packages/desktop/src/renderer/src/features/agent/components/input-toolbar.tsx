@@ -47,6 +47,7 @@ import { useProjectStore } from "../../project/store";
 import { useProviderStore } from "../../provider/store";
 import { useSettingsStore } from "../../settings/store";
 import { claudeCodeChatManager } from "../chat-manager";
+import { useSessionMeta } from "../hooks/use-session-meta";
 import { registerSessionInStore } from "../session-utils";
 import { useAgentStore } from "../store";
 
@@ -193,9 +194,8 @@ function ConnectedPermissionModeSelect({
   disabled: boolean;
 }) {
   const { t } = useTranslation();
-  const permissionMode = useAgentStore(
-    (s) => s.sessions.get(activeSessionId)?.permissionMode ?? "default",
-  );
+  const permMeta = useSessionMeta(activeSessionId);
+  const permissionMode = permMeta?.permissionMode ?? "default";
   const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
 
   const handleSelect = useCallback(
@@ -336,12 +336,11 @@ function ConnectedModelSelect({
   const { t } = useTranslation();
   const setCurrentModel = useAgentStore((s) => s.setCurrentModel);
   const setModelScope = useAgentStore((s) => s.setModelScope);
-  const currentModel = useAgentStore((s) => s.sessions.get(activeSessionId)?.currentModel);
-  const modelScope = useAgentStore((s) => s.sessions.get(activeSessionId)?.modelScope);
-  const providerId = useAgentStore((s) => s.sessions.get(activeSessionId)?.providerId);
-  const hasMessages = useAgentStore(
-    (s) => (s.sessions.get(activeSessionId)?.messages.length ?? 0) > 0,
-  );
+  const meta = useSessionMeta(activeSessionId);
+  const currentModel = meta?.currentModel;
+  const modelScope = meta?.modelScope;
+  const providerId = meta?.providerId;
+  const hasMessages = meta?.hasMessages ?? false;
   const availableModels = useStore(chatStore, (state) => state.capabilities?.models);
 
   // Provider state

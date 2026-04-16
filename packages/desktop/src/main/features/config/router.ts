@@ -28,7 +28,8 @@ export const configRouter = os.config.router({
     // SDK Default: read model from ~/.claude/settings.json
     try {
       const json = JSON.parse(readFileSync(join(homedir(), ".claude", "settings.json"), "utf-8"));
-      if (typeof json?.model === "string" && json.model) {
+      // Ignore "default" — it's not a real model ID, treat as unset
+      if (typeof json?.model === "string" && json.model && json.model !== "default") {
         log("getGlobalModelSelection: SDK default model=%s", json.model);
         return { model: json.model };
       }

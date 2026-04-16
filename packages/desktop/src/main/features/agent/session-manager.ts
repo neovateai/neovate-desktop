@@ -35,7 +35,7 @@ import type {
 } from "../../../shared/features/agent/types";
 import type { Contributions } from "../../core/plugin/contributions";
 
-import { mergeAgentHooks } from "../../core/plugin/contributions";
+import { mergeAgentContributions } from "../../core/plugin/contributions";
 
 const execFileAsync = promisify(execFile);
 import type { Provider } from "../../../shared/features/provider/types";
@@ -133,6 +133,7 @@ export class SessionManager {
 
   private lifecycleListeners: Array<(event: SessionLifecycleEvent) => void> = [];
   private emittedCreatedSessions = new Set<string>();
+  private closingSessions = new Set<string>();
 
   constructor(
     private configStore: ConfigStore,
@@ -565,10 +566,16 @@ export class SessionManager {
       cwd,
       model: opts?.model,
     });
-    // Merge plugin-contributed hooks with built-in hooks (RTK)
-    const mergedHooks = mergeAgentHooks(this.getAgentContributions());
+    // Merge plugin-contributed hooks and MCP servers
+    const merged = mergeAgentContributions(this.getAgentContributions());
+    log(
+      "initSession: merged contributions sessionId=%s mcpServers=%o hookEvents=%o",
+      sessionId,
+      Object.keys(merged.mcpServers),
+      Object.keys(merged.hooks),
+    );
     if (registerRtkHook) {
-      (mergedHooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
+      (merged.hooks.PreToolUse ??= []).push({ matcher: "Bash", hooks: [rtkHook] });
     }
 
     // Build spawnClaudeCodeProcess override:
@@ -651,7 +658,8 @@ export class SessionManager {
         ...(settingsEnv ? { env: settingsEnv } : {}),
         ...(agentLanguage !== "English" ? { language: agentLanguage.toLowerCase() } : {}),
       },
-      hooks: mergedHooks,
+      hooks: merged.hooks,
+      mcpServers: merged.mcpServers,
       ...(opts?.resume ? { resume: opts.resume, sessionId: undefined } : {}),
       ...(spawnOverride ? { spawnClaudeCodeProcess: spawnOverride } : {}),
     };
@@ -683,7 +691,16 @@ export class SessionManager {
       sessionId,
     );
     log("initSession: awaiting initializationResult sessionId=%s", sessionId);
-    const initResult = await q.initializationResult();
+    let initResult: Awaited<ReturnType<Query["initializationResult"]>>;
+    try {
+      initResult = await q.initializationResult();
+    } catch (err) {
+      if (!this.sessions.has(sessionId)) {
+        log("initSession: session closed during init sessionId=%s", sessionId);
+        throw new Error("Session closed during initialization");
+      }
+      throw err;
+    }
     const tInit = performance.now();
     log(
       "initSession: TIMING initResult=%dms total=%dms sessionId=%s",
@@ -791,12 +808,21 @@ export class SessionManager {
         Math.round(performance.now() - t0),
       );
 
+    if (this.closingSessions.has(sessionId)) {
+      log("closeSession: no-op, already closing sessionId=%s", sessionId);
+      return;
+    }
     const session = this.sessions.get(sessionId);
     if (!session) {
       log("closeSession: no-op, unknown sessionId=%s", sessionId);
       return;
     }
-    session.query.close();
+    this.closingSessions.add(sessionId);
+    try {
+      session.query.close();
+    } catch (err) {
+      log("closeSession: query.close error sessionId=%s err=%o", sessionId, err);
+    }
     el("query.close");
     for (const [requestId, pending] of session.pendingRequests) {
       pending.resolve({ behavior: "deny", message: "Session closed" });
@@ -805,6 +831,7 @@ export class SessionManager {
     el("pendingRequests.settled");
     this.sessions.delete(sessionId);
     this.emittedCreatedSessions.delete(sessionId);
+    this.closingSessions.delete(sessionId);
     this.requestTracker.clearSession(sessionId);
     this.powerBlocker.onSessionClosed(sessionId);
     el("cleanup.done");

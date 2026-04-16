@@ -1,10 +1,9 @@
 import { formatDistanceToNowStrict } from "date-fns";
 import { useSyncExternalStore } from "react";
 
-// Tick every 10s so recent sessions ("0s" → "10s" → … → "1m") feel live.
-// The useSyncExternalStore snapshot comparison means only items whose formatted
-// string actually changed trigger a re-render — older items ("3d") are unaffected.
-const TICK_INTERVAL_MS = 10_000;
+// Tick every 60s. The useSyncExternalStore snapshot comparison means only items
+// whose formatted string actually changed trigger a re-render.
+const TICK_INTERVAL_MS = 60_000;
 
 const listeners = new Set<() => void>();
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -18,7 +17,14 @@ function cleanup() {
 }
 
 function notifyAll() {
-  for (const listener of listeners) listener();
+  const notify = () => {
+    for (const listener of listeners) listener();
+  };
+  if (typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(notify);
+  } else {
+    notify();
+  }
 }
 
 function subscribe(callback: () => void): () => void {

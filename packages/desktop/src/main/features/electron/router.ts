@@ -25,4 +25,10 @@ export const electronRouter = os.electron.router({
       return result;
     }),
   }),
+  window: os.electron.window.router({
+    isFullScreen: os.electron.window.isFullScreen.handler(({ context }) => {
+      const win = context.mainApp.windowManager.mainWindow;
+      return win?.isFullScreen() ?? false;
+    }),
+  }),
 });

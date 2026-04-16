@@ -484,35 +484,38 @@ export default memo(function GitView() {
             disabled={loading}
             className="h-8 pr-8 text-xs bg-muted rounded-md"
           />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger
-                type="button"
-                onClick={async () => {
-                  const r = await genCommitMsg();
-                  if (!r?.success) {
-                    toastManager.add({
-                      type: "error",
-                      title: t("git.generateMessageFailed"),
-                    });
-                  } else {
-                    setCommitMsg(r.result);
-                  }
-                }}
-                disabled={loading || commitStatus !== "idle"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-accent rounded-sm cursor-pointer text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {commitStatus === "generating" ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5" />
-                )}
-              </TooltipTrigger>
-              <TooltipPopup>
-                {commitStatus === "generating" ? t("git.generating") : t("git.generateMessage")}
-              </TooltipPopup>
-            </Tooltip>
-          </TooltipProvider>
+          {stagedFiles.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  type="button"
+                  onClick={async () => {
+                    const r = await genCommitMsg();
+                    if (!r?.success) {
+                      toastManager.add({
+                        type: "error",
+                        title: t("git.generateMessageFailed"),
+                        description: r?.error || "Unknown error",
+                      });
+                    } else {
+                      setCommitMsg(r.result);
+                    }
+                  }}
+                  disabled={loading || commitStatus !== "idle"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-accent rounded-sm cursor-pointer text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {commitStatus === "generating" ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                </TooltipTrigger>
+                <TooltipPopup>
+                  {commitStatus === "generating" ? t("git.generating") : t("git.generateMessage")}
+                </TooltipPopup>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <Group className="w-full">
           <Button

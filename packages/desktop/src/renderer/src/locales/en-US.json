@@ -173,6 +173,9 @@
   "settings.keybindings.conflict": "Already used by: {{action}}",
 
   "settings.remoteControl": "Remote Control",
+  "settings.remoteControl.telegram.description": "Control Neovate via Telegram. Create a bot with <docLink>@BotFather</docLink>, then paste the token below.",
+  "settings.remoteControl.dingtalk.description": "Control Neovate via DingTalk. Create a robot in the <docLink>Developer Console</docLink>, then enter the credentials below.",
+  "settings.remoteControl.wechat.description": "Control Neovate via WeChat. Click Connect to scan a QR code with your WeChat app.",
   "settings.remoteControl.securityWarning": "Messages sent via remote control platforms are stored on third-party servers. Avoid using remote control for sessions that handle sensitive credentials.",
   "settings.remoteControl.noPlatforms": "No remote control platforms available.",
   "settings.remoteControl.enabled": "Enabled",

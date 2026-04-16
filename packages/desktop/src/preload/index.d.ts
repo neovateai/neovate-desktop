@@ -5,6 +5,7 @@ interface NeovateApi {
   isDev: boolean;
   onOpenSettings: (callback: () => void) => () => void;
   onPopupWindowShown: (callback: () => void) => () => void;
+  onFullScreenChange: (callback: (isFullScreen: boolean) => void) => () => void;
 }
 
 declare global {

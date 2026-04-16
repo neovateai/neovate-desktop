@@ -6,6 +6,7 @@ import { safeStorage } from "electron";
 import type {
   ConversationRef,
   InboundMessage,
+  InlineAction,
   PlatformConfig,
   PlatformStatus,
   PlatformStatusEvent,
@@ -36,6 +37,7 @@ export class RemoteControlService {
   private commandHandler: CommandHandler;
   private configStore: Store;
   private statusListeners: StatusListener[] = [];
+  private inboundDedup = new Map<string, number>();
   private pairingState = new Map<
     string,
     {
@@ -75,7 +77,6 @@ export class RemoteControlService {
       const config = this.loadConfig(adapter.id);
       if (config?.enabled) {
         try {
-          this.subscribeToAdapter(adapter);
           await this.startAdapter(adapter, config);
           this.restoreLinks(adapter);
         } catch (err) {
@@ -129,10 +130,8 @@ export class RemoteControlService {
 
     // Restart
     if (adapter.isRunning()) await this.stopAdapter(adapter);
-    this.subscribeToAdapter(adapter);
     try {
       await this.startAdapter(adapter, config);
-      this.emitStatus({ platformId, status: "connected" });
     } catch (err) {
       log("restart failed for %s: %O", platformId, err);
       this.emitStatus({ platformId, status: "error", error: String(err) });
@@ -149,7 +148,6 @@ export class RemoteControlService {
 
     // Stop and restart in pairing mode
     if (adapter.isRunning()) await this.stopAdapter(adapter);
-    this.subscribeToAdapter(adapter);
 
     const config = this.loadConfig(platformId) ?? { enabled: true };
     await this.startAdapter(adapter, config);
@@ -178,7 +176,6 @@ export class RemoteControlService {
     if (adapter.isRunning()) await this.stopAdapter(adapter);
     const config = this.loadConfig(platformId);
     if (config?.enabled) {
-      this.subscribeToAdapter(adapter);
       await this.startAdapter(adapter, config);
     }
   }
@@ -238,13 +235,19 @@ export class RemoteControlService {
     const adapter = this.registry.get(platformId);
     if (!adapter) return { ok: false, error: "Unknown platform" };
 
-    // For Telegram, we can test by trying to start and immediately get bot info
-    // This is adapter-specific; for now we check if the adapter is running
-    if (adapter.isRunning()) {
-      return { ok: true };
+    if (!adapter.isRunning()) {
+      return { ok: false, error: "Adapter is not running" };
     }
 
-    return { ok: false, error: "Adapter is not running" };
+    if (adapter.testConnection) {
+      try {
+        return await adapter.testConnection();
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    }
+
+    return { ok: true };
   }
 
   // ── Status ──
@@ -359,7 +362,11 @@ export class RemoteControlService {
 
   // ── Internal ──
 
-  private subscribeToAdapter(adapter: RemoteControlPlatformAdapter): void {
+  private async startAdapter(
+    adapter: RemoteControlPlatformAdapter,
+    config: PlatformConfig,
+  ): Promise<void> {
+    adapter.removeAllListeners();
     adapter.on("message", (msg) => void this.onMessage(adapter, msg));
     adapter.on("callback", (msg) => void this.onCallback(adapter, msg));
     adapter.on("error", (err) => {
@@ -384,12 +391,7 @@ export class RemoteControlService {
     adapter.on("status", (event) => {
       this.emitStatus(event);
     });
-  }
 
-  private async startAdapter(
-    adapter: RemoteControlPlatformAdapter,
-    config: PlatformConfig,
-  ): Promise<void> {
     await adapter.start(config);
     log("started adapter: %s", adapter.id);
     this.emitStatus({ platformId: adapter.id, status: "connected" });
@@ -400,10 +402,58 @@ export class RemoteControlService {
     log("stopped adapter: %s", adapter.id);
   }
 
+  private isDuplicateInbound(adapter: RemoteControlPlatformAdapter, msg: InboundMessage): boolean {
+    const now = Date.now();
+    for (const [k, t] of this.inboundDedup) {
+      if (now - t > 2000) this.inboundDedup.delete(k);
+    }
+    const identity = msg.callbackData ?? msg.text.slice(0, 80);
+    const dedupKey = `${adapter.id}:${msg.ref.chatId}:${msg.timestamp}:${identity}`;
+    if (this.inboundDedup.has(dedupKey)) {
+      log("suppressed duplicate inbound: platform=%s chat=%s", adapter.id, msg.ref.chatId);
+      return true;
+    }
+    this.inboundDedup.set(dedupKey, now);
+    return false;
+  }
+
+  /**
+   * Send a message with optional inline actions, adapting to platform capabilities.
+   *
+   * @param actionsInText - Set `true` when the caller has already rendered
+   *   the actions as a numbered list inside `text` (e.g. /chats, /start).
+   *   When false (default), text-only adapters will append the list.
+   *   Keyboard-capable adapters always use native buttons regardless.
+   */
+  private async sendWithActions(
+    adapter: RemoteControlPlatformAdapter,
+    ref: ConversationRef,
+    text: string,
+    actions?: InlineAction[],
+    actionsInText = false,
+  ): Promise<void> {
+    if (!actions?.length) {
+      await adapter.sendMessage({ ref, text });
+      return;
+    }
+    if (adapter.supportsInlineKeyboard) {
+      await adapter.sendMessage({ ref, text, inlineActions: actions });
+      return;
+    }
+    // Text-only platform: append numbered list only if caller didn't already render it
+    if (!actionsInText) {
+      const list = actions.map((a, i) => `${i + 1}. ${a.label}`).join("\n");
+      text = `${text}\n\n${list}`;
+    }
+    text = `${text}\n\nReply with a number to select.`;
+    await adapter.sendMessage({ ref, text, inlineActions: actions });
+  }
+
   private async onMessage(
     adapter: RemoteControlPlatformAdapter,
     msg: InboundMessage,
   ): Promise<void> {
+    if (this.isDuplicateInbound(adapter, msg)) return;
     log(
       "inbound message: platform=%s chat=%s text=%s",
       adapter.id,
@@ -414,22 +464,28 @@ export class RemoteControlService {
     // Try command first
     const cmdResult = await this.commandHandler.handle(msg);
     if (cmdResult) {
-      await adapter.sendMessage({
-        ref: msg.ref,
-        text: cmdResult.text,
-        inlineActions: cmdResult.actions,
-      });
+      await this.sendWithActions(adapter, msg.ref, cmdResult.text, cmdResult.actions, true);
       return;
     }
 
     // Forward to linked session
-    const sessionId = this.linkStore.getSessionId(msg.ref);
+    let sessionId = this.linkStore.getSessionId(msg.ref);
     if (!sessionId) {
-      await adapter.sendMessage({
-        ref: msg.ref,
-        text: "No active session linked to this chat. Use /chats to pick one.",
-      });
-      return;
+      const activeSessions = this.sessionManager.getActiveSessions();
+      if (activeSessions.length === 1) {
+        // Auto-link the only active session and forward silently
+        const only = activeSessions[0];
+        sessionId = only.sessionId;
+        this.linkStore.save(msg.ref, sessionId);
+        this.bridge.subscribeSession(sessionId, msg.ref, adapter);
+      } else {
+        const hint =
+          activeSessions.length === 0
+            ? "No active sessions. Use /new to create one."
+            : `${activeSessions.length} sessions available. Use /chats to pick one.`;
+        await adapter.sendMessage({ ref: msg.ref, text: hint });
+        return;
+      }
     }
 
     // Verify session still exists
@@ -450,6 +506,7 @@ export class RemoteControlService {
     adapter: RemoteControlPlatformAdapter,
     msg: InboundMessage,
   ): Promise<void> {
+    if (this.isDuplicateInbound(adapter, msg)) return;
     if (!msg.callbackData) return;
 
     const [domain, action, ...idParts] = msg.callbackData.split(":");
@@ -491,11 +548,13 @@ export class RemoteControlService {
         timestamp: Date.now(),
       });
       if (cmdResult) {
-        await adapter.sendMessage({
+        await this.sendWithActions(
+          adapter,
           ref,
-          text: `Session unlinked.\n\n${cmdResult.text}`,
-          inlineActions: cmdResult.actions,
-        });
+          `Session unlinked.\n\n${cmdResult.text}`,
+          cmdResult.actions,
+          true,
+        );
       } else {
         await adapter.sendMessage({ ref, text: "Session unlinked." });
       }
@@ -567,23 +626,22 @@ export class RemoteControlService {
         .filter((s) => s.cwd === project.path);
 
       if (sessions.length > 0) {
-        await adapter.sendMessage({
-          ref,
-          text: `Sessions in ${project.path}:`,
-          inlineActions: [
-            ...sessions.map((s) => ({
-              label: `Session ${s.sessionId.slice(0, 8)}`,
-              callbackData: `session:select:${s.sessionId}`,
-            })),
-            { label: "New session", callbackData: `session:new:${id}` },
-          ],
-        });
+        const actions = [
+          ...sessions.map((s) => ({
+            label: `Session ${s.sessionId.slice(0, 8)}`,
+            callbackData: `session:select:${s.sessionId}`,
+          })),
+          { label: "New session", callbackData: `session:new:${id}` },
+        ];
+        await this.sendWithActions(adapter, ref, `Sessions in ${project.path}:`, actions);
       } else {
-        await adapter.sendMessage({
+        const actions = [{ label: "Create", callbackData: `session:new:${id}` }];
+        await this.sendWithActions(
+          adapter,
           ref,
-          text: `No sessions in ${project.path}. Create one?`,
-          inlineActions: [{ label: "Create", callbackData: `session:new:${id}` }],
-        });
+          `No sessions in ${project.path}. Create one?`,
+          actions,
+        );
       }
     }
   }

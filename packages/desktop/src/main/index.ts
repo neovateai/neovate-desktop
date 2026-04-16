@@ -25,7 +25,9 @@ import { RemoteControlService } from "./features/remote-control/remote-control-s
 import { SkillsService } from "./features/skills/skills-service";
 import { StateStore } from "./features/state/state-store";
 import { UpdaterService } from "./features/updater/service";
+import browserPlugin from "./plugins/browser";
 import changesPlugin from "./plugins/changes";
+// import demoMcpLivePreviewPlugin from "./plugins/demo-mcp-live-preview";
 import editorPlugin from "./plugins/editor";
 import filesPlugin from "./plugins/files";
 import gitPlugin from "./plugins/git";
@@ -68,6 +70,12 @@ process.on("uncaughtException", (error) => {
 });
 
 process.on("unhandledRejection", (reason) => {
+  // SDK query.close() rejects internal promises that can't be caught externally.
+  // This is expected during rapid model switching or session teardown.
+  if (reason instanceof Error && reason.message === "Query closed before response received") {
+    console.warn("[neovate] suppressed SDK close rejection:", reason.message);
+    return;
+  }
   log("unhandledRejection: %O", reason);
   projectStore.recordCrash();
   process.exit(1);
@@ -85,7 +93,15 @@ const stateStore = new StateStore();
 const llmService = new LlmService(configStore, shellEnvService);
 const mainApp = new MainApp({
   appName: app.getName(),
-  plugins: [gitPlugin, filesPlugin, terminalPlugin, editorPlugin, changesPlugin],
+  plugins: [
+    gitPlugin,
+    filesPlugin,
+    terminalPlugin,
+    editorPlugin,
+    changesPlugin,
+    browserPlugin,
+    // demoMcpLivePreviewPlugin,
+  ],
   llmService,
 });
 const updaterService = new UpdaterService({

@@ -35,6 +35,7 @@ export class WeChatAdapter implements RemoteControlPlatformAdapter {
   readonly displayName = "WeChat";
   readonly maxMessageLength = 4096;
   readonly supportsEditing = false;
+  readonly supportsInlineKeyboard = false;
 
   private emitter = new EventEmitter();
   private running = false;
@@ -207,9 +208,8 @@ export class WeChatAdapter implements RemoteControlPlatformAdapter {
 
     let text = msg.text;
 
+    // Store inline actions for number-reply routing (list rendering handled by service layer)
     if (msg.inlineActions?.length) {
-      const list = msg.inlineActions.map((a, i) => `${i + 1}. ${a.label}`).join("\n");
-      text = `${text}\n\n${list}\n\nReply with a number to select.`;
       this.pendingActions.set(msg.ref.chatId, msg.inlineActions);
     }
 

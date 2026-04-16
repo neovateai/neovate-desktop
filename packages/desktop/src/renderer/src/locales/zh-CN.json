@@ -173,6 +173,9 @@
   "settings.keybindings.conflict": "已被 {{action}} 使用",
 
   "settings.remoteControl": "远程控制",
+  "settings.remoteControl.telegram.description": "通过 Telegram 控制 Neovate。使用 <docLink>@BotFather</docLink> 创建机器人，然后在下方粘贴 Token。",
+  "settings.remoteControl.dingtalk.description": "通过钉钉控制 Neovate。在<docLink>开发者后台</docLink>创建机器人，然后在下方填写凭证。",
+  "settings.remoteControl.wechat.description": "通过微信控制 Neovate。点击连接后使用微信扫描二维码。",
   "settings.remoteControl.securityWarning": "通过远程控制平台发送的消息会存储在第三方服务器上。处理敏感凭据的会话请避免使用远程控制。",
   "settings.remoteControl.noPlatforms": "没有可用的远程控制平台。",
   "settings.remoteControl.enabled": "启用",

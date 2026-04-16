@@ -5,43 +5,67 @@ export function useOperationKeys() {
   const keysRef = useRef<Set<string>>(new Set());
 
   const add = useCallback((key: string) => {
-    keysRef.current.add(key);
-    setKeys(new Set(keysRef.current));
+    setKeys((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.add(key);
+      keysRef.current = next;
+      return next;
+    });
     return keysRef.current;
   }, []);
 
   const remove = useCallback((key: string, deep = false) => {
-    keysRef.current.delete(key);
-    if (deep) {
-      const toDelete = [...keysRef.current].filter((k) => k.startsWith(key + "/"));
-      for (const k of toDelete) {
-        keysRef.current.delete(k);
+    setKeys((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      if (deep) {
+        const toDelete = [...next].filter((k) => k.startsWith(key + "/"));
+        for (const k of toDelete) {
+          next.delete(k);
+        }
       }
-    }
-    setKeys(new Set(keysRef.current));
+      keysRef.current = next;
+      return next;
+    });
   }, []);
 
   const replace = useCallback((oldKey: string, newKey: string) => {
-    if (keysRef.current.has(oldKey)) {
-      keysRef.current.delete(oldKey);
-      keysRef.current.add(newKey);
-    }
-    setKeys(new Set(keysRef.current));
+    setKeys((prev) => {
+      if (!prev.has(oldKey)) return prev;
+      const next = new Set(prev);
+      next.delete(oldKey);
+      next.add(newKey);
+      keysRef.current = next;
+      return next;
+    });
   }, []);
 
   const reset = useCallback(() => {
-    keysRef.current.clear();
-    setKeys(new Set());
+    setKeys(() => {
+      const next = new Set<string>();
+      keysRef.current = next;
+      return next;
+    });
   }, []);
 
   const only = useCallback((key: string) => {
-    keysRef.current = new Set([key]);
-    setKeys(new Set(keysRef.current));
+    setKeys((prev) => {
+      if (prev.size === 1 && prev.has(key)) return prev;
+      const next = new Set([key]);
+      keysRef.current = next;
+      return next;
+    });
   }, []);
 
   const has = useCallback((key: string) => {
     return keysRef.current.has(key);
   }, []);
 
-  return { keys, size: keys.size, has, add, remove, replace, reset, only };
+  const getKeys = () => {
+    return keysRef.current;
+  };
+
+  return { keys, size: keys.size, has, add, remove, replace, reset, only, getKeys };
 }

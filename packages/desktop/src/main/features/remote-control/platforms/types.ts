@@ -28,6 +28,7 @@ export interface RemoteControlPlatformAdapter {
   readonly displayName: string;
   readonly maxMessageLength: number;
   readonly supportsEditing: boolean;
+  readonly supportsInlineKeyboard: boolean;
 
   // Lifecycle
   start(config: PlatformConfig): Promise<void>;
@@ -65,4 +66,7 @@ export interface RemoteControlPlatformAdapter {
   // Pairing
   enterPairingMode(): void;
   exitPairingMode(): void;
+
+  /** Optional: actively verify the connection (e.g. call getMe for Telegram). */
+  testConnection?(): Promise<{ ok: boolean; error?: string; botUsername?: string }>;
 }
