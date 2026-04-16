@@ -17,6 +17,7 @@ import { useConfigStore } from "../../config/store";
 import { useSettingsStore } from "../../settings";
 import { claudeCodeChatManager } from "../chat-manager";
 import { useNewSession } from "../hooks/use-new-session";
+import { useSessionMeta } from "../hooks/use-session-meta";
 import { useAgentStore } from "../store";
 import { extractText } from "../utils/extract-text";
 import { buildInsertChatContent, type InsertChatDetail } from "../utils/insert-chat";
@@ -98,10 +99,8 @@ export function MessageInput({
     claudeCodeChatManager.getChat(activeSessionId)?.store.setState({ promptSuggestion: null });
   });
 
-  const permissionMode = useAgentStore(
-    (s) =>
-      (activeSessionId ? s.sessions.get(activeSessionId)?.permissionMode : undefined) ?? "default",
-  );
+  const meta = useSessionMeta(activeSessionId);
+  const permissionMode = meta?.permissionMode ?? "default";
   const setPermissionMode = useAgentStore((s) => s.setPermissionMode);
 
   const togglePlanMode = useEventCallback(() => {

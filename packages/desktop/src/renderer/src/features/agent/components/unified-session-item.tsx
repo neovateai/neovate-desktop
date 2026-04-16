@@ -1,11 +1,12 @@
 import { memo, useCallback } from "react";
 
 import type { UnifiedItem } from "../hooks/use-unified-sessions";
-import type { TurnResult } from "../store";
 
+import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { layoutStore } from "../../../components/app-layout/store";
+import { useProjectStore } from "../../project/store";
 import { useSessionChatStatus } from "../hooks/use-session-chat-status";
-import { useAgentStore } from "../store";
+import { useUnseenTurnResult } from "../hooks/use-unseen-turn-result";
 import { SessionItem } from "./session-item";
 
 interface UnifiedSessionItemProps {
@@ -31,10 +32,13 @@ export const UnifiedSessionItem = memo(
     const sessionId = item.kind === "memory" ? item.session.sessionId : item.info.sessionId;
     const title = item.kind === "memory" ? item.session.title : item.info.title;
     const createdAt = item.kind === "memory" ? item.session.createdAt : item.info.createdAt;
+    const isNew = item.kind === "memory" ? item.session.isNew : false;
     const { isStreaming, hasPendingRequests } = useSessionChatStatus(sessionId);
-    const turnResult = useAgentStore((s) => s.unseenTurnResults.get(sessionId)) as
-      | TurnResult
-      | undefined;
+    const turnResult = useUnseenTurnResult(sessionId);
+
+    const isPlayground = useProjectStore(
+      (s) => s.projects.find((p) => p.path === item.projectPath)?.id === PLAYGROUND_PROJECT_ID,
+    );
 
     const isActive = item.kind === "memory" && sessionId === activeSessionId;
     const isRestoring = item.kind === "persisted" && restoring === sessionId;
@@ -60,6 +64,8 @@ export const UnifiedSessionItem = memo(
         hasPendingPermission={hasPendingRequests}
         turnResult={turnResult}
         isInitialized={item.kind === "memory"}
+        isNew={isNew}
+        isPlayground={isPlayground}
         optionHeld={optionHeld}
         onClick={handleClick}
         projectPath={item.projectPath}
@@ -77,6 +83,7 @@ export const UnifiedSessionItem = memo(
     itemId(prev.item) === itemId(next.item) &&
     itemTitle(prev.item) === itemTitle(next.item) &&
     itemCreatedAt(prev.item) === itemCreatedAt(next.item) &&
+    itemIsNew(prev.item) === itemIsNew(next.item) &&
     prev.item.kind === next.item.kind,
 );
 
@@ -88,4 +95,7 @@ function itemTitle(item: UnifiedItem) {
 }
 function itemCreatedAt(item: UnifiedItem) {
   return item.kind === "memory" ? item.session.createdAt : item.info.createdAt;
+}
+function itemIsNew(item: UnifiedItem) {
+  return item.kind === "memory" ? item.session.isNew : false;
 }

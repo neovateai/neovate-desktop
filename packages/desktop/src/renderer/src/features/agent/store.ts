@@ -12,6 +12,7 @@ import type {
 } from "../../../../shared/features/agent/types";
 
 import { client } from "../../orpc";
+import { clearTurnResult } from "./hooks/use-unseen-turn-result";
 
 const storeLog = debug("neovate:agent-store");
 
@@ -70,8 +71,6 @@ export type ChatSession = {
   tasks: Map<string, TaskState>;
 };
 
-export type TurnResult = "success" | "error";
-
 export type RewindUndoBuffer = {
   originalSessionId: string;
   forkedSessionId: string;
@@ -82,16 +81,15 @@ type AgentState = {
   activeSessionId: string | null;
   agentSessions: SessionInfo[];
   sessionsLoaded: boolean;
-  unseenTurnResults: Map<string, TurnResult>;
   sdkModels: ModelInfo[];
   _nextMessageId: number;
+  /** Incremented when session metadata changes (not messages/streaming). */
+  _sessionsMetaVersion: number;
   isRewinding: boolean;
   rewindUndoBuffer: RewindUndoBuffer | null;
 
   setActiveSession: (sessionId: string | null) => void;
   setAgentSessions: (sessions: SessionInfo[]) => void;
-  markTurnCompleted: (sessionId: string, result: TurnResult) => void;
-  clearTurnResult: (sessionId: string) => void;
   createSession: (
     sessionId: string,
     meta?: { title?: string; createdAt?: string; cwd?: string; isNew?: boolean },
@@ -133,10 +131,10 @@ export const useAgentStore = create<AgentState>()(
     activeSessionId: null,
     agentSessions: [],
     sessionsLoaded: false,
-    unseenTurnResults: new Map(),
     sdkModels: [],
     sessionInitError: null,
     _nextMessageId: 0,
+    _sessionsMetaVersion: 0,
     isRewinding: false,
     rewindUndoBuffer: null,
 
@@ -144,29 +142,19 @@ export const useAgentStore = create<AgentState>()(
       storeLog("setActiveSession: %s", sessionId);
       set((state) => {
         state.activeSessionId = sessionId;
-        if (sessionId) state.unseenTurnResults.delete(sessionId);
         // Clear rewind undo buffer on session switch
         state.rewindUndoBuffer = null;
       });
-    },
-
-    markTurnCompleted: (sessionId, result) => {
-      storeLog("markTurnCompleted: sid=%s result=%s", sessionId, result);
-      set((state) => {
-        state.unseenTurnResults.set(sessionId, result);
-      });
-    },
-
-    clearTurnResult: (sessionId) => {
-      storeLog("clearTurnResult: sid=%s", sessionId);
-      set((state) => {
-        state.unseenTurnResults.delete(sessionId);
-      });
+      if (sessionId) clearTurnResult(sessionId);
     },
 
     setAgentSessions: (agentSessions) => {
       storeLog("setAgentSessions: count=%d", agentSessions.length);
-      set({ agentSessions, sessionsLoaded: true });
+      set((state) => {
+        state.agentSessions = agentSessions;
+        state.sessionsLoaded = true;
+        state._sessionsMetaVersion += 1;
+      });
     },
 
     appendAgentSession: (session) => {
@@ -174,6 +162,7 @@ export const useAgentStore = create<AgentState>()(
         if (state.agentSessions.some((s) => s.sessionId === session.sessionId)) return;
         storeLog("appendAgentSession: sid=%s", session.sessionId);
         state.agentSessions.unshift(session);
+        state._sessionsMetaVersion += 1;
       });
     },
 
@@ -181,6 +170,7 @@ export const useAgentStore = create<AgentState>()(
       storeLog("removeAgentSession: sid=%s", sessionId);
       set((state) => {
         state.agentSessions = state.agentSessions.filter((s) => s.sessionId !== sessionId);
+        state._sessionsMetaVersion += 1;
       });
     },
 
@@ -199,6 +189,7 @@ export const useAgentStore = create<AgentState>()(
           tasks: new Map(),
         });
         state.activeSessionId = sessionId;
+        state._sessionsMetaVersion += 1;
         storeLog("createSession: totalSessions=%d active=%s", state.sessions.size, sessionId);
       });
     },
@@ -217,15 +208,17 @@ export const useAgentStore = create<AgentState>()(
           availableModels: [],
           tasks: new Map(),
         });
+        state._sessionsMetaVersion += 1;
         storeLog("createBackgroundSession: totalSessions=%d (not activated)", state.sessions.size);
       });
     },
 
     removeSession: (sessionId) => {
       storeLog("removeSession: sid=%s", sessionId);
+      clearTurnResult(sessionId);
       set((state) => {
         state.sessions.delete(sessionId);
-        state.unseenTurnResults.delete(sessionId);
+        state._sessionsMetaVersion += 1;
         if (state.activeSessionId === sessionId) {
           state.activeSessionId = null;
         }
@@ -273,6 +266,8 @@ export const useAgentStore = create<AgentState>()(
           role: "user",
           content,
         });
+        // Metadata changed (isNew, title, createdAt)
+        state._sessionsMetaVersion += 1;
         storeLog(
           "addUserMessage: msgCount=%d msgId=%d",
           session.messages.length,
@@ -324,7 +319,10 @@ export const useAgentStore = create<AgentState>()(
       storeLog("setCurrentModel: sid=%s model=%s", sessionId, model);
       set((state) => {
         const session = state.sessions.get(sessionId);
-        if (session) session.currentModel = model;
+        if (session) {
+          session.currentModel = model;
+          state._sessionsMetaVersion += 1;
+        }
       });
     },
 
@@ -332,7 +330,10 @@ export const useAgentStore = create<AgentState>()(
       storeLog("setModelScope: sid=%s scope=%s", sessionId, scope);
       set((state) => {
         const session = state.sessions.get(sessionId);
-        if (session) session.modelScope = scope;
+        if (session) {
+          session.modelScope = scope;
+          state._sessionsMetaVersion += 1;
+        }
       });
     },
 
@@ -340,7 +341,10 @@ export const useAgentStore = create<AgentState>()(
       storeLog("setProviderId: sid=%s providerId=%s", sessionId, providerId);
       set((state) => {
         const session = state.sessions.get(sessionId);
-        if (session) session.providerId = providerId;
+        if (session) {
+          session.providerId = providerId;
+          state._sessionsMetaVersion += 1;
+        }
       });
     },
 
@@ -348,7 +352,10 @@ export const useAgentStore = create<AgentState>()(
       storeLog("setPermissionMode: sid=%s mode=%s", sessionId, mode);
       set((state) => {
         const session = state.sessions.get(sessionId);
-        if (session) session.permissionMode = mode;
+        if (session) {
+          session.permissionMode = mode;
+          state._sessionsMetaVersion += 1;
+        }
       });
     },
 
@@ -382,6 +389,7 @@ export const useAgentStore = create<AgentState>()(
         if (session) session.title = title;
         const info = state.agentSessions.find((s) => s.sessionId === sessionId);
         if (info) info.title = title;
+        state._sessionsMetaVersion += 1;
       });
     },
 
@@ -414,6 +422,7 @@ export const useAgentStore = create<AgentState>()(
         state.sessions.delete(originalSessionId);
         state.activeSessionId = forkedSessionId;
         state.isRewinding = false;
+        state._sessionsMetaVersion += 1;
       });
     },
 
@@ -443,6 +452,7 @@ export const useAgentStore = create<AgentState>()(
         state.sessions.set(originalSessionId, originalSession);
         state.activeSessionId = originalSessionId;
         state.rewindUndoBuffer = null;
+        state._sessionsMetaVersion += 1;
       });
     },
   })),

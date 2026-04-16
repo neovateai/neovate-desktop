@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { APP_ID } from "../../shared/constants";
 import { isWindows } from "../../shared/platform";
 
-const devSuffix = import.meta.env.DEV ? "-dev" : "";
+const devSuffix = import.meta.env.DEV ? "" : "";
 
 export const APP_DATA_DIR = isWindows
   ? join(process.env["APPDATA"] || join(homedir(), "AppData", "Roaming"), `${APP_ID}${devSuffix}`)

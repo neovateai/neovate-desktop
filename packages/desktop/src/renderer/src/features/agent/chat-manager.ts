@@ -7,6 +7,7 @@ import { client } from "../../orpc";
 import { useConfigStore } from "../config/store";
 import { ClaudeCodeChat } from "./chat";
 import { ClaudeCodeChatTransport } from "./chat-transport";
+import { markTurnCompleted, clearTurnResult } from "./hooks/use-unseen-turn-result";
 import { scrollPositions } from "./scroll-positions";
 import { findPreWarmedSession, registerSessionInStore } from "./session-utils";
 import { useAgentStore } from "./store";
@@ -38,7 +39,7 @@ export class ClaudeCodeChatManager {
         new CustomEvent("neovate:turn-completed", { detail: { sessionId: id } }),
       );
 
-      const { activeSessionId, markTurnCompleted } = useAgentStore.getState();
+      const { activeSessionId } = useAgentStore.getState();
       if (activeSessionId !== id) {
         markTurnCompleted(id, result);
         log("onTurnComplete: clearing scroll position for non-active session=%s", id.slice(0, 8));
@@ -46,7 +47,7 @@ export class ClaudeCodeChatManager {
       }
     },
     onTurnStart: (id: string) => {
-      useAgentStore.getState().clearTurnResult(id);
+      clearTurnResult(id);
     },
   };
 

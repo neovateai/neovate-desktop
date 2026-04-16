@@ -5,9 +5,8 @@ import { Archive, Circle, MessageCircle, Pin, PinOff } from "lucide-react";
 import { memo, useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { TurnResult } from "../store";
+import type { TurnResult } from "../hooks/use-unseen-turn-result";
 
-import { PLAYGROUND_PROJECT_ID } from "../../../../../shared/features/project/constants";
 import { Spinner } from "../../../components/ui/spinner";
 import { useRelativeTime } from "../../../hooks/use-relative-time";
 import { cn } from "../../../lib/utils";
@@ -31,6 +30,8 @@ interface SessionItemProps {
   turnResult?: TurnResult;
   /** Session has an active backend process (loaded in SessionManager) */
   isInitialized?: boolean;
+  isNew?: boolean;
+  isPlayground?: boolean;
   /** When true, show project name instead of relative time */
   optionHeld?: boolean;
   onClick: () => void;
@@ -48,6 +49,8 @@ export const SessionItem = memo(function SessionItem({
   hasPendingPermission = false,
   turnResult,
   isInitialized = false,
+  isNew: sessionIsNew = false,
+  isPlayground = false,
   optionHeld = false,
   onClick,
   projectPath,
@@ -56,7 +59,6 @@ export const SessionItem = memo(function SessionItem({
   const archiveSession = useProjectStore((s) => s.archiveSession);
   const togglePinSession = useProjectStore((s) => s.togglePinSession);
   const renameSession = useAgentStore((s) => s.renameSession);
-  const sessionIsNew = useAgentStore((s) => s.sessions.get(sessionId)?.isNew ?? false);
   const multiProjectSupport = useConfigStore((s) => s.multiProjectSupport);
   const sidebarOrganize = useConfigStore((s) => s.sidebarOrganize);
   const showSessionInitStatus = useConfigStore((s) => s.showSessionInitStatus);
@@ -64,10 +66,6 @@ export const SessionItem = memo(function SessionItem({
   const [isEditing, setIsEditing] = useState(false);
   const [editingValue, setEditingValue] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
-
-  const isPlayground = useProjectStore(
-    (s) => s.projects.find((p) => p.path === projectPath)?.id === PLAYGROUND_PROJECT_ID,
-  );
 
   const displayTitle = title || t("session.newChat");
   const isProcessing = isStreaming || isRestoring;
