@@ -50,6 +50,7 @@ export const utilsContract = {
         query: z.string(),
         caseSensitive: z.boolean().optional(),
         exactMatch: z.boolean().optional(),
+        useRegex: z.boolean().optional(),
         maxResults: z.number().optional(),
       }),
     )
@@ -62,6 +63,7 @@ export const utilsContract = {
           extName: string;
           matches?: Array<{ line: number; column: number; text: string }>;
         }>;
+        error?: string;
       }>(),
     ),
 };

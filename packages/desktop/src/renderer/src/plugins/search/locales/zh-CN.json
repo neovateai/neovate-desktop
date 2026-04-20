@@ -11,6 +11,7 @@
   },
   "caseSensitive": "区分大小写",
   "exactMatch": "全词匹配",
+  "useRegex": "正则表达式",
   "matchesCount": "{{count}} 处匹配",
   "resultsFound": "找到 {{count}} 个结果",
   "performanceWarning": "请输入至少两个字符以获得更好的搜索性能"

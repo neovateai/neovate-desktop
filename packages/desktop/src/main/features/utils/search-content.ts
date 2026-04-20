@@ -20,6 +20,11 @@ interface SearchResult {
   matches?: ContentMatch[];
 }
 
+interface SearchResponse {
+  results: SearchResult[];
+  error?: string;
+}
+
 function containsChinese(str: string): boolean {
   return /[\u4e00-\u9fff]/.test(str);
 }
@@ -30,7 +35,8 @@ function searchContentWithMatches(
   query: string,
   caseSensitive: boolean,
   exactMatch: boolean,
-): Promise<SearchResult[]> {
+  useRegex: boolean,
+): Promise<SearchResponse> {
   return new Promise((resolve, reject) => {
     const args = [
       "--json",
@@ -60,14 +66,33 @@ function searchContentWithMatches(
       }
     }
 
+    // Use fixed-strings mode by default to treat query as literal string
+    // Only use regex mode when user explicitly enables it
+    if (!useRegex) {
+      args.push("--fixed-strings");
+    }
+
     args.push(query);
     args.push(cwd);
 
-    execFile(rgPath, args, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout) => {
+    execFile(rgPath, args, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err && !stdout) {
         if (err.message.includes("exit code 1")) {
-          resolve([]);
+          resolve({ results: [] });
           return;
+        }
+        // Check for regex error in stderr
+        if (stderr && useRegex) {
+          const regexErrorMatch = stderr.match(/regex\s+(.+?)\s+did not parse:/i);
+          if (regexErrorMatch) {
+            resolve({ results: [], error: `Invalid regex: ${regexErrorMatch[1]}` });
+            return;
+          }
+          // Generic regex error
+          if (stderr.includes("did not parse") || stderr.includes("invalid")) {
+            resolve({ results: [], error: "Invalid regular expression" });
+            return;
+          }
         }
         reject(err);
         return;
@@ -97,7 +122,7 @@ function searchContentWithMatches(
               });
             }
           }
-        } catch (e) {
+        } catch (_e) {
           log("Failed to parse JSON line: %s", line);
         }
       }
@@ -112,7 +137,7 @@ function searchContentWithMatches(
         });
       }
 
-      resolve(results);
+      resolve({ results });
     });
   });
 }
@@ -122,25 +147,28 @@ export async function searchWithContent(
   query: string,
   caseSensitive = false,
   exactMatch = false,
+  useRegex = false,
   maxResults = 100,
-): Promise<{ results: SearchResult[] }> {
+): Promise<SearchResponse> {
   log(
-    "searchWithContent cwd=%s query=%s caseSensitive=%s exactMatch=%s",
+    "searchWithContent cwd=%s query=%s caseSensitive=%s exactMatch=%s useRegex=%s",
     cwd,
     query,
     caseSensitive,
     exactMatch,
+    useRegex,
   );
 
-  const results = await searchContentWithMatches(
+  const response = await searchContentWithMatches(
     resolveRgPath(),
     cwd,
     query,
     caseSensitive,
     exactMatch,
+    useRegex,
   );
-  const truncatedResults = results.slice(0, maxResults);
+  const truncatedResults = response.results.slice(0, maxResults);
 
   log("searchWithContent result: %d files", truncatedResults.length);
-  return { results: truncatedResults };
+  return { results: truncatedResults, error: response.error };
 }
