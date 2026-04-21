@@ -1,11 +1,14 @@
 import type { ContractRouterClient } from "@orpc/contract";
 
+import { Folder02Icon, File02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { consumeEventIterator } from "@orpc/client";
 import debug from "debug";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Project } from "../../../../shared/features/project/types";
+import type { MenuGroup } from "./menu-types";
 
 import { filesContract } from "../../../../shared/plugins/files/contract";
 import { getEmpty2Url } from "../../assets/images";
@@ -20,12 +23,19 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
 import { Button } from "../../components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuPopup,
+  ContextMenuTrigger,
+} from "../../components/ui/context-menu";
 import { toastManager } from "../../components/ui/toast";
 import { usePluginContext } from "../../core/app";
 import { useProjectStore } from "../../features/project/store";
+import { ContextMenuGroups } from "./context-menu-groups";
 import { FileNodeItem, FileTreeContext, useFileData } from "./hooks/useFileData";
 import { useTreeKeyboardShortcuts } from "./hooks/useTreeKeyboardShortcuts";
 import { useFilesTranslation } from "./i18n";
+import { buildCreationMenu, buildPathMenu } from "./menu-utils";
 import { TreeNode } from "./tree-node";
 import { getCreateErrorMessage } from "./utils/error";
 
@@ -54,6 +64,8 @@ function FilesViewComponent({ project }: FilesViewProps) {
     sourcePath: string;
     operation: "copy" | "cut";
   } | null>(null);
+  const [rootCreating, setRootCreating] = useState<{ type: "file" | "folder" } | null>(null);
+  const [rootCreatingName, setRootCreatingName] = useState("");
   const { resolvedTheme } = useTheme();
 
   const cwd = project?.path || "";
@@ -221,9 +233,9 @@ function FilesViewComponent({ project }: FilesViewProps) {
     }
   };
 
-  const handleReveal = async (item: FileNodeItem) => {
-    log("reveal in file manager", { path: item.fullPath });
-    const result = await client.files.revealInFileManager({ path: item.fullPath });
+  const revealInFileManager = async (path: string) => {
+    log("reveal in file manager", { path });
+    const result = await client.files.revealInFileManager({ path });
     if (!result.success && result.error) {
       toastManager.add({
         type: "error",
@@ -346,6 +358,7 @@ function FilesViewComponent({ project }: FilesViewProps) {
       });
     }
   };
+
   /** Add file to conversation */
   const handleAddContext = (item: FileNodeItem) => {
     log("insert-chat dispatching mention=%s", item.relPath);
@@ -494,6 +507,53 @@ function FilesViewComponent({ project }: FilesViewProps) {
     );
   }
 
+  const handleRootCreateFinish = async () => {
+    if (rootCreatingName && rootCreating && cwd) {
+      if (rootCreating.type === "file") {
+        await createFile(cwd, rootCreatingName);
+      } else {
+        await createFolder(cwd, rootCreatingName);
+      }
+    }
+    setRootCreating(null);
+    setRootCreatingName("");
+  };
+
+  const handleRootCreateCancel = () => {
+    setRootCreating(null);
+    setRootCreatingName("");
+  };
+
+  const buildRootMenu = (): MenuGroup[] => {
+    const groups: MenuGroup[] = [];
+
+    // Group 1: New file/folder, Reveal in Finder
+    const creationItems = buildCreationMenu(t, {
+      onCreateFile: () => {
+        setRootCreating({ type: "file" });
+        setRootCreatingName("");
+      },
+      onCreateFolder: () => {
+        setRootCreating({ type: "folder" });
+        setRootCreatingName("");
+      },
+      onReveal: cwd ? () => revealInFileManager(cwd) : undefined,
+    });
+    groups.push(creationItems);
+
+    // Group 2: Paste (if clipboard has item)
+    if (clipboardItem && canPaste(cwd)) {
+      groups.push([{ label: t("contextMenu.paste"), action: () => handlePaste(cwd) }]);
+    }
+
+    // Group 3: Copy Path
+    groups.push(buildPathMenu(t, { fullPath: cwd || "", relativePath: "." }));
+
+    return groups;
+  };
+
+  const rootMenuGroups = buildRootMenu();
+
   const rootLevelNodes = nodes.filter((i) => i.parentPath === cwd);
 
   return (
@@ -515,46 +575,90 @@ function FilesViewComponent({ project }: FilesViewProps) {
           <h2 className="text-sm font-semibold text-muted-foreground">{t("title")}</h2>
         </div>
 
-        <div
-          className="flex-1 overflow-auto -mr-2.5"
-          onClick={(e) => {
-            // Only clear selection when clicking the empty area (not tree nodes)
-            if (e.target === e.currentTarget) {
-              cancelSelect();
-            }
-          }}
-        >
-          {nodes.length === 0 ? (
-            <div className="flex items-center justify-center h-32">
-              <p className="text-xs text-muted-foreground">{t("emptyDirectory")}</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {rootLevelNodes.map((item) => (
-                <TreeNode
-                  key={item.fullPath}
-                  item={item}
-                  level={0}
-                  onExpand={expand}
-                  onToggleExpand={toggleExpand}
-                  onSelect={handleSelect}
-                  onDelete={handleDelete}
-                  onRename={handleRename}
-                  onCreate={handleCreate}
-                  onAdd={handleAddContext}
-                  onCopy={handleCopy}
-                  onCut={handleCut}
-                  onPaste={handlePaste}
-                  canPaste={canPaste}
-                  onReveal={handleReveal}
-                  cutSourcePath={
-                    clipboardItem?.operation === "cut" ? clipboardItem.sourcePath : null
+        <ContextMenu>
+          <ContextMenuTrigger
+            render={
+              <div
+                className="flex-1 overflow-auto -mr-2.5"
+                onClick={(e) => {
+                  // Only clear selection when clicking the empty area (not tree nodes)
+                  if (e.target === e.currentTarget) {
+                    cancelSelect();
                   }
-                />
-              ))}
-            </div>
-          )}
-        </div>
+                }}
+              >
+                {rootCreating && (
+                  <div className="flex items-center gap-1 px-2 py-1 hover:bg-accent hover:text-accent-foreground rounded-sm">
+                    <div className="w-4 h-4 flex items-center justify-center">
+                      <HugeiconsIcon
+                        icon={rootCreating.type === "folder" ? Folder02Icon : File02Icon}
+                        size={18}
+                        strokeWidth={1.5}
+                      />
+                    </div>
+                    <span className="flex-1 text-sm ml-2 cursor-pointer">
+                      <input
+                        type="text"
+                        placeholder={
+                          rootCreating.type === "file"
+                            ? t("newFilePlaceholder")
+                            : t("newFolderPlaceholder")
+                        }
+                        value={rootCreatingName}
+                        onChange={(e) => setRootCreatingName(e.target.value)}
+                        onBlur={handleRootCreateFinish}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.stopPropagation();
+                            handleRootCreateFinish();
+                          } else if (e.key === "Escape") {
+                            e.stopPropagation();
+                            handleRootCreateCancel();
+                          }
+                        }}
+                        className="w-full bg-background border border-border rounded px-2 py-1"
+                        autoFocus
+                      />
+                    </span>
+                  </div>
+                )}
+                {nodes.length === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-xs text-muted-foreground">{t("emptyDirectory")}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {rootLevelNodes.map((item) => (
+                      <TreeNode
+                        key={item.fullPath}
+                        item={item}
+                        level={0}
+                        onExpand={expand}
+                        onToggleExpand={toggleExpand}
+                        onSelect={handleSelect}
+                        onDelete={handleDelete}
+                        onRename={handleRename}
+                        onCreate={handleCreate}
+                        onAdd={handleAddContext}
+                        onCopy={handleCopy}
+                        onCut={handleCut}
+                        onPaste={handlePaste}
+                        canPaste={canPaste}
+                        onReveal={(item) => revealInFileManager(item.fullPath)}
+                        cutSourcePath={
+                          clipboardItem?.operation === "cut" ? clipboardItem.sourcePath : null
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            }
+          />
+          <ContextMenuPopup>
+            <ContextMenuGroups groups={rootMenuGroups} />
+          </ContextMenuPopup>
+        </ContextMenu>
 
         <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
           <AlertDialogPopup>

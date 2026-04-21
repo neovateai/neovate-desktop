@@ -12,6 +12,7 @@
   "contextMenu.revealInFinder": "在访达中显示",
   "contextMenu.copyFullPath": "复制完整路径",
   "contextMenu.copyRelativePath": "复制相对路径",
+  "contextMenu.pathCopied": "路径已复制到剪贴板",
   "confirmDelete": "确定要删除 {{fileName}} 吗？",
   "newFilePlaceholder": "新文件.txt",
   "newFolderPlaceholder": "新文件夹",

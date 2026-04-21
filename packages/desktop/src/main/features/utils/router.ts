@@ -116,17 +116,19 @@ export const utilsRouter = os.utils.router({
 
   searchWithContent: os.utils.searchWithContent.handler(async ({ input }) => {
     log(
-      "searchWithContent request cwd=%s query=%s caseSensitive=%s exactMatch=%s",
+      "searchWithContent request cwd=%s query=%s caseSensitive=%s exactMatch=%s useRegex=%s",
       input.cwd,
       input.query,
       input.caseSensitive,
       input.exactMatch,
+      input.useRegex,
     );
     return searchWithContent(
       input.cwd,
       input.query,
       input.caseSensitive,
       input.exactMatch,
+      input.useRegex,
       input.maxResults,
     );
   }),

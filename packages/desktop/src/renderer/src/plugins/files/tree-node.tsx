@@ -3,16 +3,18 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronRight, ChevronDown, Plus } from "lucide-react";
 import React, { useState, useEffect, useContext } from "react";
 
+import type { MenuGroup } from "./menu-types";
+
 import {
   ContextMenu,
   ContextMenuTrigger,
   ContextMenuPopup,
-  ContextMenuItem,
-  ContextMenuSeparator,
 } from "../../components/ui/context-menu";
 import { cn } from "../../lib/utils";
+import { ContextMenuGroups } from "./context-menu-groups";
 import { FileNodeItem, FileTreeContext } from "./hooks/useFileData";
 import { useFilesTranslation } from "./i18n";
+import { buildClipboardMenu, buildCreationMenu, buildPathMenu } from "./menu-utils";
 
 interface TreeNodeProps {
   item: FileNodeItem;
@@ -31,9 +33,6 @@ interface TreeNodeProps {
   canPaste?: (targetPath: string) => boolean;
   onReveal?: (item: FileNodeItem) => void;
 }
-
-type MenuItem = { label: string; action: () => void; variant?: "destructive" };
-type MenuGroup = MenuItem[];
 
 function FileLangIcon(props: { path: string; size?: number }) {
   const { path = "", size = 18 } = props;
@@ -228,50 +227,28 @@ export function TreeNode({
     const groups: MenuGroup[] = [];
 
     // Group 1: New file/folder, Reveal in Finder
-    const creationItems: MenuItem[] = [];
-    if (item.isFolder) {
-      creationItems.push({ label: t("contextMenu.newFile"), action: handleCreateFile });
-      creationItems.push({ label: t("contextMenu.newFolder"), action: handleCreateFolder });
-    }
-    if (item.relPath !== "") {
-      creationItems.push({
-        // TODO: 后续如果要支持Windows，这里的表述要调整，mac 下是访达，windows 下应该是资源管理器
-        label: t("contextMenu.revealInFinder"),
-        action: () => onReveal?.(item),
-      });
-    }
+    const creationItems = buildCreationMenu(t, {
+      onCreateFile: item.isFolder ? handleCreateFile : undefined,
+      onCreateFolder: item.isFolder ? handleCreateFolder : undefined,
+      onReveal: item.relPath !== "" ? () => onReveal?.(item) : undefined,
+    });
     if (creationItems.length > 0) {
       groups.push(creationItems);
     }
 
     // Group 2: Copy, Cut, Paste
-    const clipboardItems: MenuItem[] = [];
-    if (item.relPath !== "") {
-      clipboardItems.push({ label: t("contextMenu.copy"), action: () => onCopy?.(item) });
-      clipboardItems.push({ label: t("contextMenu.cut"), action: () => onCut?.(item) });
-    }
-    if (item.isFolder && canPasteHere) {
-      clipboardItems.push({
-        label: t("contextMenu.paste"),
-        action: () => onPaste?.(getTargetDir()),
-      });
-    }
+    const clipboardItems = buildClipboardMenu(t, {
+      onCopy: item.relPath !== "" ? () => onCopy?.(item) : undefined,
+      onCut: item.relPath !== "" ? () => onCut?.(item) : undefined,
+      onPaste: item.isFolder && canPasteHere ? () => onPaste?.(getTargetDir()) : undefined,
+    });
     if (clipboardItems.length > 0) {
       groups.push(clipboardItems);
     }
 
     // Group 3: Copy Path
     if (item.relPath !== "") {
-      groups.push([
-        {
-          label: t("contextMenu.copyFullPath"),
-          action: () => navigator.clipboard.writeText(item.fullPath),
-        },
-        {
-          label: t("contextMenu.copyRelativePath"),
-          action: () => navigator.clipboard.writeText(item.relPath),
-        },
-      ]);
+      groups.push(buildPathMenu(t, { fullPath: item.fullPath, relativePath: item.relPath }));
     }
 
     // Group 4: Rename, Delete (delete is always last)
@@ -395,20 +372,7 @@ export function TreeNode({
           </div>
         </ContextMenuTrigger>
         <ContextMenuPopup>
-          {menuGroups.map((group, groupIndex) => (
-            <React.Fragment key={groupIndex}>
-              {groupIndex > 0 && <ContextMenuSeparator />}
-              {group.map((menuItem, itemIndex) => (
-                <ContextMenuItem
-                  key={itemIndex}
-                  onClick={menuItem.action}
-                  data-variant={menuItem.variant}
-                >
-                  {menuItem.label}
-                </ContextMenuItem>
-              ))}
-            </React.Fragment>
-          ))}
+          <ContextMenuGroups groups={menuGroups} />
         </ContextMenuPopup>
       </ContextMenu>
 

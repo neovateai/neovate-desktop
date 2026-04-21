@@ -12,6 +12,7 @@
   "contextMenu.revealInFinder": "Reveal in Finder",
   "contextMenu.copyFullPath": "Copy Full Path",
   "contextMenu.copyRelativePath": "Copy Relative Path",
+  "contextMenu.pathCopied": "Path copied to clipboard",
   "confirmDelete": "Are you sure you want to delete {{fileName}}?",
   "newFilePlaceholder": "New file.txt",
   "newFolderPlaceholder": "New folder",

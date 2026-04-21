@@ -11,6 +11,7 @@
   },
   "caseSensitive": "Case sensitive",
   "exactMatch": "Whole word",
+  "useRegex": "Regular expression",
   "matchesCount": "{{count}} matches",
   "resultsFound": "{{count}} results found",
   "performanceWarning": "Please enter at least 2 characters for better search performance"
