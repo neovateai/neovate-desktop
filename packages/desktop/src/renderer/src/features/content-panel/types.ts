@@ -18,5 +18,6 @@ export interface ContentPanelStoreState {
   getTab(projectPath: string, tabId: string): Tab | undefined;
   getProjectState(projectPath: string): ProjectTabState;
   findTabByViewType(projectPath: string, viewType: string): Tab | undefined;
+  reorderTabs(projectPath: string, tabIds: string[]): void;
   removeProject(projectPath: string): void;
 }

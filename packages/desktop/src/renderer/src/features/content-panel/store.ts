@@ -59,6 +59,17 @@ export function createContentPanelStore() {
         return get().projects[projectPath]?.tabs.find((t) => t.viewType === viewType);
       },
 
+      reorderTabs(projectPath, tabIds) {
+        set((s) => {
+          const project = s.projects[projectPath];
+          if (!project || tabIds.length !== project.tabs.length) return;
+          const tabMap = new Map(project.tabs.map((t) => [t.id, t]));
+          const reordered = tabIds.map((id) => tabMap.get(id)).filter((t) => t != null);
+          if (reordered.length !== project.tabs.length) return;
+          project.tabs = reordered;
+        });
+      },
+
       removeProject(projectPath) {
         set((s) => {
           delete s.projects[projectPath];

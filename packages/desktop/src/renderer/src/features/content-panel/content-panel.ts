@@ -178,6 +178,11 @@ export class ContentPanel {
     this.#store.getState().setActiveTab(this.projectPath, viewId);
   }
 
+  reorderTabs(tabIds: string[]): void {
+    log("reorder tabs", { tabIds });
+    this.store.getState().reorderTabs(this.projectPath, tabIds);
+  }
+
   getViewState(viewId: string): Record<string, unknown> {
     return this.#store.getState().getTab(this.projectPath, viewId)?.state ?? {};
   }

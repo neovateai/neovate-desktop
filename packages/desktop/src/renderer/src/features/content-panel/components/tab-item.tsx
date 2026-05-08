@@ -1,5 +1,7 @@
 import type React from "react";
 
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { X, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -78,19 +80,35 @@ export function TabItem({
   isActive: boolean;
   isOrphan: boolean;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: tab.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  };
+
   if (isOrphan) {
     return (
-      <Tooltip>
-        <TooltipTrigger
-          delay={0}
-          render={(props) => <TabButton {...props} tab={tab} isActive={isActive} isOrphan />}
-        />
-        <TooltipPopup side="bottom">
-          &quot;{tab.viewType}&quot; is unavailable. You can close this tab.
-        </TooltipPopup>
-      </Tooltip>
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <Tooltip>
+          <TooltipTrigger
+            delay={0}
+            render={(props) => <TabButton {...props} tab={tab} isActive={isActive} isOrphan />}
+          />
+          <TooltipPopup side="bottom">
+            &quot;{tab.viewType}&quot; is unavailable. You can close this tab.
+          </TooltipPopup>
+        </Tooltip>
+      </div>
     );
   }
 
-  return <TabButton tab={tab} isActive={isActive} isOrphan={false} />;
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <TabButton tab={tab} isActive={isActive} isOrphan={false} />
+    </div>
+  );
 }
