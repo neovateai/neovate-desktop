@@ -1,4 +1,5 @@
 import debug from "debug";
+import { safeStorage } from "electron";
 import Store from "electron-store";
 
 import type { AppConfig, SkillsRegistry } from "../../../shared/features/config/types";
@@ -8,11 +9,47 @@ import { APP_DATA_DIR } from "../../core/app-paths";
 
 const log = debug("neovate:config-store");
 
+/** On-disk shape — apiKey is replaced by encryptedApiKey after migration. */
+type StoredProvider = Omit<Provider, "apiKey"> & {
+  apiKey?: string;
+  encryptedApiKey?: string;
+};
+
 type ConfigStoreSchema = AppConfig & {
-  providers: Provider[];
+  providers: StoredProvider[];
   provider?: string;
   model?: string;
 };
+
+function encryptApiKey(provider: Provider): StoredProvider {
+  if (!provider.apiKey || !safeStorage.isEncryptionAvailable()) {
+    return provider;
+  }
+  const { apiKey, ...rest } = provider;
+  return {
+    ...rest,
+    encryptedApiKey: safeStorage.encryptString(apiKey).toString("base64"),
+  };
+}
+
+function decryptApiKey(stored: StoredProvider): Provider {
+  if (typeof stored.encryptedApiKey === "string") {
+    const { encryptedApiKey, ...rest } = stored;
+    if (safeStorage.isEncryptionAvailable()) {
+      try {
+        return {
+          ...rest,
+          apiKey: safeStorage.decryptString(Buffer.from(encryptedApiKey, "base64")),
+        } as Provider;
+      } catch {
+        log("failed to decrypt apiKey for provider %s", stored.id);
+      }
+    }
+    return { ...rest, apiKey: "" } as Provider;
+  }
+  // Legacy plaintext — apiKey already present (or empty)
+  return stored as unknown as Provider;
+}
 
 const DEFAULT_APP_CONFIG: AppConfig = {
   // General Settings
@@ -115,40 +152,67 @@ export class ConfigStore {
 
   // --- Provider methods ---
 
-  getProviders(): Provider[] {
+  private getRawProviders(): StoredProvider[] {
     return this.store.get("providers") ?? [];
   }
 
+  /** Encrypt plaintext apiKey fields left over from before encryption was added. Must be called after app.whenReady(). */
+  migrateApiKeys(): void {
+    if (!safeStorage.isEncryptionAvailable()) {
+      log("migrateApiKeys: encryption not available, skipping");
+      return;
+    }
+    const raw = this.getRawProviders();
+    let migrated = 0;
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i].apiKey && !raw[i].encryptedApiKey) {
+        raw[i] = encryptApiKey(raw[i] as unknown as Provider);
+        migrated++;
+      }
+    }
+    if (migrated > 0) {
+      this.store.set("providers", raw);
+      log("migrateApiKeys: encrypted %d provider apiKeys", migrated);
+    }
+  }
+
+  getProviders(): Provider[] {
+    return this.getRawProviders().map(decryptApiKey);
+  }
+
   getProvider(id: string): Provider | undefined {
-    return this.getProviders().find((p) => p.id === id);
+    const raw = this.getRawProviders().find((p) => p.id === id);
+    return raw ? decryptApiKey(raw) : undefined;
   }
 
   addProvider(provider: Provider): void {
-    const providers = this.getProviders();
-    providers.push(provider);
-    this.store.set("providers", providers);
+    const raw = this.getRawProviders();
+    raw.push(encryptApiKey(provider));
+    this.store.set("providers", raw);
     log("addProvider: id=%s name=%s baseURL=%s", provider.id, provider.name, provider.baseURL);
   }
 
   updateProvider(id: string, updates: Partial<Omit<Provider, "id">>): Provider {
-    const providers = this.getProviders();
-    const idx = providers.findIndex((p) => p.id === id);
+    const raw = this.getRawProviders();
+    const idx = raw.findIndex((p) => p.id === id);
     if (idx === -1) throw new Error(`Provider not found: ${id}`);
-    providers[idx] = { ...providers[idx], ...updates };
-    this.store.set("providers", providers);
-    log("updateProvider: id=%s name=%s keys=%o", id, providers[idx].name, Object.keys(updates));
-    return providers[idx];
+    const current = decryptApiKey(raw[idx]);
+    const updated = { ...current, ...updates };
+    raw[idx] = encryptApiKey(updated);
+    this.store.set("providers", raw);
+    log("updateProvider: id=%s name=%s keys=%o", id, updated.name, Object.keys(updates));
+    return updated;
   }
 
   removeProvider(id: string): void {
-    const providers = this.getProviders().filter((p) => p.id !== id);
-    this.store.set("providers", providers);
+    const raw = this.getRawProviders().filter((p) => p.id !== id);
+    this.store.set("providers", raw);
     if (this.store.get("provider") === id) {
       this.store.delete("provider" as keyof ConfigStoreSchema);
       this.store.delete("model" as keyof ConfigStoreSchema);
       log("removeProvider: cleared global selection for id=%s", id);
     }
-    log("removeProvider: id=%s remaining=%d", id, providers.length);
+    log("removeProvider: id=%s remaining=%d", id, raw.length);
   }
 
   getGlobalSelection(): { provider?: string; model?: string } {
